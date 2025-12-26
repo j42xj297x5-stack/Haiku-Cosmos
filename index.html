@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#000000" />
+  <title>Haiku Cosmos</title>
+
+  <style>
+    /* ===== Global / Mobile safety ===== */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
+      overflow: hidden;              /* no scrollbars */
+      touch-action: none;            /* prevent browser gestures on canvas */
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* ===== Layout ===== */
+    #app {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      grid-template-rows: 1fr;
+    }
+
+    /* Canvas fills screen; resolution handled in JS */
+    #gameCanvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      background: #000;
+    }
+
+    /* ===== UI overlay (cards, debug, buttons) ===== */
+    #uiRoot {
+      position: fixed;
+      inset: 0;
+      pointer-events: none; /* UI elements can re-enable if needed */
+    }
+
+    /* Small top bar for debug / future buttons */
+    #topBar {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      pointer-events: none;
+      z-index: 9998;
+    }
+    .pill {
+      pointer-events: auto;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.9);
+      font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      backdrop-filter: blur(8px);
+    }
+    button.pill {
+      cursor: pointer;
+    }
+
+    /* Optional FPS label */
+    #fpsLabel {
+      opacity: 0.85;
+    }
+
+    /* If you later add haiku card styling, you can drop it here or in styles.css */
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <div id="uiRoot">
+    <div id="topBar">
+      <div class="pill" id="fpsLabel">FPS: --</div>
+      <button class="pill" id="btnRestart" type="button">Restart</button>
+    </div>
+    <!-- Cards UI will be appended by JS (e.g., CardsUI.ensureRoot()) -->
+  </div>
+
+  <!-- 1) Preset kart (na razie OK nawet jeśli jeszcze nie używasz) -->
+  <script src="./cards_preset_run1_3.v1.js"></script>
+
+  <!-- 2) Główna gra -->
+  <script src="./game.js"></script>
+
+  <noscript>
+    <div style="color:#fff; padding:16px; font-family:system-ui;">
+      Ta gra wymaga włączonego JavaScript.
+    </div>
+  </noscript>
+</body>
+</html>
