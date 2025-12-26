@@ -1837,41 +1837,49 @@ meteorCollisionFudge: 1.12,
   function drawPlanetRings(p, nowMs) {
     if (!p.rings || !p.rings.length) return;
 
-    // lazy cleanup + draw
-    const alive = [];
     for (const rg of p.rings) {
-      const age = nowMs - rg.t0;
-      if (age < 0) continue;
-      if (age > rg.ttl) continue;
-
-      const k = 1 - (age / rg.ttl);
+   
       ctx.save();
-      ctx.globalAlpha = Math.max(0, Math.min(0.55, rg.a * k));
+      ctx.globalAlpha = 0.7;
       ctx.beginPath();
       ctx.setLineDash([]);
       ctx.lineWidth = rg.w;
       ctx.strokeStyle = rg.stroke;
       ctx.arc(p.x, p.y, rg.r, 0, Math.PI * 2);
       ctx.stroke();
+      const innerLineWidth = Math.max(0.6, rg.w * 0.08);
+      const innerOffset = rg.w * 0.15;
+      const innerColor = "rgba(0, 0, 0, 0.35)";
+      ctx.lineWidth = innerLineWidth;
+      ctx.strokeStyle = innerColor;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(0.5, rg.r - innerOffset), 0, Math.PI * 2);
+      ctx.stroke();
+      if (rg.w >= 3) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, rg.r + innerOffset, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.restore();
 
-      alive.push(rg);
+   
     }
-    p.rings = alive;
+ 
   }
 
   function addPlanetRingMark(p, orbiter, nowMs, source) {
     if (!p) return;
     if (!p.rings) p.rings = [];
     const baseR = (typeof orbiter?.orbitR === "number" && isFinite(orbiter.orbitR)) ? orbiter.orbitR : (p.orbitPx || (p.r * 2.4));
-    const w = Math.max(1, Math.min(6, (orbiter?.r || 4) * 0.7));
+   const w = Math.max(2, Math.min(12, (orbiter?.r || 4) * 1.4));
+    const hueMid = (typeof p.hueA === "number" && typeof p.hueB === "number")
+      ? (p.hueA + p.hueB) * 0.5
+      : (typeof p.hueA === "number" ? p.hueA : (typeof p.hueB === "number" ? p.hueB : 0));
     p.rings.push({
       r: baseR,
       w,
       t0: nowMs,
-      ttl: 12000, // visible enough to notice
-      a: 0.55,
-      stroke: "rgba(255, 255, 255, 1.0)",
+     stroke: `hsla(${hueMid} 80% 60% / 0.7)`,
       source: source || "COMET",
     });
   }
