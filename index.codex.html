@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Haiku Cosmos — Codex</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #05060a;
+      overflow: hidden;
+      color: #ccc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Główne płótno gry -->
+  <canvas id="c"></canvas>
+
+  <!-- Preset kart (zostaje jak jest) -->
+  <script src="./cards_preset_run1_3.v1.js"></script>
+
+  <!-- MONOLIT runtime (źródło prawdy) -->
+  <script src="./game.monolith.codex.js"></script>
+
+  <!-- Opcjonalne patche Codex (na razie mogą być puste) -->
+  <!--
+  <script src="./codex_patch.template.js"></script>
+  -->
+
+</body>
+</html>
