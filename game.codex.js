@@ -215,6 +215,17 @@ meteorCollisionFudge: 1.12,
     STAR_SIZE_SMALL_MAX_ORBITERS: 23,
     STAR_SIZE_BIG_MAX_ORBITERS: 66,
 
+    // Rocky planet (from comet impact) tuning
+    ROCKY_PLANET_BASE_R: 6.0,
+    ROCKY_PLANET_KR: 0.65,
+    ROCKY_PLANET_MIN_R: 4.5,
+    ROCKY_PLANET_MAX_R: 120.0,
+    ROCKY_PLANET_BASE_MASS: 12.0,
+    ROCKY_PLANET_KM: 1.0,
+    ROCKY_PLANET_BURN_DURATION: 10.0,
+    ROCKY_PATCH_JITTER_RAD: 0.02,
+    GAS_GRAVITY_CONTACT_EPS: 2.0,
+
     score: 0,
   };
   // Bind CardEngine to World (foundation under Card Editor)
@@ -603,7 +614,97 @@ meteorCollisionFudge: 1.12,
         }
       }
 
-      // comet vs asteroid: IMPACT -> asteroid breaks into ring if orbiting planet
+      function transformAsteroidIntoRockyPlanet(a, comet, nowMs) {
+        const orbiters = (a.orbiters && a.orbiters.length) ? a.orbiters.slice() : [];
+        const colorWeights = Object.create(null);
+        const colorHues = Object.create(null);
+        let sumR = 0;
+        let sumMass = 0;
+
+        for (const o of orbiters) {
+          const r = o.r || 0;
+          const mass = (typeof o.mass === "number") ? o.mass : (r * r);
+          const colorName = o.colorName || "blue";
+          const hue = (typeof o.hue === "number") ? o.hue : hueFromName(colorName);
+          const weight = r || 1;
+          sumR += r;
+          sumMass += mass;
+          colorWeights[colorName] = (colorWeights[colorName] || 0) + weight;
+          colorHues[colorName] = hue;
+        }
+
+        const Rm = meteorBaseRadius();
+        const baseR = World.ROCKY_PLANET_BASE_R * Rm;
+        const minR = World.ROCKY_PLANET_MIN_R * Rm;
+        const maxR = World.ROCKY_PLANET_MAX_R * Rm;
+        const planetR = clamp(baseR + World.ROCKY_PLANET_KR * sumR, minR, maxR);
+        const baseMass = World.ROCKY_PLANET_BASE_MASS * (Rm * Rm);
+        const planetMass = baseMass + World.ROCKY_PLANET_KM * sumMass;
+        const gravityR = computeGravityFromPlanetRadius(planetR);
+
+        const patchwork = [];
+        let totalWeight = 0;
+        for (const w of Object.values(colorWeights)) totalWeight += w;
+        for (const [colorName, weight] of Object.entries(colorWeights)) {
+          patchwork.push({
+            colorName,
+            hue: colorHues[colorName] ?? hueFromName(colorName),
+            weightNorm: totalWeight > 0 ? (weight / totalWeight) : 1,
+          });
+        }
+
+        let avgHue = hueFromName("yellow");
+        if (patchwork.length) {
+          let hueSum = 0;
+          for (const p of patchwork) hueSum += p.hue * p.weightNorm;
+          avgHue = hueSum;
+        }
+
+        const p = {
+          type: "planet",
+          planetKind: "rocky",
+          x: a.x,
+          y: a.y,
+          vx: a.vx || 0,
+          vy: a.vy || 0,
+          r: planetR,
+          orbitPx: gravityR,
+          gravityR,
+          mass: planetMass,
+          hueA: avgHue,
+          hueB: avgHue,
+          orbiters: [],
+          captureCooldown: 0,
+          captureCount: 0,
+          captureSumR: 0,
+          captureSumMass: 0,
+          captureColorCounts: Object.create(null),
+          rings: [],
+          capturedAsteroids: [],
+          patchwork,
+          patchworkIsMono: patchwork.length === 1,
+          baseColor: patchwork[0]?.colorName,
+          patchworkAvgHue: avgHue,
+          birthBurn: { t: 0, duration: World.ROCKY_PLANET_BURN_DURATION, active: true, seed: (a._id || a.id || 1) },
+        };
+
+        if (a.parentKind === "planet" && a.parentRef) {
+          p.parentKind = "planet";
+          p.parentRef = a.parentRef;
+          p.orbitR = a.orbitR;
+          p.theta = a.theta;
+          p.omega = a.omega;
+        }
+
+        if (a.orbiters) a.orbiters.length = 0;
+        World.planets.push(p);
+
+        // destroy comet after impact
+        const cometIndex = World.comets.indexOf(comet);
+        if (cometIndex >= 0) World.comets.splice(cometIndex, 1);
+      }
+
+      // comet vs asteroid: IMPACT -> asteroid transforms into rocky planet
       for (let ci = World.comets.length - 1; ci >= 0; ci--) {
         const c = World.comets[ci];
 
@@ -613,32 +714,8 @@ meteorCollisionFudge: 1.12,
           const rr = a.r + c.r;
           if (dx*dx + dy*dy > rr*rr) continue;
 
-          const ringOwner = (a.parentKind === "planet" && a.parentRef) ? a.parentRef : null;
-          let ringColors = [];
-          if (a.orbiters && a.orbiters.length) {
-            for (const o of a.orbiters) {
-              ringColors.push({
-                hue: (typeof o.hue === "number") ? o.hue : hueFromName(o.colorName || "blue"),
-                colorName: o.colorName || "blue",
-              });
-            }
-          }
-          if (ringOwner && !ringColors.length) {
-            const fallbackHue = (typeof ringOwner.hueA === "number") ? ringOwner.hueA : hueFromName("blue");
-            ringColors = [{ hue: fallbackHue, colorName: "blue" }];
-          }
-
-          // TODO: future — if comet hits asteroid with rotating meteors, create multicolor ring (thickness = asteroid radius).
-          if (ringOwner) {
-            addAsteroidBreakRing(ringOwner, a, ringColors, nowMs);
-          }
-
-          // remove asteroid and its orbiters (no release as meteors)
-          if (a.orbiters) a.orbiters.length = 0;
+          transformAsteroidIntoRockyPlanet(a, c, nowMs);
           World.asteroids.splice(ai, 1);
-
-          // destroy comet after impact
-          World.comets.splice(ci, 1);
           break;
         }
       }
@@ -1093,6 +1170,15 @@ meteorCollisionFudge: 1.12,
     return grad;
   }
 
+  function computeGravityFromPlanetRadius(r) {
+    return r * 2.6;
+  }
+
+  function hash01(n) {
+    const s = Math.sin(n) * 43758.5453;
+    return s - Math.floor(s);
+  }
+
   // Internal ids (used for comet-release cooldown / ignore)
   let ASTEROID_ID_SEQ = 1;
 
@@ -1350,6 +1436,83 @@ meteorCollisionFudge: 1.12,
       source: "COMET",
     });
   }
+
+  function drawRockyPlanet(p, nowMs) {
+    const patchwork = Array.isArray(p.patchwork) ? p.patchwork : [];
+    const avgHue = (typeof p.patchworkAvgHue === "number") ? p.patchworkAvgHue : hueFromName(p.baseColor || "yellow");
+
+    if (p.birthBurn && p.birthBurn.active) {
+      ctx.beginPath();
+      ctx.fillStyle = `hsl(${avgHue} 90% 62%)`;
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      const burnT = clamp(p.birthBurn.t / Math.max(0.001, p.birthBurn.duration), 0, 1);
+      const phase = (p.birthBurn.seed || 1) * 0.7;
+      const flicker = 0.6 + 0.4 * Math.sin((nowMs * 0.006) + phase);
+
+      ctx.globalAlpha = (1 - burnT) * 0.35 * flicker;
+      ctx.beginPath();
+      ctx.fillStyle = `hsl(${avgHue} 90% 72%)`;
+      ctx.arc(p.x, p.y, p.r * 1.02, 0, Math.PI * 2);
+      ctx.fill();
+
+      const rays = 12;
+      ctx.lineWidth = Math.max(1, p.r * 0.05);
+      ctx.strokeStyle = `hsla(${avgHue} 90% 75% / ${0.5 * (1 - burnT)})`;
+      for (let i = 0; i < rays; i++) {
+        const n = (p.birthBurn.seed || 1) * 13 + i * 7.1;
+        const ang = (i / rays) * Math.PI * 2 + (hash01(n) - 0.5) * 0.12;
+        const len = p.r * (0.12 + 0.18 * hash01(n + 3.3));
+        const sx = p.x + Math.cos(ang) * (p.r * 0.9);
+        const sy = p.y + Math.sin(ang) * (p.r * 0.9);
+        const ex = p.x + Math.cos(ang) * (p.r * 0.9 + len);
+        const ey = p.y + Math.sin(ang) * (p.r * 0.9 + len);
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
+
+    if (p.spinLikeAsteroid) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.spinAngle || 0);
+      ctx.translate(-p.x, -p.y);
+    }
+
+    if (p.patchworkIsMono || patchwork.length <= 1) {
+      const hue = patchwork[0]?.hue ?? avgHue;
+      ctx.beginPath();
+      ctx.fillStyle = `hsl(${hue} 85% 55%)`;
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      let start = 0;
+      const seedBase = (p._id || p.id || 1) * 13.7;
+      for (let i = 0; i < patchwork.length; i++) {
+        const piece = patchwork[i];
+        const weight = Math.max(0, piece.weightNorm || 0);
+        const jitterA = (hash01(seedBase + i * 5.2) - 0.5) * World.ROCKY_PATCH_JITTER_RAD;
+        const jitterB = (hash01(seedBase + i * 5.2 + 2.1) - 0.5) * World.ROCKY_PATCH_JITTER_RAD;
+        const end = start + weight * Math.PI * 2;
+        const a0 = start + jitterA;
+        const a1 = end + jitterB;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.fillStyle = `hsl(${piece.hue} 85% 52%)`;
+        ctx.arc(p.x, p.y, p.r, a0, a1);
+        ctx.closePath();
+        ctx.fill();
+        start = end;
+      }
+    }
+
+    if (p.spinLikeAsteroid) ctx.restore();
+  }
 function drawPlanet(p) {
     const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     ctx.save();
@@ -1366,9 +1529,13 @@ ctx.beginPath();
     drawPlanetOrbiters(p);
 
     ctx.beginPath();
-    ctx.fillStyle = makePlanetGradient(p.x, p.y, p.r, p.hueA, p.hueB);
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
+    if (p.planetKind === "rocky") {
+      drawRockyPlanet(p, nowMs);
+    } else {
+      ctx.fillStyle = makePlanetGradient(p.x, p.y, p.r, p.hueA, p.hueB);
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     ctx.globalAlpha = 0.25;
     ctx.beginPath();
@@ -1741,6 +1908,7 @@ if (dist2 <= minDist * minDist) {
       vy: a.vy,
       r: r0,
       orbitPx: orbit0,
+      gravityR: computeGravityFromPlanetRadius(r0),
       hueA,
       hueB,
       mass: planetMass,
@@ -1835,16 +2003,24 @@ if (dist2 <= minDist * minDist) {
     const bounceLoss = 0.94;
     const b = getWorldViewBounds();
     for (const p of World.planets) {
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
+      if (p.parentKind === "planet" && p.parentRef) {
+        const parent = p.parentRef;
+        p.theta = (p.theta || 0) + (p.omega || 0) * dt;
+        const orbitR = (typeof p.orbitR === "number" && isFinite(p.orbitR)) ? p.orbitR : (parent.orbitPx || (parent.r * 2.6));
+        p.x = parent.x + Math.cos(p.theta) * orbitR;
+        p.y = parent.y + Math.sin(p.theta) * orbitR;
+      } else {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
 
-      p.vx *= (1 - 0.01 * dt);
-      p.vy *= (1 - 0.01 * dt);
+        p.vx *= (1 - 0.01 * dt);
+        p.vy *= (1 - 0.01 * dt);
 
-      if (p.x - p.r < b.l) { p.x = b.l + p.r; p.vx = Math.abs(p.vx) * bounceLoss; }
-      if (p.x + p.r > b.r) { p.x = b.r - p.r; p.vx = -Math.abs(p.vx) * bounceLoss; }
-      if (p.y - p.r < b.t) { p.y = b.t + p.r; p.vy = Math.abs(p.vy) * bounceLoss; }
-      if (p.y + p.r > b.b) { p.y = b.b - p.r; p.vy = -Math.abs(p.vy) * bounceLoss; }
+        if (p.x - p.r < b.l) { p.x = b.l + p.r; p.vx = Math.abs(p.vx) * bounceLoss; }
+        if (p.x + p.r > b.r) { p.x = b.r - p.r; p.vx = -Math.abs(p.vx) * bounceLoss; }
+        if (p.y - p.r < b.t) { p.y = b.t + p.r; p.vy = Math.abs(p.vy) * bounceLoss; }
+        if (p.y + p.r > b.b) { p.y = b.b - p.r; p.vy = -Math.abs(p.vy) * bounceLoss; }
+      }
 
       // orbiters update
       if (p.orbiters && p.orbiters.length) {
@@ -1855,6 +2031,33 @@ if (dist2 <= minDist * minDist) {
           const omegaDyn = sign * computeOmega(absBase, o.orbitR, Rm);
           o.angle += omegaDyn * dt;
         }
+      }
+
+      if (p.birthBurn && p.birthBurn.active) {
+        p.birthBurn.t += dt;
+        if (p.birthBurn.t >= p.birthBurn.duration) p.birthBurn.active = false;
+      }
+
+      p.gravityR = computeGravityFromPlanetRadius(p.r);
+
+      if (p.planetKind === "rocky" && !p.spinLikeAsteroid) {
+        for (const g of World.planets) {
+          if (g === p || g.planetKind !== "gas") continue;
+          const gravityR = (typeof g.gravityR === "number") ? g.gravityR : computeGravityFromPlanetRadius(g.r);
+          const d = Math.hypot(g.x - p.x, g.y - p.y);
+          const eps = Math.max(World.GAS_GRAVITY_CONTACT_EPS, p.r * 0.15);
+          if (Math.abs(d - gravityR) <= eps) {
+            p.spinLikeAsteroid = true;
+            const sign = Math.random() < 0.5 ? -1 : 1;
+            p.spinOmega = sign * rand(0.08, 0.25);
+            p.spinAngle = p.spinAngle || 0;
+            break;
+          }
+        }
+      }
+
+      if (p.spinLikeAsteroid) {
+        p.spinAngle = (p.spinAngle || 0) + (p.spinOmega || 0) * dt;
       }
     }
   }
