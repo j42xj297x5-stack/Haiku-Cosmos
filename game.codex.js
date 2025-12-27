@@ -224,6 +224,9 @@ meteorCollisionFudge: 1.12,
     STAR_COLOR_KEY_GREEN: "green",
     STAR_COLOR_KEY_RED: "red",
     STAR_COLOR_KEY_YELLOW: "yellow",
+    STAR_BIRTH_RADIUS_FROM_OLD_GRAVITY: 0.18,
+    STAR_BIRTH_RADIUS_MIN_MULT_OF_OLD_R: 2.6,
+    STAR_BIRTH_RADIUS_MAX_FRACTION: 0.35,
     PLANET_SOFT_EDGE_ALPHA: 0.10,
     PLANET_SOFT_EDGE_WIDTH: 2.0,
     PLANET_SOFT_INNER_ALPHA: 0.06,
@@ -407,6 +410,7 @@ meteorCollisionFudge: 1.12,
 
       for (let i = World.comets.length - 1; i >= 0; i--) {
         const c = World.comets[i];
+        c.hitCooldown = Math.max(0, (c.hitCooldown || 0) - dt);
 
         // gravity from planets (simple bend)
         for (const p of World.planets) {
@@ -452,6 +456,9 @@ meteorCollisionFudge: 1.12,
     function handleCollisions(dt, nowMs) {
       // Kometa zawsze ma szansę zniszczyć meteor niezależnie od tego, gdzie on jest.
       // Jedno źródło prawdy: lista kandydatów (WORLD + orbiters ASTEROID/PLANET/(STAR)).
+      function isGhostBody(o) {
+        return !o || o.dead || o.removeMe || o.absorbingIntoStarId != null || o._beingAbsorbed === true || o.alpha === 0 || o._alpha === 0;
+      }
       function getAllMeteorsForCollision() {
         const out = [];
 
@@ -567,6 +574,7 @@ meteorCollisionFudge: 1.12,
       
       // comet vs meteors (WORLD + orbiters)
       for (const c of World.comets) {
+        if (c.hitCooldown > 0) continue;
         // 1) WORLD meteors
         for (let mi = World.meteors.length - 1; mi >= 0; mi--) {
           const m = World.meteors[mi];
@@ -582,14 +590,17 @@ meteorCollisionFudge: 1.12,
 
           // deflect comet by 20/30/40 deg depending on mass ratio
           deflectCometByMass(c, m);
+          c.hitCooldown = 0.08;
 
           // one hit per comet per frame is enough
           break;
         }
+        if (c.hitCooldown > 0) continue;
 
         // 2) ASTEROID orbiters (no rings)
         if (World.asteroids && World.asteroids.length) {
           for (const a of World.asteroids) {
+            if (isGhostBody(a)) continue;
             if (!a.orbiters || !a.orbiters.length) continue;
 
             for (let oi = a.orbiters.length - 1; oi >= 0; oi--) {
@@ -609,17 +620,21 @@ meteorCollisionFudge: 1.12,
               if (typeof a.orbitPx === "number") a.orbitPx = Math.max(a.r * 1.6, a.orbitPx - shrink);
 
               deflectCometByMass(c, removed);
+              c.hitCooldown = 0.08;
               oi = -1; // break
               break;
             }
+            if (c.hitCooldown > 0) break;
           }
         }
+        if (c.hitCooldown > 0) continue;
 
         // 3) PLANET orbiters (ALWAYS create ring mark on hit)
         if (World.planets && World.planets.length) {
           const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
           for (const p of World.planets) {
+            if (isGhostBody(p)) continue;
             if (!p.orbiters || !p.orbiters.length) continue;
 
             for (let oi = p.orbiters.length - 1; oi >= 0; oi--) {
@@ -640,9 +655,11 @@ meteorCollisionFudge: 1.12,
               if (typeof p.orbitPx === "number") p.orbitPx = Math.max(p.r * 1.8, p.orbitPx - shrink);
 
               deflectCometByMass(c, removed);
+              c.hitCooldown = 0.08;
               oi = -1; // break
               break;
             }
+            if (c.hitCooldown > 0) break;
           }
         }
       }
@@ -732,9 +749,11 @@ meteorCollisionFudge: 1.12,
       // comet vs asteroid: IMPACT -> asteroid transforms into rocky planet
       for (let ci = World.comets.length - 1; ci >= 0; ci--) {
         const c = World.comets[ci];
+        if (c.hitCooldown > 0) continue;
 
         for (let ai = World.asteroids.length - 1; ai >= 0; ai--) {
           const a = World.asteroids[ai];
+          if (isGhostBody(a)) continue;
           const dx = a.x - c.x, dy = a.y - c.y;
           const rr = a.r + c.r;
           if (dx*dx + dy*dy > rr*rr) continue;
@@ -742,6 +761,7 @@ meteorCollisionFudge: 1.12,
           transformAsteroidIntoRockyPlanet(a, c);
           World.planets.push(a);
           World.asteroids.splice(ai, 1);
+          c.hitCooldown = 0.08;
           break;
         }
       }
@@ -749,8 +769,10 @@ meteorCollisionFudge: 1.12,
       // comet vs planet: IMPACT -> seed life (rocky), release half orbiters + destroy comet
       for (let ci = World.comets.length - 1; ci >= 0; ci--) {
         const c = World.comets[ci];
+        if (c.hitCooldown > 0) continue;
 
         for (const p of World.planets) {
+          if (isGhostBody(p)) continue;
           const dx = p.x - c.x, dy = p.y - c.y;
           const rr = p.r + c.r;
           if (dx*dx + dy*dy > rr*rr) continue;
@@ -770,7 +792,25 @@ meteorCollisionFudge: 1.12,
 
           // destroy comet after impact
           World.comets.splice(ci, 1);
+          c.hitCooldown = 0.08;
           break;
+        }
+      }
+
+      // comet vs star body: direct hit only
+      if (World.stars && World.stars.length) {
+        for (let ci = World.comets.length - 1; ci >= 0; ci--) {
+          const c = World.comets[ci];
+          if (c.hitCooldown > 0) continue;
+          for (const s of World.stars) {
+            const dx = s.x - c.x, dy = s.y - c.y;
+            const rr = s.r + c.r;
+            if (dx*dx + dy*dy > rr*rr) continue;
+            s.mass = (s.mass || 0) + (c.mass || (c.r * c.r));
+            World.comets.splice(ci, 1);
+            c.hitCooldown = 0.08;
+            break;
+          }
         }
       }
     }
@@ -783,20 +823,20 @@ meteorCollisionFudge: 1.12,
         const ang = (Math.PI * 2 * k) / n + rand(-0.25, 0.25);
         const spd = rand(0.02, 0.06) * View.worldScale;
 
-        World.meteors.push({
-          x: m.x + Math.cos(ang) * m.r * 0.2,
-          y: m.y + Math.sin(ang) * m.r * 0.2,
-          vx: (m.vx || 0) * 0.15 + Math.cos(ang) * spd,
-          vy: (m.vy || 0) * 0.15 + Math.sin(ang) * spd,
-          r: fr,
-          colorName: m.colorName,
-          hue: m.hue,
-          age: 0,
-          life: rand(40, 80),
-          trail: [],
-          noAsteroidOrbit: true,
-          isFragment: true,
-        });
+      World.meteors.push({
+        x: m.x + Math.cos(ang) * m.r * 0.2,
+        y: m.y + Math.sin(ang) * m.r * 0.2,
+        vx: (m.vx || 0) * 0.15 + Math.cos(ang) * spd,
+        vy: (m.vy || 0) * 0.15 + Math.sin(ang) * spd,
+        r: fr,
+        colorName: m.colorName,
+        hue: m.hue,
+        age: 0,
+        life: rand(40, 80),
+        trail: [{ x: m.x + Math.cos(ang) * m.r * 0.2, y: m.y + Math.sin(ang) * m.r * 0.2, t: 0 }],
+        noAsteroidOrbit: true,
+        isFragment: true,
+      });
       }
     }
 
@@ -1213,8 +1253,9 @@ meteorCollisionFudge: 1.12,
     if (star._epochZoomStarted) return;
     const margin = 0.88;
     const minHalf = Math.min(screenW, screenH) * 0.5 * margin;
-    const toZoom = minHalf / Math.max(1e-6, (star.gravityR || computeGravityFromPlanetRadius(star.r)));
-    if (toZoom >= Camera.scale) return;
+    const desiredFit = minHalf / Math.max(1e-6, (star.gravityR || computeGravityFromPlanetRadius(star.r)));
+    const nudge = Camera.scale * 0.86;
+    const toZoom = Math.min(desiredFit, nudge);
 
     Camera.epochZoom.active = true;
     Camera.epochZoom.t = 0;
@@ -1731,6 +1772,7 @@ meteorCollisionFudge: 1.12,
   }
 
   function transformGasPlanetIntoStar(p, info, kind) {
+    const oldGravityR = p.gravityR || computeGravityFromPlanetRadius(p.r);
     const meteors = getSystemMeteorsForPlanet(p);
     removeSystemMeteorsFromPlanet(p, meteors);
 
@@ -1761,6 +1803,13 @@ meteorCollisionFudge: 1.12,
       sizeClass: kind === "rare" ? "small" : null,
       gradientOuterColor: kind === "rare" ? (info.monoColorKey || info.dominantKey || "yellow") : null,
     };
+    const targetFromGravity = oldGravityR * World.STAR_BIRTH_RADIUS_FROM_OLD_GRAVITY;
+    const targetFromOldR = p.r * World.STAR_BIRTH_RADIUS_MIN_MULT_OF_OLD_R;
+    let newR = Math.max(star.r, targetFromGravity, targetFromOldR);
+    const maxR = oldGravityR * World.STAR_BIRTH_RADIUS_MAX_FRACTION;
+    newR = Math.min(newR, maxR);
+    star.r = newR;
+    star.gravityR = computeGravityFromPlanetRadius(star.r);
     World.stars.push(star);
     for (const m of meteors) {
       World.meteors.push(m);
