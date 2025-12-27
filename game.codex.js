@@ -211,6 +211,10 @@ meteorCollisionFudge: 1.12,
 
     planetCaptureTarget: 13,
 
+    // Star size thresholds (cards can tune)
+    STAR_SIZE_SMALL_MAX_ORBITERS: 23,
+    STAR_SIZE_BIG_MAX_ORBITERS: 66,
+
     score: 0,
   };
   // Bind CardEngine to World (foundation under Card Editor)
@@ -935,6 +939,63 @@ meteorCollisionFudge: 1.12,
       }
       this._clampOrbitersToOrbit(asteroid);
       return removed;
+    },
+
+    countStarSystemOrbiters(star, opts = {}) {
+      const cap = Object.prototype.hasOwnProperty.call(opts, "cap") ? opts.cap : 50;
+      const limit = Number.isFinite(cap) ? cap : Infinity;
+      const seenIds = new Set();
+      const seenObjs = new Set();
+      let count = 0;
+
+      function mark(obj) {
+        if (!obj) return;
+        const id = obj.id ?? obj._id;
+        if (id !== undefined && id !== null) {
+          if (seenIds.has(id)) return;
+          seenIds.add(id);
+        } else {
+          if (seenObjs.has(obj)) return;
+          seenObjs.add(obj);
+        }
+        count++;
+      }
+
+      if (star && star.orbiters && star.orbiters.length) {
+        for (const o of star.orbiters) {
+          mark(o);
+          if (count >= limit) return count;
+        }
+      }
+
+      if (World.asteroids && World.asteroids.length) {
+        for (const a of World.asteroids) {
+          if (a.parentKind !== "star" || a.parentRef !== star) continue;
+          mark(a);
+          if (count >= limit) return count;
+          if (a.orbiters && a.orbiters.length) {
+            for (const o of a.orbiters) {
+              mark(o);
+              if (count >= limit) return count;
+            }
+          }
+        }
+      }
+
+      if (star && star.planetoids && star.planetoids.length) {
+        for (const a of star.planetoids) {
+          mark(a);
+          if (count >= limit) return count;
+          if (a && a.orbiters && a.orbiters.length) {
+            for (const o of a.orbiters) {
+              mark(o);
+              if (count >= limit) return count;
+            }
+          }
+        }
+      }
+
+      return count;
     },
 
     _clampOrbitersToOrbit(asteroid) {
@@ -1894,6 +1955,26 @@ if (dist2 <= minDist * minDist) {
     captureAsteroidsByPlanets(dt, nowMs);
     updateAsteroids(dt);
     updatePlanets(dt);
+
+    if (World.stars && World.stars.length) {
+      for (const star of World.stars) {
+        const birth = star?.starBirth || star?.birth;
+        if (!birth || birth.phase !== "done") continue;
+        if (star.sizeClass) continue;
+
+        const orbitersCount = WorldAPI.countStarSystemOrbiters(star, { cap: Infinity });
+        if (orbitersCount <= World.STAR_SIZE_SMALL_MAX_ORBITERS) {
+          star.sizeClass = "small";
+          star.gradientOuterColor = "yellow";
+        } else if (orbitersCount <= World.STAR_SIZE_BIG_MAX_ORBITERS) {
+          star.sizeClass = "big";
+          star.gradientOuterColor = "blue";
+        } else {
+          star.sizeClass = "very_big";
+          star.gradientOuterColor = "orangered";
+        }
+      }
+    }
   }
 
   function render() {
