@@ -214,6 +214,15 @@ meteorCollisionFudge: 1.12,
     // Star size thresholds (cards can tune)
     STAR_SIZE_SMALL_MAX_ORBITERS: 23,
     STAR_SIZE_BIG_MAX_ORBITERS: 66,
+    STAR_RARE_MONO_MIN: 13,
+    STAR_REQ_BLUE: 103,
+    STAR_REQ_GREEN: 66,
+    STAR_REQ_RED: 36,
+    STAR_REQ_YELLOW: 23,
+    STAR_COLOR_KEY_BLUE: "blue",
+    STAR_COLOR_KEY_GREEN: "green",
+    STAR_COLOR_KEY_RED: "red",
+    STAR_COLOR_KEY_YELLOW: "yellow",
 
     // Rocky planet (from comet impact) tuning
     ROCKY_FROM_AST_ORBITER_R_WEIGHT: 1.0,
@@ -656,6 +665,12 @@ meteorCollisionFudge: 1.12,
           monoColor: patch.monoColor || weights.monoColor,
           avgHue: weights.avgHue,
         };
+        a.rockySurface = {
+          isMono: patch.isMono,
+          monoColor: patch.monoColor || weights.monoColor,
+          dominantColor: patch.dominantColor || weights.dominantColor,
+          blobs: patch.blobs || [],
+        };
         for (const o of orbiters) {
           const startR = (typeof o.orbitR === "number" && isFinite(o.orbitR))
             ? o.orbitR
@@ -684,6 +699,7 @@ meteorCollisionFudge: 1.12,
           t: 0,
           shrinkDur: World.ROCKY_FORM_SHRINK_DUR,
           fadeDur: World.ROCKY_FORM_FADE_DUR,
+          weights,
           rings,
         };
         a.spinLikeAsteroid = false;
@@ -1252,17 +1268,22 @@ meteorCollisionFudge: 1.12,
       for (const c of colors) hueSum += c.hue * c.wn;
       avgHue = hueSum;
     }
+    const isMono = colors.length === 1;
+    const monoColor = colors[0]?.colorName || "blue";
+    const dominantColor = isMono ? monoColor : (colors[0]?.colorName || monoColor);
     return {
       colors,
-      isMono: colors.length === 1,
-      monoColor: colors[0]?.colorName || "blue",
+      isMono,
+      monoColor,
+      dominantColor,
+      totalWeight: total,
       avgHue,
     };
   }
 
   function buildBlobPatchwork(planetId, weights, blobCount) {
     if (weights.isMono) {
-      return { isMono: true, monoColor: weights.monoColor, blobs: [] };
+      return { isMono: true, monoColor: weights.monoColor, dominantColor: weights.dominantColor, blobs: [] };
     }
     const seed = hash32(`rocky:${planetId}`);
     const rnd = makeRng(seed);
@@ -1300,7 +1321,7 @@ meteorCollisionFudge: 1.12,
         seed: hash32(`blob:${planetId}:${i}`),
       });
     }
-    return { isMono: false, monoColor: null, blobs };
+    return { isMono: false, monoColor: null, dominantColor: weights.dominantColor, blobs };
   }
 
   function computeRockyParamsFromOrbiters(orbiters) {
@@ -1326,6 +1347,144 @@ meteorCollisionFudge: 1.12,
     for (let i = World.asteroids.length - 1; i >= 0; i--) {
       if (orbiters.includes(World.asteroids[i])) World.asteroids.splice(i, 1);
     }
+  }
+
+  function getSystemMeteorsForPlanet(p) {
+    const out = [];
+    const seenIds = new Set();
+    const seenObjs = new Set();
+
+    function addMeteor(m) {
+      if (!m) return;
+      const id = m.id ?? m._id;
+      if (id !== undefined && id !== null) {
+        if (seenIds.has(id)) return;
+        seenIds.add(id);
+      } else {
+        if (seenObjs.has(m)) return;
+        seenObjs.add(m);
+      }
+      out.push(m);
+    }
+
+    if (p.orbiters && p.orbiters.length) {
+      for (const m of p.orbiters) addMeteor(m);
+    }
+
+    if (World.asteroids && World.asteroids.length) {
+      for (const a of World.asteroids) {
+        if (a.parentKind !== "planet" || a.parentRef !== p) continue;
+        if (a.orbiters && a.orbiters.length) {
+          for (const m of a.orbiters) addMeteor(m);
+        }
+      }
+    }
+
+    return out;
+  }
+
+  function classifyMeteorColor(m) {
+    const name = (m.colorName || m.color || m.col || m.fill || "").toString().toLowerCase();
+    const keys = {
+      blue: World.STAR_COLOR_KEY_BLUE,
+      green: World.STAR_COLOR_KEY_GREEN,
+      red: World.STAR_COLOR_KEY_RED,
+      yellow: World.STAR_COLOR_KEY_YELLOW,
+    };
+    if (name === keys.blue) return "blue";
+    if (name === keys.green) return "green";
+    if (name === keys.red) return "red";
+    if (name === keys.yellow) return "yellow";
+
+    const hue = (typeof m.hue === "number") ? m.hue : null;
+    if (hue === null) return null;
+    const base = {
+      blue: hueFromName(keys.blue),
+      green: hueFromName(keys.green),
+      red: hueFromName(keys.red),
+      yellow: hueFromName(keys.yellow),
+    };
+    let bestKey = null;
+    let bestDist = Infinity;
+    for (const [key, h] of Object.entries(base)) {
+      const d = Math.min(Math.abs(hue - h), 360 - Math.abs(hue - h));
+      if (d < bestDist) {
+        bestDist = d;
+        bestKey = key;
+      }
+    }
+    return bestKey;
+  }
+
+  function analyzeSystemMeteors(meteors) {
+    const counts = { blue: 0, green: 0, red: 0, yellow: 0 };
+    let total = 0;
+    let monoColorKey = null;
+    let monoOk = true;
+
+    for (const m of meteors) {
+      const key = classifyMeteorColor(m);
+      if (!key) continue;
+      total += 1;
+      counts[key] += 1;
+      if (monoColorKey === null) monoColorKey = key;
+      else if (monoColorKey !== key) monoOk = false;
+    }
+
+    const order = ["blue", "green", "red", "yellow"];
+    let dominantKey = null;
+    let maxCount = -1;
+    for (const key of order) {
+      if (counts[key] > maxCount) {
+        maxCount = counts[key];
+        dominantKey = key;
+      }
+    }
+    return { total, counts, dominantKey, monoOk, monoColorKey };
+  }
+
+  function removeSystemMeteorsFromPlanet(p, meteors) {
+    if (!meteors || !meteors.length) return;
+    const set = new Set(meteors);
+
+    if (p.orbiters && p.orbiters.length) {
+      for (let i = p.orbiters.length - 1; i >= 0; i--) {
+        if (set.has(p.orbiters[i])) p.orbiters.splice(i, 1);
+      }
+    }
+
+    if (World.asteroids && World.asteroids.length) {
+      for (const a of World.asteroids) {
+        if (a.parentKind !== "planet" || a.parentRef !== p) continue;
+        if (!a.orbiters || !a.orbiters.length) continue;
+        for (let i = a.orbiters.length - 1; i >= 0; i--) {
+          if (set.has(a.orbiters[i])) a.orbiters.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  function transformGasPlanetIntoStar(p, info, kind) {
+    const meteors = getSystemMeteorsForPlanet(p);
+    removeSystemMeteorsFromPlanet(p, meteors);
+
+    if (!World.stars) World.stars = [];
+    const star = {
+      type: "star",
+      x: p.x,
+      y: p.y,
+      r: p.r,
+      mass: p.mass,
+      orbiters: meteors,
+      starKind: kind,
+      dominantKey: info.dominantKey,
+      monoColorKey: info.monoColorKey,
+      starBirth: { phase: "done" },
+      shimmer: kind === "rare" ? { active: true, seed: (p._id || p.id || 1) } : null,
+      sizeClass: kind === "rare" ? "small" : null,
+      gradientOuterColor: kind === "rare" ? (info.monoColorKey || info.dominantKey || "yellow") : null,
+    };
+    World.stars.push(star);
   }
 
   // Internal ids (used for comet-release cooldown / ignore)
@@ -1587,24 +1746,12 @@ meteorCollisionFudge: 1.12,
     });
   }
 
-  function drawRockyPatchwork(p, rocky, alpha) {
-    const patch = rocky.patch || {};
-    const blobs = Array.isArray(patch.blobs) ? patch.blobs : [];
-    const monoColor = patch.monoColor || rocky.monoColor || "yellow";
-    const monoHue = hueFromName(monoColor);
+  function drawRockyPatchwork(p, rockySurface, alpha) {
+    const blobs = Array.isArray(rockySurface.blobs) ? rockySurface.blobs : [];
+    if (!blobs.length) return;
 
     ctx.save();
     ctx.globalAlpha *= alpha;
-
-    if (patch.isMono || blobs.length === 0) {
-      ctx.beginPath();
-      ctx.fillStyle = `hsl(${monoHue} 85% 55%)`;
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-      return;
-    }
-
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
     ctx.clip();
@@ -1667,6 +1814,7 @@ meteorCollisionFudge: 1.12,
 
   function drawRockyPlanet(p, nowMs) {
     const rocky = p.rocky || {};
+    const rockySurface = p.rockySurface || {};
     const avgHue = (typeof rocky.avgHue === "number") ? rocky.avgHue : hueFromName(rocky.monoColor || "yellow");
     const form = p.rockyForm;
 
@@ -1715,7 +1863,7 @@ meteorCollisionFudge: 1.12,
           ctx.rotate(p.spinAngle || 0);
           ctx.translate(-p.x, -p.y);
         }
-        drawRockyPatchwork(p, rocky, blendAlpha);
+        drawRockyPatchwork(p, rockySurface, blendAlpha);
         if (p.spinLikeAsteroid) ctx.restore();
       }
       return;
@@ -1728,10 +1876,41 @@ meteorCollisionFudge: 1.12,
       ctx.translate(-p.x, -p.y);
     }
 
-    drawRockyPatchwork(p, rocky, 1);
+    const baseColor = rockySurface.isMono ? rockySurface.monoColor : rockySurface.dominantColor;
+    const baseHue = hueFromName(baseColor || "yellow");
+    ctx.beginPath();
+    ctx.fillStyle = `hsl(${baseHue} 85% 55%)`;
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    if (!rockySurface.isMono) {
+      drawRockyPatchwork(p, rockySurface, 1);
+    }
     drawRockyRimAndCracks(p, rocky, 1);
 
     if (p.spinLikeAsteroid) ctx.restore();
+  }
+
+  function drawStar(s, nowMs) {
+    const colorName = s.gradientOuterColor || "yellow";
+    const hue = hueFromName(colorName);
+    let flicker = 1;
+    if (s.starKind === "rare" && s.shimmer && s.shimmer.active) {
+      const phase = (s.shimmer.seed || 1) * 0.4;
+      flicker = 0.85 + 0.15 * Math.sin((nowMs * 0.004) + phase);
+    }
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.fillStyle = `hsl(${hue} 90% ${56 + (flicker * 8)}%)`;
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 0.35 * flicker;
+    ctx.beginPath();
+    ctx.fillStyle = `hsl(${hue} 90% 70%)`;
+    ctx.arc(s.x, s.y, s.r * 1.08, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 function drawPlanet(p) {
     const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
@@ -2222,7 +2401,8 @@ if (dist2 <= minDist * minDist) {
   function updatePlanets(dt) {
     const bounceLoss = 0.94;
     const b = getWorldViewBounds();
-    for (const p of World.planets) {
+    for (let pi = 0; pi < World.planets.length; pi++) {
+      const p = World.planets[pi];
       if (p.parentKind === "planet" && p.parentRef) {
         const parent = p.parentRef;
         p.theta = (p.theta || 0) + (p.omega || 0) * dt;
@@ -2265,6 +2445,30 @@ if (dist2 <= minDist * minDist) {
             p.rockyForm.active = false;
             p.rockyForm.phase = "done";
           }
+        }
+      }
+
+      if (p.planetKind === "gas") {
+        const meteors = getSystemMeteorsForPlanet(p);
+        const info = analyzeSystemMeteors(meteors);
+        if (info.total >= World.STAR_RARE_MONO_MIN && info.monoOk && info.monoColorKey) {
+          transformGasPlanetIntoStar(p, { ...info, dominantKey: info.monoColorKey }, "rare");
+          World.planets.splice(pi, 1);
+          pi -= 1;
+          continue;
+        }
+
+        let req = Infinity;
+        if (info.dominantKey === "blue") req = World.STAR_REQ_BLUE;
+        else if (info.dominantKey === "green") req = World.STAR_REQ_GREEN;
+        else if (info.dominantKey === "red") req = World.STAR_REQ_RED;
+        else if (info.dominantKey === "yellow") req = World.STAR_REQ_YELLOW;
+
+        if (info.total >= req) {
+          transformGasPlanetIntoStar(p, info, "normal");
+          World.planets.splice(pi, 1);
+          pi -= 1;
+          continue;
         }
       }
 
@@ -2393,6 +2597,13 @@ if (dist2 <= minDist * minDist) {
       for (const star of World.stars) {
         const birth = star?.starBirth || star?.birth;
         if (!birth || birth.phase !== "done") continue;
+        if (star.starKind === "rare") {
+          if (!star.sizeClass) star.sizeClass = "small";
+          if (!star.gradientOuterColor) {
+            star.gradientOuterColor = star.monoColorKey || star.dominantKey || "yellow";
+          }
+          continue;
+        }
         if (star.sizeClass) continue;
 
         const orbitersCount = WorldAPI.countStarSystemOrbiters(star, { cap: Infinity });
@@ -2425,6 +2636,10 @@ if (dist2 <= minDist * minDist) {
     Comets.draw(ctx);
     for (const a of World.asteroids) drawAsteroid(a);
     for (const p of World.planets) drawPlanet(p);
+    if (World.stars && World.stars.length) {
+      const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      for (const s of World.stars) drawStar(s, nowMs);
+    }
     for (const m of World.meteors) drawMeteor(m);
 
     ctx.restore();
@@ -2443,6 +2658,7 @@ if (dist2 <= minDist * minDist) {
     World.meteors = [];
     World.asteroids = [];
     World.planets = [];
+    World.stars = [];
     World.spawnTimer = 0;
     World.score = 0;
 
