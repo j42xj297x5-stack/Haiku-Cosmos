@@ -240,6 +240,7 @@ meteorCollisionFudge: 1.12,
     ROCKY_RIM_ALPHA: 0.18,
     ROCKY_CRACK_COUNT: 10,
     ROCKY_CRACK_ALPHA: 0.12,
+    ROCKY_MAX_SYSTEM_ORBITERS: 13,
     GAS_GRAVITY_CONTACT_EPS: 3.0,
     ROCKY_SPIN_OMEGA_MIN: 0.08,
     ROCKY_SPIN_OMEGA_MAX: 0.25,
@@ -702,6 +703,7 @@ meteorCollisionFudge: 1.12,
           weights,
           rings,
         };
+        a.rockyLocked = false;
         a.spinLikeAsteroid = false;
         a.spinAngle = 0;
         a.spinOmega = 0;
@@ -1364,6 +1366,116 @@ meteorCollisionFudge: 1.12,
     }
     for (let i = World.asteroids.length - 1; i >= 0; i--) {
       if (orbiters.includes(World.asteroids[i])) World.asteroids.splice(i, 1);
+    }
+  }
+
+  function isMeteor(o) {
+    return !!(o && (o.type === "meteor" || o.kind === "meteor" || o.isMeteor));
+  }
+
+  function isCaptureToStarAllowed(o) {
+    if (!o || isMeteor(o)) return false;
+    return o.type === "planet" || o.kind === "planet" || o.sides;
+  }
+
+  function countSystemOrbitersForRocky(p) {
+    const seenIds = new Set();
+    const seenObjs = new Set();
+    let count = 0;
+
+    function add(obj) {
+      if (!obj) return;
+      const id = obj.id ?? obj._id;
+      if (id !== undefined && id !== null) {
+        if (seenIds.has(id)) return;
+        seenIds.add(id);
+      } else {
+        if (seenObjs.has(obj)) return;
+        seenObjs.add(obj);
+      }
+      count += 1;
+    }
+
+    if (p.orbiters && p.orbiters.length) {
+      for (const o of p.orbiters) add(o);
+    }
+
+    if (World.asteroids && World.asteroids.length) {
+      for (const a of World.asteroids) {
+        if (a.parentKind !== "planet" || a.parentRef !== p) continue;
+        add(a);
+        if (a.orbiters && a.orbiters.length) {
+          for (const o of a.orbiters) add(o);
+        }
+      }
+    }
+
+    return count;
+  }
+
+  function countOrbitersInBodySystem(o) {
+    let count = 0;
+    if (o) count += 1;
+    if (o && o.orbiters && o.orbiters.length) count += o.orbiters.length;
+    return count;
+  }
+
+  function absorbBodiesIntoRocky(p, bodies) {
+    if (!bodies || !bodies.length) return;
+    const Rm = meteorBaseRadius();
+    for (const b of bodies) {
+      const r = b?.r || 0;
+      p.mass = (p.mass || 0) + massFromR(r);
+      p.r = clamp(p.r + r * 0.06, Rm * 2.0, Rm * 220);
+    }
+    p.gravityR = computeGravityFromPlanetRadius(p.r);
+  }
+
+  function attachBodyToStarSystem(o, s) {
+    const dx = o.x - s.x;
+    const dy = o.y - s.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const minR = Math.max(1, s.r + o.r + 2);
+    const maxR = Math.max(1, (s.gravityR || computeGravityFromPlanetRadius(s.r)) - o.r - 2);
+    const orbitR = clamp(d, minR, maxR);
+    const theta = Math.atan2(dy, dx);
+    const Rm = meteorBaseRadius();
+    const baseOmega = rand(0.25, 0.75);
+    const direction = Math.random() < 0.5 ? -1 : 1;
+    const omega = direction * computeOmega(baseOmega, orbitR, Rm);
+
+    o.parentKind = "star";
+    o.parentRef = s;
+    o.parentId = s.id || s._id;
+    o.orbitR = orbitR;
+    o.theta = theta;
+    o.omega = omega;
+  }
+
+  function captureBodiesByStars(dt) {
+    if (!World.stars || !World.stars.length) return;
+    for (const s of World.stars) {
+      const gravityR = s.gravityR || computeGravityFromPlanetRadius(s.r);
+      if (World.asteroids && World.asteroids.length) {
+        for (const a of World.asteroids) {
+          if (!isCaptureToStarAllowed(a)) continue;
+          if (a.parentKind === "star" && a.parentRef === s) continue;
+          const d = Math.hypot(a.x - s.x, a.y - s.y);
+          if (d <= gravityR + a.r) {
+            attachBodyToStarSystem(a, s);
+          }
+        }
+      }
+      if (World.planets && World.planets.length) {
+        for (const p of World.planets) {
+          if (!isCaptureToStarAllowed(p)) continue;
+          if (p.parentKind === "star" && p.parentRef === s) continue;
+          const d = Math.hypot(p.x - s.x, p.y - s.y);
+          if (d <= gravityR + p.r) {
+            attachBodyToStarSystem(p, s);
+          }
+        }
+      }
     }
   }
 
@@ -2039,6 +2151,31 @@ ctx.beginPath();
         const dx = m.x - p.x;
         const dy = m.y - p.y;
         const d2 = dx * dx + dy * dy;
+        const collideR = p.r + m.r;
+
+        if (p.isRocky) {
+          const currentCount = countSystemOrbitersForRocky(p);
+          if (p.rockyLocked || currentCount >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
+            p.rockyLocked = true;
+            if (d2 <= collideR * collideR) {
+              meteors.splice(mi, 1);
+              absorbBodiesIntoRocky(p, [m]);
+              p.captureCooldown = 0.04;
+              break;
+            }
+            continue;
+          }
+          if (currentCount + 1 > World.ROCKY_MAX_SYSTEM_ORBITERS) {
+            p.rockyLocked = true;
+            if (d2 <= collideR * collideR) {
+              meteors.splice(mi, 1);
+              absorbBodiesIntoRocky(p, [m]);
+              p.captureCooldown = 0.04;
+              break;
+            }
+            continue;
+          }
+        }
 
         const capR = (p.orbitPx || (p.r * 2.4)) + m.r;
         if (d2 <= capR * capR) {
@@ -2058,6 +2195,9 @@ ctx.beginPath();
 
           addOrbiterToPlanet(p, m);
 
+          if (p.isRocky && countSystemOrbitersForRocky(p) >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
+            p.rockyLocked = true;
+          }
           p.captureCooldown = 0.035;
           break;
         }
@@ -2084,9 +2224,47 @@ ctx.beginPath();
         const dx = a.x - p.x;
         const dy = a.y - p.y;
         const d2 = dx*dx + dy*dy;
+        const collideR = p.r + a.r;
 
         const capR = (p.orbitPx || (p.r * 2.6)) + a.r;
         if (d2 <= capR * capR) {
+          if (p.isRocky) {
+            const currentCount = countSystemOrbitersForRocky(p);
+            const incomingCount = countOrbitersInBodySystem(a);
+            if (p.rockyLocked || currentCount >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
+              p.rockyLocked = true;
+              if (d2 <= collideR * collideR) {
+                const absorbed = getDirectOrbitersOfBody(a);
+                absorbBodiesIntoRocky(p, absorbed);
+                removeOrbitersConsumed(absorbed);
+                absorbBodiesIntoRocky(p, [a]);
+                World.asteroids.splice(ai, 1);
+                p.captureCooldown = 0.06;
+                break;
+              }
+              continue;
+            }
+            if (currentCount + 1 > World.ROCKY_MAX_SYSTEM_ORBITERS) {
+              p.rockyLocked = true;
+              if (d2 <= collideR * collideR) {
+                const absorbed = getDirectOrbitersOfBody(a);
+                absorbBodiesIntoRocky(p, absorbed);
+                removeOrbitersConsumed(absorbed);
+                absorbBodiesIntoRocky(p, [a]);
+                World.asteroids.splice(ai, 1);
+                p.captureCooldown = 0.06;
+                break;
+              }
+              continue;
+            }
+            if (currentCount + incomingCount > World.ROCKY_MAX_SYSTEM_ORBITERS) {
+              const absorbed = getDirectOrbitersOfBody(a);
+              absorbBodiesIntoRocky(p, absorbed);
+              removeOrbitersConsumed(absorbed);
+              a.orbiters = [];
+              p.rockyLocked = true;
+            }
+          }
           const baseOrbit = (p.orbitPx || (p.r * 2.6));
           const orbitR = baseOrbit + a.r;
           const theta = Math.atan2(dy, dx);
@@ -2106,6 +2284,9 @@ ctx.beginPath();
           const maxOrbit = p.r * 10.0;
           p.orbitPx = clamp(baseOrbit + a.r, minOrbit, maxOrbit);
 
+          if (p.isRocky && countSystemOrbitersForRocky(p) >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
+            p.rockyLocked = true;
+          }
           p.captureCooldown = 0.06;
           break;
         }
@@ -2332,6 +2513,7 @@ if (dist2 <= minDist * minDist) {
       mass: planetMass,
       planetKind: (a.cometHits && a.cometHits > 0) ? "rocky" : "gas",
       cometHits: a.cometHits || 0,
+      rockyLocked: false,
 
       // Planet orbital system
       orbiters: [],
@@ -2576,6 +2758,20 @@ if (dist2 <= minDist * minDist) {
       if (m.y - m.r < b.t) { m.y = b.t + m.r; m.vy = Math.abs(m.vy) * bounceLoss; }
       if (m.y + m.r > b.b) { m.y = b.b - m.r; m.vy = -Math.abs(m.vy) * bounceLoss; }
 
+      if (World.stars && World.stars.length) {
+        for (const s of World.stars) {
+          const dx = m.x - s.x;
+          const dy = m.y - s.y;
+          const rr = s.r + m.r;
+          if (dx * dx + dy * dy <= rr * rr) {
+            s.mass = (s.mass || 0) + massFromR(m.r);
+            World.meteors.splice(i, 1);
+            break;
+          }
+        }
+        if (i >= World.meteors.length || World.meteors[i] !== m) continue;
+      }
+
       m.life -= dt;
       if (m.life <= 0) World.meteors.splice(i, 1);
     }
@@ -2611,6 +2807,7 @@ if (dist2 <= minDist * minDist) {
     captureAsteroidsByPlanets(dt, nowMs);
     updateAsteroids(dt);
     updatePlanets(dt);
+    captureBodiesByStars(dt);
 
     let maxStarGravityR = 0;
     if (World.stars && World.stars.length) {
