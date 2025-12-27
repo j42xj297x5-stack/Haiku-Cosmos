@@ -1382,9 +1382,13 @@ meteorCollisionFudge: 1.12,
     return !!(o && (o.type === "meteor" || o.kind === "meteor" || o.isMeteor));
   }
 
+  function isPlanet(o) {
+    return !!(o && (o.type === "planet" || o.kind === "planet"));
+  }
+
   function isCaptureToStarAllowed(o) {
     if (!o || isMeteor(o)) return false;
-    return o.type === "planet" || o.kind === "planet" || o.sides;
+    return isPlanet(o);
   }
 
   function countSystemOrbitersForRocky(p) {
@@ -1461,6 +1465,45 @@ meteorCollisionFudge: 1.12,
     o.orbitR = orbitR;
     o.theta = theta;
     o.omega = omega;
+  }
+
+  function reconcileStarOwnershipOnBirth(oldPlanet, star) {
+    const captureR = oldPlanet.gravityR || computeGravityFromPlanetRadius(oldPlanet.r);
+    if (World.planets && World.planets.length) {
+      for (const p of World.planets) {
+        if (p === oldPlanet) continue;
+        if (!isPlanet(p)) continue;
+        const d = Math.hypot(p.x - star.x, p.y - star.y);
+        if (d <= captureR + p.r) {
+          attachBodyToStarSystem(p, star);
+          p.starBoundId = star.id || star._id;
+        }
+      }
+    }
+
+    if (World.asteroids && World.asteroids.length) {
+      for (const a of World.asteroids) {
+        if (a.parentKind !== "planet" || a.parentRef !== oldPlanet) continue;
+        const dx = a.x - star.x;
+        const dy = a.y - star.y;
+        const d = Math.hypot(dx, dy);
+        const theta = Math.atan2(dy, dx);
+        if (star.birth && star.birth.absorb) {
+          star.birth.absorb.push({
+            ref: a,
+            r: d,
+            theta,
+            hue: (typeof a.hue === "number") ? a.hue : hueFromName(a.colorName || "blue"),
+            alpha: 1,
+            startR: d,
+          });
+        }
+        a.absorbingIntoStarId = star.id || star._id;
+        const absorbed = getDirectOrbitersOfBody(a);
+        removeOrbitersConsumed(absorbed);
+        a.orbiters = [];
+      }
+    }
   }
 
   function captureBodiesByStars(dt) {
@@ -1619,16 +1662,30 @@ meteorCollisionFudge: 1.12,
       r: p.r,
       mass: p.mass,
       gravityR: computeGravityFromPlanetRadius(p.r),
-      orbiters: meteors,
+      orbiters: [],
       starKind: kind,
       dominantKey: info.dominantKey,
       monoColorKey: info.monoColorKey,
       starBirth: { phase: "done" },
+      birth: {
+        active: true,
+        phase: "collapse",
+        t: 0,
+        duration: 5.0,
+        fadeOut: 2.0,
+        timeAbs: 0,
+        absorb: [],
+      },
+      baseColor: info.monoColorKey || info.dominantKey || "yellow",
       shimmer: kind === "rare" ? { active: true, seed: (p._id || p.id || 1) } : null,
       sizeClass: kind === "rare" ? "small" : null,
       gradientOuterColor: kind === "rare" ? (info.monoColorKey || info.dominantKey || "yellow") : null,
     };
     World.stars.push(star);
+    for (const m of meteors) {
+      World.meteors.push(m);
+    }
+    reconcileStarOwnershipOnBirth(p, star);
   }
 
   // Internal ids (used for comet-release cooldown / ignore)
@@ -2043,9 +2100,18 @@ meteorCollisionFudge: 1.12,
       flicker = 0.85 + 0.15 * Math.sin((nowMs * 0.004) + phase);
     }
 
+    let whiteMix = 0;
+    if (s.birth && s.birth.active) {
+      const u = clamp(s.birth.t / Math.max(0.001, s.birth.duration), 0, 1);
+      const freq = lerp(2, 13, u * u);
+      const pulse = 0.5 + 0.5 * Math.sin(Math.PI * 2 * freq * s.birth.timeAbs);
+      whiteMix = 0.7 * pulse;
+    }
+
     ctx.save();
     ctx.beginPath();
-    ctx.fillStyle = `hsl(${hue} 90% ${56 + (flicker * 8)}%)`;
+    const light = 56 + (flicker * 8) + (whiteMix * 35);
+    ctx.fillStyle = `hsl(${hue} 90% ${light}%)`;
     ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
     ctx.fill();
 
@@ -2054,6 +2120,18 @@ meteorCollisionFudge: 1.12,
     ctx.fillStyle = `hsl(${hue} 90% 70%)`;
     ctx.arc(s.x, s.y, s.r * 1.08, 0, Math.PI * 2);
     ctx.fill();
+
+    if (s.birth && s.birth.active && s.birth.absorb && s.birth.absorb.length) {
+      for (const ab of s.birth.absorb) {
+        const x = s.x + Math.cos(ab.theta) * ab.r;
+        const y = s.y + Math.sin(ab.theta) * ab.r;
+        ctx.globalAlpha = Math.max(0, ab.alpha || 1) * 0.9;
+        ctx.beginPath();
+        ctx.fillStyle = `hsla(${ab.hue} 85% 60% / 0.8)`;
+        ctx.arc(x, y, Math.max(1, (ab.ref?.r || 3) * 0.45), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     ctx.restore();
   }
 
@@ -2623,6 +2701,7 @@ if (dist2 <= minDist * minDist) {
     const b = getWorldViewBounds();
 
     for (const a of World.asteroids) {
+      if (a.absorbingIntoStarId) continue;
       if (a.parentKind === "planet") {
         const p = a.parentRef;
         if (p) {
@@ -2763,6 +2842,40 @@ if (dist2 <= minDist * minDist) {
     }
   }
 
+  function updateStarBirths(dt) {
+    if (!World.stars || !World.stars.length) return;
+    for (const s of World.stars) {
+      const birth = s.birth;
+      if (!birth || !birth.active) continue;
+      birth.t += dt;
+      birth.timeAbs += dt;
+      if (birth.phase === "collapse") {
+        const u = clamp(birth.t / Math.max(0.001, birth.duration), 0, 1);
+        for (const ab of birth.absorb) {
+          ab.theta += (0.9 + u) * dt * 2.5;
+          ab.r = ab.startR * (1 - u);
+          ab.alpha = 1 - u;
+        }
+        if (birth.t >= birth.duration) {
+          birth.phase = "fade";
+          birth.t = 0;
+        }
+      } else if (birth.phase === "fade") {
+        const v = clamp(birth.t / Math.max(0.001, birth.fadeOut), 0, 1);
+        for (const ab of birth.absorb) {
+          ab.alpha = 1 - v;
+        }
+        if (birth.t >= birth.fadeOut) {
+          birth.active = false;
+          for (const ab of birth.absorb) {
+            if (ab.ref) ab.ref._dead = true;
+          }
+          birth.absorb = [];
+        }
+      }
+    }
+  }
+
   function updateMeteors(dt) {
     World.spawnTimer += dt;
     while (World.spawnTimer >= (World.spawnInterval * (World.spawnIntervalMul || 1.0))) {
@@ -2873,6 +2986,7 @@ if (dist2 <= minDist * minDist) {
     captureAsteroidsByPlanets(dt, nowMs);
     updateAsteroids(dt);
     updatePlanets(dt);
+    updateStarBirths(dt);
     captureBodiesByStars(dt);
 
     let maxStarGravityR = 0;
