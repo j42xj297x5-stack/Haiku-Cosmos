@@ -1246,7 +1246,7 @@ meteorCollisionFudge: 1.12,
     const map = new Map();
     let total = 0;
     for (const o of orbiters) {
-      const colorName = o.colorName || o.color || o.col || o.fill || "blue";
+      const colorName = o.color || o.col || o.fill || o.colorName || "#888";
       const hue = (typeof o.hue === "number") ? o.hue : hueFromName(colorName);
       const weight = Math.max(0.01, (o.r || 1)) * World.ROCKY_FROM_AST_ORBITER_R_WEIGHT;
       const prev = map.get(colorName);
@@ -1256,6 +1256,16 @@ meteorCollisionFudge: 1.12,
         map.set(colorName, { colorName, hue, w: weight });
       }
       total += weight;
+    }
+    if (!map.size || total <= 0) {
+      return {
+        colors: [],
+        isMono: true,
+        monoColor: "#888",
+        dominantColor: "#888",
+        totalWeight: 0,
+        avgHue: hueFromName("blue"),
+      };
     }
     const colors = [];
     for (const entry of map.values()) {
@@ -1269,7 +1279,7 @@ meteorCollisionFudge: 1.12,
       avgHue = hueSum;
     }
     const isMono = colors.length === 1;
-    const monoColor = colors[0]?.colorName || "blue";
+    const monoColor = colors[0]?.colorName || "#888";
     const dominantColor = isMono ? monoColor : (colors[0]?.colorName || monoColor);
     return {
       colors,
@@ -1282,6 +1292,14 @@ meteorCollisionFudge: 1.12,
   }
 
   function buildBlobPatchwork(planetId, weights, blobCount) {
+    if (!weights || !weights.colors || weights.colors.length === 0) {
+      return {
+        isMono: true,
+        monoColor: (weights && (weights.dominantColor || weights.monoColor)) || "#888",
+        dominantColor: (weights && (weights.dominantColor || weights.monoColor)) || "#888",
+        blobs: [],
+      };
+    }
     if (weights.isMono) {
       return { isMono: true, monoColor: weights.monoColor, dominantColor: weights.dominantColor, blobs: [] };
     }
@@ -1475,6 +1493,7 @@ meteorCollisionFudge: 1.12,
       y: p.y,
       r: p.r,
       mass: p.mass,
+      gravityR: computeGravityFromPlanetRadius(p.r),
       orbiters: meteors,
       starKind: kind,
       dominantKey: info.dominantKey,
@@ -2593,6 +2612,7 @@ if (dist2 <= minDist * minDist) {
     updateAsteroids(dt);
     updatePlanets(dt);
 
+    let maxStarGravityR = 0;
     if (World.stars && World.stars.length) {
       for (const star of World.stars) {
         const birth = star?.starBirth || star?.birth;
@@ -2617,6 +2637,14 @@ if (dist2 <= minDist * minDist) {
           star.sizeClass = "very_big";
           star.gradientOuterColor = "orangered";
         }
+        maxStarGravityR = Math.max(maxStarGravityR, star.gravityR || computeGravityFromPlanetRadius(star.r));
+      }
+    }
+    if (maxStarGravityR > 0) {
+      const minDim = Math.min(View.w, View.h);
+      if (maxStarGravityR * Camera.scale > minDim * 0.45) {
+        const targetScale = clamp((minDim * 0.45) / maxStarGravityR, Camera.min, Camera.max);
+        Camera.target = Math.min(Camera.target, targetScale);
       }
     }
   }
