@@ -599,19 +599,39 @@ meteorCollisionFudge: 1.12,
         }
       }
 
-      // comet vs asteroid: IMPACT -> release all orbiters + destroy comet
-      // body: IMPACT -> collapse system, destroy comet
+      // comet vs asteroid: IMPACT -> asteroid breaks into ring if orbiting planet
       for (let ci = World.comets.length - 1; ci >= 0; ci--) {
         const c = World.comets[ci];
 
-        for (const a of World.asteroids) {
+        for (let ai = World.asteroids.length - 1; ai >= 0; ai--) {
+          const a = World.asteroids[ai];
           const dx = a.x - c.x, dy = a.y - c.y;
           const rr = a.r + c.r;
           if (dx*dx + dy*dy > rr*rr) continue;
 
-          // Hit: keep existing behavior (release all orbiters), then mark comet hit for future "rocky" planets.
-          a.cometHits = (a.cometHits || 0) + 1;
-          releaseAllOrbitersFromAsteroid(a, nowMs);
+          const ringOwner = (a.parentKind === "planet" && a.parentRef) ? a.parentRef : null;
+          let ringColors = [];
+          if (a.orbiters && a.orbiters.length) {
+            for (const o of a.orbiters) {
+              ringColors.push({
+                hue: (typeof o.hue === "number") ? o.hue : hueFromName(o.colorName || "blue"),
+                colorName: o.colorName || "blue",
+              });
+            }
+          }
+          if (ringOwner && !ringColors.length) {
+            const fallbackHue = (typeof ringOwner.hueA === "number") ? ringOwner.hueA : hueFromName("blue");
+            ringColors = [{ hue: fallbackHue, colorName: "blue" }];
+          }
+
+          // TODO: future — if comet hits asteroid with rotating meteors, create multicolor ring (thickness = asteroid radius).
+          if (ringOwner) {
+            addAsteroidBreakRing(ringOwner, a, ringColors, nowMs);
+          }
+
+          // remove asteroid and its orbiters (no release as meteors)
+          if (a.orbiters) a.orbiters.length = 0;
+          World.asteroids.splice(ai, 1);
 
           // destroy comet after impact
           World.comets.splice(ci, 1);
@@ -1191,6 +1211,25 @@ meteorCollisionFudge: 1.12,
     if (!p.rings || !p.rings.length) return;
 
     for (const rg of p.rings) {
+      if (rg.kind === "asteroidBreak" && rg.colors && rg.colors.length) {
+        const segments = rg.colors.length;
+        const step = (Math.PI * 2) / segments;
+        const baseAngle = rg.theta0 || 0;
+        ctx.save();
+        ctx.globalAlpha = 0.75;
+        ctx.setLineDash([]);
+        ctx.lineWidth = rg.w;
+        for (let i = 0; i < segments; i++) {
+          const seg = rg.colors[i];
+          const hue = (typeof seg.hue === "number") ? seg.hue : hueFromName(seg.colorName || "blue");
+          ctx.strokeStyle = `hsla(${hue} 85% 60% / 0.7)`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, rg.r, baseAngle + i * step, baseAngle + (i + 1) * step);
+          ctx.stroke();
+        }
+        ctx.restore();
+        continue;
+      }
    
       ctx.save();
       ctx.globalAlpha = 0.7;
@@ -1234,6 +1273,22 @@ meteorCollisionFudge: 1.12,
       t0: nowMs,
      stroke: `hsla(${hueMid} 80% 60% / 0.7)`,
       source: source || "COMET",
+    });
+  }
+
+  function addAsteroidBreakRing(p, asteroid, colors, nowMs) {
+    if (!p || !asteroid) return;
+    if (!p.rings) p.rings = [];
+    const baseR = (typeof asteroid.orbitR === "number" && isFinite(asteroid.orbitR)) ? asteroid.orbitR : (p.orbitPx || (p.r * 2.6));
+    const w = Math.max(1, asteroid.r);
+    p.rings.push({
+      kind: "asteroidBreak",
+      r: baseR,
+      w,
+      t0: nowMs,
+      colors: colors || [],
+      theta0: (typeof asteroid.theta === "number") ? asteroid.theta : 0,
+      source: "COMET",
     });
   }
 function drawPlanet(p) {
@@ -1376,6 +1431,7 @@ ctx.beginPath();
       const a = asteroids[ai];
       // don't immediately re-capture just-spawned bodies
       if (a.age && a.age < 0.25) continue;
+      if (a.parentKind === "planet") continue;
 
       for (let pi = 0; pi < World.planets.length; pi++) {
         const p = World.planets[pi];
@@ -1387,35 +1443,24 @@ ctx.beginPath();
 
         const capR = (p.orbitPx || (p.r * 2.6)) + a.r;
         if (d2 <= capR * capR) {
-          // Absorb the entire asteroid system into the planet mass (no splitting).
-          asteroids.splice(ai, 1);
-
-          const liveR = (typeof a.liveSumR === "number") ? a.liveSumR : (a.captureSumR || 0);
-          const liveM = (typeof a.liveSumMass === "number") ? a.liveSumMass : (a.captureSumMass || 0);
-
-          // History counters keep going (for progression / cards)
-          p.captureCount = (p.captureCount || 0) + (a.captureCount || 0);
-          p.captureSumR = (p.captureSumR || 0) + a.r + liveR;
-          p.captureSumMass = (p.captureSumMass || 0) + massFromR(a.r) + liveM;
-          if (!p.captureColorCounts) p.captureColorCounts = Object.create(null);
-          if (a.captureColorCounts) {
-            for (const k in a.captureColorCounts) {
-              p.captureColorCounts[k] = (p.captureColorCounts[k] || 0) + a.captureColorCounts[k];
-            }
-          }
-
-          // Visual growth: planet gets denser but not exploding
+          const baseOrbit = (p.orbitPx || (p.r * 2.6));
+          const orbitR = baseOrbit + a.r;
+          const theta = Math.atan2(dy, dx);
           const Rm = meteorBaseRadius();
-          p.r = clamp(p.r + a.r * 0.10 + liveR * 0.02, Rm * 2.0, Rm * 260);
+          const baseOmega = rand(0.35, 0.95);
+          const direction = Math.random() < 0.5 ? -1 : 1;
+          const omega = direction * computeOmega(baseOmega, orbitR, Rm);
+
+          a.parentKind = "planet";
+          a.parentRef = p;
+          a.orbitR = orbitR;
+          a.theta = theta;
+          a.omega = omega;
 
           // Orbit expands only by the asteroid size (as per design)
           const minOrbit = p.r * 2.1;
           const maxOrbit = p.r * 10.0;
-          p.orbitPx = clamp((p.orbitPx || minOrbit) + a.r, minOrbit, maxOrbit);
-
-          // Optional: store captured system for later visuals (elliptical/3D layering)
-          if (!p.capturedAsteroids) p.capturedAsteroids = [];
-          p.capturedAsteroids.push({ r: a.r, sides: a.sides, capturedAt: nowMs });
+          p.orbitPx = clamp(baseOrbit + a.r, minOrbit, maxOrbit);
 
           p.captureCooldown = 0.06;
           break;
@@ -1685,7 +1730,18 @@ if (dist2 <= minDist * minDist) {
     const b = getWorldViewBounds();
 
     for (const a of World.asteroids) {
-      if (!a.isCollapsing) {
+      if (a.parentKind === "planet") {
+        const p = a.parentRef;
+        if (p) {
+          a.theta = (a.theta || 0) + (a.omega || 0) * dt;
+          const orbitR = (typeof a.orbitR === "number" && isFinite(a.orbitR)) ? a.orbitR : (p.orbitPx || (p.r * 2.6));
+          a.x = p.x + Math.cos(a.theta) * orbitR;
+          a.y = p.y + Math.sin(a.theta) * orbitR;
+        } else {
+          a.parentKind = null;
+          a.parentRef = null;
+        }
+      } else if (!a.isCollapsing) {
         a.x += a.vx * dt;
         a.y += a.vy * dt;
 
