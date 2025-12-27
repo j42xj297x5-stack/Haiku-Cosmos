@@ -223,6 +223,15 @@ meteorCollisionFudge: 1.12,
     STAR_COLOR_KEY_GREEN: "green",
     STAR_COLOR_KEY_RED: "red",
     STAR_COLOR_KEY_YELLOW: "yellow",
+    PLANET_SOFT_EDGE_ALPHA: 0.10,
+    PLANET_SOFT_EDGE_WIDTH: 2.0,
+    PLANET_SOFT_INNER_ALPHA: 0.06,
+    PLANET_EDGE_GRAIN_COUNT: 18,
+    PLANET_EDGE_GRAIN_ALPHA: 0.12,
+    PLANET_EDGE_GRAIN_JITTER: 0.18,
+    PLANET_EDGE_GRAIN_R_JITTER: 0.06,
+    PLANET_EDGE_GRAIN_SIZE_MIN: 0.6,
+    PLANET_EDGE_GRAIN_SIZE_MAX: 1.6,
 
     // Rocky planet (from comet impact) tuning
     ROCKY_FROM_AST_ORBITER_R_WEIGHT: 1.0,
@@ -1432,6 +1441,7 @@ meteorCollisionFudge: 1.12,
   }
 
   function attachBodyToStarSystem(o, s) {
+    if (o.starBoundId != null && o.starBoundId !== (s.id || s._id)) return;
     const dx = o.x - s.x;
     const dy = o.y - s.y;
     const d = Math.hypot(dx, dy) || 1;
@@ -1444,6 +1454,7 @@ meteorCollisionFudge: 1.12,
     const direction = Math.random() < 0.5 ? -1 : 1;
     const omega = direction * computeOmega(baseOmega, orbitR, Rm);
 
+    if (o.starBoundId == null) o.starBoundId = s.id || s._id;
     o.parentKind = "star";
     o.parentRef = s;
     o.parentId = s.id || s._id;
@@ -1459,6 +1470,7 @@ meteorCollisionFudge: 1.12,
       if (World.asteroids && World.asteroids.length) {
         for (const a of World.asteroids) {
           if (!isCaptureToStarAllowed(a)) continue;
+          if (a.starBoundId != null && a.starBoundId !== (s.id || s._id)) continue;
           if (a.parentKind === "star" && a.parentRef === s) continue;
           const d = Math.hypot(a.x - s.x, a.y - s.y);
           if (d <= gravityR + a.r) {
@@ -1469,6 +1481,7 @@ meteorCollisionFudge: 1.12,
       if (World.planets && World.planets.length) {
         for (const p of World.planets) {
           if (!isCaptureToStarAllowed(p)) continue;
+          if (p.starBoundId != null && p.starBoundId !== (s.id || s._id)) continue;
           if (p.parentKind === "star" && p.parentRef === s) continue;
           const d = Math.hypot(p.x - s.x, p.y - s.y);
           if (d <= gravityR + p.r) {
@@ -2043,6 +2056,48 @@ meteorCollisionFudge: 1.12,
     ctx.fill();
     ctx.restore();
   }
+
+  function drawPlanetSoftEdgeAndGrain(p, baseHue) {
+    const TAU = Math.PI * 2;
+    const scale = Camera.scale || 1;
+    const softWidth = World.PLANET_SOFT_EDGE_WIDTH / scale;
+    const grainMin = World.PLANET_EDGE_GRAIN_SIZE_MIN / scale;
+    const grainMax = World.PLANET_EDGE_GRAIN_SIZE_MAX / scale;
+
+    ctx.save();
+    ctx.globalAlpha *= World.PLANET_SOFT_EDGE_ALPHA;
+    ctx.lineWidth = softWidth;
+    ctx.strokeStyle = `hsl(${baseHue} 85% 60%)`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0.5, p.r - softWidth * 0.25), 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha *= World.PLANET_SOFT_INNER_ALPHA;
+    ctx.fillStyle = `hsl(${baseHue} 85% 62%)`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * 0.85, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+
+    const seed = p._id || p.id || 1;
+    const rnd = makeRng(hash32(`grain:${seed}`));
+    ctx.save();
+    ctx.globalAlpha *= World.PLANET_EDGE_GRAIN_ALPHA;
+    ctx.fillStyle = `hsl(${baseHue} 85% 60%)`;
+    for (let i = 0; i < World.PLANET_EDGE_GRAIN_COUNT; i++) {
+      const a = (i / World.PLANET_EDGE_GRAIN_COUNT) * TAU + (rnd() * 2 - 1) * World.PLANET_EDGE_GRAIN_JITTER;
+      const rr = p.r * (1 + (rnd() * 2 - 1) * World.PLANET_EDGE_GRAIN_R_JITTER);
+      const px = p.x + Math.cos(a) * rr;
+      const py = p.y + Math.sin(a) * rr;
+      const sz = grainMin + (grainMax - grainMin) * rnd();
+      ctx.beginPath();
+      ctx.arc(px, py, sz, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 function drawPlanet(p) {
     const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     ctx.save();
@@ -2065,6 +2120,17 @@ ctx.beginPath();
       ctx.fillStyle = makePlanetGradient(p.x, p.y, p.r, p.hueA, p.hueB);
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    const rockyFormActive = p.isRocky && p.rockyForm && p.rockyForm.active;
+    if (!rockyFormActive) {
+      let baseHue = p.hueA;
+      if (p.isRocky) {
+        const rockySurface = p.rockySurface || {};
+        const baseColor = rockySurface.isMono ? rockySurface.monoColor : rockySurface.dominantColor;
+        baseHue = hueFromName(baseColor || "yellow");
+      }
+      drawPlanetSoftEdgeAndGrain(p, baseHue);
     }
 
     ctx.globalAlpha = 0.25;
