@@ -216,15 +216,15 @@ meteorCollisionFudge: 1.12,
     STAR_SIZE_BIG_MAX_ORBITERS: 66,
 
     // Rocky planet (from comet impact) tuning
-    ROCKY_PLANET_BASE_R: 6.0,
-    ROCKY_PLANET_KR: 0.65,
-    ROCKY_PLANET_MIN_R: 4.5,
-    ROCKY_PLANET_MAX_R: 120.0,
-    ROCKY_PLANET_BASE_MASS: 12.0,
-    ROCKY_PLANET_KM: 1.0,
-    ROCKY_PLANET_BURN_DURATION: 10.0,
-    ROCKY_PATCH_JITTER_RAD: 0.02,
-    GAS_GRAVITY_CONTACT_EPS: 2.0,
+    ROCKY_FROM_AST_ORBITER_R_WEIGHT: 1.0,
+    ROCKY_FROM_AST_BASE_R: 6.0,
+    ROCKY_FROM_AST_KR: 0.35,
+    ROCKY_FROM_AST_BASE_MASS: 1.0,
+    ROCKY_FROM_AST_KM: 1.0,
+    ROCKY_BURN_DURATION: 10.0,
+    GAS_GRAVITY_CONTACT_EPS: 3.0,
+    ROCKY_SPIN_OMEGA_MIN: 0.08,
+    ROCKY_SPIN_OMEGA_MAX: 0.25,
 
     score: 0,
   };
@@ -614,90 +614,39 @@ meteorCollisionFudge: 1.12,
         }
       }
 
-      function transformAsteroidIntoRockyPlanet(a, comet, nowMs) {
-        const orbiters = (a.orbiters && a.orbiters.length) ? a.orbiters.slice() : [];
-        const colorWeights = Object.create(null);
-        const colorHues = Object.create(null);
-        let sumR = 0;
-        let sumMass = 0;
+      function transformAsteroidIntoRockyPlanet(a, comet) {
+        const orbiters = getDirectOrbitersOfBody(a);
+        const patchwork = buildColorPatchworkFromOrbiters(orbiters);
+        const params = computeRockyParamsFromOrbiters(orbiters);
 
-        for (const o of orbiters) {
-          const r = o.r || 0;
-          const mass = (typeof o.mass === "number") ? o.mass : (r * r);
-          const colorName = o.colorName || "blue";
-          const hue = (typeof o.hue === "number") ? o.hue : hueFromName(colorName);
-          const weight = r || 1;
-          sumR += r;
-          sumMass += mass;
-          colorWeights[colorName] = (colorWeights[colorName] || 0) + weight;
-          colorHues[colorName] = hue;
-        }
-
-        const Rm = meteorBaseRadius();
-        const baseR = World.ROCKY_PLANET_BASE_R * Rm;
-        const minR = World.ROCKY_PLANET_MIN_R * Rm;
-        const maxR = World.ROCKY_PLANET_MAX_R * Rm;
-        const planetR = clamp(baseR + World.ROCKY_PLANET_KR * sumR, minR, maxR);
-        const baseMass = World.ROCKY_PLANET_BASE_MASS * (Rm * Rm);
-        const planetMass = baseMass + World.ROCKY_PLANET_KM * sumMass;
-        const gravityR = computeGravityFromPlanetRadius(planetR);
-
-        const patchwork = [];
-        let totalWeight = 0;
-        for (const w of Object.values(colorWeights)) totalWeight += w;
-        for (const [colorName, weight] of Object.entries(colorWeights)) {
-          patchwork.push({
-            colorName,
-            hue: colorHues[colorName] ?? hueFromName(colorName),
-            weightNorm: totalWeight > 0 ? (weight / totalWeight) : 1,
-          });
-        }
-
-        let avgHue = hueFromName("yellow");
-        if (patchwork.length) {
-          let hueSum = 0;
-          for (const p of patchwork) hueSum += p.hue * p.weightNorm;
-          avgHue = hueSum;
-        }
-
-        const p = {
-          type: "planet",
-          planetKind: "rocky",
-          x: a.x,
-          y: a.y,
-          vx: a.vx || 0,
-          vy: a.vy || 0,
-          r: planetR,
-          orbitPx: gravityR,
-          gravityR,
-          mass: planetMass,
-          hueA: avgHue,
-          hueB: avgHue,
-          orbiters: [],
-          captureCooldown: 0,
-          captureCount: 0,
-          captureSumR: 0,
-          captureSumMass: 0,
-          captureColorCounts: Object.create(null),
-          rings: [],
-          capturedAsteroids: [],
-          patchwork,
-          patchworkIsMono: patchwork.length === 1,
-          baseColor: patchwork[0]?.colorName,
-          patchworkAvgHue: avgHue,
-          birthBurn: { t: 0, duration: World.ROCKY_PLANET_BURN_DURATION, active: true, seed: (a._id || a.id || 1) },
+        a.type = "planet";
+        a.planetKind = "rocky";
+        a.isRocky = true;
+        a.r = params.planetR;
+        a.mass = params.planetMass;
+        a.gravityR = params.gravityR;
+        a.orbitPx = params.gravityR;
+        a.hueA = hueFromName(patchwork.monoColor || "yellow");
+        a.hueB = a.hueA;
+        a.orbiters = [];
+        a.captureCooldown = 0;
+        a.captureCount = 0;
+        a.captureSumR = 0;
+        a.captureSumMass = 0;
+        a.captureColorCounts = Object.create(null);
+        a.rings = a.rings || [];
+        a.capturedAsteroids = [];
+        a.rocky = {
+          patchwork: patchwork.patches,
+          isMono: patchwork.isMono,
+          monoColor: patchwork.monoColor,
         };
+        a.birthBurn = { t: 0, dur: World.ROCKY_BURN_DURATION, active: true, seed: (a._id || a.id || 1) };
+        a.spinLikeAsteroid = false;
+        a.spinAngle = 0;
+        a.spinOmega = 0;
 
-        if (a.parentKind === "planet" && a.parentRef) {
-          p.parentKind = "planet";
-          p.parentRef = a.parentRef;
-          p.orbitR = a.orbitR;
-          p.theta = a.theta;
-          p.omega = a.omega;
-        }
-
-        if (a.orbiters) a.orbiters.length = 0;
-        World.planets.push(p);
+        removeOrbitersConsumed(orbiters);
 
         // destroy comet after impact
         const cometIndex = World.comets.indexOf(comet);
@@ -714,7 +663,8 @@ meteorCollisionFudge: 1.12,
           const rr = a.r + c.r;
           if (dx*dx + dy*dy > rr*rr) continue;
 
-          transformAsteroidIntoRockyPlanet(a, c, nowMs);
+          transformAsteroidIntoRockyPlanet(a, c);
+          World.planets.push(a);
           World.asteroids.splice(ai, 1);
           break;
         }
@@ -1179,6 +1129,71 @@ meteorCollisionFudge: 1.12,
     return s - Math.floor(s);
   }
 
+  function getDirectOrbitersOfBody(body) {
+    if (!body) return [];
+    if (Array.isArray(body.orbiters)) return body.orbiters.slice();
+    if (Array.isArray(body.meteors)) return body.meteors.slice();
+    const out = [];
+    if (Array.isArray(World.meteors)) {
+      for (const m of World.meteors) {
+        if (m.parentId === body.id && m.parentKind === body.type) out.push(m);
+      }
+    }
+    if (Array.isArray(World.asteroids)) {
+      for (const a of World.asteroids) {
+        if (a.parentId === body.id && a.parentKind === body.type) out.push(a);
+      }
+    }
+    return out;
+  }
+
+  function buildColorPatchworkFromOrbiters(orbiters) {
+    const weights = Object.create(null);
+    const hues = Object.create(null);
+    for (const o of orbiters) {
+      const colorName = o.colorName || "blue";
+      const hue = (typeof o.hue === "number") ? o.hue : hueFromName(colorName);
+      const weight = Math.max(0.01, (o.r || 0)) * World.ROCKY_FROM_AST_ORBITER_R_WEIGHT;
+      weights[colorName] = (weights[colorName] || 0) + weight;
+      hues[colorName] = hue;
+    }
+    const patches = [];
+    let total = 0;
+    for (const w of Object.values(weights)) total += w;
+    for (const [colorName, w] of Object.entries(weights)) {
+      patches.push({
+        colorName,
+        hue: hues[colorName] ?? hueFromName(colorName),
+        wNorm: total > 0 ? (w / total) : 1,
+      });
+    }
+    const isMono = patches.length === 1;
+    const monoColor = patches[0]?.colorName;
+    return { patches, monoColor, isMono };
+  }
+
+  function computeRockyParamsFromOrbiters(orbiters) {
+    let sumR = 0;
+    let sumMassProxy = 0;
+    for (const o of orbiters) {
+      const r = o.r || 0;
+      sumR += r;
+      sumMassProxy += (typeof o.mass === "number") ? o.mass : (r * r);
+    }
+    const Rm = meteorBaseRadius();
+    const planetR = (World.ROCKY_FROM_AST_BASE_R * Rm) + (World.ROCKY_FROM_AST_KR * sumR);
+    const planetMass = (World.ROCKY_FROM_AST_BASE_MASS * (Rm * Rm)) + (World.ROCKY_FROM_AST_KM * sumMassProxy);
+    const gravityR = computeGravityFromPlanetRadius(planetR);
+    return { planetR, planetMass, gravityR };
+  }
+
+  function removeOrbitersConsumed(orbiters) {
+    if (!orbiters || !orbiters.length) return;
+    for (let i = World.meteors.length - 1; i >= 0; i--) {
+      if (orbiters.includes(World.meteors[i])) World.meteors.splice(i, 1);
+    }
+  }
+
   // Internal ids (used for comet-release cooldown / ignore)
   let ASTEROID_ID_SEQ = 1;
 
@@ -1438,8 +1453,14 @@ meteorCollisionFudge: 1.12,
   }
 
   function drawRockyPlanet(p, nowMs) {
-    const patchwork = Array.isArray(p.patchwork) ? p.patchwork : [];
-    const avgHue = (typeof p.patchworkAvgHue === "number") ? p.patchworkAvgHue : hueFromName(p.baseColor || "yellow");
+    const rocky = p.rocky || {};
+    const patches = Array.isArray(rocky.patchwork) ? rocky.patchwork : [];
+    let avgHue = hueFromName(rocky.monoColor || "yellow");
+    if (patches.length > 1) {
+      let hueSum = 0;
+      for (const patch of patches) hueSum += (patch.hue || 0) * (patch.wNorm || 0);
+      avgHue = hueSum || avgHue;
+    }
 
     if (p.birthBurn && p.birthBurn.active) {
       ctx.beginPath();
@@ -1447,7 +1468,7 @@ meteorCollisionFudge: 1.12,
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       ctx.fill();
 
-      const burnT = clamp(p.birthBurn.t / Math.max(0.001, p.birthBurn.duration), 0, 1);
+      const burnT = clamp(p.birthBurn.t / Math.max(0.001, p.birthBurn.dur), 0, 1);
       const phase = (p.birthBurn.seed || 1) * 0.7;
       const flicker = 0.6 + 0.4 * Math.sin((nowMs * 0.006) + phase);
 
@@ -1484,8 +1505,8 @@ meteorCollisionFudge: 1.12,
       ctx.translate(-p.x, -p.y);
     }
 
-    if (p.patchworkIsMono || patchwork.length <= 1) {
-      const hue = patchwork[0]?.hue ?? avgHue;
+    if (rocky.isMono || patches.length <= 1) {
+      const hue = patches[0]?.hue ?? avgHue;
       ctx.beginPath();
       ctx.fillStyle = `hsl(${hue} 85% 55%)`;
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -1493,17 +1514,17 @@ meteorCollisionFudge: 1.12,
     } else {
       let start = 0;
       const seedBase = (p._id || p.id || 1) * 13.7;
-      for (let i = 0; i < patchwork.length; i++) {
-        const piece = patchwork[i];
-        const weight = Math.max(0, piece.weightNorm || 0);
-        const jitterA = (hash01(seedBase + i * 5.2) - 0.5) * World.ROCKY_PATCH_JITTER_RAD;
-        const jitterB = (hash01(seedBase + i * 5.2 + 2.1) - 0.5) * World.ROCKY_PATCH_JITTER_RAD;
+      for (let i = 0; i < patches.length; i++) {
+        const patch = patches[i];
+        const weight = Math.max(0, patch.wNorm || 0);
+        const jitterA = (hash01(seedBase + i * 5.2) - 0.5) * 0.02;
+        const jitterB = (hash01(seedBase + i * 5.2 + 2.1) - 0.5) * 0.02;
         const end = start + weight * Math.PI * 2;
         const a0 = start + jitterA;
         const a1 = end + jitterB;
         ctx.beginPath();
         ctx.moveTo(p.x, p.y);
-        ctx.fillStyle = `hsl(${piece.hue} 85% 52%)`;
+        ctx.fillStyle = `hsl(${patch.hue} 85% 52%)`;
         ctx.arc(p.x, p.y, p.r, a0, a1);
         ctx.closePath();
         ctx.fill();
@@ -1529,7 +1550,7 @@ ctx.beginPath();
     drawPlanetOrbiters(p);
 
     ctx.beginPath();
-    if (p.planetKind === "rocky") {
+    if (p.isRocky) {
       drawRockyPlanet(p, nowMs);
     } else {
       ctx.fillStyle = makePlanetGradient(p.x, p.y, p.r, p.hueA, p.hueB);
@@ -2035,12 +2056,12 @@ if (dist2 <= minDist * minDist) {
 
       if (p.birthBurn && p.birthBurn.active) {
         p.birthBurn.t += dt;
-        if (p.birthBurn.t >= p.birthBurn.duration) p.birthBurn.active = false;
+        if (p.birthBurn.t >= p.birthBurn.dur) p.birthBurn.active = false;
       }
 
       p.gravityR = computeGravityFromPlanetRadius(p.r);
 
-      if (p.planetKind === "rocky" && !p.spinLikeAsteroid) {
+      if (p.isRocky && !p.spinLikeAsteroid) {
         for (const g of World.planets) {
           if (g === p || g.planetKind !== "gas") continue;
           const gravityR = (typeof g.gravityR === "number") ? g.gravityR : computeGravityFromPlanetRadius(g.r);
@@ -2049,7 +2070,7 @@ if (dist2 <= minDist * minDist) {
           if (Math.abs(d - gravityR) <= eps) {
             p.spinLikeAsteroid = true;
             const sign = Math.random() < 0.5 ? -1 : 1;
-            p.spinOmega = sign * rand(0.08, 0.25);
+            p.spinOmega = sign * rand(World.ROCKY_SPIN_OMEGA_MIN, World.ROCKY_SPIN_OMEGA_MAX);
             p.spinAngle = p.spinAngle || 0;
             break;
           }
