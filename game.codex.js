@@ -210,6 +210,8 @@ meteorCollisionFudge: 1.12,
     asteroidDriftMul: 0.55,   // <- drift multiplier for new asteroids
 
     planetCaptureTarget: 13,
+    STAR_FROM_GAS_MIN_METEORS: 50,
+    STAR_GRAVITYR_START_MULT: 0.5,
 
     score: 0,
   };
@@ -1369,6 +1371,31 @@ ctx.beginPath();
     });
   }
 
+  function countSystemMeteorsForPlanet(p) {
+    const seen = new Set();
+    let count = 0;
+
+    if (p.orbiters && p.orbiters.length) {
+      for (const m of p.orbiters) {
+        if (seen.has(m)) continue;
+        seen.add(m);
+        count += 1;
+      }
+    }
+
+    for (const a of World.asteroids) {
+      if (a.parentKind !== "planet" || a.parentRef !== p) continue;
+      if (!a.orbiters || !a.orbiters.length) continue;
+      for (const m of a.orbiters) {
+        if (seen.has(m)) continue;
+        seen.add(m);
+        count += 1;
+      }
+    }
+
+    return count;
+  }
+
 // [ANCHOR:PLANETS]
   function captureMeteorsByPlanets(dt, nowMs) {
     if (!World.planets.length || !World.meteors.length) return;
@@ -1793,6 +1820,24 @@ if (dist2 <= minDist * minDist) {
           const sign = o.omega >= 0 ? 1 : -1;
           const omegaDyn = sign * computeOmega(absBase, o.orbitR, Rm);
           o.angle += omegaDyn * dt;
+        }
+      }
+
+      if (p.type !== "star" && p.planetKind === "gas") {
+        const systemMeteors = countSystemMeteorsForPlanet(p);
+        if (systemMeteors >= World.STAR_FROM_GAS_MIN_METEORS) {
+          const previousGravityR = (typeof p.gravityR === "number" && isFinite(p.gravityR))
+            ? p.gravityR
+            : ((typeof p.orbitPx === "number" && isFinite(p.orbitPx)) ? p.orbitPx : (p.r * 2.6));
+
+          p.type = "star";
+          p.planetKind = "star";
+          p.gravityR = previousGravityR * World.STAR_GRAVITYR_START_MULT;
+          p.orbitPx = p.gravityR;
+
+          if (!World.flags.firstStarZoomed) {
+            World.flags.firstStarZoomed = true;
+          }
         }
       }
     }
