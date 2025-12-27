@@ -1211,67 +1211,57 @@ meteorCollisionFudge: 1.12,
     if (!p.rings || !p.rings.length) return;
 
     for (const rg of p.rings) {
-      if (rg.kind === "asteroidBreak" && rg.colors && rg.colors.length) {
-        const segments = rg.colors.length;
-        const step = (Math.PI * 2) / segments;
-        const baseAngle = rg.theta0 || 0;
-        ctx.save();
-        ctx.globalAlpha = 0.75;
-        ctx.setLineDash([]);
-        ctx.lineWidth = rg.w;
-        for (let i = 0; i < segments; i++) {
-          const seg = rg.colors[i];
-          const hue = (typeof seg.hue === "number") ? seg.hue : hueFromName(seg.colorName || "blue");
-          ctx.strokeStyle = `hsla(${hue} 85% 60% / 0.7)`;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, rg.r, baseAngle + i * step, baseAngle + (i + 1) * step);
-          ctx.stroke();
-        }
-        ctx.restore();
-        continue;
-      }
-   
+      const bandWidth = (typeof rg.bandWidth === "number" && isFinite(rg.bandWidth))
+        ? rg.bandWidth
+        : ((typeof rg.w === "number" && isFinite(rg.w)) ? rg.w : meteorBaseRadius());
+      const bands = clamp(Math.round(bandWidth / 2), 2, 16);
+      const lineW = Math.max(0.8, bandWidth / (bands * 1.35));
+      const palette = (rg.palette && rg.palette.length) ? rg.palette : (rg.colors || []);
+      const baseHue = (typeof rg.hue === "number") ? rg.hue : hueFromName(rg.colorName || "blue");
+      const seed = (typeof rg.seed === "number") ? rg.seed : 0.0;
+
       ctx.save();
-      ctx.globalAlpha = 0.7;
-      ctx.beginPath();
-      ctx.setLineDash([]);
-      ctx.lineWidth = rg.w;
-      ctx.strokeStyle = rg.stroke;
-      ctx.arc(p.x, p.y, rg.r, 0, Math.PI * 2);
-      ctx.stroke();
-      const innerLineWidth = Math.max(0.6, rg.w * 0.08);
-      const innerOffset = rg.w * 0.15;
-      const innerColor = "rgba(0, 0, 0, 0.35)";
-      ctx.lineWidth = innerLineWidth;
-      ctx.strokeStyle = innerColor;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, Math.max(0.5, rg.r - innerOffset), 0, Math.PI * 2);
-      ctx.stroke();
-      if (rg.w >= 3) {
+      ctx.globalAlpha = 0.5;
+      for (let i = 0; i < bands; i++) {
+        const t = (bands === 1) ? 0.5 : (i / (bands - 1));
+        const r = rg.r - bandWidth * 0.5 + t * bandWidth;
+        const jitter = Math.sin((seed + i * 13.1) * 3.7) * 0.5 + 0.5;
+        const dash = Math.max(3, (rg.dashBase || 6) + jitter * 3);
+        const gap = Math.max(3, (rg.gapBase || 10) + (1 - jitter) * 4);
+        const paletteColor = palette.length ? palette[i % palette.length] : null;
+        const hue = paletteColor
+          ? ((typeof paletteColor.hue === "number") ? paletteColor.hue : hueFromName(paletteColor.colorName || "blue"))
+          : baseHue;
+        ctx.setLineDash([dash, gap]);
+        ctx.lineWidth = lineW;
+        ctx.strokeStyle = `hsla(${hue} 85% 60% / 0.6)`;
+        ctx.lineDashOffset = (rg.dashOffset || 0) + jitter * 6 + i * 2;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, rg.r + innerOffset, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, Math.max(0.5, r), 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.restore();
-
-   
+      ctx.setLineDash([]);
     }
- 
   }
 
   function addPlanetRingMark(p, orbiter, nowMs, source) {
     if (!p) return;
     if (!p.rings) p.rings = [];
     const baseR = (typeof orbiter?.orbitR === "number" && isFinite(orbiter.orbitR)) ? orbiter.orbitR : (p.orbitPx || (p.r * 2.4));
-   const w = Math.max(2, Math.min(12, (orbiter?.r || 4) * 1.4));
-    const hueMid = (typeof p.hueA === "number" && typeof p.hueB === "number")
-      ? (p.hueA + p.hueB) * 0.5
-      : (typeof p.hueA === "number" ? p.hueA : (typeof p.hueB === "number" ? p.hueB : 0));
+   const bandWidth = Math.max(1, orbiter?.r || meteorBaseRadius());
+    const hue = (typeof orbiter?.hue === "number") ? orbiter.hue : hueFromName(orbiter?.colorName || "blue");
     p.rings.push({
       r: baseR,
-      w,
+      bandWidth,
       t0: nowMs,
-     stroke: `hsla(${hueMid} 80% 60% / 0.7)`,
+      hue,
+      colorName: orbiter?.colorName || "blue",
+      palette: [{ hue, colorName: orbiter?.colorName || "blue" }],
+      dashBase: 6,
+      gapBase: 10,
+      dashOffset: rand(0, 6),
+      seed: Math.random() * 1000,
       source: source || "COMET",
     });
   }
@@ -1280,14 +1270,22 @@ meteorCollisionFudge: 1.12,
     if (!p || !asteroid) return;
     if (!p.rings) p.rings = [];
     const baseR = (typeof asteroid.orbitR === "number" && isFinite(asteroid.orbitR)) ? asteroid.orbitR : (p.orbitPx || (p.r * 2.6));
-    const w = Math.max(1, asteroid.r);
+    const bandWidth = Math.max(1, asteroid.r);
+    const palette = (colors && colors.length) ? colors : [{
+      hue: (typeof p.hueA === "number") ? p.hueA : hueFromName("blue"),
+      colorName: "blue",
+    }];
     p.rings.push({
       kind: "asteroidBreak",
       r: baseR,
-      w,
+      bandWidth,
       t0: nowMs,
-      colors: colors || [],
+      palette,
       theta0: (typeof asteroid.theta === "number") ? asteroid.theta : 0,
+      dashBase: 6,
+      gapBase: 10,
+      dashOffset: rand(0, 6),
+      seed: Math.random() * 1000,
       source: "COMET",
     });
   }
