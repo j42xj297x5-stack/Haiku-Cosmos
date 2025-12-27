@@ -101,6 +101,7 @@ console.log("[HC] game.codex.js loaded");
     min: 0.35,
     max: 1.0,
     ease: 0.06,
+    epochZoom: { active: false, t: 0, dur: 2.0, fromZoom: 1.0, toZoom: 1.0, targetX: 0, targetY: 0 },
   };
 
   function screenToWorld(x, y) {
@@ -254,6 +255,10 @@ meteorCollisionFudge: 1.12,
     ROCKY_SPIN_OMEGA_MIN: 0.08,
     ROCKY_SPIN_OMEGA_MAX: 0.25,
 
+    meteorStreams: null,
+    epoch: null,
+    epochTriggered: false,
+    epochAt: 0,
     score: 0,
   };
   // Bind CardEngine to World (foundation under Card Editor)
@@ -1168,6 +1173,81 @@ meteorCollisionFudge: 1.12,
     Events.emit("METEOR_SPAWNED", {});
   }
 
+  function spawnStreamMeteor(angle, streamIndex) {
+    const c = pickColor();
+    const Rm = meteorBaseRadius();
+    const r = rand(0.7, 1.2) * Rm;
+
+    const cx = View.w / 2;
+    const cy = View.h / 2;
+    const s = Camera.scale || 1;
+    const worldHalfW = (View.w * 0.5) / s;
+    const worldHalfH = (View.h * 0.5) / s;
+    const spawnR = Math.max(worldHalfW, worldHalfH) * 1.25;
+
+    const sx = cx - Math.cos(angle) * spawnR;
+    const sy = cy - Math.sin(angle) * spawnR;
+
+    const speed = rand(0.18, 0.32) * View.worldScale * 1.6;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+
+    World.meteors.push({
+      x: sx,
+      y: sy,
+      vx,
+      vy,
+      r,
+      colorName: c.name,
+      hue: c.hue,
+      age: 0,
+      life: rand(60, 120),
+      trail: [],
+      isStream: true,
+      streamIndex,
+    });
+  }
+
+  function startStarEpochZoomOut(star, screenW, screenH) {
+    if (!star) return;
+    if (star._epochZoomStarted) return;
+    const margin = 0.88;
+    const minHalf = Math.min(screenW, screenH) * 0.5 * margin;
+    const toZoom = minHalf / Math.max(1e-6, (star.gravityR || computeGravityFromPlanetRadius(star.r)));
+    if (toZoom >= Camera.scale) return;
+
+    Camera.epochZoom.active = true;
+    Camera.epochZoom.t = 0;
+    Camera.epochZoom.dur = 2.0;
+    Camera.epochZoom.fromZoom = Camera.scale;
+    Camera.epochZoom.toZoom = toZoom;
+    Camera.epochZoom.targetX = star.x;
+    Camera.epochZoom.targetY = star.y;
+
+    if (!World.epochTriggered) {
+      World.epoch = "STAR";
+      World.epochTriggered = true;
+      World.epochAt = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    }
+    if (!World.meteorStreams) {
+      World.meteorStreams = {
+        enabled: true,
+        t: 0,
+        baseAngle: 0,
+        driftSpeed: 0.06,
+        shiftTimer: 0,
+        shiftEvery: 4.5,
+        shiftAmount: 0.35,
+        streams: 3,
+        spawnRate: 6,
+        acc: 0,
+      };
+    } else {
+      World.meteorStreams.enabled = true;
+    }
+    star._epochZoomStarted = true;
+  }
+
   // ---------- Asteroid mapping ----------
   function pairKey(a, b) { return [a, b].sort().join("+"); }
   function sidesFromColors(c1, c2) {
@@ -1686,6 +1766,7 @@ meteorCollisionFudge: 1.12,
       World.meteors.push(m);
     }
     reconcileStarOwnershipOnBirth(p, star);
+    startStarEpochZoomOut(star, View.w, View.h);
   }
 
   // Internal ids (used for comet-release cooldown / ignore)
@@ -2883,6 +2964,26 @@ if (dist2 <= minDist * minDist) {
       if (World.meteors.length < World.maxMeteors) spawnMeteor();
     }
 
+    if (World.epoch === "STAR" && World.meteorStreams && World.meteorStreams.enabled) {
+      const ms = World.meteorStreams;
+      ms.t += dt;
+      ms.baseAngle += ms.driftSpeed * dt;
+      ms.shiftTimer += dt;
+      if (ms.shiftTimer >= ms.shiftEvery) {
+        ms.shiftTimer = 0;
+        ms.baseAngle += (Math.random() * 2 - 1) * ms.shiftAmount;
+      }
+      const totalRate = ms.spawnRate * ms.streams;
+      ms.acc += dt * totalRate;
+      while (ms.acc >= 1) {
+        ms.acc -= 1;
+        const i = Math.floor(Math.random() * ms.streams);
+        const spread = 0.18;
+        const a = ms.baseAngle + (i - (ms.streams - 1) / 2) * spread + ((Math.random() * 2 - 1) * 0.06);
+        spawnStreamMeteor(a, i);
+      }
+    }
+
     const controlMul = CardEngine.state.engineStats.meteor_mouse_control || 1.0;
     const pointerRadiusMul = CardEngine.state.engineStats.pointer_radius_mul || 1.0;
     const pointerStrengthMul = CardEngine.state.engineStats.pointer_strength_mul || 1.0;
@@ -2937,6 +3038,19 @@ if (dist2 <= minDist * minDist) {
       if (m.y - m.r < b.t) { m.y = b.t + m.r; m.vy = Math.abs(m.vy) * bounceLoss; }
       if (m.y + m.r > b.b) { m.y = b.b - m.r; m.vy = -Math.abs(m.vy) * bounceLoss; }
 
+      if (World.epoch === "STAR" && m.isStream) {
+        const cx = View.w / 2;
+        const cy = View.h / 2;
+        const s = Camera.scale || 1;
+        const worldHalfW = (View.w * 0.5) / s;
+        const worldHalfH = (View.h * 0.5) / s;
+        const spawnR = Math.max(worldHalfW, worldHalfH) * 1.6;
+        if (Math.hypot(m.x - cx, m.y - cy) > spawnR) {
+          World.meteors.splice(i, 1);
+          continue;
+        }
+      }
+
       if (World.stars && World.stars.length) {
         for (const s of World.stars) {
           const dx = m.x - s.x;
@@ -2964,8 +3078,16 @@ if (dist2 <= minDist * minDist) {
 
 
     // camera ease
-    Camera.target = clamp(Camera.target, Camera.min, Camera.max);
-    Camera.scale += (Camera.target - Camera.scale) * Camera.ease;
+    if (Camera.epochZoom && Camera.epochZoom.active) {
+      Camera.epochZoom.t += dt;
+      const u = Math.min(1, Camera.epochZoom.t / Math.max(0.001, Camera.epochZoom.dur));
+      const e = (u < 0.5) ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+      Camera.scale = Camera.epochZoom.fromZoom + (Camera.epochZoom.toZoom - Camera.epochZoom.fromZoom) * e;
+      if (u >= 1) Camera.epochZoom.active = false;
+    } else {
+      Camera.target = clamp(Camera.target, Camera.min, Camera.max);
+      Camera.scale += (Camera.target - Camera.scale) * Camera.ease;
+    }
 
     // input -> world coords (because render uses Camera.scale)
     const wp = screenToWorld(Input.x, Input.y);
@@ -2989,7 +3111,6 @@ if (dist2 <= minDist * minDist) {
     updateStarBirths(dt);
     captureBodiesByStars(dt);
 
-    let maxStarGravityR = 0;
     if (World.stars && World.stars.length) {
       for (const star of World.stars) {
         const birth = star?.starBirth || star?.birth;
@@ -3014,14 +3135,6 @@ if (dist2 <= minDist * minDist) {
           star.sizeClass = "very_big";
           star.gradientOuterColor = "orangered";
         }
-        maxStarGravityR = Math.max(maxStarGravityR, star.gravityR || computeGravityFromPlanetRadius(star.r));
-      }
-    }
-    if (maxStarGravityR > 0) {
-      const minDim = Math.min(View.w, View.h);
-      if (maxStarGravityR * Camera.scale > minDim * 0.45) {
-        const targetScale = clamp((minDim * 0.45) / maxStarGravityR, Camera.min, Camera.max);
-        Camera.target = Math.min(Camera.target, targetScale);
       }
     }
   }
@@ -3066,6 +3179,18 @@ if (dist2 <= minDist * minDist) {
     World.stars = [];
     World.spawnTimer = 0;
     World.score = 0;
+    World.epoch = null;
+    World.epochTriggered = false;
+    World.epochAt = 0;
+    World.meteorStreams = null;
+    if (Camera.epochZoom) {
+      Camera.epochZoom.active = false;
+      Camera.epochZoom.t = 0;
+      Camera.epochZoom.fromZoom = Camera.scale;
+      Camera.epochZoom.toZoom = Camera.scale;
+      Camera.epochZoom.targetX = 0;
+      Camera.epochZoom.targetY = 0;
+    }
 
     // Reset epoch/zoom state
     World.flags = { firstPlanetZoomed: false, firstStarZoomed: false };
