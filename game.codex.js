@@ -34,56 +34,7 @@ console.log("[HC] game.codex.js loaded");
   // ---------- DOM ----------
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d", { alpha: false });
-  const fpsLabel = document.getElementById("fpsLabel");
-  const btnRestart = document.getElementById("btnRestart");
-  const topBar = document.getElementById("topBar");
-
-  const scoreLabel = (() => {
-    if (!topBar) return null;
-    const el = document.createElement("div");
-    el.className = "pill";
-    el.id = "scoreLabel";
-    el.textContent = "Score: 0";
-    topBar.appendChild(el);
-    return el;
-  })();
-
-
-  // ---------- UI: Meteors per second slider (debug / balancing) ----------
-  const mpsUI = (() => {
-    if (!topBar) return null;
-
-    const wrap = document.createElement("div");
-    wrap.className = "pill";
-    wrap.style.display = "flex";
-    wrap.style.alignItems = "center";
-    wrap.style.gap = "10px";
-    wrap.style.padding = "6px 10px";
-
-    const label = document.createElement("span");
-    label.textContent = "Meteors/s:";
-    label.style.opacity = "0.9";
-
-    const value = document.createElement("span");
-    value.id = "mpsValue";
-    value.style.minWidth = "34px";
-    value.style.textAlign = "right";
-
-    const slider = document.createElement("input");
-    slider.type = "range";
-    slider.min = "1";
-    slider.max = "20";
-    slider.step = "1";
-    slider.value = "5";
-    slider.style.width = "140px";
-
-    wrap.appendChild(label);
-    wrap.appendChild(value);
-    wrap.appendChild(slider);
-    topBar.appendChild(wrap);
-
-    return { wrap, label, value, slider };
-  })();
+  // UI/DEBUG moved to hc.ui_debug.codex.js
 
   const CardEngine = window.CardEngine;
 
@@ -225,34 +176,7 @@ meteorCollisionFudge: 1.12,
 
 
 
-  // ---------- Spawn rate helpers ----------
-  function setMeteorsPerSec(mps) {
-    const v = clamp(mps, 1, 60);
-    World.spawnInterval = 1 / v;
-    if (mpsUI) {
-      mpsUI.value.textContent = String(Math.round(v));
-      mpsUI.slider.value = String(Math.round(v));
-    }
-  }
-
-  // init slider from current spawnInterval
-  if (mpsUI) {
-    const current = Math.max(1, Math.round(1 / World.spawnInterval));
-    mpsUI.value.textContent = String(current);
-    mpsUI.slider.value = String(current);
-    mpsUI.slider.addEventListener("input", () => {
-      const v = parseInt(mpsUI.slider.value, 10) || 1;
-      setMeteorsPerSec(v);
-    });
-  }
-
   // COMETS moved to hc.comets.codex.js
-
-
-  function addScore(points) {
-    World.score += points;
-    if (scoreLabel) scoreLabel.textContent = `Score: ${World.score}`;
-  }
 
   // ---------- API (future cards) ----------
   const WorldAPI = {
@@ -518,7 +442,6 @@ meteorCollisionFudge: 1.12,
   window.computeOmega = computeOmega;
   window.getWorldViewBounds = getWorldViewBounds;
   window.hueFromName = hueFromName;
-  window.addScore = addScore;
   window.sidesFromColors = sidesFromColors;
   window.getDirectOrbitersOfBody = getDirectOrbitersOfBody;
   window.makeRng = makeRng;
@@ -572,16 +495,15 @@ meteorCollisionFudge: 1.12,
     Camera.scale = 1.0;
     Camera.target = 1.0;
 
-    if (scoreLabel) scoreLabel.textContent = "Score: 0";
     CardEngine.resetForNewRun();
   }
+  window.resetWorld = resetWorld;
 
-  if (btnRestart) btnRestart.addEventListener("click", resetWorld);
-  resetWorld();
+  if (window.HC && window.HC.UI && window.HC.UI.init) {
+    window.HC.UI.init();
+  }
 
   let last = performance.now();
-  let fpsAcc = 0;
-  let fpsFrames = 0;
 
   function frame(now) {
     const dt = Math.min(0.033, Math.max(0.001, (now - last) / 1000));
@@ -589,14 +511,8 @@ meteorCollisionFudge: 1.12,
 
     update(dt);
     HC.Render.frame(now, dt);
-
-    fpsAcc += dt;
-    fpsFrames += 1;
-    if (fpsAcc >= 0.5) {
-      const fps = Math.round(fpsFrames / fpsAcc);
-      if (fpsLabel) fpsLabel.textContent = `FPS: ${fps}`;
-      fpsAcc = 0;
-      fpsFrames = 0;
+    if (window.HC && window.HC.UI && window.HC.UI.update) {
+      window.HC.UI.update(dt, now);
     }
 
     requestAnimationFrame(frame);
