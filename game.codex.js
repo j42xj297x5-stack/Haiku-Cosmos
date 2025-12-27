@@ -1191,31 +1191,36 @@ meteorCollisionFudge: 1.12,
     if (!p.rings || !p.rings.length) return;
 
     for (const rg of p.rings) {
-   
+      const bandWidth = (typeof rg.bandWidth === "number") ? rg.bandWidth : (typeof rg.w === "number" ? rg.w : meteorBaseRadius());
+      const bands = clamp((typeof rg.bands === "number") ? rg.bands : Math.round(bandWidth / 2), 2, 16);
+      const colorBase = (rg.palette && rg.palette.length) ? rg.palette : null;
+      const seed = (typeof rg.seed === "number") ? rg.seed : 0;
+
       ctx.save();
-      ctx.globalAlpha = 0.7;
-      ctx.beginPath();
-      ctx.setLineDash([]);
-      ctx.lineWidth = rg.w;
-      ctx.strokeStyle = rg.stroke;
-      ctx.arc(p.x, p.y, rg.r, 0, Math.PI * 2);
-      ctx.stroke();
-      const innerLineWidth = Math.max(0.6, rg.w * 0.08);
-      const innerOffset = rg.w * 0.15;
-      const innerColor = "rgba(0, 0, 0, 0.35)";
-      ctx.lineWidth = innerLineWidth;
-      ctx.strokeStyle = innerColor;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, Math.max(0.5, rg.r - innerOffset), 0, Math.PI * 2);
-      ctx.stroke();
-      if (rg.w >= 3) {
+      ctx.globalAlpha = 0.5;
+
+      const bandStep = bandWidth / bands;
+      const dashBase = Math.max(3, bandWidth * 0.9);
+      const gapBase = Math.max(3, bandWidth * 1.6);
+
+      for (let i = 0; i < bands; i++) {
+        const offset = -bandWidth * 0.5 + (i + 0.5) * bandStep;
+        const jitter = Math.sin(seed * 97.13 + i * 17.7);
+        const jitter2 = Math.cos(seed * 53.31 + i * 11.3);
+        const dash = dashBase * (0.85 + jitter * 0.12);
+        const gap = gapBase * (0.85 + jitter2 * 0.12);
+
         ctx.beginPath();
-        ctx.arc(p.x, p.y, rg.r + innerOffset, 0, Math.PI * 2);
+        ctx.lineWidth = Math.max(0.6, bandStep * 0.35);
+        ctx.strokeStyle = colorBase ? colorBase[i % colorBase.length] : (rg.color || rg.stroke);
+        ctx.setLineDash([dash, gap]);
+        ctx.lineDashOffset = (seed * 0.6) + i * 3.7;
+        ctx.arc(p.x, p.y, Math.max(0.5, rg.r + offset), 0, Math.PI * 2);
         ctx.stroke();
       }
-      ctx.restore();
 
-   
+      ctx.setLineDash([]);
+      ctx.restore();
     }
  
   }
@@ -1224,15 +1229,22 @@ meteorCollisionFudge: 1.12,
     if (!p) return;
     if (!p.rings) p.rings = [];
     const baseR = (typeof orbiter?.orbitR === "number" && isFinite(orbiter.orbitR)) ? orbiter.orbitR : (p.orbitPx || (p.r * 2.4));
-   const w = Math.max(2, Math.min(12, (orbiter?.r || 4) * 1.4));
-    const hueMid = (typeof p.hueA === "number" && typeof p.hueB === "number")
-      ? (p.hueA + p.hueB) * 0.5
-      : (typeof p.hueA === "number" ? p.hueA : (typeof p.hueB === "number" ? p.hueB : 0));
+    const orbiterR = (typeof orbiter?.r === "number" && isFinite(orbiter.r)) ? orbiter.r : meteorBaseRadius();
+    const bandWidth = Math.max(1, orbiterR);
+    const bands = clamp(Math.round(orbiterR / 2), 2, 16);
+    const orbiterHue = (typeof orbiter?.hue === "number") ? orbiter.hue : hueFromName(orbiter?.colorName || "blue");
+    const orbiterColor = (typeof orbiter?.color === "string") ? orbiter.color : `hsl(${orbiterHue} 95% 70%)`;
+    // TODO: when comet hits asteroid with rotating multicolor meteors, populate palette from orbiter colors.
+    const palette = Array.isArray(orbiter?.palette) ? orbiter.palette.slice() : null;
     p.rings.push({
       r: baseR,
-      w,
       t0: nowMs,
-     stroke: `hsla(${hueMid} 80% 60% / 0.7)`,
+      bandWidth,
+      bands,
+      color: orbiterColor,
+      hue: orbiterHue,
+      palette,
+      seed: rand(0, 1000),
       source: source || "COMET",
     });
   }
