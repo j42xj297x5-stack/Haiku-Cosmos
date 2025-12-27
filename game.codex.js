@@ -1838,31 +1838,32 @@ meteorCollisionFudge: 1.12,
     if (!p.rings || !p.rings.length) return;
 
     for (const rg of p.rings) {
-   
+      const baseBandWidth = (typeof rg.bandWidth === "number" && isFinite(rg.bandWidth)) ? rg.bandWidth : 1.0;
+      const bandCount = Math.max(7, Math.min(11, Math.round(rg.w / baseBandWidth)));
+      const bandWidth = Math.max(0.5, rg.w / bandCount);
+      const startRadius = rg.r - rg.w * 0.5 + bandWidth * 0.5;
+
       ctx.save();
-      ctx.globalAlpha = 0.7;
-      ctx.beginPath();
-      ctx.setLineDash([]);
-      ctx.lineWidth = rg.w;
-      ctx.strokeStyle = rg.stroke;
-      ctx.arc(p.x, p.y, rg.r, 0, Math.PI * 2);
-      ctx.stroke();
-      const innerLineWidth = Math.max(0.6, rg.w * 0.08);
-      const innerOffset = rg.w * 0.15;
-      const innerColor = "rgba(0, 0, 0, 0.35)";
-      ctx.lineWidth = innerLineWidth;
-      ctx.strokeStyle = innerColor;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, Math.max(0.5, rg.r - innerOffset), 0, Math.PI * 2);
-      ctx.stroke();
-      if (rg.w >= 3) {
+      ctx.lineCap = "round";
+
+      for (let i = 0; i < bandCount; i += 1) {
+        const bandRadius = startRadius + i * bandWidth;
+        const isGap = i % 2 === 1;
+        const dash = Math.max(2, bandWidth * 3.1);
+        const gap = Math.max(2, bandWidth * 2.0);
+        const phase = (nowMs * 0.02) + (rg.r * 0.12) + (i * 1.9);
+
+        ctx.setLineDash([dash, gap]);
+        ctx.lineDashOffset = -phase;
+        ctx.lineWidth = bandWidth * 0.9;
+        ctx.strokeStyle = isGap ? "rgba(0, 0, 0, 0.18)" : rg.stroke;
+        ctx.globalAlpha = isGap ? 0.35 : 0.7;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, rg.r + innerOffset, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, Math.max(0.5, bandRadius), 0, Math.PI * 2);
         ctx.stroke();
       }
-      ctx.restore();
 
-   
+      ctx.restore();
     }
  
   }
@@ -1871,13 +1872,16 @@ meteorCollisionFudge: 1.12,
     if (!p) return;
     if (!p.rings) p.rings = [];
     const baseR = (typeof orbiter?.orbitR === "number" && isFinite(orbiter.orbitR)) ? orbiter.orbitR : (p.orbitPx || (p.r * 2.4));
-   const w = Math.max(2, Math.min(12, (orbiter?.r || 4) * 1.4));
+    const orbiterRadius = (typeof orbiter?.r === "number" && isFinite(orbiter.r)) ? orbiter.r : null;
+    const w = Math.max(2, Math.min(12, (orbiterRadius || 4) * 1.4));
+    const bandWidth = orbiterRadius ? Math.max(0.7, Math.min(2.6, orbiterRadius * 0.35)) : 1.0;
     const hueMid = (typeof p.hueA === "number" && typeof p.hueB === "number")
       ? (p.hueA + p.hueB) * 0.5
       : (typeof p.hueA === "number" ? p.hueA : (typeof p.hueB === "number" ? p.hueB : 0));
     p.rings.push({
       r: baseR,
       w,
+      bandWidth,
       t0: nowMs,
      stroke: `hsla(${hueMid} 80% 60% / 0.7)`,
       source: source || "COMET",
