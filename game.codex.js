@@ -85,17 +85,26 @@ console.log("[HC] game.codex.js loaded");
     return { wrap, label, value, slider };
   })();
 
-  // ---------- View / scaling ----------
-  function getMaxPixelRatio() {
-    const dpr = window.devicePixelRatio || 1;
-    const isMobile = matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    return Math.min(dpr, isMobile ? 1.5 : 2.0);
+  const CardEngine = window.CardEngine;
+
+  if (window.HC && window.HC.initViewInput) {
+    window.HC.initViewInput({ canvas, ctx, CardEngine });
   }
 
-  const View = { w: 0, h: 0, dpr: 1, worldScale: 1 };
-
-  // ---------- Camera (render-only zoom, lightweight) ----------
-  const Camera = {
+  const View = (window.HC && window.HC.getView && window.HC.getView()) || window.View || {
+    w: 0,
+    h: 0,
+    dpr: 1,
+    worldScale: 1,
+  };
+  const Input = (window.HC && window.HC.getInput && window.HC.getInput()) || window.Input || {
+    pointerDown: false,
+    x: 0,
+    y: 0,
+    wx: 0,
+    wy: 0,
+  };
+  const Camera = (window.HC && window.HC.getCamera && window.HC.getCamera()) || window.Camera || {
     scale: 1.0,
     target: 1.0,
     min: 0.35,
@@ -103,73 +112,20 @@ console.log("[HC] game.codex.js loaded");
     ease: 0.06,
     epochZoom: { active: false, t: 0, dur: 2.0, fromZoom: 1.0, toZoom: 1.0, targetX: 0, targetY: 0 },
   };
-
-  function screenToWorld(x, y) {
+  const screenToWorld = (window.HC && window.HC.screenToWorld) || window.screenToWorld || function screenToWorldFallback(x, y) {
     const cx = View.w / 2;
     const cy = View.h / 2;
     const s = Camera.scale || 1;
     return { x: (x - cx) / s + cx, y: (y - cy) / s + cy };
-  }
-
-
-  
-  function getWorldViewBounds() {
-    // When Camera.scale < 1, the visible world extends beyond 0..View.w / 0..View.h.
+  };
+  const getWorldViewBounds = (window.HC && window.HC.getWorldViewBounds) || window.getWorldViewBounds || function getWorldViewBoundsFallback() {
     const cx = View.w / 2;
     const cy = View.h / 2;
     const s = Camera.scale || 1;
     const halfW = (View.w / 2) / s;
     const halfH = (View.h / 2) / s;
     return { l: cx - halfW, r: cx + halfW, t: cy - halfH, b: cy + halfH, cx, cy };
-  }
-
-function resizeCanvas() {
-    View.dpr = getMaxPixelRatio();
-    const cssW = Math.max(1, window.innerWidth);
-    const cssH = Math.max(1, window.innerHeight);
-    canvas.style.width = cssW + "px";
-    canvas.style.height = cssH + "px";
-    canvas.width = Math.floor(cssW * View.dpr);
-    canvas.height = Math.floor(cssH * View.dpr);
-    View.w = canvas.width;
-    View.h = canvas.height;
-    View.worldScale = Math.min(View.w, View.h);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }
-  window.addEventListener("resize", resizeCanvas, { passive: true });
-  resizeCanvas();
-
-  // ---------- Input ----------
-  const Input = { pointerDown: false, x: 0, y: 0, wx: 0, wy: 0 };
-
-  function toCanvasCoords(e) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left) * View.dpr,
-      y: (e.clientY - rect.top) * View.dpr,
-    };
-  }
-
-  canvas.addEventListener("pointerdown", (e) => {
-    const p = toCanvasCoords(e);
-    Input.x = p.x; Input.y = p.y;
-
-    // If a card offer was clicked, consume the click (do not start pointer control)
-    if (CardEngine.handlePointerDown(p.x, p.y, View.w, View.h)) return;
-
-    Input.pointerDown = true;
-    canvas.setPointerCapture(e.pointerId);
-  });
-
-  canvas.addEventListener("pointermove", (e) => {
-    const p = toCanvasCoords(e);
-    Input.x = p.x; Input.y = p.y;
-  });
-
-  canvas.addEventListener("pointerup", (e) => {
-    Input.pointerDown = false;
-    try { canvas.releasePointerCapture(e.pointerId); } catch {}
-  });
+  };
 
   // ---------- Helpers ----------
   function rand(min, max) { return min + Math.random() * (max - min); }
