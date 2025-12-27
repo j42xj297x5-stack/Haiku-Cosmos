@@ -173,6 +173,14 @@ function resizeCanvas() {
   // ---------- Helpers ----------
   function rand(min, max) { return min + Math.random() * (max - min); }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function smoothstep(a, b, t) {
+    const x = clamp((t - a) / (b - a), 0, 1);
+    return x * x * (3 - 2 * x);
+  }
+  function easeInQuad(t) { return t * t; }
+  function easeOutQuad(t) { return t * (2 - t); }
+  function easeInCubic(t) { return t * t * t; }
 
   function meteorBaseRadius() {
     return View.worldScale * 0.008;
@@ -185,6 +193,7 @@ function resizeCanvas() {
     meteors: [],
     asteroids: [],
     planets: [],
+    stars: [],
 
     flags: { firstPlanetZoomed: false, firstStarZoomed: false },
 
@@ -1032,6 +1041,27 @@ meteorCollisionFudge: 1.12,
     return grad;
   }
 
+  const STAR_BIRTH_SPIRAL_TURNS = 3.2;
+  const STAR_BIRTH_TRIGGER_R = 120;
+  const STAR_SIZE_SMALL_MAX_R = 60;
+  const STAR_SIZE_BIG_MAX_R = 120;
+
+  function brightenHsl(color, amount) {
+    const match = /hsl\(\s*([0-9.]+)\s+([0-9.]+)%\s+([0-9.]+)%\s*\)/i.exec(color || "");
+    if (!match) return color;
+    const h = match[1];
+    const s = match[2];
+    const l = clamp(parseFloat(match[3]) + amount * 100, 0, 100);
+    return `hsl(${h} ${s}% ${l}%)`;
+  }
+
+  function pickStarGradientOuter(star) {
+    const sizeIndex = star.r / Math.max(1, meteorBaseRadius());
+    if (sizeIndex <= STAR_SIZE_SMALL_MAX_R) return "#ffd66b";
+    if (sizeIndex <= STAR_SIZE_BIG_MAX_R) return "#7bb3ff";
+    return "#ff6a3d";
+  }
+
   // Internal ids (used for comet-release cooldown / ignore)
   let ASTEROID_ID_SEQ = 1;
 
@@ -1118,10 +1148,13 @@ meteorCollisionFudge: 1.12,
 
   function drawMeteor(m) {
     const maxTrail = 10;
-    m.trail.push({ x: m.x, y: m.y });
+    const mx = (typeof m._birthX === "number") ? m._birthX : m.x;
+    const my = (typeof m._birthY === "number") ? m._birthY : m.y;
+    const alpha = (typeof m._birthAlpha === "number") ? m._birthAlpha : 1;
+    m.trail.push({ x: mx, y: my });
     if (m.trail.length > maxTrail) m.trail.shift();
 
-    ctx.globalAlpha = 0.18;
+    ctx.globalAlpha = 0.18 * alpha;
     for (let i = 0; i < m.trail.length; i++) {
       const t = m.trail[i];
       const k = (i + 1) / m.trail.length;
@@ -1131,17 +1164,17 @@ meteorCollisionFudge: 1.12,
       ctx.arc(t.x, t.y, rr, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = 1 * alpha;
 
     ctx.beginPath();
     ctx.fillStyle = `hsl(${m.hue} 90% 70%)`;
-    ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+    ctx.arc(mx, my, m.r, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.globalAlpha = 0.65;
+    ctx.globalAlpha = 0.65 * alpha;
     ctx.beginPath();
     ctx.fillStyle = "white";
-    ctx.arc(m.x - m.r * 0.25, m.y - m.r * 0.25, m.r * 0.25, 0, Math.PI * 2);
+    ctx.arc(mx - m.r * 0.25, my - m.r * 0.25, m.r * 0.25, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
@@ -1160,27 +1193,37 @@ meteorCollisionFudge: 1.12,
 
   function drawAsteroidOrbiters(a) {
     for (const o of a.orbiters) {
-      const ox = a.x + Math.cos(o.angle) * o.orbitR;
-      const oy = a.y + Math.sin(o.angle) * o.orbitR;
+      const ax = (typeof a._birthX === "number") ? a._birthX : a.x;
+      const ay = (typeof a._birthY === "number") ? a._birthY : a.y;
+      const alpha = (typeof a._birthAlpha === "number") ? a._birthAlpha : 1;
+      const ox = ax + Math.cos(o.angle) * o.orbitR;
+      const oy = ay + Math.sin(o.angle) * o.orbitR;
 
+      ctx.save();
+      ctx.globalAlpha = ctx.globalAlpha * alpha;
       ctx.beginPath();
       ctx.fillStyle = `hsl(${o.hue} 90% 70%)`;
       ctx.arc(ox, oy, o.r, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.globalAlpha = 0.55;
+      ctx.globalAlpha = 0.55 * alpha;
       ctx.beginPath();
       ctx.fillStyle = "white";
       ctx.arc(ox - o.r * 0.25, oy - o.r * 0.25, o.r * 0.25, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalAlpha = 1;
+      ctx.restore();
     }
   }
 
   function drawAsteroid(a) {
+    const ax = (typeof a._birthX === "number") ? a._birthX : a.x;
+    const ay = (typeof a._birthY === "number") ? a._birthY : a.y;
+    const alpha = (typeof a._birthAlpha === "number") ? a._birthAlpha : 1;
+
     ctx.save();
+    ctx.globalAlpha = ctx.globalAlpha * alpha;
     ctx.beginPath();
-    ctx.arc(a.x, a.y, a.orbitPx, 0, Math.PI * 2);
+    ctx.arc(ax, ay, a.orbitPx, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(255, 215, 0, 0.65)";
     ctx.lineWidth = 1;
     ctx.setLineDash([]);
@@ -1190,15 +1233,16 @@ meteorCollisionFudge: 1.12,
     drawAsteroidOrbiters(a);
 
     ctx.save();
-    drawRegularPolygon(a.x, a.y, a.r, a.sides, a.angle);
+    ctx.globalAlpha = ctx.globalAlpha * alpha;
+    drawRegularPolygon(ax, ay, a.r, a.sides, a.angle);
     ctx.fillStyle = `hsl(0 0% ${a.grayLight}%)`;
     ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,0.16)";
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    ctx.globalAlpha = 0.35;
-    drawRegularPolygon(a.x - a.r * 0.12, a.y - a.r * 0.12, a.r * 0.55, a.sides, a.angle);
+    ctx.globalAlpha = 0.35 * alpha;
+    drawRegularPolygon(ax - a.r * 0.12, ay - a.r * 0.12, a.r * 0.55, a.sides, a.angle);
     ctx.fillStyle = "white";
     ctx.fill();
     ctx.restore();
@@ -1318,26 +1362,58 @@ ctx.beginPath();
     ctx.globalAlpha = 1;
   }
 
+  function drawStar(s) {
+    const whiteMix = (typeof s.overlayWhite === "number") ? s.overlayWhite : 0;
+    const baseColor = s.baseColor || s.color || "#ffffff";
+
+    if (s.gradientKind === "radial") {
+      const grad = ctx.createRadialGradient(s.x, s.y, s.r * 0.1, s.x, s.y, s.r);
+      grad.addColorStop(0, s.gradientInner || baseColor);
+      grad.addColorStop(1, s.gradientOuter || baseColor);
+      ctx.beginPath();
+      ctx.fillStyle = grad;
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.fillStyle = baseColor;
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (whiteMix > 0) {
+      ctx.save();
+      ctx.globalAlpha = clamp(whiteMix, 0, 1);
+      ctx.beginPath();
+      ctx.fillStyle = "#ffffff";
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
 
 // Draw orbiters (captured meteors) around a planet
   function drawPlanetOrbiters(p) {
     if (!p.orbiters || !p.orbiters.length) return;
 
     for (const o of p.orbiters) {
-      const ox = p.x + Math.cos(o.angle) * o.orbitR;
-      const oy = p.y + Math.sin(o.angle) * o.orbitR;
+      const ox = (typeof o._birthX === "number") ? o._birthX : (p.x + Math.cos(o.angle) * o.orbitR);
+      const oy = (typeof o._birthY === "number") ? o._birthY : (p.y + Math.sin(o.angle) * o.orbitR);
+      const alpha = (typeof o._birthAlpha === "number") ? o._birthAlpha : 1;
 
+      ctx.save();
+      ctx.globalAlpha = ctx.globalAlpha * alpha;
       ctx.beginPath();
       ctx.fillStyle = `hsl(${o.hue} 95% 70%)`;
       ctx.arc(ox, oy, o.r, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.globalAlpha = 0.35;
+      ctx.globalAlpha = 0.35 * alpha;
       ctx.beginPath();
       ctx.fillStyle = "white";
       ctx.arc(ox - o.r * 0.25, oy - o.r * 0.25, o.r * 0.25, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalAlpha = 1;
+      ctx.restore();
     }
   }
 
@@ -1773,6 +1849,7 @@ if (dist2 <= minDist * minDist) {
   function updatePlanets(dt) {
     const bounceLoss = 0.94;
     const b = getWorldViewBounds();
+    const toTransform = [];
     for (const p of World.planets) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
@@ -1795,6 +1872,174 @@ if (dist2 <= minDist * minDist) {
           o.angle += omegaDyn * dt;
         }
       }
+
+      if (p.planetKind === "gas") {
+        const sizeIndex = p.r / Math.max(1, meteorBaseRadius());
+        if (sizeIndex >= STAR_BIRTH_TRIGGER_R) toTransform.push(p);
+      }
+    }
+
+    for (const p of toTransform) {
+      transformGasPlanetToStar(p);
+      p._dead = true;
+    }
+
+    for (let i = World.planets.length - 1; i >= 0; i--) {
+      if (World.planets[i]._dead) World.planets.splice(i, 1);
+    }
+  }
+
+  function transformGasPlanetToStar(p) {
+    if (!p || p._toStar) return;
+    p._toStar = true;
+    const hue = (typeof p.hueA === "number") ? p.hueA : hueFromName("yellow");
+    const color = `hsl(${hue} 85% 60%)`;
+    const star = {
+      type: "star",
+      x: p.x,
+      y: p.y,
+      vx: p.vx,
+      vy: p.vy,
+      r: p.r,
+      color,
+      baseColor: color,
+      overlayWhite: 0,
+      gradientKind: null,
+      gradientInner: null,
+      gradientOuter: null,
+      orbiters: p.orbiters || [],
+      orbitPx: p.orbitPx,
+      rings: p.rings || [],
+      capturedAsteroids: p.capturedAsteroids || [],
+    };
+
+    for (const a of World.asteroids) {
+      if (a.parentKind === "planet" && a.parentRef === p) {
+        a.parentRef = star;
+      }
+    }
+
+    initStarBirth(star);
+    World.stars.push(star);
+  }
+
+  function initStarBirth(star) {
+    star.birth = {
+      t: 0,
+      duration: 5.0,
+      fadeOut: 2.0,
+      active: true,
+      phase: "collapse",
+      absorb: [],
+    };
+    star.baseColor = star.color;
+    star.overlayWhite = 0;
+    star.gradientKind = null;
+
+    const absorb = star.birth.absorb;
+    if (star.orbiters && star.orbiters.length) {
+      for (const o of star.orbiters) {
+        absorb.push({
+          obj: o,
+          kind: "orbiter",
+          startR: o.orbitR,
+          startTheta: o.angle,
+          startOmega: o.omega || 0,
+          spinDir: (o.omega || 0) >= 0 ? 1 : -1,
+          spiralTurns: STAR_BIRTH_SPIRAL_TURNS + rand(-0.35, 0.35),
+        });
+      }
+    }
+
+    for (const a of World.asteroids) {
+      if (a.parentKind !== "planet" || a.parentRef !== star) continue;
+      const dx = a.x - star.x;
+      const dy = a.y - star.y;
+      absorb.push({
+        obj: a,
+        kind: "asteroid",
+        startR: Math.hypot(dx, dy),
+        startTheta: Math.atan2(dy, dx),
+        startOmega: a.omega || 0,
+        spinDir: (a.omega || 0) >= 0 ? 1 : -1,
+        spiralTurns: STAR_BIRTH_SPIRAL_TURNS + rand(-0.35, 0.35),
+      });
+    }
+  }
+
+  function updateStarBirth(star, dt) {
+    const birth = star.birth;
+    if (!birth || !birth.active) return;
+
+    if (birth.phase === "collapse") {
+      birth.t = Math.min(birth.t + dt, birth.duration);
+      const u = birth.duration > 0 ? (birth.t / birth.duration) : 1;
+      const easeR = easeInCubic(u);
+      const easeTheta = easeInQuad(u);
+      const nowSec = (World.nowMs ?? performance.now()) / 1000;
+      const freq = lerp(2, 13, easeInQuad(u));
+      const pulse = 0.5 + 0.5 * Math.sin(Math.PI * 2 * freq * nowSec);
+      star.overlayWhite = 0.7 * pulse;
+
+      for (const entry of birth.absorb) {
+        const r = lerp(entry.startR, 0, easeR);
+        const theta = entry.startTheta + (entry.spiralTurns * Math.PI * 2) * easeTheta;
+        const x = star.x + Math.cos(theta) * r;
+        const y = star.y + Math.sin(theta) * r;
+        const alpha = 1 - smoothstep(0.7, 1.0, u);
+        entry.obj._birthX = x;
+        entry.obj._birthY = y;
+        entry.obj._birthAlpha = alpha;
+      }
+
+      if (u >= 1) {
+        for (const entry of birth.absorb) {
+          if (entry.kind === "orbiter") entry.obj._dead = true;
+          if (entry.kind === "asteroid") entry.obj._dead = true;
+        }
+        if (star.orbiters) star.orbiters.length = 0;
+        birth.phase = "fade";
+        birth.t = 0;
+      }
+      return;
+    }
+
+    if (birth.phase === "fade") {
+      birth.t = Math.min(birth.t + dt, birth.fadeOut);
+      const v = birth.fadeOut > 0 ? (birth.t / birth.fadeOut) : 1;
+      star.overlayWhite = lerp(0.7, 0.0, easeOutQuad(v));
+      if (v >= 1) {
+        birth.phase = "done";
+        birth.active = false;
+        star.overlayWhite = 0;
+        star.gradientKind = "radial";
+        star.gradientOuter = pickStarGradientOuter(star);
+        star.gradientInner = brightenHsl(star.baseColor || star.color, 0.12);
+      }
+    }
+  }
+
+  function updateStars(dt) {
+    if (!World.stars.length) return;
+    const bounceLoss = 0.94;
+    const b = getWorldViewBounds();
+    for (const s of World.stars) {
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+
+      s.vx *= (1 - 0.01 * dt);
+      s.vy *= (1 - 0.01 * dt);
+
+      if (s.x - s.r < b.l) { s.x = b.l + s.r; s.vx = Math.abs(s.vx) * bounceLoss; }
+      if (s.x + s.r > b.r) { s.x = b.r - s.r; s.vx = -Math.abs(s.vx) * bounceLoss; }
+      if (s.y - s.r < b.t) { s.y = b.t + s.r; s.vy = Math.abs(s.vy) * bounceLoss; }
+      if (s.y + s.r > b.b) { s.y = b.b - s.r; s.vy = -Math.abs(s.vy) * bounceLoss; }
+
+      updateStarBirth(s, dt);
+    }
+
+    for (let i = World.asteroids.length - 1; i >= 0; i--) {
+      if (World.asteroids[i]._dead) World.asteroids.splice(i, 1);
     }
   }
 
@@ -1894,6 +2139,7 @@ if (dist2 <= minDist * minDist) {
     captureAsteroidsByPlanets(dt, nowMs);
     updateAsteroids(dt);
     updatePlanets(dt);
+    updateStars(dt);
   }
 
   function render() {
@@ -1911,6 +2157,10 @@ if (dist2 <= minDist * minDist) {
     Comets.draw(ctx);
     for (const a of World.asteroids) drawAsteroid(a);
     for (const p of World.planets) drawPlanet(p);
+    for (const s of World.stars) {
+      drawStar(s);
+      drawPlanetOrbiters(s);
+    }
     for (const m of World.meteors) drawMeteor(m);
 
     ctx.restore();
@@ -1929,6 +2179,7 @@ if (dist2 <= minDist * minDist) {
     World.meteors = [];
     World.asteroids = [];
     World.planets = [];
+    World.stars = [];
     World.spawnTimer = 0;
     World.score = 0;
 
