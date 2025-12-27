@@ -1165,7 +1165,7 @@ meteorCollisionFudge: 1.12,
       hue: c.hue,
       age: 0,
       life: rand(60, 120),
-      trail: [],
+      trail: [{ x, y, t: 0 }],
           // prevent instant meteor-meteor re-aggregation after release
           noMeteorCollisionUntilMs: (World.nowMs ?? performance.now()) + 1200,
         });
@@ -1202,7 +1202,7 @@ meteorCollisionFudge: 1.12,
       hue: c.hue,
       age: 0,
       life: rand(60, 120),
-      trail: [],
+      trail: [{ x: sx, y: sy, t: 0 }],
       isStream: true,
       streamIndex,
     });
@@ -1855,6 +1855,9 @@ meteorCollisionFudge: 1.12,
 
   function drawMeteor(m) {
     const maxTrail = 10;
+    if (!m.trail) {
+      m.trail = [{ x: m.x, y: m.y, t: 0 }];
+    }
     m.trail.push({ x: m.x, y: m.y });
     if (m.trail.length > maxTrail) m.trail.shift();
 
