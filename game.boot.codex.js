@@ -418,10 +418,6 @@ meteorCollisionFudge: 1.12,
   function update(dt, nowMs) {
     World.nowMs = nowMs;
     if (!bootState.cardBound) bootState.cardBound = tryBindCardEngine();
-    // CardEngine runtime (offers, timed effects, rituals)
-    if (window.CardEngine && typeof window.CardEngine.update === "function") {
-      window.CardEngine.update(dt, nowMs);
-    }
 
     if (window.HC && window.HC.Camera && window.HC.Camera.update) {
       window.HC.Camera.update(dt, (window.HC.getView && window.HC.getView()) || View);
@@ -446,6 +442,12 @@ meteorCollisionFudge: 1.12,
     if (HC.Asteroids) HC.Asteroids.update(dt, nowMs);
     if (HC.Planets) HC.Planets.update(dt, nowMs);
     if (HC.Stars) HC.Stars.update(dt, nowMs);
+
+    // CardEngine runtime (offers, timed effects, rituals)
+    const CE = window.CardEngine;
+    if (CE && typeof CE.update === "function") {
+      CE.update(dt, nowMs);
+    }
   }
 
   // RENDER moved to hc.render.codex.js
@@ -532,6 +534,7 @@ meteorCollisionFudge: 1.12,
   } else if (window.resetWorld) {
     window.resetWorld();
   }
+  bootState.cardBound = tryBindCardEngine();
 
   let last = performance.now();
 

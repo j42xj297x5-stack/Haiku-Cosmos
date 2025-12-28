@@ -112,6 +112,11 @@
         fpsAcc = 0;
         fpsFrames = 0;
       }
+      const CE = window.CardEngine;
+      const view = window.HC.getView && window.HC.getView();
+      if (CE && typeof CE.render === "function" && view && window.ctx) {
+        CE.render(window.ctx, view.w, view.h);
+      }
     },
   };
 })();

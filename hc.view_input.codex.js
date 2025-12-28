@@ -24,7 +24,6 @@
 
     const canvas = opts.canvas || window.canvas || document.getElementById("gameCanvas");
     const ctx = opts.ctx || window.ctx;
-    const CardEngine = opts.CardEngine || window.CardEngine;
     const view = window.HC.getView();
     const input = window.HC.getInput();
 
@@ -56,7 +55,8 @@
         const p = toCanvasCoords(e);
         input.x = p.x; input.y = p.y;
 
-        if (CardEngine && CardEngine.handlePointerDown && CardEngine.handlePointerDown(p.x, p.y, view.w, view.h)) {
+        const CE = window.CardEngine;
+        if (CE && typeof CE.handlePointerDown === "function" && CE.handlePointerDown(p.x, p.y, view.w, view.h)) {
           return;
         }
 
