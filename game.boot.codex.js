@@ -38,6 +38,18 @@ console.log("[HC] game.boot.codex.js loaded");
   // UI/DEBUG moved to hc.ui_debug.codex.js
 
   const CardEngine = window.CardEngine;
+  const bootState = {
+    cardBound: false,
+  };
+
+  function tryBindCardEngine() {
+    const CE = window.CardEngine;
+    const world = (window.HC && HC.getWorld) ? HC.getWorld() : window.World;
+    if (!CE || typeof CE.bindWorld !== "function") return false;
+    if (!world) return false;
+    CE.bindWorld(world);
+    return true;
+  }
 
   if (window.HC && window.HC.initViewInput) {
     window.HC.initViewInput({ canvas, ctx, CardEngine });
@@ -174,7 +186,7 @@ meteorCollisionFudge: 1.12,
     score: 0,
   };
   // Bind CardEngine to World (foundation under Card Editor)
-  CardEngine.bindWorld(World);
+  bootState.cardBound = tryBindCardEngine();
 
 
 
@@ -405,8 +417,11 @@ meteorCollisionFudge: 1.12,
 
   function update(dt, nowMs) {
     World.nowMs = nowMs;
+    if (!bootState.cardBound) bootState.cardBound = tryBindCardEngine();
     // CardEngine runtime (offers, timed effects, rituals)
-    CardEngine.update(dt, nowMs);
+    if (window.CardEngine && typeof window.CardEngine.update === "function") {
+      window.CardEngine.update(dt, nowMs);
+    }
 
     if (window.HC && window.HC.Camera && window.HC.Camera.update) {
       window.HC.Camera.update(dt, (window.HC.getView && window.HC.getView()) || View);
@@ -440,7 +455,7 @@ meteorCollisionFudge: 1.12,
   window.Camera = Camera;
   window.ctx = ctx;
   window.Input = Input;
-  window.CardEngine = CardEngine;
+  window.CardEngine = window.CardEngine || CardEngine;
   window.rand = rand;
   window.clamp = clamp;
   window.meteorBaseRadius = meteorBaseRadius;
@@ -502,7 +517,9 @@ meteorCollisionFudge: 1.12,
     Camera.scale = 1.0;
     Camera.target = 1.0;
 
-    CardEngine.resetForNewRun();
+    if (window.CardEngine && typeof window.CardEngine.resetForNewRun === "function") {
+      window.CardEngine.resetForNewRun();
+    }
   }
   window.resetWorld = resetWorld;
   if (window.HC) window.HC.resetWorld = resetWorld;

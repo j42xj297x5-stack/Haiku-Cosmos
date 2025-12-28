@@ -28,7 +28,7 @@ var Events = (typeof window !== "undefined" && window.Events)
   })();
 
 if (typeof window !== "undefined") {
-  window.Events = Events;
+  window.Events = window.Events || Events;
 }
 
 /* =========================
@@ -559,3 +559,8 @@ const CardEngine = (() => {
     openResetCardHub,
   };
 })();
+
+if (typeof window !== "undefined") {
+  // expose globally for boot + modules
+  window.CardEngine = window.CardEngine || CardEngine;
+}
