@@ -347,7 +347,7 @@
 
     function drawPlanetSoftEdgeAndGrain(p, baseHue) {
       const TAU = Math.PI * 2;
-      const scale = cam.scale || 1;
+      const scale = cam.zoom || cam.scale || 1;
       const softWidth = world.PLANET_SOFT_EDGE_WIDTH / scale;
       const grainMin = world.PLANET_EDGE_GRAIN_SIZE_MIN / scale;
       const grainMax = world.PLANET_EDGE_GRAIN_SIZE_MAX / scale;
@@ -478,12 +478,15 @@
       drawBackground();
 
       // world render with camera zoom
-      ctx.save();
-      const cx = view.w / 2;
-      const cy = view.h / 2;
-      ctx.translate(cx, cy);
-      ctx.scale(cam.scale, cam.scale);
-      ctx.translate(-cx, -cy);
+      const sx = view.w * 0.5;
+      const sy = view.h * 0.5;
+      const zoom = cam.zoom || cam.scale || 1;
+      const camX = Number.isFinite(cam.x) ? cam.x : sx;
+      const camY = Number.isFinite(cam.y) ? cam.y : sy;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.translate(sx, sy);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-camX, -camY);
 
       drawPointerRing();
       window.HC.Comets.draw(ctx);
@@ -495,7 +498,7 @@
       }
       for (const m of world.meteors) drawMeteor(m);
 
-      ctx.restore();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
 
       // UI: card offer (foundation)
       ctx.save();

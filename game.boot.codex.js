@@ -70,6 +70,9 @@ console.log("[HC] game.boot.codex.js loaded");
     wy: 0,
   };
   const Camera = (window.HC && window.HC.getCamera && window.HC.getCamera()) || window.Camera || {
+    zoom: 1.0,
+    x: 0,
+    y: 0,
     scale: 1.0,
     target: 1.0,
     min: 0.35,
@@ -80,16 +83,20 @@ console.log("[HC] game.boot.codex.js loaded");
   const screenToWorld = (window.HC && window.HC.screenToWorld) || window.screenToWorld || function screenToWorldFallback(x, y) {
     const cx = View.w / 2;
     const cy = View.h / 2;
-    const s = Camera.scale || 1;
-    return { x: (x - cx) / s + cx, y: (y - cy) / s + cy };
+    const zoom = Camera.zoom || Camera.scale || 1;
+    const camX = Number.isFinite(Camera.x) ? Camera.x : cx;
+    const camY = Number.isFinite(Camera.y) ? Camera.y : cy;
+    return { x: (x - cx) / zoom + camX, y: (y - cy) / zoom + camY };
   };
   const getWorldViewBounds = (window.HC && window.HC.getWorldViewBounds) || window.getWorldViewBounds || function getWorldViewBoundsFallback() {
     const cx = View.w / 2;
     const cy = View.h / 2;
-    const s = Camera.scale || 1;
-    const halfW = (View.w / 2) / s;
-    const halfH = (View.h / 2) / s;
-    return { l: cx - halfW, r: cx + halfW, t: cy - halfH, b: cy + halfH, cx, cy };
+    const zoom = Camera.zoom || Camera.scale || 1;
+    const camX = Number.isFinite(Camera.x) ? Camera.x : cx;
+    const camY = Number.isFinite(Camera.y) ? Camera.y : cy;
+    const halfW = (View.w / 2) / zoom;
+    const halfH = (View.h / 2) / zoom;
+    return { l: camX - halfW, r: camX + halfW, t: camY - halfH, b: camY + halfH, cx: camX, cy: camY };
   };
 
   // ---------- Helpers ----------
@@ -406,12 +413,13 @@ meteorCollisionFudge: 1.12,
         Camera.epochZoom.t += dt;
         const u = Math.min(1, Camera.epochZoom.t / Math.max(0.001, Camera.epochZoom.dur));
         const e = (u < 0.5) ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-        Camera.scale = Camera.epochZoom.fromZoom + (Camera.epochZoom.toZoom - Camera.epochZoom.fromZoom) * e;
+        Camera.zoom = Camera.epochZoom.fromZoom + (Camera.epochZoom.toZoom - Camera.epochZoom.fromZoom) * e;
         if (u >= 1) Camera.epochZoom.active = false;
       } else {
         Camera.target = clamp(Camera.target, Camera.min, Camera.max);
-        Camera.scale += (Camera.target - Camera.scale) * Camera.ease;
+        Camera.zoom += (Camera.target - Camera.zoom) * Camera.ease;
       }
+      Camera.scale = Camera.zoom;
     };
   }
 
@@ -423,7 +431,7 @@ meteorCollisionFudge: 1.12,
       window.HC.Camera.update(dt, (window.HC.getView && window.HC.getView()) || View);
     }
 
-    // input -> world coords (because render uses Camera.scale)
+    // input -> world coords (because render uses Camera.zoom)
     const wp = screenToWorld(Input.x, Input.y);
     Input.wx = wp.x;
     Input.wy = wp.y;
@@ -508,14 +516,15 @@ meteorCollisionFudge: 1.12,
     if (Camera.epochZoom) {
       Camera.epochZoom.active = false;
       Camera.epochZoom.t = 0;
-      Camera.epochZoom.fromZoom = Camera.scale;
-      Camera.epochZoom.toZoom = Camera.scale;
+      Camera.epochZoom.fromZoom = Camera.zoom || Camera.scale || 1;
+      Camera.epochZoom.toZoom = Camera.zoom || Camera.scale || 1;
       Camera.epochZoom.targetX = 0;
       Camera.epochZoom.targetY = 0;
     }
 
     // Reset epoch/zoom state
     World.flags = { firstPlanetZoomed: false, firstStarZoomed: false };
+    Camera.zoom = 1.0;
     Camera.scale = 1.0;
     Camera.target = 1.0;
 
