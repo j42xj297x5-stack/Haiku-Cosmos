@@ -76,6 +76,49 @@
 
     /* If you later add haiku card styling, you can drop it here or in styles.css */
   </style>
+    <!-- ============================================================
+       HAIKU COSMOS — KANON DOKUMENTACJI (SOURCE OF TRUTH)
+
+       Ten blok jest „mapą prawdy” dla projektu.
+       Jeśli w repo występują pliki o podobnych nazwach / kopie / old/,
+       to poniższa lista ma pierwszeństwo.
+
+       CANONICAL DOCS (must be consistent):
+       - haiku_cosmos_index.md            (index i nawigacja po dokumentacji)
+       - DEPENDENCY_MAP.md               (mapa zależności systemów)
+       - TARGETS_SYSTEM.md               (targety/stany/eventy — adresy wpływu)
+       - CARDS_SYSTEM.md                 (zasady kart: runtime vs meta-impuls)
+       - BINDINGS_SYSTEM.md              (Wiązania v1: 2 relacje)
+       - EPOCHS_SYSTEM.md                (epoki + zasady skali)
+       - UI_WORLD.md                     (UI/Meta UI/i18n UI)
+       - I18N_SYSTEM.md                  (zasady językowe: UI słownik + karty locales)
+       - STARS_EPOCH_LOD_AND_CONTROL.md  (LOD/priorytet sterowania w epoce gwiazd)
+
+       Konwencja repo:
+       - archive/old_*  -> pliki historyczne (nie-kanoniczne)
+       - exp/*          -> eksperymenty
+       - Kanon ma nazwy bez prefiksów i jest linkowany z indexu.
+     ============================================================ -->
+
+     <script>
+      // Optional: expose canon list for quick debugging in console.
+      // No runtime dependency should rely on this object.
+      window.HC_CANON = {
+        docs: [
+          "haiku_cosmos_index.md",
+          "DEPENDENCY_MAP.md",
+          "TARGETS_SYSTEM.md",
+          "CARDS_SYSTEM.md",
+          "BINDINGS_SYSTEM.md",
+          "EPOCHS_SYSTEM.md",
+          "UI_WORLD.md",
+          "I18N_SYSTEM.md",
+          "STARS_EPOCH_LOD_AND_CONTROL.md"
+        ],
+        note: "This list is the source of truth. Old/archived/experimental docs must not override canon."
+      };
+    </script>
+  
 </head>
 
 <body>
