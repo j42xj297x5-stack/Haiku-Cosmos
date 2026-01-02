@@ -3,7 +3,6 @@
 
 Pack kart regulujących **powstawanie planet gazowych**,
 ich stabilność oraz tempo eskalacji świata.
-
 Celem packa jest:
 - ograniczenie nagłej ekspansji do gwiazd,
 - wprowadzenie fazy „dojrzewania” planety,
