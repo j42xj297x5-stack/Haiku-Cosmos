@@ -1,332 +1,336 @@
-# Haiku Cosmos — TARGETS v1 (Rytuały)
+# Haiku Cosmos — TARGETS v2
+## Targety, stany, triale i wydarzenia (adresy wpływu na świat)
 
-> Ten plik definiuje **pierwszą, minimalną pulę targetów** dla systemu kart i rytuałów.
-> Na tym etapie **nie implementujemy innych kart** — skupiamy się wyłącznie na rytuałach typu *Puszczanie*.
+Ten plik definiuje **kanoniczny katalog targetów**:
+- stanów świata,
+- adresów modyfikacji parametrów,
+- triali i wydarzeń epokowych,
+- rytuałów (stany w czasie).
+
+Zasada:
+- **Target ≠ karta**
+- **Target = adres wpływu na świat**
+- **Karta = nośnik decyzji**, który:
+  - albo uruchamia target (klik),
+  - albo zasila meta (brak kliknięcia).
+
+Packi kart nie powinny dublować opisów targetów.
+Packi kart odwołują się do targetów przez ID.
 
 ---
 
-## Zasada ogólna
+## 0. Taksonomia targetów
 
-- Target ≠ karta
-- Target = **adres wpływu na świat**
-- Karta = **nośnik decyzji** (może, ale nie musi być użyta)
+### TARGET_TYPE: STATE
+Stan świata w czasie (np. pre-gwiazda, rytuał).
 
-Rytuały są **stanami świata w czasie**, nie impulsami.
+### TARGET_TYPE: ACTION
+Jednorazowa akcja wywołana kartą (np. przerwanie stanu, stabilizacja).
+
+### TARGET_TYPE: PARAM
+Modyfikacja parametru systemowego (np. PRG radius, meteor spawn rate).
+
+### TARGET_TYPE: TRIAL
+Zdarzenie z oknem czasowym i wynikiem (sukces/porażka).
+
+### TARGET_TYPE: EVENT
+Wydarzenie epokowe (np. rój meteorów) — zawsze sygnalizowane.
 
 ---
 
-# R1 — Rytuał „Puszczanie” (pojedynczy kolor)
+## 1. Zasady ogólne
 
-**ID:** `RITUAL_RELEASE_SINGLE_COLOR`
+1) Target ma zawsze:
+- ID (stabilne),
+- typ (STATE/ACTION/PARAM/TRIAL/EVENT),
+- trigger (kiedy może wejść),
+- zakres (na co działa),
+- czas trwania (jeśli dotyczy),
+- warunki sukcesu/porażki (jeśli TRIAL),
+- sygnał wizualny.
+
+2) Targety nie zawierają szczegółów kart ani meta (DR/sDR/PDR).
+To opisuje system kart i meta.
+
+3) Targety są kanoniczne niezależnie od języka.
+Tekst UI jest tłumaczony osobno.
+
+---
+
+# 2. Rytuały (STATE)
+
+## RITUAL_RELEASE_SINGLE (R1)
+**Typ:** STATE  
+**Nazwa:** Rytuał „Puszczanie” (pojedynczy kolor)
 
 ### Intencja
-Uwolnienie materii jednego koloru z logiki struktur i orbit.
-Świat na chwilę upraszcza się i oddycha.
+Gracz wybiera puszczanie (odpuszczenie) jednego koloru jako decyzję rytualną.
+
+### Trigger / start
+- gracz aktywuje kartę rytuału lub target zostaje zaoferowany przez system kart,
+- startuje timer stanu rytuału.
+
+### Ukończenie
+- rytuał kończy się po spełnieniu warunku (np. czas, sekwencja zdarzeń, brak eskalacji).
+
+### Przerwanie
+- rytuał przerywa zdarzenie krytyczne (np. kolaps), lub akcja gracza (jeśli istnieje).
+
+### Efekt świata
+- rytuał wpływa na zachowanie świata wobec wskazanego koloru (interpretacja w kartach/packach).
+
+### Sygnał wizualny
+- subtelny znacznik rytualny w świecie (aura/tonacja) bez dominowania UI.
 
 ---
 
-### Start rytuału
+## RITUAL_RELEASE_DUAL (R2)
+**Typ:** STATE  
+**Nazwa:** Rytuał „Puszczanie Złączone” (dual)
 
-- **2× harmonijna kolizja** tego samego koloru meteoru
-- rozpoczyna się **stan rytualny (TRWA)**
+### Zasada nadrzędna
+To rytuał łączący dwa kolory jako jeden proces.
 
----
+### Warunek wejścia
+- dostępny dopiero po spełnieniu warunku progresji (np. po R1 lub po sekwencji trafień).
 
-### Ukończenie rytuału
+### Okno decyzji
+- krótkie okno na wybór pary kolorów.
 
-- **3× harmonijna kolizja** tego samego koloru
-- pojawia się **karta R1 (kolorowa)**
+### Efekt świata
+- świat interpretuje parę jako jeden kanał rytualny.
 
-Karta:
-- może zostać **użyta w runie**
-- albo **zignorowana** i trafić do kolekcji
-
----
-
-### Przerwanie rytuału
-
-Rytuał zostaje przerwany, jeśli:
-- w trakcie trwania stanu rytualnego
-- gracz wykona harmonijną kolizję **innego koloru**
-
-**Nie przerywa rytuału:**
-- tworzenie planetoid
-- wchodzenie na orbity
-- kolapsy i struktury
-
-**Efekt przerwania:**
-- brak kary
-- **Rezonans Points ×2** (COMBO, natychmiastowo)
+### Slot rytuał
+- rytuał zasila odpowiedni slot meta przez system kart (poza targetami).
 
 ---
 
-### Efekt świata (po użyciu karty)
+## RITUAL_PDR (Przenikające Doświadczenie Rytuału)
+**Typ:** STATE  
+**Nazwa:** PDR — Przenikające Doświadczenie Rytuału
 
-- Czas trwania: **3 minuty (bazowo)**
-- wszystkie **wolne meteory danego koloru**:
-  - nie mogą wchodzić na orbity
-  - zachowują prędkość
-  - opuszczają obszar świata
-
-- meteory już orbitujące: **nietknięte**
-- struktury: **nietknięte**
+### Efekt globalny
+- po odpowiedniej liczbie ukończeń rytuałów uruchamia się stan PDR,
+- PDR jest globalnym „oddechem systemu”, który wpływa na kolejne decyzje.
 
 ---
 
-### Wizualny sygnał
+# 3. Planety gazowe — warunki i cooldown (PARAM/STATE)
 
-- meteory objęte rytuałem:
-  - biały ring
-  - aktywacja sekwencyjna co 0.5 s
+## PARAM_GAS_PLANET_DOMINANCE
+**Typ:** PARAM  
+**Cel:** Warunek jakościowy powstania planety gazowej
 
----
+### Opis
+Planeta gazowa może powstać tylko jeśli:
+- **dominujący kolor ≥ 60%** (wartość bazowa).
 
-### Slot Rytuał — wzmocnienie
+### Zakres
+- dotyczy tylko formowania planet gazowych.
 
-- użyta karta R1 w runie:
-  - **+1 minuta** jeśli istnieje wpis w slocie Rytuał
-
----
-
-### Doświadczenia
-
-**DR (podstawowe):**
-- 3× ta sama karta R1
-- efekt: pamięć koloru
-
-**sDR:**
-- 3× DR
-- efekt: **+1 minuta ×2** do podstawy użytej karty
+### Uwagi
+Próg może być modulowany kartami i meta, ale kanon bazowy jest tu.
 
 ---
 
-# R2 — Rytuał „Puszczanie Złączone” (dual)
+## STATE_PLANET_COOLDOWN_ORBITERS
+**Typ:** STATE  
+**Cel:** Cooldown planet po narodzinach (blokada przechwytywania)
 
-**ID:** `RITUAL_RELEASE_DUAL_COLOR`
+### Opis
+Po utworzeniu planety (min. gazowej):
+- planeta **nie może zbierać orbiterów** przez bazowo **20 sekund**.
 
----
+### Zakres
+- blokada dotyczy przechwytywania / dołączania orbiterów,
+- nie zmienia renderu, tylko zachowanie.
 
-## Zasada nadrzędna
-
-R2 **nie może powstać bez ukończenia R1**.
-Jest nadbudową konsekwencji, nie alternatywą.
-
----
-
-### Warunek powstania
-
-1. Gracz kończy R1 koloru A → karta A (nieużyta, trafia do kolekcji)
-2. Bez przerwania ciągu rytualnego:
-   - gracz kończy R1 koloru B → karta B
+### Sygnał wizualny
+- subtelna „cisza” planety (np. uspokojony ring, brak efektów wciągania).
 
 ---
 
-### Okno decyzji (łączenie)
+# 4. Gwiazdy — stan pre-gwiazdy i kontrola eskalacji (STATE/ACTION)
 
-- pojawia się karta-decyzja
-- czas: **~5 sekund**
+## STATE_PRESTAR
+**Typ:** STATE  
+**Nazwa:** Stan pre-gwiazdy (pulsacja / dojrzewanie)
 
-**Użycie:**
-- 2 karty kolorowe → 1 karta R2 (dual)
+### Trigger
+- planeta spełnia warunki przejścia w gwiazdę (masa + dominacja),
+- zamiast natychmiastowego kolapsu wchodzi w PRESTAR.
 
-**Brak reakcji:**
-- zachowane zostają 2 osobne karty
+### Opis zachowania
+- wolna pulsacja (spowolniona względem obecnej “przyśpieszającej”),
+- jeśli nieprzerwany: następuje kolaps z efektem rotujących orbiterów do środka,
+- w kolapsie znikają wszystkie orbitery (nie zostają planetoidy jako resztki).
 
----
-
-### Efekt świata (po użyciu R2)
-
-- Czas trwania: **2 minuty (bazowo)**
-- działanie analogiczne do R1
-- obejmuje **oba kolory jednocześnie**
-
----
-
-### Slot Rytuał
-
-- R1 i R2 korzystają z **tego samego slotu**
-- gracz decyduje:
-  - silniejszy, stabilny R1
-  - czy krótszy, trudniejszy, ale bardziej medytacyjny R2
+### Przerwanie
+- możliwe przez akcję/target przerwania (karty typu „Nie teraz”),
+- przerwanie zwiększa przyszły próg (patrz: ACTION_PRESTAR_INTERRUPT).
 
 ---
 
-### Doświadczenia
+## ACTION_PRESTAR_INTERRUPT
+**Typ:** ACTION  
+**Nazwa:** Przerwanie pre-gwiazdy
 
-**sDR (dual):**
-- 3× ta sama karta R2
-- możliwość sublimacji (opcjonalna)
+### Efekt
+- natychmiastowe wyjście obiektu ze stanu PRESTAR.
 
-**PDR (dual):**
-- 9× kart R2 tego samego zestawu kolorów
+### Konsekwencja systemowa
+- jeśli PRESTAR przerwany:
+  - próg zbieranych meteorów rośnie o **+30%** dla kolejnego PRESTAR w tym runie
+    (wartość bazowa do dalszego balansu).
 
----
-
-# PDR — Przenikające Doświadczenie Rytuału
-
-PDR działa jako **jakość świata**, nie bonus czasu.
-
-### Efekty globalne
-
-- spowolnienie spawnu wszystkich meteorów
-- co **3 sekundy**:
-  - losowy kolor **nie pojawia się** przez krótki moment
-
-Efekt:
-- świat przestaje eskalować gwałtownie
-- ekspansja struktur zostaje wyhamowana
-- umożliwia długą, medytacyjną grę
+### Uwagi
+Ta akcja nie “spełnia warunku” dla kolejnej pre-gwiazdy.
+To jest przerwanie, nie cheat.
 
 ---
 
-## Uwagi implementacyjne (na teraz)
+# 5. Epoka Gwiazd — LOD i priorytety interakcji (PARAM/EVENT)
 
-- Na tym etapie:
-  - **usuwamy wszystkie inne karty**
-  - rytuały są jedyną aktywną mechaniką kart
-- Haiku teksty:
-  - będą pisane **pod konkretne, sprawdzone efekty**
+## PARAM_STARS_EPOCH_CONTROL_PRIORITY
+**Typ:** PARAM  
+**Cel:** Priorytet sterowania w Epoce Gwiazd
 
-Ten plik jest **punktem wyjścia**.
-Nic więcej nie powinno być aktywne, dopóki te rytuały nie będą w pełni czytelne w świecie.
+### Opis
+W Epoce Gwiazd:
+- PRG działa najsilniej na planetoidy,
+- meteory reagują minimalnie (LOD i szum).
 
-Pewnie. Poniżej masz **gotowy opis TARGETU + KARTY** w formie, którą możesz wkleić do repo (np. `targets.md` + `cards.md` albo jeden plik). Trzymam się Twoich założeń: **brak natywnego wyrzutu orbiterów po uderzeniu komety w planetę**; wyrzut dopiero jako *zdarzenie/rytuał* i/lub aktywacja karty.
-
----
-
-# TARGET: Kometa → Planeta gazowa (Halo Trial)
-
-## Nazwa robocza
-
-**HALO_TRIAL_GAS_PLANET**
-
-## Warunek wejścia (trigger)
-
-Zdarzenie uruchamia się, gdy:
-
-1. **Kometa uderza w planetę**, oraz
-2. planeta jest typu **gazowego**, czyli powstała z **orbiterów różnych kolorów**.
-
-> Definicja “gazowa” (logiczna):
-
-* `planet.isGasGiant === true`
-  albo (jeśli nie ma flagi) heurystyka:
-* `planet` ma w historii/lub stanie co najmniej 2 kolory orbiterów (`uniqueColors >= 2`).
-
-## Efekt natychmiastowy (feedback wizualny)
-
-Po kolizji:
-
-* planeta dostaje **halo + poświatę** (glow/atmosphere).
-* halo może **delikatnie pulsować** (ale sama mechanika triala nie wymaga pulsowania — to tylko “czytelność”).
-
-## Trial / okno czasowe
-
-* startuje timer: **T = 20 sekund** (`HALO_TRIAL_DURATION_MS = 20000`)
-
-### Warunek “przetrwania”
-
-Jeżeli przez 20 sekund **do orbity grawitacyjnej tej planety nie dołączy żaden obiekt**, trial jest “zdany”.
-
-**Co znaczy “dołączy do orbity grawitacyjnej”** (kontrakt mechaniczny):
-
-* dowolny nowy orbiter zostaje przypisany do tej planety (np. meteor wchodzi w orbitę / staje się orbiterem planety).
-* nie liczymy “wewnętrznych przetasowań” starych orbiterów; tylko *nowe dołączenia*.
-
-### Co jeśli w tym czasie dołączy obiekt?
-
-* Trial **jest przerwany / nieudany**.
-* Nie dzieje się nic poza standardem: planeta przyjęła masę komety zgodnie z normalną mechaniką uderzenia.
-* Halo/poświata może zgasnąć po chwili (opcjonalne).
-
-## Rezultat triala: SUKCES
-
-Gdy timer dojdzie do końca i warunek spełniony:
-
-1. planeta **odrzuca połowę orbiterów**:
-
-   * orbiterów **nie wyrzucamy do świata**, nie ma dryfu.
-   * one **znikają** (usuwane z listy orbiterów).
-2. planeta ma **zmniejszoną orbitę grawitacyjną** o wkład tych orbiterów (czyli “oddaje” masę/orbitę wynikającą z posiadania połowy orbiterów).
-
-> Ważne: to jest “czyste skasowanie połowy orbiterów” + dostosowanie parametru orbity grawitacyjnej.
-
-3. Gracz uzyskuje kartę: **Rozpuszczenie Ego**.
-
-## Rezultat triala: PORAŻKA
-
-* Brak kary.
-* Brak auto-wyrzutu orbiterów.
-* Halo może zniknąć.
-* Planeta zostaje po prostu “po kolizji komety” (zwiększona masa/orbita tak jak normalnie).
+Priorytet:
+1) planetoidy
+2) większe orbitery
+3) meteory (minimalny wpływ)
 
 ---
 
-# KARTA: Rozpuszczenie Ego
+## PARAM_METEOR_LOD_MODE
+**Typ:** PARAM  
+**Cel:** Tryb LOD meteorów w Epoce Gwiazd
 
-## Typ
+### Opis
+Meteory są mniej widoczne:
+- kropki,
+- przerywane smugi przy dużej prędkości.
 
-* **Karta zdarzeniowa / rytuał** (aktywna)
-* Drop: tylko z **HALO_TRIAL_GAS_PLANET (SUKCES)**
-
-## Nazwa
-
-**Rozpuszczenie Ego**
-
-## Efekt po aktywacji (in-run)
-
-Po aktywacji, wskazana planeta (domyślnie ta z eventu; ewentualnie “najbliższa gazowa” jeśli event już minął) wykonuje proces:
-
-1. Przez **2 sekundy** zachodzi powolne “rozpuszczanie”:
-
-   * wizualnie: halo + poświata **pulsują** / “rozrzedzają się”.
-2. Finalnie:
-
-   * planeta **traci połowę orbiterów** (usuwamy je, bez dryfu).
-   * planeta jest **pomniejszona o ich masę** (oraz odpowiednio **zmniejsza się orbita grawitacyjna**).
-   * proces jest “powolny”, ale mechanicznie kończy się po 2s.
-
-## Warunki użycia (propozycja minimalna)
-
-* można aktywować tylko, gdy istnieje co najmniej 1 planeta gazowa z ≥2 orbiterami.
-* jeśli planeta ma 0–1 orbiter: karta nie ma celu (w UI można ją wyszarzyć).
-
-## “Kolekcjonowanie” (meta)
-
-Jeśli gracz nie użyje karty w runie:
-
-* karta jest zachowana jako “kolekcjonowana” do meta-huba.
-* można ją wkładać do slotu (roboczo: **Ekspansja**).
-
-### Slot: Ekspansja — efekt pasywny
-
-Jeśli karta **Rozpuszczenie Ego** jest włożona do slotu Ekspansja:
-
-* **-30% do masy i orbity grawitacyjnej** obiektów typu **planeta gazowa** na starcie i przez cały run.
-
-### Prog esencji
-
-Po zebraniu **3 kart Rozpuszczenie Ego**:
-
-* można w meta-hubie wydobyć esencję: **Sublimacja Ego (sE)**
-
-Efekt **Sublimacji Ego (sE)** (meta):
-
-* ograniczenie ekspansji działa również dla **planetoid** (rozszerza pasywkę na planetoidy).
-
-  * (Dokładną wartość możemy ustalić później; na razie: “tak jak dla gazowych” lub mniejszy procent.)
+Meteory nie znikają całkowicie.
 
 ---
 
-# Zmiana bazowa w mechanice komet vs planety (ważne dla kodu)
+## EVENT_METEOR_SWARM
+**Typ:** EVENT  
+**Nazwa:** Rój meteorów
 
-**Po uderzeniu komety w planetę nie ma natywnego wyrzutu orbiterów**.
-Czyli:
+### Zasada
+Roje nie są domyślną reprezentacją meteorów.
+Występują tylko jako wydarzenia.
 
-* brak `releaseHalfOrbitersFromPlanet()` w samym impakcie,
-* wyrzut/utrata orbiterów zachodzi wyłącznie przez:
+### Opis
+- nieregularna chmura meteorów z jednego sektora mapy,
+- czasowe zagęszczenie i presja.
 
-  1. **SUKCES HALO_TRIAL** (po 20s bez nowych dołączeń),
-  2. **Aktywację karty Rozpuszczenie Ego** (2s rytuał).
+### Sygnał wizualny
+- wyraźny znak, że to EVENT (żeby gracz wiedział, że to wyjątek).
 
 ---
+
+# 6. Deszcze (EVENT)
+
+## EVENT_COMET_SHOWER
+**Typ:** EVENT  
+**Nazwa:** Deszcz komet
+
+### Opis
+- komety lecą wąskim pasem z jednego sektora,
+- częstotliwość: np. 1 co 1–3 sekundy (bazowo),
+- wydarzenie jako narzędzie manipulacji światem.
+
+---
+
+## EVENT_METEOR_SHOWER
+**Typ:** EVENT  
+**Nazwa:** Deszcz meteorów
+
+### Opis
+- intensywny napływ meteorów (inny charakter niż komety),
+- może być używany jako “próba kontroli” dla gracza.
+
+---
+
+# 7. PRG — adresy modyfikacji (PARAM)
+
+Poniższe targety są adresami dla kart PRG (Pack 04).
+
+## PARAM_PRG_RADIUS
+**Typ:** PARAM  
+**Opis:** promień pola reakcji gracza
+
+## PARAM_PRG_POLARITY
+**Typ:** PARAM  
+**Opis:** znak reakcji (przyciąganie/odpychanie)
+
+## PARAM_PRG_GLUE
+**Typ:** PARAM  
+**Opis:** lepkość trajektorii (skręt do kursora)
+
+## PARAM_PRG_SPEED_RESPONSE
+**Typ:** PARAM  
+**Opis:** reakcja prędkościowa (zwalnianie/przyśpieszanie)
+
+## EVENT_WORLD_CONDENSATION
+**Typ:** EVENT  
+**Opis:** czasowe odbicia od krawędzi (kondensacja świata)
+
+## ACTION_OBJECT_STASIS
+**Typ:** ACTION  
+**Opis:** stabilizacja jednego obiektu w oknie (planeta/gwiazda)
+
+## EVENT_EARLY_ROTATION
+**Typ:** EVENT  
+**Opis:** globalna rotacja obiektów (wysoki poziom)
+
+---
+
+# 8. TRIAL: Halo Trial (kometa → planeta gazowa)
+
+## TRIAL_HALO_GAS_PLANET
+**Typ:** TRIAL  
+**Nazwa robocza:** Halo Trial
+
+### Trigger
+- kometa uderza w planetę / obiekt planetarny w odpowiednich warunkach.
+
+### Feedback natychmiastowy
+- pojawia się halo / sygnał triala.
+
+### Okno czasowe
+- trial trwa określony czas (np. 30–60 s bazowo).
+
+### Warunek sukcesu
+- planeta “przetrwa” trial bez wejścia w stan gwiazdy,
+- zachowuje stabilność (interpretacja: brak przekroczenia progów eskalacji).
+
+### Warunek porażki
+- kolaps do gwiazdy lub utrata stabilności w oknie triala.
+
+### Rezultat: SUKCES
+- planeta przechodzi w stabilną planetę gazową (z uwzględnieniem cooldownu).
+
+### Rezultat: PORAŻKA
+- eskalacja zgodnie z prawami świata.
+
+---
+
+## 9. Uwagi implementacyjne (kontrakt)
+
+- Targety są kanoniczne i stabilne.
+- Karty odwołują się do targetów przez ID.
+- Progi bazowe są tu zapisane jako prawda startowa:
+  - dominacja gazowych ≥ 60%
+  - cooldown planet 20 s
+  - przerwanie pre-gwiazdy: +30% przyszłego progu (bazowo)
+
+Balans tych wartości może być zmieniany kartami i meta, ale nie przez UI.
