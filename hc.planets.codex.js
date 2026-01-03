@@ -285,6 +285,35 @@
       return { total, counts, dominantKey, monoOk, monoColorKey };
     }
 
+    function getBaseStarThresholdForColor(colorKey) {
+      if (colorKey === "blue") return World.STAR_REQ_BLUE;
+      if (colorKey === "green") return World.STAR_REQ_GREEN;
+      if (colorKey === "red") return World.STAR_REQ_RED;
+      if (colorKey === "yellow") return World.STAR_REQ_YELLOW;
+      return Infinity;
+    }
+
+    function getStarThresholdForColor(colorKey) {
+      const base = getBaseStarThresholdForColor(colorKey);
+      if (!Number.isFinite(base)) return base;
+      const mult = (typeof World.starThresholdMultiplierThisRun === "number")
+        ? World.starThresholdMultiplierThisRun
+        : 1.0;
+      return Math.ceil(base * Math.max(0.01, mult));
+    }
+
+    function qualifiesForPreStar(info) {
+      if (!info || !info.dominantKey || info.total <= 0) return false;
+      const dominantCount = info.counts?.[info.dominantKey] || 0;
+      const dominantPct = dominantCount / Math.max(1, info.total);
+      const requiredPct = (typeof World.starDominancePctBase === "number")
+        ? World.starDominancePctBase
+        : 0.60;
+      if (dominantPct < requiredPct) return false;
+      const requiredCount = getStarThresholdForColor(info.dominantKey);
+      return dominantCount >= requiredCount;
+    }
+
     function removeSystemMeteorsFromPlanet(p, meteors) {
       if (!meteors || !meteors.length) return;
       const set = new Set(meteors);
@@ -306,10 +335,15 @@
       }
     }
 
-    function transformGasPlanetIntoStar(p, info, kind) {
-      const oldGravityR = p.gravityR || computeGravityFromPlanetRadius(p.r);
+    function clearSystemOrbitersForStar(p) {
       const meteors = getSystemMeteorsForPlanet(p);
       removeSystemMeteorsFromPlanet(p, meteors);
+      return meteors;
+    }
+
+    function transformGasPlanetIntoStar(p, info, kind) {
+      const oldGravityR = p.gravityR || computeGravityFromPlanetRadius(p.r);
+      clearSystemOrbitersForStar(p);
 
       if (!World.stars) World.stars = [];
       const star = {
@@ -346,11 +380,12 @@
       star.r = newR;
       star.gravityR = computeGravityFromPlanetRadius(star.r);
       World.stars.push(star);
-      for (const m of meteors) {
-        World.meteors.push(m);
-      }
       if (reconcileStarOwnershipOnBirth) reconcileStarOwnershipOnBirth(p, star);
       if (startStarEpochZoomOut) startStarEpochZoomOut(star, View.w, View.h);
+
+      if (Events && typeof Events.emit === "function") {
+        Events.emit("STAR_BORN", { starId: star.id || star._id, fromPlanetId: p.id || p._id });
+      }
     }
 
     function addPlanetRingMark(p, orbiter, nowMs, source) {
@@ -641,27 +676,45 @@
           }
         }
 
+        // Manual test:
+        // 1) Utwórz planetę gazową i doprowadź do sytuacji, gdzie wcześniej natychmiast robiła się gwiazdą.
+        // 2) Potwierdź wejście w PRESTAR (wolna pulsacja) i brak natychmiastowej transformacji.
+        // 3) Sprawdź, że po zakończeniu PRESTAR następuje kolaps do gwiazdy przy spełnionych progach.
+        // 4) Sprawdź różne dominujące kolory (np. yellow/blue) i różne progi.
+        // 5) Wywołaj HC.WorldEvents.interruptPreStar(planetId), potwierdź powrót do planety
+        //    oraz wzrost progu o +30% w tym samym runie.
         if (p.planetKind === "gas") {
-          const meteors = getSystemMeteorsForPlanet(p);
-          const info = analyzeSystemMeteors(meteors);
-          if (info.total >= World.STAR_RARE_MONO_MIN && info.monoOk && info.monoColorKey) {
-            transformGasPlanetIntoStar(p, { ...info, dominantKey: info.monoColorKey }, "rare");
-            World.planets.splice(pi, 1);
-            pi -= 1;
-            continue;
-          }
-
-          let req = Infinity;
-          if (info.dominantKey === "blue") req = World.STAR_REQ_BLUE;
-          else if (info.dominantKey === "green") req = World.STAR_REQ_GREEN;
-          else if (info.dominantKey === "red") req = World.STAR_REQ_RED;
-          else if (info.dominantKey === "yellow") req = World.STAR_REQ_YELLOW;
-
-          if (info.total >= req) {
-            transformGasPlanetIntoStar(p, info, "normal");
-            World.planets.splice(pi, 1);
-            pi -= 1;
-            continue;
+          if (p.preStar && p.preStar.active) {
+            p.preStar.t += dt;
+            p.preStar.timeAbs = (p.preStar.timeAbs || 0) + dt;
+            if (p.preStar.t >= p.preStar.duration) {
+              transformGasPlanetIntoStar(p, p.preStar.info, p.preStar.kind);
+              World.planets.splice(pi, 1);
+              pi -= 1;
+              continue;
+            }
+          } else {
+            const meteors = getSystemMeteorsForPlanet(p);
+            const info = analyzeSystemMeteors(meteors);
+            if (qualifiesForPreStar(info)) {
+              const isRare = info.total >= World.STAR_RARE_MONO_MIN && info.monoOk && info.monoColorKey;
+              const infoForStar = isRare ? { ...info, dominantKey: info.monoColorKey } : info;
+              const kind = isRare ? "rare" : "normal";
+              const minDur = (typeof World.PRESTAR_DURATION_MIN === "number") ? World.PRESTAR_DURATION_MIN : 10.0;
+              const maxDur = (typeof World.PRESTAR_DURATION_MAX === "number") ? World.PRESTAR_DURATION_MAX : 20.0;
+              const duration = rand(Math.min(minDur, maxDur), Math.max(minDur, maxDur));
+              p.preStar = {
+                active: true,
+                t: 0,
+                timeAbs: 0,
+                duration,
+                kind,
+                info: infoForStar,
+              };
+              if (Events && typeof Events.emit === "function") {
+                Events.emit("PRESTAR_STARTED", { planetId: p.id || p._id });
+              }
+            }
           }
         }
 

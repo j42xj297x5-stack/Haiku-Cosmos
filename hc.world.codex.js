@@ -70,6 +70,28 @@
     }
   };
 
+  window.HC.WorldEvents.interruptPreStar = (planetId) => {
+    const World = window.HC.getWorld && window.HC.getWorld();
+    if (!World || !World.planets || planetId === undefined || planetId === null) return false;
+    const planet = World.planets.find((p) => (p?.id ?? p?._id) === planetId);
+    if (!planet || !planet.preStar || !planet.preStar.active) return false;
+
+    planet.preStar.active = false;
+    planet.preStar = null;
+
+    const penalty = World.STAR_THRESHOLD_INTERRUPT_MULT || 1.3;
+    const currentMul = (typeof World.starThresholdMultiplierThisRun === "number")
+      ? World.starThresholdMultiplierThisRun
+      : 1.0;
+    World.starThresholdMultiplierThisRun = Math.max(currentMul, penalty);
+
+    const Events = window.Events;
+    if (Events && typeof Events.emit === "function") {
+      Events.emit("PRESTAR_INTERRUPTED", { planetId });
+    }
+    return true;
+  };
+
   // Manual test:
   // 1) Utwórz pierwszą gwiazdę i potwierdź brak automatycznego deszczu meteorów.
   // 2) W konsoli: HC.WorldEvents.startMeteorShower({ durationMs: 5000 }).
