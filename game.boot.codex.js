@@ -203,6 +203,10 @@ meteorCollisionFudge: 1.12,
     trialPack01Color: null,
     trialPack01State: "idle",
     collectedCardsByColor: { red: 0, yellow: 0, green: 0, blue: 0 },
+    metaSlots: { forma: null, intencja: null, czas: null, cisza: null },
+    subMetaOpen: false,
+    subMetaShownThisRun: false,
+    paused: false,
     pack01ReleaseBlockColor: null,
     pack01ReleaseBlockUntilMs: 0,
     meteorBounceEnabled: false,
@@ -538,6 +542,10 @@ meteorCollisionFudge: 1.12,
     World.pack01ReleaseBlockColor = null;
     World.pack01ReleaseBlockUntilMs = 0;
     World.meteorBounceEnabled = false;
+    World.metaSlots = { forma: null, intencja: null, czas: null, cisza: null };
+    World.subMetaOpen = false;
+    World.subMetaShownThisRun = false;
+    World.paused = false;
     if (Camera.epochZoom) {
       Camera.epochZoom.active = false;
       Camera.epochZoom.t = 0;
@@ -576,7 +584,8 @@ meteorCollisionFudge: 1.12,
     const dt = Math.min(0.033, Math.max(0.001, (now - last) / 1000));
     last = now;
 
-    update(dt, now);
+    const dtWorld = World.paused ? 0 : dt;
+    update(dtWorld, now);
     if (HC.Render) HC.Render.frame(now, dt);
     if (window.HC && window.HC.UI && window.HC.UI.update) {
       window.HC.UI.update(dt, now);
