@@ -103,7 +103,9 @@ const CardEngine = (() => {
     trialH: 150,
     trialGap: 12,
     trialResultMs: 5000,
-    pack01TargetDurationMs: 180000
+    pack01TargetDurationMs: 180000,
+    trialFailBasePoints: 1,
+    trialFailComboMul: 2
   };
 
   const state = {
@@ -137,7 +139,8 @@ const CardEngine = (() => {
       resultUntilMs: 0,
       resultState: null,
       clicked: false,
-      collected: false
+      collected: false,
+      resultPoints: 0
     }
   };
 
@@ -444,7 +447,8 @@ const CardEngine = (() => {
       resultUntilMs: 0,
       resultState: null,
       clicked: false,
-      collected: false
+      collected: false,
+      resultPoints: 0
     };
     if (state.world) bindWorld(state.world);
   }
@@ -505,8 +509,12 @@ const CardEngine = (() => {
     } else {
       if (World.trialPack01State === "active" && prevCount >= 2) {
         setTrialState("fail");
+        const basePoints = config.trialFailBasePoints;
+        const comboMul = config.trialFailComboMul;
+        const finalPoints = Math.max(0, Math.floor(basePoints * comboMul));
         const addScore = window.addScore;
-        if (typeof addScore === "function") addScore(1);
+        if (typeof addScore === "function") addScore(finalPoints);
+        state.trialUI.resultPoints = finalPoints;
       }
       World.colorStreakKey = pickColor;
       World.colorStreakCount = 1;
@@ -614,6 +622,7 @@ const CardEngine = (() => {
           state.trialUI.resultState = trialState;
           state.trialUI.clicked = false;
           state.trialUI.collected = false;
+          if (trialState === "success") state.trialUI.resultPoints = 0;
         }
         state.trialUI.lastState = trialState;
       }
@@ -625,6 +634,7 @@ const CardEngine = (() => {
         }
         state.trialUI.resultUntilMs = 0;
         state.trialUI.resultState = null;
+        state.trialUI.resultPoints = 0;
         resetTrialToIdle();
         state.trialUI.lastState = "idle";
       }
@@ -728,18 +738,26 @@ const CardEngine = (() => {
       ctx.fillRect(x + 12, y + h - 24, 54, 6);
     } else if (showResult) {
       const isSuccess = state.trialUI.resultState === "success";
-      ctx.fillText(isSuccess ? "SUKCES" : "PORAŻKA", x + 12, y + 24);
+      if (isSuccess) {
+        ctx.fillText("SUKCES", x + 12, y + 24);
+      } else {
+        ctx.fillText("Nie udało się — combo x2", x + 12, y + 24);
+      }
       ctx.fillStyle = "rgba(255,255,255,0.7)";
       ctx.fillText(`Kolor: ${colorLabel}`, x + 12, y + 44);
-      ctx.fillStyle = "rgba(255,255,255,0.78)";
-      ctx.fillText(PACK01_TRIAL.haiku[0], x + 12, y + 70);
-      ctx.fillText(PACK01_TRIAL.haiku[1], x + 12, y + 88);
-      ctx.fillText(PACK01_TRIAL.haiku[2], x + 12, y + 106);
 
       if (isSuccess) {
+        ctx.fillStyle = "rgba(255,255,255,0.78)";
+        ctx.fillText(PACK01_TRIAL.haiku[0], x + 12, y + 70);
+        ctx.fillText(PACK01_TRIAL.haiku[1], x + 12, y + 88);
+        ctx.fillText(PACK01_TRIAL.haiku[2], x + 12, y + 106);
         ctx.fillStyle = "rgba(255,255,255,0.8)";
         const hint = state.trialUI.clicked ? "Nagroda aktywna." : "Kliknij, aby aktywować efekt.";
         ctx.fillText(hint, x + 12, y + h - 18);
+      } else {
+        const points = Math.max(0, Math.floor(state.trialUI.resultPoints || 0));
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillText(`+${points} pkt`, x + 12, y + 70);
       }
 
       ctx.fillStyle = colorHex;
@@ -762,7 +780,7 @@ const CardEngine = (() => {
     const y0 = Math.floor(pad + 6);
 
     ctx.save();
-    ctx.font = "10px system-ui";
+    ctx.font = "11px system-ui";
     ctx.textAlign = "right";
     for (let i = 0; i < order.length; i++) {
       const key = order[i];
@@ -779,7 +797,10 @@ const CardEngine = (() => {
       }
       if (count > 1) {
         ctx.globalAlpha = 0.85;
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(0,0,0,0.6)";
+        ctx.strokeText(String(count), x - 4, y + rectH - 2);
+        ctx.fillStyle = "rgba(255,255,255,0.92)";
         ctx.fillText(String(count), x - 4, y + rectH - 2);
       }
     }

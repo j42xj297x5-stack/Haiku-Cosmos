@@ -205,6 +205,7 @@ meteorCollisionFudge: 1.12,
     collectedCardsByColor: { red: 0, yellow: 0, green: 0, blue: 0 },
     pack01ReleaseBlockColor: null,
     pack01ReleaseBlockUntilMs: 0,
+    meteorBounceEnabled: false,
   };
   // Bind CardEngine to World (foundation under Card Editor)
   bootState.cardBound = tryBindCardEngine();
@@ -536,6 +537,7 @@ meteorCollisionFudge: 1.12,
     World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
     World.pack01ReleaseBlockColor = null;
     World.pack01ReleaseBlockUntilMs = 0;
+    World.meteorBounceEnabled = false;
     if (Camera.epochZoom) {
       Camera.epochZoom.active = false;
       Camera.epochZoom.t = 0;
