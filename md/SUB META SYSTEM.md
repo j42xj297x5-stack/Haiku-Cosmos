@@ -1,167 +1,145 @@
 # Haiku Cosmos — SUB META SYSTEM
-## System sub-meta: oddechy pomiędzy działaniami
+## System SUB-META: oddechy, decyzje i ekonomia
 
-SUB-META to warstwa pośrednia pomiędzy RUN a META końcowym.
-Jej celem jest:
-- przywracanie decyzyjności gracza,
-- umożliwienie taktycznych zmian stylu gry,
-- zapobieganie „zamrożeniu kosmosu” przy dużych skalach,
-- zapewnienie gratyfikacji pośredniej bez czekania do końca runu.
-
-SUB-META **nie resetuje świata** i **nie kończy runu**.
-Jest świadomym zatrzymaniem / spowolnieniem czasu kosmosu.
+SUB-META to warstwa pomiędzy RUN a META końcowym.
+Jest miejscem:
+- taktycznych decyzji,
+- wydawania punktów score,
+- przypisywania kart do slotów,
+- zarządzania PRG.
 
 ---
 
 ## 1. Pozycja SUB-META w strukturze gry
 
 RUN  
-→ **SUB-META** (wielokrotnie, krótkie)  
-→ META końcowe (rzadko, pełny reset / nowy eon)
+→ SUB-META (wiele razy w runie)  
+→ META (koniec eonu / reset)
 
 SUB-META:
-- występuje wiele razy w jednym runie,
-- trwa krótko,
-- dotyczy *sposobu działania gracza*, nie globalnych zasad świata.
+- nie resetuje świata,
+- nie resetuje runu,
+- zatrzymuje lub silnie spowalnia symulację.
 
 ---
 
-## 2. Pierwsze progi wejścia do SUB-META (v1)
+## 2. Wyzwalanie SUB-META (v1)
 
-Na etapie v1 SUB-META jest wyzwalana **deterministycznie**, przez kluczowe przejścia epokowe.
+SUB-META otwiera się automatycznie:
+- po utworzeniu pierwszej planety w runie.
 
-### Kanoniczne progi v1:
-1. **Utworzenie pierwszej planety**
-2. **Utworzenie pierwszej gwiazdy**
+W v1:
+- tylko jeden automatyczny trigger,
+- kolejne triggery (eventy, akcje) pojawią się później.
 
-Są to momenty:
-- wyraźnej zmiany skali,
-- zmiany dynamiki świata,
-- naturalnego „zatrzymania oddechu”.
-
-W przyszłości:
-- SUB-META będzie mogła być wyzwalana także przez eventy, rytuały i zakończenie akcji,
-- ale v1 celowo ogranicza się do prostych, czytelnych progów.
+SUB-META otwiera się maksymalnie raz na run (v1).
 
 ---
 
-## 3. Zachowanie świata podczas SUB-META
+## 3. UI SUB-META (v1)
 
-Po wejściu w SUB-META:
+SUB-META wyświetla overlay z dwoma kolumnami:
 
-- symulacja świata zostaje:
-  - **zamrożona** lub
-  - **radykalnie spowolniona** (do decyzji implementacyjnej),
-- obiekty pozostają widoczne,
-- nie zachodzą nowe kolizje ani przechwyty.
+### Lewa kolumna — Sloty META
+Cztery sloty w kolejności:
+1. Forma
+2. Intencja
+3. Czas
+4. Cisza
 
-SUB-META jest **stanem kosmosu**, nie osobną sceną.
+Sloty mogą być:
+- puste,
+- zajęte kartą.
 
----
-
-## 4. Rola SUB-META dla gracza
-
-SUB-META daje graczowi możliwość:
-
-1. **Zatrzymania się**
-2. **Zrozumienia co właśnie się wydarzyło**
-3. **Zmiany stylu interakcji**
-
-Nie jest to sklep ani drzewko statystyk.
+Kliknięcie slotu:
+- wybiera slot,
+- wyświetla możliwe karty do przypisania.
 
 ---
 
-## 5. PRG w SUB-META — zmiana „broni” / postawy
+### Prawa kolumna — Kolekcja kart
+Wyświetlane są zebrane karty:
+- w formie wąskich prostokątów kolorów,
+- z licznikami ilości.
 
-PRG (Player Reaction Field) w SUB-META:
-- przestaje być stałym polem,
-- staje się narzędziem taktycznym.
-
-W SUB-META gracz może:
-- przełączyć **tryb działania PRG** (stance),
-- zdecydować *jak* chce dalej wpływać na świat.
-
-Przykładowe osie zmian (nie implementacja):
-- promień działania,
-- siła „glue”,
-- przyciąganie vs odpychanie,
-- spowalnianie vs przyśpieszanie.
-
-Zmiany dokonane w SUB-META:
-- obowiązują w dalszej części runu,
-- nie są jeszcze META permanentnym.
+Kolekcja jest źródłem kart do przypisywania w slotach.
 
 ---
 
-## 6. SUB-META jako rozwiązanie problemu „zamrożonej rozgrywki”
+## 4. Przypisywanie kart do slotów
 
-W pewnym momencie runu:
-- planety i gwiazdy osiągają bardzo duże skale,
-- ich orbity grawitacyjne zajmują większość ekranu,
-- brak wolnych meteorów i planetoid uniemożliwia sensowną interakcję.
+Przypisanie karty do slotu:
+- jest akcją płatną,
+- zużywa kartę z kolekcji,
+- zapisuje konfigurację META na resztę runu.
 
-Ten stan:
-- **nie jest błędem**,
-- jest sygnałem, że kosmos osiągnął lokalne nasycenie.
+### Koszt
+- koszt bazowy: 10 punktów score za każdą operację przypisania.
 
-SUB-META pełni rolę:
-- bezpiecznego zatrzymania,
-- miejsca decyzji „co dalej”,
-- przygotowania do kolejnej fazy dynamiki.
+Operacje płatne:
+- wpięcie karty do pustego slotu,
+- podmiana karty w slocie.
 
----
-
-## 7. SUB-META a progi jakościowe (uwaga projektowa)
-
-Na obecnym etapie:
-- wysokie progi jakościowe (np. dominacja 60–80%) mogą blokować przejścia planeta → gwiazda,
-- przy dużych orbitach prowadzi to do „puchnięcia” bez transformacji.
-
-W wersji v1:
-- **dopuszcza się obniżenie progu jakościowego do ok. 30%**,
-- celem jest umożliwienie przejścia w PRESTAR i dalsze testy skal.
-
-Docelowo:
-- progi jakościowe będą modulowane przez karty, META i SUB-META,
-- a nie sztywno blokowały progresję.
+Jeśli gracz nie ma wystarczającej liczby punktów:
+- opcja jest zablokowana,
+- UI pokazuje koszt i brak środków.
 
 ---
 
-## 8. Relacja SUB-META do kamery i skali (przyszłość)
+## 5. Dozwolone sloty (allowedSlots)
 
-SUB-META jest naturalnym miejscem na:
-- reframing skali,
-- delikatny zoom out,
-- przygotowanie gracza na „kosmiczne” proporcje.
+Każda karta definiuje listę allowedSlots.
 
-Na etapie v1:
-- zoom out jest **poza zakresem implementacji**,
-- ale SUB-META jest projektowym punktem zaczepienia dla tej mechaniki.
+Jeśli karta nie pasuje do danego slotu:
+- NIE jest wyświetlana w pickerze,
+- NIE może być przypisana.
 
----
-
-## 9. Relacja SUB-META do META końcowego
-
-SUB-META:
-- taktyczna,
-- częsta,
-- odwracalna.
-
-META końcowe:
-- strategiczne,
-- rzadkie,
-- zamyka eon i resetuje run.
-
-Te dwa poziomy **nie zastępują się** i pełnią różne role.
+Dla rytuałów R1/R2 (v1):
+- allowedSlots: Czas, Cisza.
 
 ---
 
-## 10. Status dokumentu
+## 6. PRG w SUB-META
 
-Dokument koncepcyjny — v1.
-Zakres celowo ograniczony do:
-- progów epokowych,
-- PRG jako narzędzia,
-- rozwiązania problemu skali i zamrożenia rozgrywki.
+SUB-META zawiera sekcję PRG:
+- służącą do zakupu ulepszeń PRG,
+- opartą o punkty score i wymagania kart.
 
-Rozszerzenia (eventy, rytuały, losowość) będą opisane w kolejnych iteracjach.
+Zakup PRG:
+- odbywa się wyłącznie w SUB-META,
+- jest permanentny na czas runu.
+
+---
+
+## 7. PRG w RUN (toggle)
+
+Ulepszenia PRG zakupione w SUB-META:
+- są dostępne w RUN,
+- mogą być przełączane w locie (toggle UI).
+
+Zasady:
+- aktywny jest jeden tryb PRG naraz,
+- przełączanie jest natychmiastowe,
+- nie wymaga powrotu do SUB-META.
+
+Przykładowe tryby (do zaprojektowania):
+- większy glue,
+- mniejszy / większy promień,
+- przyśpieszanie meteorów,
+- odpychanie zamiast przyciągania.
+
+---
+
+## 8. Zamykanie SUB-META
+
+SUB-META zamykane jest świadomie przez gracza:
+- przyciskiem „Wróć”,
+- po zamknięciu symulacja świata zostaje wznowiona.
+
+---
+
+## 9. Status dokumentu
+
+Kanon v1.
+Ekonomia slotów i PRG wprowadzona.
+SUB-META jest miejscem decyzji, nie resetu.
