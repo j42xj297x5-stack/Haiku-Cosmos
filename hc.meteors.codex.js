@@ -221,12 +221,14 @@
         m.vx *= (1 - 0.06 * dt);
         m.vy *= (1 - 0.06 * dt);
 
-        const bounceLoss = 0.92;
-        const b = getWorldViewBounds();
-        if (m.x - m.r < b.l) { m.x = b.l + m.r; m.vx = Math.abs(m.vx) * bounceLoss; }
-        if (m.x + m.r > b.r) { m.x = b.r - m.r; m.vx = -Math.abs(m.vx) * bounceLoss; }
-        if (m.y - m.r < b.t) { m.y = b.t + m.r; m.vy = Math.abs(m.vy) * bounceLoss; }
-        if (m.y + m.r > b.b) { m.y = b.b - m.r; m.vy = -Math.abs(m.vy) * bounceLoss; }
+        if (World.meteorBounceEnabled) {
+          const bounceLoss = 0.92;
+          const b = getWorldViewBounds();
+          if (m.x - m.r < b.l) { m.x = b.l + m.r; m.vx = Math.abs(m.vx) * bounceLoss; }
+          if (m.x + m.r > b.r) { m.x = b.r - m.r; m.vx = -Math.abs(m.vx) * bounceLoss; }
+          if (m.y - m.r < b.t) { m.y = b.t + m.r; m.vy = Math.abs(m.vy) * bounceLoss; }
+          if (m.y + m.r > b.b) { m.y = b.b - m.r; m.vy = -Math.abs(m.vy) * bounceLoss; }
+        }
 
         if (World.epoch === "STAR" && m.isStream) {
           const cx = View.w / 2;
