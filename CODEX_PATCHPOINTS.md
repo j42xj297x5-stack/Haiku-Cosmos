@@ -15,3 +15,15 @@ Poniższe kotwice (anchors) są miejscami, do których “doklejamy” nowe mech
 1) Najpierw zidentyfikuj miejsce w kodzie (anchor lub unikalny komentarz).  
 2) Dodaj mały hook/event (1–3 linijki).  
 3) Logikę nowej mechaniki trzymaj w osobnym pliku patcha, który wywołuje się po starcie gry.
+
+## SOURCE vs GENERATED (ważne dla patchy)
+
+Codex edytuje tylko pliki SOURCE:
+- `*.codex.js`, `*.codex.html`, `md/*.md`
+
+Pliki bez `.codex.` są traktowane jako GENERATED (mirror/runtime).
+Nie należy ich edytować bezpośrednio w ramach patchy.
+
+Jeśli patch wymaga zmiany zachowania gry:
+- zmiany wprowadzamy w `.codex.js`,
+- a plik runtime `.js` jest synchronizowany po zmianach.
