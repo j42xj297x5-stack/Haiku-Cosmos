@@ -98,7 +98,12 @@ const CardEngine = (() => {
     // UI: push card panel below top HUD (meteor rate slider/value)
     offerYPad: 64,
     offerW: 320,
-    offerH: 120
+    offerH: 120,
+    trialW: 320,
+    trialH: 150,
+    trialGap: 12,
+    trialResultMs: 5000,
+    pack01TargetDurationMs: 180000
   };
 
   const state = {
@@ -125,7 +130,40 @@ const CardEngine = (() => {
     targetLibrary: [],
     targetMeta: new Map(),
 
-    ui: { enabled: true }
+    ui: { enabled: true },
+
+    trialUI: {
+      lastState: "idle",
+      resultUntilMs: 0,
+      resultState: null,
+      clicked: false,
+      collected: false
+    }
+  };
+
+  const PACK01_TRIAL = {
+    id: "RITUAL_RELEASE_SINGLE_COLOR",
+    title: "Puszczanie (pojedynczy kolor)",
+    desc: "Utrzymaj 3× harmonijną kolizję jednego koloru.",
+    haiku: [
+      "Próżnia ma barwę",
+      "Kolor odrywa się od kręgu",
+      "I leci poza kadr"
+    ]
+  };
+
+  const PACK01_COLOR_HEX = {
+    red: "#FF5E5E",
+    yellow: "#FFD66B",
+    green: "#7DFF9A",
+    blue: "#7BCBFF"
+  };
+
+  const PACK01_COLOR_LABEL = {
+    red: "Czerwony",
+    yellow: "Żółty",
+    green: "Zielony",
+    blue: "Niebieski"
   };
 
   function clampInt(v, a, b) {
@@ -150,6 +188,16 @@ const CardEngine = (() => {
 
     if (World.spawnIntervalMul === undefined) World.spawnIntervalMul = 1.0;
     if (World.score === undefined) World.score = 0;
+    if (World.colorStreakKey === undefined) World.colorStreakKey = null;
+    if (World.colorStreakCount === undefined) World.colorStreakCount = 0;
+    if (World.trialPack01Active === undefined) World.trialPack01Active = false;
+    if (World.trialPack01Color === undefined) World.trialPack01Color = null;
+    if (World.trialPack01State === undefined) World.trialPack01State = "idle";
+    if (!World.collectedCardsByColor) {
+      World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
+    }
+    if (World.pack01ReleaseBlockColor === undefined) World.pack01ReleaseBlockColor = null;
+    if (World.pack01ReleaseBlockUntilMs === undefined) World.pack01ReleaseBlockUntilMs = 0;
 
     state.targets = new Map();
     state.targetLibrary = [];
@@ -336,6 +384,15 @@ const CardEngine = (() => {
         }
       );
     }
+
+    if (!state._trialListenerBound) {
+      state._trialListenerBound = true;
+      Events.on("METEOR_SAME_COLOR_COLLISION", (payload = {}) => {
+        const color = payload.color;
+        if (!color || !state.world) return;
+        handleTrialColorPick(String(color));
+      });
+    }
   }
 
   function nowMs() {
@@ -382,7 +439,90 @@ const CardEngine = (() => {
       pointer_radius_mul: 1.0,
       pointer_strength_mul: 1.0,
     };
+    state.trialUI = {
+      lastState: "idle",
+      resultUntilMs: 0,
+      resultState: null,
+      clicked: false,
+      collected: false
+    };
     if (state.world) bindWorld(state.world);
+  }
+
+  function normalizePack01Color(color) {
+    if (!color) return null;
+    const key = String(color).toLowerCase();
+    if (PACK01_COLOR_HEX[key]) return key;
+    return null;
+  }
+
+  function collectPack01Card(color) {
+    const World = state.world;
+    const key = normalizePack01Color(color);
+    if (!World || !key) return;
+    if (!World.collectedCardsByColor) {
+      World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
+    }
+    World.collectedCardsByColor[key] = (World.collectedCardsByColor[key] || 0) + 1;
+  }
+
+  function activatePack01Target(color) {
+    const World = state.world;
+    const key = normalizePack01Color(color);
+    if (!World || !key) return;
+    const t = nowMs();
+    World.pack01ReleaseBlockColor = key;
+    World.pack01ReleaseBlockUntilMs = t + config.pack01TargetDurationMs;
+  }
+
+  function setTrialState(stateName) {
+    const World = state.world;
+    if (!World) return;
+    World.trialPack01State = stateName;
+    World.trialPack01Active = stateName === "active";
+  }
+
+  function resetTrialToIdle() {
+    const World = state.world;
+    if (!World) return;
+    World.trialPack01State = "idle";
+    World.trialPack01Active = false;
+    World.trialPack01Color = null;
+  }
+
+  function handleTrialColorPick(color) {
+    const World = state.world;
+    if (!World) return;
+
+    const pickColor = normalizePack01Color(color);
+    if (!pickColor) return;
+
+    const prevKey = World.colorStreakKey;
+    const prevCount = World.colorStreakCount || 0;
+
+    if (pickColor === prevKey) {
+      World.colorStreakCount = prevCount + 1;
+    } else {
+      if (World.trialPack01State === "active" && prevCount >= 2) {
+        setTrialState("fail");
+        const addScore = window.addScore;
+        if (typeof addScore === "function") addScore(1);
+      }
+      World.colorStreakKey = pickColor;
+      World.colorStreakCount = 1;
+    }
+
+    if (World.trialPack01State === "idle" && World.colorStreakCount === 2) {
+      World.trialPack01Active = true;
+      World.trialPack01Color = pickColor;
+      World.trialPack01State = "active";
+    }
+
+    if (World.trialPack01State === "active"
+      && World.trialPack01Color === pickColor
+      && World.colorStreakCount === 3) {
+      setTrialState("success");
+    }
   }
 
   function applyOp(before, op, value) {
@@ -464,6 +604,36 @@ const CardEngine = (() => {
       else applyEffects(r.card.ritual?.onFail || []);
       state.ritual = null;
     }
+
+    const World = state.world;
+    if (World) {
+      const trialState = World.trialPack01State;
+      if (trialState !== state.trialUI.lastState) {
+        if (trialState === "success" || trialState === "fail") {
+          state.trialUI.resultUntilMs = t + config.trialResultMs;
+          state.trialUI.resultState = trialState;
+          state.trialUI.clicked = false;
+          state.trialUI.collected = false;
+        }
+        state.trialUI.lastState = trialState;
+      }
+
+      if (state.trialUI.resultUntilMs && t >= state.trialUI.resultUntilMs) {
+        if (state.trialUI.resultState === "success" && !state.trialUI.collected) {
+          collectPack01Card(World.trialPack01Color);
+          state.trialUI.collected = true;
+        }
+        state.trialUI.resultUntilMs = 0;
+        state.trialUI.resultState = null;
+        resetTrialToIdle();
+        state.trialUI.lastState = "idle";
+      }
+
+      if (World.pack01ReleaseBlockColor
+        && t >= (World.pack01ReleaseBlockUntilMs || 0)) {
+        World.pack01ReleaseBlockColor = null;
+      }
+    }
   }
 
   function getOfferProgress01() {
@@ -475,59 +645,185 @@ const CardEngine = (() => {
 
   function render(ctx, screenW, screenH) {
     if (!state.ui.enabled) return;
-    if (!state.activeOffer) return;
+    if (state.activeOffer) {
+      const card = state.activeOffer.card;
+      const p = getOfferProgress01();
 
-    const card = state.activeOffer.card;
-    const p = getOfferProgress01();
+      const w = config.offerW, h = config.offerH;
+      const x = Math.floor(screenW - w - config.offerXPad);
+      const y = Math.floor(config.offerYPad);
 
-    const w = config.offerW, h = config.offerH;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = "rgba(18,18,18,0.88)";
+      ctx.fillRect(x, y, w, h);
+
+      ctx.globalAlpha = 1.0;
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.fillText(card.title, x + 12, y + 26);
+
+      ctx.fillStyle = "rgba(255,255,255,0.72)";
+      if (card.desc) ctx.fillText(card.desc, x + 12, y + 48);
+
+      ctx.fillStyle = card.color || "#FFFFFF";
+      ctx.fillRect(x + 12, y + h - 24, 48, 6);
+
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      if (card.type) ctx.fillText(card.type, x + 70, y + h - 18);
+
+      const barW = Math.floor((1 - p) * (w - 24));
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.fillRect(x + 12, y + h - 12, barW, 4);
+
+      if (state.ritual) {
+        const left = Math.max(0, state.ritual.endsAtMs - nowMs());
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillText(`Rytuał: ${(left / 1000).toFixed(1)}s`, x + 12, y + h - 34);
+      }
+
+      ctx.restore();
+    }
+
+    renderTrialPack01(ctx, screenW, screenH);
+    renderPack01Collection(ctx, screenW, screenH);
+  }
+
+  function getTrialRect(screenW) {
+    const w = config.trialW;
+    const h = config.trialH;
     const x = Math.floor(screenW - w - config.offerXPad);
-    const y = Math.floor(config.offerYPad);
+    const y = Math.floor(config.offerYPad + (state.activeOffer ? (config.offerH + config.trialGap) : 0));
+    return { x, y, w, h };
+  }
+
+  function renderTrialPack01(ctx, screenW, screenH) {
+    const World = state.world;
+    if (!World) return;
+
+    const now = nowMs();
+    const showResult = state.trialUI.resultUntilMs && now <= state.trialUI.resultUntilMs;
+    const active = World.trialPack01State === "active";
+    if (!active && !showResult) return;
+
+    const trialColor = normalizePack01Color(World.trialPack01Color);
+    const colorHex = (trialColor && PACK01_COLOR_HEX[trialColor]) || "#FFFFFF";
+    const colorLabel = (trialColor && PACK01_COLOR_LABEL[trialColor]) || "—";
+
+    const { x, y, w, h } = getTrialRect(screenW);
 
     ctx.save();
-    ctx.globalAlpha = 0.85;
-    ctx.fillStyle = "rgba(18,18,18,0.88)";
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "rgba(18,18,18,0.9)";
     ctx.fillRect(x, y, w, h);
 
     ctx.globalAlpha = 1.0;
     ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.fillText(card.title, x + 12, y + 26);
+    ctx.font = "14px system-ui";
+    if (active) {
+      ctx.fillText(`TRIAL · ${PACK01_TRIAL.title}`, x + 12, y + 24);
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillText("2× ten sam kolor uruchamia. 3× kończy.", x + 12, y + 44);
+      ctx.fillText(`Kolor: ${colorLabel}`, x + 12, y + 64);
+      ctx.fillStyle = colorHex;
+      ctx.fillRect(x + 12, y + h - 24, 54, 6);
+    } else if (showResult) {
+      const isSuccess = state.trialUI.resultState === "success";
+      ctx.fillText(isSuccess ? "SUKCES" : "PORAŻKA", x + 12, y + 24);
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillText(`Kolor: ${colorLabel}`, x + 12, y + 44);
+      ctx.fillStyle = "rgba(255,255,255,0.78)";
+      ctx.fillText(PACK01_TRIAL.haiku[0], x + 12, y + 70);
+      ctx.fillText(PACK01_TRIAL.haiku[1], x + 12, y + 88);
+      ctx.fillText(PACK01_TRIAL.haiku[2], x + 12, y + 106);
 
-    ctx.fillStyle = "rgba(255,255,255,0.72)";
-    if (card.desc) ctx.fillText(card.desc, x + 12, y + 48);
+      if (isSuccess) {
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+        const hint = state.trialUI.clicked ? "Nagroda aktywna." : "Kliknij, aby aktywować efekt.";
+        ctx.fillText(hint, x + 12, y + h - 18);
+      }
 
-    ctx.fillStyle = card.color || "#FFFFFF";
-    ctx.fillRect(x + 12, y + h - 24, 48, 6);
-
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    if (card.type) ctx.fillText(card.type, x + 70, y + h - 18);
-
-    const barW = Math.floor((1 - p) * (w - 24));
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.fillRect(x + 12, y + h - 12, barW, 4);
-
-    if (state.ritual) {
-      const left = Math.max(0, state.ritual.endsAtMs - nowMs());
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.fillText(`Rytuał: ${(left / 1000).toFixed(1)}s`, x + 12, y + h - 34);
+      ctx.fillStyle = colorHex;
+      ctx.fillRect(x + 12, y + h - 30, 54, 6);
     }
 
     ctx.restore();
   }
 
+  function renderPack01Collection(ctx, screenW, screenH) {
+    const World = state.world;
+    if (!World || !World.collectedCardsByColor) return;
+
+    const order = ["red", "yellow", "green", "blue"];
+    const pad = 12;
+    const rectW = 10;
+    const rectH = 24;
+    const gap = 14;
+    const x = Math.floor(screenW - pad - rectW);
+    const y0 = Math.floor(pad + 6);
+
+    ctx.save();
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "right";
+    for (let i = 0; i < order.length; i++) {
+      const key = order[i];
+      const count = World.collectedCardsByColor[key] || 0;
+      const y = y0 + i * (rectH + gap);
+      if (count > 0) {
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = PACK01_COLOR_HEX[key];
+        ctx.fillRect(x, y, rectW, rectH);
+      } else {
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.fillRect(x, y, rectW, rectH);
+      }
+      if (count > 1) {
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.fillText(String(count), x - 4, y + rectH - 2);
+      }
+    }
+    ctx.restore();
+  }
+
   function handlePointerDown(mx, my, screenW, screenH) {
-    if (!state.activeOffer) return false;
+    if (state.activeOffer) {
+      const w = config.offerW, h = config.offerH;
+      const x = Math.floor(screenW - w - config.offerXPad);
+      const y = Math.floor(config.offerYPad);
 
-    const w = config.offerW, h = config.offerH;
-    const x = Math.floor(screenW - w - config.offerXPad);
-    const y = Math.floor(config.offerYPad);
+      const inside = mx >= x && mx <= x + w && my >= y && my <= y + h;
+      if (inside) {
+        const c = state.activeOffer.card;
+        useCard(c);
+        state.activeOffer = null;
+        return true;
+      }
+    }
 
+    return handleTrialPointerDown(mx, my, screenW, screenH);
+  }
+
+  function handleTrialPointerDown(mx, my, screenW, screenH) {
+    const World = state.world;
+    if (!World) return false;
+
+    const now = nowMs();
+    const showResult = state.trialUI.resultUntilMs && now <= state.trialUI.resultUntilMs;
+    if (!showResult || state.trialUI.resultState !== "success") return false;
+
+    const { x, y, w, h } = getTrialRect(screenW);
     const inside = mx >= x && mx <= x + w && my >= y && my <= y + h;
     if (!inside) return false;
 
-    const c = state.activeOffer.card;
-    useCard(c);
-    state.activeOffer = null;
+    if (!state.trialUI.collected) {
+      collectPack01Card(World.trialPack01Color);
+      state.trialUI.collected = true;
+    }
+    if (!state.trialUI.clicked) {
+      activatePack01Target(World.trialPack01Color);
+      state.trialUI.clicked = true;
+    }
     return true;
   }
 
