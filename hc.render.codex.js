@@ -345,9 +345,10 @@
       ctx.restore();
     }
 
-    function drawPlanetSoftEdgeAndGrain(p, baseHue) {
+    function drawPlanetSoftEdgeAndGrain(p, baseHue, radiusOverride) {
       const TAU = Math.PI * 2;
       const scale = cam.zoom || cam.scale || 1;
+      const planetR = (typeof radiusOverride === "number") ? radiusOverride : p.r;
       const softWidth = world.PLANET_SOFT_EDGE_WIDTH / scale;
       const grainMin = world.PLANET_EDGE_GRAIN_SIZE_MIN / scale;
       const grainMax = world.PLANET_EDGE_GRAIN_SIZE_MAX / scale;
@@ -357,7 +358,7 @@
       ctx.lineWidth = softWidth;
       ctx.strokeStyle = `hsl(${baseHue} 85% 60%)`;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, Math.max(0.5, p.r - softWidth * 0.25), 0, TAU);
+      ctx.arc(p.x, p.y, Math.max(0.5, planetR - softWidth * 0.25), 0, TAU);
       ctx.stroke();
       ctx.restore();
 
@@ -365,7 +366,7 @@
       ctx.globalAlpha *= world.PLANET_SOFT_INNER_ALPHA;
       ctx.fillStyle = `hsl(${baseHue} 85% 62%)`;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * 0.85, 0, TAU);
+      ctx.arc(p.x, p.y, planetR * 0.85, 0, TAU);
       ctx.fill();
       ctx.restore();
 
@@ -376,7 +377,7 @@
       ctx.fillStyle = `hsl(${baseHue} 85% 60%)`;
       for (let i = 0; i < world.PLANET_EDGE_GRAIN_COUNT; i++) {
         const a = (i / world.PLANET_EDGE_GRAIN_COUNT) * TAU + (rnd() * 2 - 1) * world.PLANET_EDGE_GRAIN_JITTER;
-        const rr = p.r * (1 + (rnd() * 2 - 1) * world.PLANET_EDGE_GRAIN_R_JITTER);
+        const rr = planetR * (1 + (rnd() * 2 - 1) * world.PLANET_EDGE_GRAIN_R_JITTER);
         const px = p.x + Math.cos(a) * rr;
         const py = p.y + Math.sin(a) * rr;
         const sz = grainMin + (grainMax - grainMin) * rnd();
@@ -388,6 +389,10 @@
     }
     function drawPlanet(p) {
       const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      const preStarActive = !!(p.preStar && p.preStar.active);
+      const preStarFreq = (typeof world.PRESTAR_PULSE_FREQ === "number") ? world.PRESTAR_PULSE_FREQ : 0.22;
+      const preStarPulse = preStarActive ? (1 + 0.03 * Math.sin(Math.PI * 2 * preStarFreq * (p.preStar.timeAbs || 0))) : 1;
+      const renderR = p.r * preStarPulse;
       ctx.save();
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.orbitPx, 0, Math.PI * 2);
@@ -405,8 +410,8 @@
       if (p.isRocky) {
         drawRockyPlanet(p, nowMs);
       } else {
-        ctx.fillStyle = makePlanetGradient(p.x, p.y, p.r, p.hueA, p.hueB);
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = makePlanetGradient(p.x, p.y, renderR, p.hueA, p.hueB);
+        ctx.arc(p.x, p.y, renderR, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -418,14 +423,14 @@
           const baseColor = rockySurface.isMono ? rockySurface.monoColor : rockySurface.dominantColor;
           baseHue = hueFromName(baseColor || "yellow");
         }
-        drawPlanetSoftEdgeAndGrain(p, baseHue);
+        drawPlanetSoftEdgeAndGrain(p, baseHue, renderR);
       }
 
       ctx.globalAlpha = 0.25;
       ctx.beginPath();
       ctx.strokeStyle = "white";
       ctx.lineWidth = 1;
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, renderR, 0, Math.PI * 2);
       ctx.stroke();
       ctx.globalAlpha = 1;
     }

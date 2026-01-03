@@ -144,14 +144,20 @@ meteorCollisionFudge: 1.12,
     STAR_SIZE_SMALL_MAX_ORBITERS: 23,
     STAR_SIZE_BIG_MAX_ORBITERS: 66,
     STAR_RARE_MONO_MIN: 13,
-    STAR_REQ_BLUE: 103,
-    STAR_REQ_GREEN: 66,
-    STAR_REQ_RED: 36,
-    STAR_REQ_YELLOW: 23,
+    STAR_REQ_BLUE: 30,
+    STAR_REQ_GREEN: 30,
+    STAR_REQ_RED: 30,
+    STAR_REQ_YELLOW: 30,
     STAR_COLOR_KEY_BLUE: "blue",
     STAR_COLOR_KEY_GREEN: "green",
     STAR_COLOR_KEY_RED: "red",
     STAR_COLOR_KEY_YELLOW: "yellow",
+    starDominancePctBase: 0.30,
+    starThresholdMultiplierThisRun: 1.0,
+    STAR_THRESHOLD_INTERRUPT_MULT: 1.3,
+    PRESTAR_DURATION_MIN: 10.0,
+    PRESTAR_DURATION_MAX: 20.0,
+    PRESTAR_PULSE_FREQ: 0.22,
     STAR_BIRTH_RADIUS_FROM_OLD_GRAVITY: 0.18,
     STAR_BIRTH_RADIUS_MIN_MULT_OF_OLD_R: 2.6,
     STAR_BIRTH_RADIUS_MAX_FRACTION: 0.35,
@@ -513,6 +519,7 @@ meteorCollisionFudge: 1.12,
     World.epochTriggered = false;
     World.epochAt = 0;
     World.meteorStreams = null;
+    World.starThresholdMultiplierThisRun = 1.0;
     if (Camera.epochZoom) {
       Camera.epochZoom.active = false;
       Camera.epochZoom.t = 0;
