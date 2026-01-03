@@ -40,22 +40,6 @@
         World.epochTriggered = true;
         World.epochAt = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
       }
-      if (!World.meteorStreams) {
-        World.meteorStreams = {
-          enabled: true,
-          t: 0,
-          baseAngle: 0,
-          driftSpeed: 0.06,
-          shiftTimer: 0,
-          shiftEvery: 4.5,
-          shiftAmount: 0.35,
-          streams: 3,
-          spawnRate: 6,
-          acc: 0,
-        };
-      } else {
-        World.meteorStreams.enabled = true;
-      }
       star._epochZoomStarted = true;
     }
 

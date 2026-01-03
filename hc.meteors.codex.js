@@ -136,7 +136,18 @@
       ctx.globalAlpha = 1;
     }
 
-    function updateMeteors(dt) {
+    function updateMeteors(dt, nowMs) {
+      if (World.meteorStreams && World.meteorStreams.enabled && World.meteorStreams.untilMs != null) {
+        const currentMs = nowMs ?? World.nowMs ?? performance.now();
+        if (currentMs >= World.meteorStreams.untilMs) {
+          if (window.HC?.WorldEvents?.stopMeteorShower) {
+            window.HC.WorldEvents.stopMeteorShower();
+          } else {
+            World.meteorStreams.enabled = false;
+            World.meteorStreams.untilMs = null;
+          }
+        }
+      }
       World.spawnTimer += dt;
       while (World.spawnTimer >= (World.spawnInterval * (World.spawnIntervalMul || 1.0))) {
         World.spawnTimer -= (World.spawnInterval * (World.spawnIntervalMul || 1.0));
