@@ -141,6 +141,10 @@ const CardEngine = (() => {
       clicked: false,
       collected: false,
       resultPoints: 0
+    },
+
+    subMeta: {
+      selectedSlotKey: null
     }
   };
 
@@ -168,6 +172,15 @@ const CardEngine = (() => {
     green: "Zielony",
     blue: "Niebieski"
   };
+
+  const SUB_META_SLOTS = [
+    { key: "forma", label: "Forma" },
+    { key: "intencja", label: "Intencja" },
+    { key: "czas", label: "Czas" },
+    { key: "cisza", label: "Cisza" }
+  ];
+
+  const SUB_META_COLORS = ["red", "yellow", "green", "blue"];
 
   function clampInt(v, a, b) {
     v = Number(v);
@@ -199,6 +212,16 @@ const CardEngine = (() => {
     if (!World.collectedCardsByColor) {
       World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
     }
+    if (!World.metaSlots || typeof World.metaSlots !== "object") {
+      World.metaSlots = { forma: null, intencja: null, czas: null, cisza: null };
+    } else {
+      for (const slot of SUB_META_SLOTS) {
+        if (!(slot.key in World.metaSlots)) World.metaSlots[slot.key] = null;
+      }
+    }
+    if (World.subMetaOpen === undefined) World.subMetaOpen = false;
+    if (World.subMetaShownThisRun === undefined) World.subMetaShownThisRun = false;
+    if (World.paused === undefined) World.paused = false;
     if (World.pack01ReleaseBlockColor === undefined) World.pack01ReleaseBlockColor = null;
     if (World.pack01ReleaseBlockUntilMs === undefined) World.pack01ReleaseBlockUntilMs = 0;
 
@@ -450,6 +473,7 @@ const CardEngine = (() => {
       collected: false,
       resultPoints: 0
     };
+    state.subMeta = { selectedSlotKey: null };
     if (state.world) bindWorld(state.world);
   }
 
@@ -696,6 +720,7 @@ const CardEngine = (() => {
 
     renderTrialPack01(ctx, screenW, screenH);
     renderPack01Collection(ctx, screenW, screenH);
+    renderSubMetaOverlay(ctx, screenW, screenH);
   }
 
   function getTrialRect(screenW) {
@@ -722,6 +747,7 @@ const CardEngine = (() => {
     const { x, y, w, h } = getTrialRect(screenW);
 
     ctx.save();
+    ctx.textAlign = "left";
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = "rgba(18,18,18,0.9)";
     ctx.fillRect(x, y, w, h);
@@ -807,7 +833,235 @@ const CardEngine = (() => {
     ctx.restore();
   }
 
+  function closeSubMeta(World) {
+    if (!World) return;
+    World.subMetaOpen = false;
+    World.paused = false;
+    state.subMeta.selectedSlotKey = null;
+  }
+
+  function assignSubMetaSlot(World, slotKey, assignment) {
+    if (!World || !World.metaSlots || !assignment) return;
+    const colorKey = assignment.color;
+    if (!colorKey) return;
+    const counts = World.collectedCardsByColor || {};
+    const available = counts[colorKey] || 0;
+    if (available <= 0) return;
+
+    const prev = World.metaSlots[slotKey];
+    if (prev && prev.color) {
+      counts[prev.color] = (counts[prev.color] || 0) + 1;
+    }
+    counts[colorKey] = Math.max(0, available - 1);
+    World.metaSlots[slotKey] = assignment;
+  }
+
+  function getSubMetaLayout(screenW, screenH) {
+    const panelW = Math.min(560, Math.floor(screenW * 0.88));
+    const panelH = Math.min(360, Math.floor(screenH * 0.8));
+    const panelX = Math.floor((screenW - panelW) / 2);
+    const panelY = Math.floor((screenH - panelH) / 2);
+    const pad = 20;
+    const headerH = 26;
+    const columnGap = 26;
+    const columnW = Math.floor((panelW - pad * 2 - columnGap) / 2);
+    const leftX = panelX + pad;
+    const rightX = leftX + columnW + columnGap;
+    const columnTop = panelY + pad + headerH;
+    const slotH = 44;
+    const slotGap = 10;
+    const slots = SUB_META_SLOTS.map((slot, index) => ({
+      ...slot,
+      x: leftX,
+      y: columnTop + index * (slotH + slotGap),
+      w: columnW,
+      h: slotH
+    }));
+    const pickerTop = columnTop + SUB_META_SLOTS.length * (slotH + slotGap) + 6;
+    const pickerItemH = 32;
+    const pickerGap = 8;
+    const picker = {
+      x: leftX,
+      y: pickerTop,
+      w: columnW,
+      h: pickerItemH,
+      gap: pickerGap,
+      itemH: pickerItemH
+    };
+    const cardH = 36;
+    const cardGap = 10;
+    const cards = SUB_META_COLORS.map((color, index) => ({
+      color,
+      x: rightX,
+      y: columnTop + index * (cardH + cardGap),
+      w: columnW,
+      h: cardH
+    }));
+    const closeW = 92;
+    const closeH = 28;
+    const closeButton = {
+      x: panelX + panelW - pad - closeW,
+      y: panelY + panelH - pad - closeH,
+      w: closeW,
+      h: closeH
+    };
+    return {
+      panel: { x: panelX, y: panelY, w: panelW, h: panelH },
+      pad,
+      headerY: panelY + pad + 12,
+      columnW,
+      slots,
+      picker,
+      cards,
+      closeButton
+    };
+  }
+
+  function renderSubMetaOverlay(ctx, screenW, screenH) {
+    const World = state.world;
+    if (!World || !World.subMetaOpen) return;
+
+    const layout = getSubMetaLayout(screenW, screenH);
+    const { panel, pad, headerY, slots, picker, cards, closeButton, columnW } = layout;
+
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(0, 0, screenW, screenH);
+
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = "rgba(20,20,20,0.92)";
+    ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
+    ctx.globalAlpha = 1.0;
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.strokeRect(panel.x, panel.y, panel.w, panel.h);
+
+    ctx.font = "14px system-ui";
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.fillText("SUB-META", panel.x + pad, headerY);
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillText("Sloty meta", panel.x + pad, headerY + 18);
+    ctx.fillText("Wolne karty", panel.x + pad + columnW + 26, headerY + 18);
+
+    for (const slot of slots) {
+      const isSelected = state.subMeta.selectedSlotKey === slot.key;
+      const assignment = World.metaSlots?.[slot.key];
+      if (assignment) {
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.fillRect(slot.x, slot.y, slot.w, slot.h);
+      } else {
+        ctx.strokeStyle = "rgba(255,255,255,0.18)";
+        ctx.strokeRect(slot.x, slot.y, slot.w, slot.h);
+      }
+      if (isSelected) {
+        ctx.strokeStyle = "rgba(255,255,255,0.55)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(slot.x + 1, slot.y + 1, slot.w - 2, slot.h - 2);
+        ctx.lineWidth = 1;
+      }
+
+      if (assignment) {
+        const colorHex = PACK01_COLOR_HEX[assignment.color] || "#FFFFFF";
+        ctx.fillStyle = colorHex;
+        ctx.fillRect(slot.x + 10, slot.y + slot.h / 2 - 6, 12, 12);
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.fillText("R1", slot.x + 30, slot.y + slot.h / 2 + 5);
+        ctx.fillStyle = "rgba(255,255,255,0.5)";
+        ctx.fillText(slot.label, slot.x + 60, slot.y + slot.h / 2 + 5);
+      } else {
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillText(slot.label, slot.x + 12, slot.y + slot.h / 2 + 5);
+      }
+    }
+
+    if (state.subMeta.selectedSlotKey) {
+      const available = SUB_META_COLORS.filter((color) => (World.collectedCardsByColor?.[color] || 0) > 0);
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.fillText("Wybierz:", picker.x, picker.y - 6);
+      available.forEach((color, index) => {
+        const y = picker.y + index * (picker.itemH + picker.gap);
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.fillRect(picker.x, y, picker.w, picker.itemH);
+        const colorHex = PACK01_COLOR_HEX[color] || "#FFFFFF";
+        ctx.fillStyle = colorHex;
+        ctx.fillRect(picker.x + 10, y + picker.itemH / 2 - 6, 12, 12);
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        const label = PACK01_COLOR_LABEL[color] || color;
+        const count = World.collectedCardsByColor?.[color] || 0;
+        ctx.fillText(`R1 · ${label}`, picker.x + 30, y + picker.itemH / 2 + 5);
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.fillText(`×${count}`, picker.x + picker.w - 34, y + picker.itemH / 2 + 5);
+      });
+    }
+
+    for (const card of cards) {
+      const count = World.collectedCardsByColor?.[card.color] || 0;
+      const colorHex = PACK01_COLOR_HEX[card.color] || "#FFFFFF";
+      ctx.globalAlpha = count > 0 ? 1.0 : 0.35;
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      ctx.fillRect(card.x, card.y, card.w, card.h);
+      ctx.fillStyle = colorHex;
+      ctx.fillRect(card.x + 10, card.y + card.h / 2 - 8, 16, 16);
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillText(PACK01_COLOR_LABEL[card.color] || card.color, card.x + 34, card.y + card.h / 2 + 5);
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillText(`×${count}`, card.x + card.w - 28, card.y + card.h / 2 + 5);
+      ctx.globalAlpha = 1.0;
+    }
+
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillRect(closeButton.x, closeButton.y, closeButton.w, closeButton.h);
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.strokeRect(closeButton.x, closeButton.y, closeButton.w, closeButton.h);
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillText("Wróć", closeButton.x + 24, closeButton.y + 19);
+
+    ctx.restore();
+  }
+
+  function handleSubMetaPointerDown(mx, my, screenW, screenH) {
+    const World = state.world;
+    if (!World || !World.subMetaOpen) return false;
+
+    const layout = getSubMetaLayout(screenW, screenH);
+    const { panel, slots, picker, closeButton } = layout;
+
+    if (mx >= closeButton.x && mx <= closeButton.x + closeButton.w
+      && my >= closeButton.y && my <= closeButton.y + closeButton.h) {
+      closeSubMeta(World);
+      return true;
+    }
+
+    if (mx >= panel.x && mx <= panel.x + panel.w && my >= panel.y && my <= panel.y + panel.h) {
+      for (const slot of slots) {
+        if (mx >= slot.x && mx <= slot.x + slot.w && my >= slot.y && my <= slot.y + slot.h) {
+          state.subMeta.selectedSlotKey = slot.key;
+          return true;
+        }
+      }
+
+      if (state.subMeta.selectedSlotKey) {
+        const available = SUB_META_COLORS.filter((color) => (World.collectedCardsByColor?.[color] || 0) > 0);
+        for (let i = 0; i < available.length; i++) {
+          const color = available[i];
+          const y = picker.y + i * (picker.itemH + picker.gap);
+          if (mx >= picker.x && mx <= picker.x + picker.w && my >= y && my <= y + picker.itemH) {
+            assignSubMetaSlot(World, state.subMeta.selectedSlotKey, { kind: "R1", color });
+            return true;
+          }
+        }
+      }
+      return true;
+    }
+
+    return true;
+  }
+
   function handlePointerDown(mx, my, screenW, screenH) {
+    const World = state.world;
+    if (World && World.subMetaOpen) {
+      return handleSubMetaPointerDown(mx, my, screenW, screenH);
+    }
+
     if (state.activeOffer) {
       const w = config.offerW, h = config.offerH;
       const x = Math.floor(screenW - w - config.offerXPad);

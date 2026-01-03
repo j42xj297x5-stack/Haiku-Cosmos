@@ -752,6 +752,16 @@
     window.computeRockyParamsFromOrbiters = computeRockyParamsFromOrbiters;
     window.addPlanetRingMark = addPlanetRingMark;
 
+    if (Events && typeof Events.on === "function") {
+      Events.on("PLANET_CREATED", () => {
+        if (!World.subMetaShownThisRun) {
+          World.subMetaShownThisRun = true;
+          World.subMetaOpen = true;
+          World.paused = true;
+        }
+      });
+    }
+
     window.HC.Planets = {
       capture(dt, nowMs) {
         captureMeteorsByPlanets(dt, nowMs);
