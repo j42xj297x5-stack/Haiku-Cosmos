@@ -1,105 +1,140 @@
 # Haiku Cosmos — CODEX_START.md
-## Instrukcja pracy dla Codexa (kanon workflow)
+## Kanoniczna instrukcja pracy dla Codexa
 
-Ten dokument opisuje zasady pracy Codexa z repo Haiku Cosmos.
-Cel: szybkie iteracje bez demolki i bez konfliktów „source vs generated”.
+Ten dokument jest **jedyną instrukcją** opisującą:
+- jak Codex ma pracować z repozytorium,
+- które pliki są źródłem prawdy,
+- jak wygląda workflow gałęzi.
+
+Jeśli inne pliki lub komentarze sugerują coś innego — **ten dokument ma pierwszeństwo**.
 
 ---
 
-## 1) Zasada nadrzędna: SOURCE vs GENERATED
+## 1. Zasada nadrzędna: ŹRÓDŁO PRAWDY
 
-### SOURCE (edytowalne przez Codex)
+### Źródłem prawdy projektu są WYŁĄCZNIE pliki:
+
 - `*.codex.js`
 - `*.codex.html`
-- dokumentacja `md/*.md`
-- patche: `codex_patch*.js` (jeśli używane)
+- dokumentacja `*.md`
 
-### GENERATED (mirror / runtime)
-- `game.js` (oraz inne `*.js` bez `.codex.`)
+Projekt **uruchamiany jest wyłącznie** na plikach `*.codex.js`.
 
-Reguła:
-- Codex NIE edytuje plików GENERATED.
-- Codex edytuje wyłącznie SOURCE.
+Pliki bez sufiksu `.codex` (np. `game.js`) mogą:
+- istnieć historycznie,
+- być archiwum,
+- być pozostałością po starym monolicie,
 
-Uwaga:
-- Pliki GENERATED mogą być nadpisywane (synchronizowane) z `.codex.*`.
-- Nigdy nie blokujemy Codexa zdaniem „JS są nietykalne” – zamiast tego rozróżniamy SOURCE/GENERATED.
+ale **NIE SĄ częścią workflow** i **NIE SĄ edytowane ani synchronizowane**.
 
----
+Codex:
+- **nie edytuje**
+- **nie generuje**
+- **nie synchronizuje**
 
-## 2) Uruchamianie lokalne
-
-- Otwieramy `index.html` lub `index.codex.html` (w zależności od tego, co jest runtime).
-- Jeśli runtime używa plików GENERATED (`game.js`) → po zmianach w `.codex.js` wykonujemy synchronizację (patrz rozdział 3).
+plików bez `.codex`.
 
 ---
 
-## 3) Synchronizacja `.codex.js` → `*.js` (runtime)
+## 2. Runtime
 
-Jeśli runtime ładuje `game.js`, a zmiany są w `game.codex.js`:
+- Runtime ładuje tylko `index.codex.html`.
+- `index.codex.html` ładuje wyłącznie pliki `*.codex.js`.
+- Nie utrzymujemy żadnego mirrora runtime (`*.js`).
 
-- źródło prawdy: `game.codex.js`
-- mirror runtime: `game.js`
-
-Zasada:
-- po zmianach w `.codex.js` kopiujemy/aktualizujemy odpowiadający plik `.js`.
-
-Ważne:
-- jeśli Codex musi zmienić zachowanie gry, robi to w `.codex.js`.
-- `.js` traktujemy jak build output.
+Jeśli w repo istnieją inne pliki JS:
+- są ignorowane przez Codexa,
+- nie biorą udziału w uruchamianiu gry.
 
 ---
 
-## 4) Anchory i patchowanie (preferowany styl)
+## 3. Zakres odpowiedzialności Codexa
 
-Preferujemy dopinanie zmian przez:
-- anchory w kodzie (np. `[ANCHOR:CODEX_API]`)
-- małe hooki + logika w osobnym pliku patcha
+Codex może:
+- modyfikować logikę gry w `*.codex.js`,
+- dodawać nowe moduły `hc.*.codex.js`,
+- zmieniać CardEngine (`cards.codex.js`),
+- aktualizować dokumentację `.md`.
 
-Jeśli potrzebujesz nowego hooka:
-- dopisz go w `[ANCHOR:CODEX_API]` jako stabilne API (`window.HC.get()`),
-- albo dodaj nowy anchor o unikalnej nazwie.
-
-Patrz: `CODEX_PATCHPOINTS.md`.
-
----
-
-## 5) Zasady zmian (kontrakty)
-
-- Nie zmieniamy kolejności update/render bez jasnego powodu i testów.
-- Karty: okno decyzji (klik = użycie, brak kliku = kolekcja).
-- Efekty kart/rytuałów modulują parametry, nie hard-code w logice.
+Codex NIE MOŻE:
+- refaktorować struktury repo bez wyraźnego polecenia,
+- przenosić plików kanonicznych do `old_*`,
+- dotykać legacy JS,
+- zmieniać loadera bez uzgodnienia.
 
 ---
 
-## 6) Workflow gałęzi (branching)
+## 4. Styl zmian (ważne)
 
-### Branch kanoniczny
-- `codex/stable` = jedyny branch bazowy (działający)
+- Preferujemy **dopisywanie logiki przez stabilne punkty integracji**:
+  - CardEngine (targety, efekty, rytuały),
+  - parametry `World`,
+  - EventBus (`Events.emit / Events.on`).
 
-### Branch roboczy
-- Każdy task Codexa powstaje z `codex/stable`, np.:
-  - `codex/feat-prestar`
-  - `codex/feat-i18n-ui`
-  - `codex/fix-camera`
+- Unikamy:
+  - rozbijania pętli `update()` bez potrzeby,
+  - „sprytnych” skrótów,
+  - ukrytej logiki w renderze.
 
-### Jak “wprowadzić wynik”
-Jeśli wynik jest OK:
-- merge/PR do `codex/stable`
-- dopiero potem kolejne zadania startują z aktualnego stable
-
-Nie kopiujemy ręcznie plików do stable — robimy merge.
+Logika → update / systemy  
+Render → wizualizacja  
+UI → percepcja, nie mechanika
 
 ---
 
-## 7) Minimalne wymagania w PR / zmianach
+## 5. Workflow gałęzi (branching)
 
-- Krótkie podsumowanie: co zmienia patch
-- Informacja: które pliki SOURCE zmieniono
-- Jak przetestowano (manualnie OK)
+### Gałąź kanoniczna
+- `codex/stable`  
+  Jedyny branch uznawany za **aktualny stan prawdy**.
+
+### Gałęzie robocze
+Każde zadanie Codexa powstaje z `codex/stable` jako **osobna gałąź**, np.:
+
+- `codex/feat-prestar`
+- `codex/feat-i18n-ui`
+- `codex/fix-camera`
+- `codex/refactor-prg`
+
+Gałęzie robocze:
+- mogą być porzucane,
+- mogą być usuwane,
+- nie muszą być idealne.
+
+### Wprowadzanie zmian
+Jeśli zmiany działają:
+- wykonujemy **merge do `codex/stable`**.
+
+Nie kopiujemy plików ręcznie.  
+Nie nadpisujemy historii.
 
 ---
 
-## 8) Status dokumentu
+## 6. Testowanie
 
-Dokument kanoniczny dla workflow Codexa.
+- Testowanie jest manualne (uruchomienie w przeglądarce).
+- Wystarczy potwierdzenie:
+  - brak crashy,
+  - mechanika działa zgodnie z dokumentacją.
+
+Nie wymagamy testów automatycznych.
+
+---
+
+## 7. Dokumentacja jako kontrakt
+
+Pliki `.md` są **kontraktem projektowym**.
+
+Zmiana dokumentacji oznacza:
+- zmianę prawdy projektu,
+- zgodę na dostosowanie kodu.
+
+Kod może się zmieniać często.  
+Dokumentacja — tylko świadomie.
+
+---
+
+## 8. Status dokumentu
+
+Plik kanoniczny.  
+Zmienia się tylko przy zmianie zasad workflow lub struktury projektu.
