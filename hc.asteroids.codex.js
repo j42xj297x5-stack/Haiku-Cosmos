@@ -128,6 +128,11 @@
         const m = meteors[mi];
         if (m.noAsteroidOrbit) continue;
         if (m.age < 0.15) continue;
+        if (World.pack01ReleaseBlockColor
+          && nowMs < (World.pack01ReleaseBlockUntilMs || 0)
+          && m.colorName === World.pack01ReleaseBlockColor) {
+          continue;
+        }
 
         for (let ai = 0; ai < World.asteroids.length; ai++) {
           const a = World.asteroids[ai];

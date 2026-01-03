@@ -476,6 +476,11 @@
 
         // You may later add cards that mark m.noPlanetOrbit
         if (m.noPlanetOrbit) continue;
+        if (World.pack01ReleaseBlockColor
+          && nowMs < (World.pack01ReleaseBlockUntilMs || 0)
+          && m.colorName === World.pack01ReleaseBlockColor) {
+          continue;
+        }
 
         for (let pi = 0; pi < World.planets.length; pi++) {
           const p = World.planets[pi];
@@ -746,6 +751,16 @@
     window.buildBlobPatchwork = buildBlobPatchwork;
     window.computeRockyParamsFromOrbiters = computeRockyParamsFromOrbiters;
     window.addPlanetRingMark = addPlanetRingMark;
+
+    if (Events && typeof Events.on === "function") {
+      Events.on("PLANET_CREATED", () => {
+        if (!World.subMetaShownThisRun) {
+          World.subMetaShownThisRun = true;
+          World.subMetaOpen = true;
+          World.paused = true;
+        }
+      });
+    }
 
     window.HC.Planets = {
       capture(dt, nowMs) {
