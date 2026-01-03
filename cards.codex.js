@@ -35,7 +35,19 @@ if (typeof window !== "undefined") {
    2) CARD ENGINE + UI
    ========================= */
 const CardEngine = (() => {
+  const PACK01_CARD1_ID = "PACK01_CARD1_COLOR_STREAK_TRIAL";
+  const PACK01_CARD1_COMBO_POINTS = 3;
   const CARD_DEFS = [
+    {
+      id: PACK01_CARD1_ID,
+      title: "Próba: Streak koloru",
+      desc: "2x ten sam kolor = oferta. 3x kończy trial. Przerwanie po 2 daje mały bonus.",
+      color: "#7BDFF2",
+      type: "TRIAL",
+      windowMs: 5000,
+      cooldownMs: 8000,
+      tags: ["pack01", "trial", "streak"]
+    },
     {
       id: "RITUAL_RELEASE_SINGLE_COLOR",
       title: "Puszczanie (pojedynczy kolor)",
@@ -107,7 +119,7 @@ const CardEngine = (() => {
     activeOffer: null, // { card, offeredAt, expiresAt }
 
     cooldowns: new Map(), // cardId -> readyAtMs
-    memory: { used: new Set(), collected: new Set() },
+    memory: { used: new Set(), collected: new Set(), collectedCounts: new Map() },
 
     timed: [], // { endsAtMs, restoreFn }
     ritual: null, // { card, endsAtMs, failed }
@@ -125,8 +137,20 @@ const CardEngine = (() => {
     targetLibrary: [],
     targetMeta: new Map(),
 
-    ui: { enabled: true }
+    ui: { enabled: true },
+
+    _colorPickBound: false,
+    _colorPickHandler: null
   };
+
+  function ensurePack01TrialState(World) {
+    if (World.colorStreakKey === undefined) World.colorStreakKey = null;
+    if (World.colorStreakCount === undefined) World.colorStreakCount = 0;
+    if (World.pack01Card1TrialOffered === undefined) World.pack01Card1TrialOffered = false;
+    if (World.pack01Card1TrialActive === undefined) World.pack01Card1TrialActive = false;
+    if (World.pack01Card1TrialCompleted === undefined) World.pack01Card1TrialCompleted = false;
+    if (World.pack01Card1TrialFailed === undefined) World.pack01Card1TrialFailed = false;
+  }
 
   function clampInt(v, a, b) {
     v = Number(v);
@@ -147,6 +171,7 @@ const CardEngine = (() => {
 
   function bindWorld(World) {
     state.world = World;
+    ensurePack01TrialState(World);
 
     if (World.spawnIntervalMul === undefined) World.spawnIntervalMul = 1.0;
     if (World.score === undefined) World.score = 0;
@@ -336,6 +361,20 @@ const CardEngine = (() => {
         }
       );
     }
+
+    if (!state._colorPickBound) {
+      const Events = window.Events;
+      if (Events && typeof Events.on === "function") {
+        const handler = (payload = {}) => {
+          if (!payload) return;
+          const color = payload.color || payload.colorName;
+          if (color) handleColorPick(color);
+        };
+        Events.on("METEOR_SAME_COLOR_COLLISION", handler);
+        state._colorPickBound = true;
+        state._colorPickHandler = handler;
+      }
+    }
   }
 
   function nowMs() {
@@ -374,7 +413,7 @@ const CardEngine = (() => {
     state.queue = [];
     state.activeOffer = null;
     state.cooldowns = new Map();
-    state.memory = { used: new Set(), collected: new Set() };
+    state.memory = { used: new Set(), collected: new Set(), collectedCounts: new Map() };
     state.timed = [];
     state.ritual = null;
     state.engineStats = {
@@ -428,6 +467,16 @@ const CardEngine = (() => {
     state.memory.used.add(card.id);
     setCooldown(card);
 
+    if (card.id === PACK01_CARD1_ID) {
+      const World = state.world;
+      if (World) {
+        ensurePack01TrialState(World);
+        World.pack01Card1TrialActive = true;
+        World.pack01Card1TrialOffered = true;
+      }
+      return;
+    }
+
     if (card.type === "RITUAL" && card.ritual) {
       startRitual(card);
       return;
@@ -435,12 +484,85 @@ const CardEngine = (() => {
     applyEffects(card.effects || []);
   }
 
+  function collectCard(card) {
+    state.memory.collected.add(card.id);
+    const count = state.memory.collectedCounts.get(card.id) || 0;
+    state.memory.collectedCounts.set(card.id, count + 1);
+  }
+
+  function closeOffer(cardId, outcome) {
+    if (!state.activeOffer || state.activeOffer.card.id !== cardId) return false;
+    state.activeOffer = null;
+    state.lastOfferOutcome = { cardId, outcome, at: nowMs() };
+    return true;
+  }
+
+  function hasOfferForCard(cardId) {
+    if (state.activeOffer && state.activeOffer.card.id === cardId) return true;
+    return state.queue.some((c) => c.id === cardId);
+  }
+
+  function awardComboPoints(points) {
+    const addScore = window.addScore;
+    if (typeof addScore === "function") {
+      addScore(points);
+      return;
+    }
+    if (state.world) {
+      state.world.score = Math.max(0, Math.floor((state.world.score || 0) + points));
+    }
+  }
+
+  function handleColorPick(pickColor) {
+    const World = state.world;
+    if (!World || !pickColor) return;
+    ensurePack01TrialState(World);
+
+    const prevKey = World.colorStreakKey;
+    const prevCount = World.colorStreakCount || 0;
+
+    if (pickColor === prevKey) {
+      World.colorStreakCount = prevCount + 1;
+    } else {
+      if (prevCount === 2 && World.pack01Card1TrialActive) {
+        awardComboPoints(PACK01_CARD1_COMBO_POINTS);
+        World.pack01Card1TrialFailed = true;
+        World.pack01Card1TrialCompleted = false;
+        World.pack01Card1TrialActive = false;
+        closeOffer(PACK01_CARD1_ID, "failed");
+      }
+      World.colorStreakKey = pickColor;
+      World.colorStreakCount = 1;
+    }
+
+    if (World.colorStreakCount === 2) {
+      if (!World.pack01Card1TrialOffered) {
+        if (!hasOfferForCard(PACK01_CARD1_ID)) {
+          offerCardById(PACK01_CARD1_ID);
+        }
+        World.pack01Card1TrialOffered = true;
+        World.pack01Card1TrialActive = true;
+        World.pack01Card1TrialFailed = false;
+        World.pack01Card1TrialCompleted = false;
+      }
+    }
+
+    if (World.colorStreakCount === 3) {
+      if (World.pack01Card1TrialActive && !World.pack01Card1TrialCompleted) {
+        World.pack01Card1TrialCompleted = true;
+        World.pack01Card1TrialFailed = false;
+        World.pack01Card1TrialActive = false;
+        closeOffer(PACK01_CARD1_ID, "completed");
+      }
+    }
+  }
+
   function update(_dt, now) {
     const t = (typeof now === "number") ? now : nowMs();
 
     if (state.activeOffer && t >= state.activeOffer.expiresAt) {
       const c = state.activeOffer.card;
-      state.memory.collected.add(c.id);
+      collectCard(c);
       setCooldown(c);
       state.activeOffer = null;
     }
@@ -554,6 +676,8 @@ const CardEngine = (() => {
     render,
     handlePointerDown,
 
+    onColorPick: handleColorPick,
+
     // Hooks for future systems
     onRitualTrigger,
     openResetCardHub,
@@ -563,4 +687,11 @@ const CardEngine = (() => {
 if (typeof window !== "undefined") {
   // expose globally for boot + modules
   window.CardEngine = window.CardEngine || CardEngine;
+  window.HC = window.HC || {};
+  window.HC.Debug = window.HC.Debug || {};
+  window.HC.Debug.forceColorPick = (color) => {
+    if (window.CardEngine && typeof window.CardEngine.onColorPick === "function") {
+      window.CardEngine.onColorPick(color);
+    }
+  };
 }

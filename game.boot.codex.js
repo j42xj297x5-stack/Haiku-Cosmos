@@ -121,6 +121,13 @@ console.log("[HC] game.boot.codex.js loaded");
     spawnInterval: 0.22,
     maxMeteors: 60,
 
+    colorStreakKey: null,
+    colorStreakCount: 0,
+    pack01Card1TrialOffered: false,
+    pack01Card1TrialActive: false,
+    pack01Card1TrialCompleted: false,
+    pack01Card1TrialFailed: false,
+
   // Pointer tuning (base) — cards modify with multipliers:
 // engineStats.pointer_radius_mul / pointer_strength_mul
 pointerRadius: 0.20,       // ring size
@@ -520,6 +527,12 @@ meteorCollisionFudge: 1.12,
     World.epochAt = 0;
     World.meteorStreams = null;
     World.starThresholdMultiplierThisRun = 1.0;
+    World.colorStreakKey = null;
+    World.colorStreakCount = 0;
+    World.pack01Card1TrialOffered = false;
+    World.pack01Card1TrialActive = false;
+    World.pack01Card1TrialCompleted = false;
+    World.pack01Card1TrialFailed = false;
     if (Camera.epochZoom) {
       Camera.epochZoom.active = false;
       Camera.epochZoom.t = 0;
