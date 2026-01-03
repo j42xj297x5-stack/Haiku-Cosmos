@@ -42,23 +42,10 @@ const CardEngine = (() => {
       desc: "Uwolnienie materii jednego koloru z logiki orbit.",
       color: "#7BDFF2",
       type: "RITUAL",
-      ritual: { targetId: "RITUAL_RELEASE_SINGLE_COLOR" }
-    },
-    {
-      id: "RITUAL_RELEASE_DUAL_COLOR",
-      title: "Puszczanie Złączone",
-      desc: "Uwolnienie dwóch kolorów jednocześnie.",
-      color: "#B28DFF",
-      type: "RITUAL",
-      ritual: { targetId: "RITUAL_RELEASE_DUAL_COLOR" }
-    },
-    {
-      id: "RITUAL_PDR",
-      title: "Przenikające Doświadczenie",
-      desc: "Globalna jakość świata spowalniająca eskalację.",
-      color: "#FFC857",
-      type: "RITUAL",
-      ritual: { targetId: "PDR" }
+      ritual: {
+        targetId: "COLOR_SINGLE",
+        durationMs: 180000
+      }
     }
   ];
 
@@ -108,6 +95,7 @@ const CardEngine = (() => {
 
     cooldowns: new Map(), // cardId -> readyAtMs
     memory: { used: new Set(), collected: new Set() },
+    collection: new Map(),
 
     timed: [], // { endsAtMs, restoreFn }
     ritual: null, // { card, endsAtMs, failed }
@@ -375,6 +363,7 @@ const CardEngine = (() => {
     state.activeOffer = null;
     state.cooldowns = new Map();
     state.memory = { used: new Set(), collected: new Set() };
+    state.collection = new Map();
     state.timed = [];
     state.ritual = null;
     state.engineStats = {
@@ -383,6 +372,12 @@ const CardEngine = (() => {
       pointer_strength_mul: 1.0,
     };
     if (state.world) bindWorld(state.world);
+    state.testOffer = {
+      armed: true,
+      offered: false,
+      atMs: nowMs() + 12000,
+      cardId: CARD_DEFS[0]?.id || null,
+    };
   }
 
   function applyOp(before, op, value) {
@@ -428,6 +423,11 @@ const CardEngine = (() => {
     state.memory.used.add(card.id);
     setCooldown(card);
 
+    Events.emit("CARD_USED", { id: card.id, card });
+    if (!card.effects?.length && (!card.ritual || !card.ritual.onComplete?.length)) {
+      console.log(`[HC] Card used (placeholder): ${card.id}`);
+    }
+
     if (card.type === "RITUAL" && card.ritual) {
       startRitual(card);
       return;
@@ -435,19 +435,33 @@ const CardEngine = (() => {
     applyEffects(card.effects || []);
   }
 
+  function collectCard(card) {
+    const prev = state.collection.get(card.id) || 0;
+    state.collection.set(card.id, prev + 1);
+    state.memory.collected.add(card.id);
+    setCooldown(card);
+    Events.emit("CARD_COLLECTED", { id: card.id, card, count: prev + 1 });
+    console.log(`[HC] Card collected: ${card.id} (x${prev + 1})`);
+  }
+
   function update(_dt, now) {
     const t = (typeof now === "number") ? now : nowMs();
 
     if (state.activeOffer && t >= state.activeOffer.expiresAt) {
       const c = state.activeOffer.card;
-      state.memory.collected.add(c.id);
-      setCooldown(c);
+      collectCard(c);
       state.activeOffer = null;
     }
 
     if (!state.activeOffer && state.queue.length) {
       const c = state.queue.shift();
       state.activeOffer = { card: c, offeredAt: t, expiresAt: t + c.windowMs };
+    }
+
+    if (state.testOffer?.armed && !state.testOffer.offered && state.testOffer.cardId && t >= state.testOffer.atMs) {
+      if (offerCardById(state.testOffer.cardId)) {
+        state.testOffer.offered = true;
+      }
     }
 
     for (let i = state.timed.length - 1; i >= 0; i--) {
@@ -531,6 +545,12 @@ const CardEngine = (() => {
     return true;
   }
 
+  function debugOfferFirstPack01Card() {
+    const cardId = CARD_DEFS[0]?.id;
+    if (!cardId) return false;
+    return offerCardById(cardId);
+  }
+
   // ---- HOOKS (Stage 1 placeholders) ----
   function onRitualTrigger(_payload) {
     // TODO: hook for ritual triggers (e.g. harmonic collisions)
@@ -553,6 +573,8 @@ const CardEngine = (() => {
     update,
     render,
     handlePointerDown,
+    collectCard,
+    debugOfferFirstPack01Card,
 
     // Hooks for future systems
     onRitualTrigger,
@@ -563,4 +585,9 @@ const CardEngine = (() => {
 if (typeof window !== "undefined") {
   // expose globally for boot + modules
   window.CardEngine = window.CardEngine || CardEngine;
+  window.HC = window.HC || {};
+  window.HC.Cards = window.HC.Cards || {};
+  window.HC.Cards.debugOfferFirstPack01Card = function debugOfferFirstPack01Card() {
+    return CardEngine.debugOfferFirstPack01Card();
+  };
 }
