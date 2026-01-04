@@ -1,158 +1,226 @@
-# Haiku Cosmos — UI_WORLD.md
-## Filozofia i zasady interfejsu
+# Haiku Cosmos — UI WORLD
+## Interfejs świata, HUD i panele (KANON)
 
-UI w Haiku Cosmos:
-- nie konkuruje z rozgrywką,
-- nie tłumaczy świata wprost,
-- jest ciche, kontekstowe i reaktywne.
+Ten dokument opisuje UI w RUN oraz panele konfiguracyjne SUB-META / META.
+Celem UI jest:
+- minimalizm,
+- czytelność,
+- brak „ciężkiego HUD”,
+- szybka decyzja bez przerywania flow.
 
-Interfejs nie jest HUD-em.
-Jest ramą percepcji.
-
----
-
-## 1. Zasada minimalizmu
-
-UI:
-- pokazuje tylko to, co konieczne,
-- unika nadmiaru tekstu,
-- preferuje stan wizualny zamiast opisów.
-
-Decyzje gracza:
-- wynikają z obserwacji,
-- nie z checklisty komunikatów.
+UI jest kosmiczne, zen, lekkie.
 
 ---
 
-## 2. Warstwy UI
+## 1. Warstwy UI
 
-UI dzieli się na:
+UI składa się z trzech warstw:
 
-1. UI świata
-- kursor,
-- reakcje obiektów,
-- subtelne wskaźniki stanu.
+1) RUN HUD (na ekranie gry, zawsze widoczny)  
+2) SUB-META Overlay (panel konfiguracyjny dostępny w trakcie RUN)  
+3) META Overlay (panel końca cyklu / eonu)
 
-2. UI kart
-- pojawiają się kontekstowo,
-- znikają po decyzji,
-- nie blokują widoku świata.
-
-3. UI meta
-- oddzielny ekran / warstwa,
-- refleksja po runie,
-- bez presji czasowej.
+SUB-META i META to overlay na canvas (lub dedykowana warstwa DOM), ale muszą wyglądać jak część gry.
 
 ---
 
-## 3. Meta UI — sloty i postęp
+## 2. RUN HUD (w trakcie gry)
 
-Meta UI wizualizuje cztery sloty:
-- Forma
-- Intencja
-- Czas
-- Cisza
+RUN HUD jest minimalistyczny i nie zasłania świata.
 
-### 3.1 Stany slotów
+### 2.1. RP / Score (Punkty Rezonansu)
+- widoczne stale jako liczba (np. w rogu),
+- traktowane jako podstawowa waluta decyzji (tlen zmian),
+- format: `RP: <liczba>`
 
-Każdy slot może być w jednym ze stanów:
-
-- Zablokowany
-  - wyszarzony,
-  - obniżona opacity (np. 25–35%).
-
-- Odblokowany
-  - pełna widoczność,
-  - brak dodatkowych efektów.
-
-- Cel aktywny
-  - delikatna poświata,
-  - subtelny puls lub akcent.
-
-UI:
-- pokazuje gdzie gracz zmierza,
-- nie wymusza ścieżki.
+RP jest używane do:
+- działań w SUB-META (sloty, PRG),
+- działań META końcowego.
 
 ---
 
-## 4. Wizualizacja bez tekstu
+### 2.2. Kolekcja kart kolorów (DR)
+- w prawym górnym rogu: wąskie prostokąty z licznikami,
+- kolejność od góry:
+  1) czerwony
+  2) żółty
+  3) zielony
+  4) niebieski
+- jeśli count > 1: mała cyferka ilości,
+- jeśli count == 0: prostokąt niewidoczny lub wyszarzony (preferowane: wyszarzony w v1).
 
-UI unika:
-- tooltipów jako obowiązku,
-- długich opisów.
-
-Zamiast tego:
-- kolor,
-- rytm,
-- ruch,
-- cisza.
-
-Tekst pojawia się tylko wtedy,
-gdy brak go powodowałby nieczytelność.
+To jest szybka informacja o zasobach do slotów i PRG.
 
 ---
 
-## 5. Karty w UI
+### 2.3. Panel przełączania PRG (RUN toggle)
+Po zakupie PRG w SUB-META, gracz musi mieć możliwość używania PRG w locie.
 
-Karty:
-- pojawiają się równolegle (jeśli to możliwe),
-- nie blokują się wzajemnie,
-- pozwalają na zbieranie bez użycia.
+- po lewej stronie ekranu: pionowy pasek przycisków / ikon PRG,
+- 4 kategorie PRG (kolor = aspekt):
+  1) 🔴 Ring size
+  2) 🟡 Glue ↔ Repel
+  3) 🟢 Speed up ↔ Slow down
+  4) 🔵 Meteors ↔ Asteroids
+- klik w przycisk zmienia aktywny tryb (toggle),
+- w danym momencie aktywny jest jeden tryb PRG naraz (v1),
+- zakupione opcje są dostępne stale podczas RUN.
 
-Decyzja:
-- kliknięcie = efekt runtime,
-- brak kliknięcia = impuls meta.
-
-UI nie ocenia decyzji gracza.
-
----
-
-## 6. Wielojęzyczność UI (i18n)
-
-UI jest przygotowane na wiele języków.
-
-Zasady:
-- teksty UI nie są zapisane na sztywno,
-- UI korzysta ze słownika językowego,
-- język domyślny: polski,
-- język alternatywny: angielski.
-
-Zmiana języka:
-- nie resetuje świata,
-- nie zmienia mechaniki,
-- dotyczy wyłącznie warstwy prezentacji.
-
-Brak klucza:
-- nie może powodować crasha,
-- stosowany jest fallback do języka domyślnego.
+W v1 przyciski mogą być placeholderami (tekst/znak), później zastąpione ikonami.
 
 ---
 
-## 7. UI a epoki
+### 2.4. Przycisk SUB-META (zawsze dostępny)
+SUB-META ma być dostępna zawsze, nie tylko po epokach.
 
-UI reaguje na epokę:
-- wczesne epoki: większa czytelność obiektów,
-- Epoka Gwiazd: większy minimalizm i LOD.
+- mały przycisk/znak UI w RUN (np. krawędź ekranu),
+- klik otwiera SUB-META,
+- otwarcie pauzuje świat.
 
-UI nie „tłumaczy” epoki tekstem.
-Epoka jest odczuwana wizualnie.
-
----
-
-## 8. Zasada projektowa końcowa
-
-UI:
-- nie prowadzi gracza za rękę,
-- nie karze za brak wiedzy,
-- wspiera uważność i obserwację.
-
-Świat jest nauczycielem.
-UI jest ciszą pomiędzy zdarzeniami.
+Przycisk powinien być dyskretny, ale zauważalny.
 
 ---
 
-## 9. Status dokumentu
+### 2.5. Trial / Karty akcji (overlay informacyjny)
+Trial i komunikaty kart:
+- nie są stałym HUD,
+- pojawiają się jako krótkie overlaye,
+- haiku i pełna karta pojawiają się wyłącznie przy sukcesie.
 
-Dokument systemowy.
-Obowiązuje dla całego projektu.
-Stanowi podstawę do implementacji UI i meta UI.
+Zasada:
+- UI informuje, ale nie spamuje.
+
+---
+
+## 3. SUB-META Overlay (panel konfiguracyjny)
+
+SUB-META jest panelem taktycznym.
+Otwierany:
+- automatycznie po pierwszej planecie (v1),
+- manualnie przyciskiem (zawsze).
+
+Po otwarciu:
+- świat jest zatrzymany lub silnie spowolniony.
+
+### 3.1. Układ SUB-META (v1)
+Overlay jest wyśrodkowany i składa się z:
+
+#### GÓRA — Panel PRG (4 zakładki)
+Na samej górze panelu:
+- pasek z czterema zakładkami PRG:
+
+1) 🔴 Wielkość ringu  
+2) 🟡 Glue ↔ Odpychanie  
+3) 🟢 Przyśpiesz ↔ Zwolnij  
+4) 🔵 Meteory ↔ Planetoidy  
+
+Każda zakładka:
+- prezentuje dostępne do kupienia opcje,
+- pokazuje koszt RP i wymagane karty,
+- pozwala odblokowywać maks. 2 miejsca (v1).
+
+W przyszłości:
+- zakładki będą ikonami,
+- opcje będą rozwijane o poziomy i warianty.
+
+---
+
+#### ŚRODEK — Sloty META (4)
+Po lewej stronie środka panelu:
+- pionowa lista slotów META:
+
+1) Forma (🔴)  
+2) Intencja (🟡)  
+3) Czas (🟢)  
+4) Cisza (🔵)  
+
+Każdy slot:
+- ma miejsca na karty,
+- start: 1 miejsce,
+- max: 3 miejsca.
+
+UI slotu:
+- pokazuje czy slot jest pusty / zajęty,
+- pokazuje małe “+” jeśli można dokupić miejsce (warunki spełnione).
+
+Klik w slot:
+- pokazuje picker kart pasujących do slotu (allowedSlots),
+- przed przypięciem pokazuje podgląd efektu i koszt.
+
+---
+
+#### PRAWA — Kuźnia / Kolekcja
+Prawa kolumna SUB-META:
+- pokazuje zebrane karty DR,
+- pozwala nimi zarządzać.
+
+W v1:
+- wyświetlamy prostokąty/ilości (to samo co w RUN),
+- dodatkowo pełni to rolę magazynu do kosztów zakupów.
+
+W przyszłości:
+- kuźnia umożliwi konwersję DR → sDR → PDR.
+
+---
+
+### 3.2. Koszty w SUB-META (UI)
+Wszystkie akcje w SUB-META są kosztowne:
+
+- przypisanie karty do slotu: 10 RP
+- odblokowanie miejsca slotu: 10 RP + 3 DR koloru slotu
+- odblokowanie miejsca PRG: 30 RP + 6 DR koloru PRG
+
+UI musi:
+- wyświetlać koszt przed kliknięciem (podgląd),
+- blokować opcje, gdy brak RP/kart,
+- nie frustrować: blokada czytelna, bez agresywnych alertów.
+
+---
+
+### 3.3. Zamknięcie SUB-META
+SUB-META zamykane jest przez:
+- przycisk “Wróć” (np. prawy dół panelu),
+- zamknięcie wznawia świat bez resetów.
+
+---
+
+## 4. META Overlay (koniec cyklu)
+
+META to panel kończący RUN:
+- reset świata / nowy eon,
+- najdroższe decyzje,
+- używa RP + PDR + kart jakościowych (później).
+
+META jest rzadsze i cięższe niż SUB-META.
+W v1 META może być placeholderem (tylko podsumowanie).
+
+---
+
+## 5. Kolory jako logika UI
+
+Kolory nie są ozdobą.
+Kolor = semantyka systemu:
+
+- 🔴 Forma / ring size
+- 🟡 Intencja / glue vs repel
+- 🟢 Czas / speed up vs slow down
+- 🔵 Cisza / meteors vs asteroids
+
+UI ma tę mapę utrzymywać wszędzie:
+- w slotach,
+- w PRG,
+- w kosztach i ikonach,
+- w kolekcji.
+
+---
+
+## 6. Status dokumentu
+
+KANON v1.
+Zgodny z:
+- ECONOMY_SYSTEM.md
+- SUB_META_SYSTEM.md
+- TARGETS_SYSTEM.md (bez Slotu Rytuał)
+
+Dokument opisuje UI i flow,
+bez wchodzenia w implementację.
