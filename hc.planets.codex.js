@@ -23,6 +23,15 @@
     const transformAsteroidIntoRockyPlanet = window.transformAsteroidIntoRockyPlanet;
     const View = (window.HC.getView && window.HC.getView()) || window.View;
 
+    function setPlanetOrbitRadius(p, currentRadius) {
+      const mul = (typeof World.metaOrbitMulPlanet === "number") ? World.metaOrbitMulPlanet : 1;
+      const safeMul = Number.isFinite(mul) ? mul : 1;
+      const baseRadius = safeMul !== 0 ? (currentRadius / safeMul) : currentRadius;
+      p.orbitNativeRadius = baseRadius;
+      p.orbitCurrentRadius = currentRadius;
+      p.orbitPx = currentRadius;
+    }
+
     function buildColorWeightsFromOrbiters(orbiters) {
       const map = new Map();
       let total = 0;
@@ -346,13 +355,17 @@
       clearSystemOrbitersForStar(p);
 
       if (!World.stars) World.stars = [];
+      const starBaseGravity = computeGravityFromPlanetRadius(p.r);
+      const starOrbitMul = (typeof World.metaOrbitMulStar === "number") ? World.metaOrbitMulStar : 1;
       const star = {
         type: "star",
         x: p.x,
         y: p.y,
         r: p.r,
         mass: p.mass,
-        gravityR: computeGravityFromPlanetRadius(p.r),
+        gravityR: starBaseGravity * starOrbitMul,
+        orbitNativeRadius: starBaseGravity,
+        orbitCurrentRadius: starBaseGravity * starOrbitMul,
         orbiters: [],
         starKind: kind,
         dominantKey: info.dominantKey,
@@ -378,7 +391,11 @@
       const maxR = oldGravityR * World.STAR_BIRTH_RADIUS_MAX_FRACTION;
       newR = Math.min(newR, maxR);
       star.r = newR;
-      star.gravityR = computeGravityFromPlanetRadius(star.r);
+      const updatedBaseGravity = computeGravityFromPlanetRadius(star.r);
+      const updatedOrbitMul = (typeof World.metaOrbitMulStar === "number") ? World.metaOrbitMulStar : 1;
+      star.orbitNativeRadius = updatedBaseGravity;
+      star.orbitCurrentRadius = updatedBaseGravity * updatedOrbitMul;
+      star.gravityR = star.orbitCurrentRadius;
       World.stars.push(star);
       if (reconcileStarOwnershipOnBirth) reconcileStarOwnershipOnBirth(p, star);
       if (startStarEpochZoomOut) startStarEpochZoomOut(star, View.w, View.h);
@@ -530,7 +547,8 @@
             p.r = clamp(p.r + m.r * 0.06, meteorBaseRadius() * 2.0, meteorBaseRadius() * 180);
             const minOrbit = p.r * 2.1;
             const maxOrbit = meteorBaseRadius() * 420;
-            p.orbitPx = clamp((p.orbitPx || minOrbit) + m.r, minOrbit, maxOrbit);
+            const nextOrbit = clamp((p.orbitPx || minOrbit) + m.r, minOrbit, maxOrbit);
+            setPlanetOrbitRadius(p, nextOrbit);
 
             addOrbiterToPlanet(p, m);
 
@@ -620,7 +638,8 @@
             // Orbit expands only by the asteroid size (as per design)
             const minOrbit = p.r * 2.1;
             const maxOrbit = p.r * 10.0;
-            p.orbitPx = clamp(baseOrbit + a.r, minOrbit, maxOrbit);
+            const nextOrbit = clamp(baseOrbit + a.r, minOrbit, maxOrbit);
+            setPlanetOrbitRadius(p, nextOrbit);
 
             if (p.isRocky && countSystemOrbitersForRocky(p) >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
               p.rockyLocked = true;

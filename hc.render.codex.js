@@ -69,6 +69,30 @@
       ctx.closePath();
     }
 
+    function drawOrbitRing(x, y, currentRadius, nativeRadius, strokeStyle) {
+      if (!Number.isFinite(currentRadius)) return;
+      const nativeR = Number.isFinite(nativeRadius) ? nativeRadius : currentRadius;
+      const showNative = Math.abs(nativeR - currentRadius) > 0.5;
+
+      ctx.save();
+      ctx.lineWidth = 1;
+      ctx.setLineDash([]);
+      ctx.strokeStyle = strokeStyle;
+      ctx.beginPath();
+      ctx.arc(x, y, currentRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      if (showNative) {
+        ctx.globalAlpha = 0.1;
+        ctx.setLineDash([4, 8]);
+        ctx.beginPath();
+        ctx.arc(x, y, nativeR, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.setLineDash([]);
+    }
+
     function drawAsteroidOrbiters(a) {
       for (const o of a.orbiters) {
         const ox = a.x + Math.cos(o.angle) * o.orbitR;
@@ -89,14 +113,9 @@
     }
 
     function drawAsteroid(a) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(a.x, a.y, a.orbitPx, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255, 215, 0, 0.65)";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([]);
-      ctx.stroke();
-      ctx.restore();
+      const orbitR = (typeof a.orbitCurrentRadius === "number") ? a.orbitCurrentRadius : a.orbitPx;
+      const nativeR = (typeof a.orbitNativeRadius === "number") ? a.orbitNativeRadius : orbitR;
+      drawOrbitRing(a.x, a.y, orbitR, nativeR, "rgba(220, 220, 220, 0.65)");
 
       drawAsteroidOrbiters(a);
 
@@ -393,14 +412,11 @@
       const preStarFreq = (typeof world.PRESTAR_PULSE_FREQ === "number") ? world.PRESTAR_PULSE_FREQ : 0.22;
       const preStarPulse = preStarActive ? (1 + 0.03 * Math.sin(Math.PI * 2 * preStarFreq * (p.preStar.timeAbs || 0))) : 1;
       const renderR = p.r * preStarPulse;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.orbitPx, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255, 215, 0, 0.55)";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([2, 10]);
-      ctx.stroke();
-      ctx.restore();
+      const orbitR = (typeof p.orbitCurrentRadius === "number") ? p.orbitCurrentRadius : p.orbitPx;
+      const nativeR = (typeof p.orbitNativeRadius === "number") ? p.orbitNativeRadius : orbitR;
+      const isRocky = Boolean(p.isRocky || p.planetKind === "rocky");
+      const orbitColor = isRocky ? "rgba(80, 200, 120, 0.7)" : "rgba(235, 90, 90, 0.7)";
+      drawOrbitRing(p.x, p.y, orbitR, nativeR, orbitColor);
 
       drawPlanetRings(p, nowMs);
     ctx.beginPath();
