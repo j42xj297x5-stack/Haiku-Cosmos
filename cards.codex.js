@@ -197,6 +197,11 @@ const CardEngine = (() => {
   const SUB_META_FORGE_COSTS = { sDR: 10, pDR: 20 };
   const SUB_META_FORGE_CONSUMES = { sDR: 3, pDR: 9 };
   const SUB_META_SCALE = 1.0;
+  const SUB_META_CARD_W = 20;
+  const SUB_META_CARD_H = 26;
+  const SUB_META_CARD_GAP_X = 12;
+  const SUB_META_CARD_GAP_Y = 10;
+  const SUB_META_COUNT_PAD = 8;
   const SUB_META_SLOT_COLORS = {
     forma: "red",
     intencja: "yellow",
@@ -1189,12 +1194,6 @@ const CardEngine = (() => {
     return entries;
   }
 
-  function formatSubMetaCount(count) {
-    const safe = Math.max(0, Math.floor(Number(count) || 0));
-    const capped = Math.min(99, safe);
-    return String(capped).padStart(2, "0");
-  }
-
   function getSubMetaAvailableCards(World, slotKey) {
     if (!World || !slotKey) return [];
     const slotColor = SUB_META_SLOT_COLORS[slotKey];
@@ -1268,76 +1267,102 @@ const CardEngine = (() => {
     return lines;
   }
 
-  function getTallCardGrid(rect, gap) {
-    const safeGap = Math.max(2, gap || 0);
-    const maxCardW = Math.max(12, Math.floor(rect.h / 3));
-    let cols = Math.max(1, Math.floor((rect.w + safeGap) / (maxCardW + safeGap)));
-    cols = Math.max(1, cols);
-    const cardW = Math.min(maxCardW, Math.floor((rect.w - safeGap * (cols - 1)) / cols));
-    const cardH = Math.max(12, cardW * 3);
-    const rows = Math.max(1, Math.floor((rect.h + safeGap) / (cardH + safeGap)));
-    return { cardW, cardH, cols, rows, gap: safeGap };
+  function getSubMetaCardGrid(rect) {
+    const cellW = SUB_META_CARD_W + SUB_META_CARD_GAP_X;
+    const cellH = SUB_META_CARD_H + SUB_META_COUNT_PAD + SUB_META_CARD_GAP_Y;
+    const cols = Math.max(1, Math.floor((rect.w + SUB_META_CARD_GAP_X) / cellW));
+    const rows = Math.max(1, Math.floor((rect.h + SUB_META_CARD_GAP_Y) / cellH));
+    return { cols, rows, cellW, cellH };
   }
 
-  function getTallCardRect(rect, grid, index) {
+  function getSubMetaCardRect(rect, grid, index) {
     const col = index % grid.cols;
     const row = Math.floor(index / grid.cols);
     return {
-      x: rect.x + col * (grid.cardW + grid.gap),
-      y: rect.y + row * (grid.cardH + grid.gap),
-      w: grid.cardW,
-      h: grid.cardH
+      x: rect.x + col * grid.cellW,
+      y: rect.y + row * grid.cellH,
+      w: SUB_META_CARD_W,
+      h: SUB_META_CARD_H
     };
   }
 
-  function renderTallCard(ctx, rect, colorA, colorB, labelText, countText, flags = {}) {
-    const pad = 4;
-    const isSelected = !!flags.isSelected;
-    const isDisabled = !!flags.isDisabled;
-    const glowColor = flags.glowColor;
-    const glowWidth = flags.glowWidth || 0;
+  function renderMetaCard(ctx, x, y, card, options = {}) {
+    const color = card?.color || "#FFFFFF";
+    const typeLabel = String(card?.type || "R1");
+    const tierLabel = normalizeSubMetaTier(card?.tier);
+    const count = Math.max(0, Math.floor(Number(card?.count || 0)));
+    const showCount = options.showCount && count > 0;
+    const isSelected = !!options.isSelected;
+    const isDisabled = !!options.isDisabled;
+    const rectW = SUB_META_CARD_W;
+    const rectH = SUB_META_CARD_H;
     ctx.save();
     ctx.globalAlpha = isDisabled ? 0.35 : 1.0;
-    ctx.fillStyle = "rgba(255,255,255,0.06)";
-    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
-    if (glowColor) {
-      ctx.strokeStyle = glowColor;
-      ctx.lineWidth = glowWidth > 0 ? glowWidth : 2;
-      ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
-    }
-    ctx.lineWidth = isSelected ? 2 : 1;
-    ctx.strokeStyle = isSelected ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.2)";
-    ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, rectW, rectH);
 
-    const stripeH = Math.max(6, Math.floor(rect.h * 0.12));
-    if (colorB) {
-      ctx.fillStyle = colorA || "#FFFFFF";
-      ctx.fillRect(rect.x + pad, rect.y + pad, Math.floor((rect.w - pad * 2) / 2), stripeH);
-      ctx.fillStyle = colorB || "#FFFFFF";
-      ctx.fillRect(
-        rect.x + pad + Math.floor((rect.w - pad * 2) / 2),
-        rect.y + pad,
-        rect.w - pad * 2 - Math.floor((rect.w - pad * 2) / 2),
-        stripeH
-      );
-    } else if (colorA) {
-      ctx.fillStyle = colorA;
-      ctx.fillRect(rect.x + pad, rect.y + pad, rect.w - pad * 2, stripeH);
+    if (tierLabel === "sDR") {
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x + 0.5, y + 0.5, rectW - 1, rectH - 1);
+    } else if (tierLabel === "pDR") {
+      ctx.strokeStyle = "rgba(255,215,120,0.9)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 0.5, y + 0.5, rectW - 1, rectH - 1);
     }
 
-    if (labelText) {
-      ctx.fillStyle = "rgba(255,255,255,0.9)";
+    if (isSelected) {
+      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - 1, y - 1, rectW + 2, rectH + 2);
+    }
+
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.textAlign = "center";
+    ctx.font = "10px system-ui";
+    ctx.fillText(typeLabel, x + rectW / 2, y + 10);
+    ctx.font = "9px system-ui";
+    ctx.fillText(tierLabel, x + rectW / 2, y + 21);
+    ctx.textAlign = "left";
+
+    if (showCount) {
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.font = "11px system-ui";
-      ctx.fillText(labelText, rect.x + pad, rect.y + rect.h - pad - 4);
+      ctx.fillText(String(count), x - SUB_META_COUNT_PAD, y + rectH + SUB_META_COUNT_PAD);
     }
 
-    if (countText) {
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.font = "11px system-ui";
-      ctx.textAlign = "right";
-      ctx.fillText(countText, rect.x + rect.w - pad, rect.y + rect.h - pad - 4);
-      ctx.textAlign = "left";
-    }
+    ctx.restore();
+  }
+
+  function renderSubMetaSlotFrame(ctx, slot, labelText, color, isSelected) {
+    const labelX = slot.x + 10;
+    const notchPad = 6;
+    const lineWidth = isSelected ? 2 : 1;
+    ctx.save();
+    ctx.lineWidth = lineWidth;
+    ctx.globalAlpha = isSelected ? 0.95 : 0.45;
+    ctx.strokeStyle = color;
+    ctx.font = "11px system-ui";
+    const labelWidth = ctx.measureText(labelText).width;
+    const notchStart = Math.max(slot.x + 6, labelX - notchPad);
+    const notchEnd = Math.min(slot.x + slot.w - 6, labelX + labelWidth + notchPad);
+    const leftX = slot.x + 0.5;
+    const rightX = slot.x + slot.w - 0.5;
+    const topY = slot.y + 0.5;
+    const bottomY = slot.y + slot.h - 0.5;
+    ctx.beginPath();
+    ctx.moveTo(leftX, topY);
+    ctx.lineTo(notchStart, topY);
+    ctx.moveTo(notchEnd, topY);
+    ctx.lineTo(rightX, topY);
+    ctx.lineTo(rightX, bottomY);
+    ctx.lineTo(leftX, bottomY);
+    ctx.lineTo(leftX, topY);
+    ctx.stroke();
+
+    ctx.globalAlpha = isSelected ? 0.95 : 0.75;
+    ctx.fillStyle = color;
+    ctx.fillText(labelText, labelX, slot.y + slot.headerH - 2);
     ctx.restore();
   }
 
@@ -1362,7 +1387,7 @@ const CardEngine = (() => {
     const cardInfoRect = { x: rightX, y: columnTop + rowH + rowGap, w: columnW, h: rowH };
     const slotGap = 8;
     const slotH = Math.floor((slotsRect.h - slotGap * (SUB_META_SLOTS.length - 1)) / SUB_META_SLOTS.length);
-    const slotHeaderH = Math.max(16, Math.floor(slotH * 0.4));
+    const slotHeaderH = Math.max(12, Math.floor(slotH * 0.3));
     const slots = SUB_META_SLOTS.map((slot, index) => ({
       ...slot,
       x: slotsRect.x,
@@ -1511,25 +1536,7 @@ const CardEngine = (() => {
       const assignment = World.metaSlots?.[slot.key];
       const slotColorKey = SUB_META_SLOT_COLORS[slot.key];
       const slotColorHex = PACK01_COLOR_HEX[slotColorKey] || "#FFFFFF";
-      ctx.save();
-      ctx.lineWidth = isSelected ? 2 : 1;
-      ctx.globalAlpha = isSelected ? 0.95 : 0.45;
-      ctx.strokeStyle = slotColorHex;
-      ctx.strokeRect(slot.x + 0.5, slot.y + 0.5, slot.w - 1, slot.h - 1);
-      ctx.restore();
-
-      ctx.save();
-      ctx.fillStyle = "rgba(255,255,255,0.04)";
-      ctx.fillRect(slot.x, slot.y, slot.w, slot.headerH);
-      ctx.strokeStyle = "rgba(255,255,255,0.08)";
-      ctx.beginPath();
-      ctx.moveTo(slot.x, slot.y + slot.headerH + 0.5);
-      ctx.lineTo(slot.x + slot.w, slot.y + slot.headerH + 0.5);
-      ctx.stroke();
-      ctx.fillStyle = slotColorHex;
-      ctx.font = "11px system-ui";
-      ctx.fillText(slot.label.toUpperCase(), slot.x + 10, slot.y + slot.headerH - 6);
-      ctx.restore();
+      renderSubMetaSlotFrame(ctx, slot, slot.label.toUpperCase(), slotColorHex, isSelected);
 
       const bodyY = slot.y + slot.headerH;
       const bodyH = slot.h - slot.headerH;
@@ -1539,12 +1546,14 @@ const CardEngine = (() => {
       }
 
       if (assignment) {
-        const colorHex = PACK01_COLOR_HEX[assignment.color] || "#FFFFFF";
-        const tierLabel = normalizeSubMetaTier(assignment.tier);
-        ctx.fillStyle = colorHex;
-        ctx.fillRect(slot.x + 14, bodyY + bodyH / 2 - 6, 12, 12);
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        ctx.fillText(`R1 ${tierLabel}`, slot.x + 34, bodyY + bodyH / 2 + 5);
+        const cardX = slot.x + Math.floor((slot.w - SUB_META_CARD_W) / 2);
+        const cardY = bodyY + Math.floor((bodyH - SUB_META_CARD_H) / 2);
+        renderMetaCard(ctx, cardX, cardY, {
+          type: "R1",
+          tier: assignment.tier,
+          color: PACK01_COLOR_HEX[assignment.color] || "#FFFFFF",
+          count: 0
+        }, { showCount: false });
 
         if (state.subMeta.showRemoveForSlotKey === slot.key) {
           const removeW = 16;
@@ -1568,36 +1577,38 @@ const CardEngine = (() => {
     }
 
     const inventoryEntries = getSubMetaInventoryEntries(World);
-    const inventoryGrid = getTallCardGrid(inventoryInnerRect, 8);
+    const inventoryGrid = getSubMetaCardGrid(inventoryInnerRect);
     inventoryEntries.forEach((entry, index) => {
       const row = Math.floor(index / inventoryGrid.cols);
       if (row >= inventoryGrid.rows) return;
-      const rect = getTallCardRect(inventoryInnerRect, inventoryGrid, index);
+      const rect = getSubMetaCardRect(inventoryInnerRect, inventoryGrid, index);
       const colorA = PACK01_COLOR_HEX[entry.colors[0]] || "#FFFFFF";
-      const colorB = entry.colors[1] ? PACK01_COLOR_HEX[entry.colors[1]] : null;
-      renderTallCard(ctx, rect, colorA, colorB, entry.label, formatSubMetaCount(entry.count));
+      renderMetaCard(ctx, rect.x, rect.y, {
+        type: entry.kind,
+        tier: entry.tier,
+        color: colorA,
+        count: entry.count
+      }, { showCount: true });
     });
 
     if (state.subMeta.selectedSlotKey) {
       const available = getSubMetaAvailableCards(World, state.subMeta.selectedSlotKey);
-      const assignGrid = getTallCardGrid(pickerAssignRect, 8);
+      const assignGrid = getSubMetaCardGrid(pickerAssignRect);
       available.forEach((card, index) => {
         const row = Math.floor(index / assignGrid.cols);
         if (row >= assignGrid.rows) return;
-        const rect = getTallCardRect(pickerAssignRect, assignGrid, index);
-        const tierLabel = normalizeSubMetaTier(card.tier);
-        renderTallCard(
-          ctx,
-          rect,
-          PACK01_COLOR_HEX[card.color] || "#FFFFFF",
-          null,
-          `R1 ${tierLabel}`,
-          null,
-          {
-            isSelected: state.subMeta.selectedCardKey === card.key,
-            isDisabled: !hasEnoughAssignRp
-          }
-        );
+        const rect = getSubMetaCardRect(pickerAssignRect, assignGrid, index);
+        const count = getCardCount(World, "R1", [card.color], card.tier);
+        renderMetaCard(ctx, rect.x, rect.y, {
+          type: "R1",
+          tier: card.tier,
+          color: PACK01_COLOR_HEX[card.color] || "#FFFFFF",
+          count
+        }, {
+          isSelected: state.subMeta.selectedCardKey === card.key,
+          isDisabled: !hasEnoughAssignRp,
+          showCount: true
+        });
       });
       if (!available.length) {
         ctx.fillStyle = "rgba(255,255,255,0.45)";
@@ -1609,20 +1620,20 @@ const CardEngine = (() => {
     }
 
     const forgeList = getSubMetaForgeList(World);
-    const forgeGrid = getTallCardGrid(pickerForgeRect, 8);
+    const forgeGrid = getSubMetaCardGrid(pickerForgeRect);
     forgeList.forEach((forge, index) => {
       const row = Math.floor(index / forgeGrid.cols);
       if (row >= forgeGrid.rows) return;
-      const rect = getTallCardRect(pickerForgeRect, forgeGrid, index);
+      const rect = getSubMetaCardRect(pickerForgeRect, forgeGrid, index);
       const colorA = PACK01_COLOR_HEX[forge.colors[0]] || "#FFFFFF";
-      const colorB = forge.colors[1] ? PACK01_COLOR_HEX[forge.colors[1]] : null;
-      const glowColor = forge.tierTarget === "pDR"
-        ? "rgba(255,210,80,0.9)"
-        : "rgba(255,255,255,0.6)";
-      renderTallCard(ctx, rect, colorA, colorB, forge.label, null, {
+      renderMetaCard(ctx, rect.x, rect.y, {
+        type: forge.kind,
+        tier: forge.tierTarget,
+        color: colorA,
+        count: 0
+      }, {
         isSelected: state.subMeta.selectedForge?.key === forge.key,
-        glowColor,
-        glowWidth: 2
+        showCount: false
       });
     });
 
@@ -1842,12 +1853,12 @@ const CardEngine = (() => {
 
       if (state.subMeta.selectedSlotKey) {
         const available = getSubMetaAvailableCards(World, state.subMeta.selectedSlotKey);
-        const assignGrid = getTallCardGrid(pickerAssignRect, 8);
+        const assignGrid = getSubMetaCardGrid(pickerAssignRect);
         for (let i = 0; i < available.length; i++) {
           const row = Math.floor(i / assignGrid.cols);
           if (row >= assignGrid.rows) break;
           const card = available[i];
-          const rect = getTallCardRect(pickerAssignRect, assignGrid, i);
+          const rect = getSubMetaCardRect(pickerAssignRect, assignGrid, i);
           if (mx >= rect.x && mx <= rect.x + rect.w && my >= rect.y && my <= rect.y + rect.h) {
             state.subMeta.selectedCardKey = card.key;
             state.subMeta.showRemoveForSlotKey = null;
@@ -1857,12 +1868,12 @@ const CardEngine = (() => {
         }
       }
       const forgeList = getSubMetaForgeList(World);
-      const forgeGrid = getTallCardGrid(pickerForgeRect, 8);
+      const forgeGrid = getSubMetaCardGrid(pickerForgeRect);
       for (let i = 0; i < forgeList.length; i++) {
         const row = Math.floor(i / forgeGrid.cols);
         if (row >= forgeGrid.rows) break;
         const forge = forgeList[i];
-        const rect = getTallCardRect(pickerForgeRect, forgeGrid, i);
+        const rect = getSubMetaCardRect(pickerForgeRect, forgeGrid, i);
         if (mx >= rect.x && mx <= rect.x + rect.w && my >= rect.y && my <= rect.y + rect.h) {
           state.subMeta.selectedForge = forge;
           state.subMeta.selectedCardKey = null;
