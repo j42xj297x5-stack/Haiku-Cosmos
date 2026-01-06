@@ -95,7 +95,8 @@
       const candidate = minOrbit + idx * step;
 
       const maxOrbit = Math.max(minOrbit, a.orbitPx - orbR);
-      const orbitR = clamp(candidate, minOrbit, maxOrbit);
+      const baseOrbitRadius = clamp(candidate, minOrbit, maxOrbit);
+      const orbitR = baseOrbitRadius * ((typeof World.metaOrbitMulAsteroid === "number") ? World.metaOrbitMulAsteroid : 1);
 
       const typeMul = (a.sides <= 6) ? 0.85 : 1.0;
       const baseOmega = rand(0.8, 1.35) * typeMul;

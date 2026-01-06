@@ -63,7 +63,8 @@
       const d = Math.hypot(dx, dy) || 1;
       const minR = Math.max(1, s.r + o.r + 2);
       const maxR = Math.max(1, (s.gravityR || computeGravityFromPlanetRadius(s.r)) - o.r - 2);
-      const orbitR = clamp(d, minR, maxR);
+      const baseOrbitRadius = clamp(d, minR, maxR);
+      const orbitR = baseOrbitRadius * ((typeof World.metaOrbitMulStar === "number") ? World.metaOrbitMulStar : 1);
       const theta = Math.atan2(dy, dx);
       const Rm = meteorBaseRadius();
       const baseOmega = rand(0.25, 0.75);
