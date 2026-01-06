@@ -10,12 +10,28 @@
   let fpsAcc = 0;
   let fpsFrames = 0;
   let initialized = false;
+  let lastScore = null;
+
+  function updateScoreLabel(World, force) {
+    if (!scoreLabel || !World) return;
+    if (force || World.score !== lastScore) {
+      lastScore = World.score;
+      scoreLabel.textContent = `RP: ${World.score}`;
+    }
+  }
+
+  function updateMpsUI(World) {
+    if (!mpsUI || !World) return;
+    const current = Math.max(1, Math.round(1 / World.spawnInterval));
+    mpsUI.value.textContent = String(current);
+    mpsUI.slider.value = String(current);
+  }
 
   function addScore(points) {
     const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
     if (!World) return;
     World.score += points;
-    if (scoreLabel) scoreLabel.textContent = `Score: ${World.score}`;
+    updateScoreLabel(World, true);
   }
 
   window.addScore = addScore;
@@ -34,7 +50,7 @@
     const el = document.createElement("div");
     el.className = "pill";
     el.id = "scoreLabel";
-    el.textContent = "Score: 0";
+    el.textContent = "RP: 0";
     topBar.appendChild(el);
     return el;
   }
@@ -90,18 +106,24 @@
       mpsUI = ensureMpsUI();
 
       if (mpsUI && World) {
-        const current = Math.max(1, Math.round(1 / World.spawnInterval));
-        mpsUI.value.textContent = String(current);
-        mpsUI.slider.value = String(current);
+        updateMpsUI(World);
         mpsUI.slider.addEventListener("input", () => {
           const v = parseInt(mpsUI.slider.value, 10) || 1;
           setMeteorsPerSec(v, World, clamp);
         });
       }
 
-      if (btnRestart && window.resetWorld) btnRestart.addEventListener("click", window.resetWorld);
+      if (btnRestart && window.resetWorld) {
+        btnRestart.addEventListener("click", () => {
+          window.resetWorld();
+          const refreshedWorld = (window.HC.getWorld && window.HC.getWorld()) || window.World;
+          updateScoreLabel(refreshedWorld, true);
+          updateMpsUI(refreshedWorld);
+        });
+      }
       if (window.resetWorld) window.resetWorld();
-      if (scoreLabel && World) scoreLabel.textContent = `Score: ${World.score}`;
+      updateScoreLabel(World, true);
+      updateMpsUI(World);
     },
     update(dt, nowMs) {
       fpsAcc += dt;
@@ -112,6 +134,8 @@
         fpsAcc = 0;
         fpsFrames = 0;
       }
+      const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
+      updateScoreLabel(World, false);
       const CE = window.CardEngine;
       const view = window.HC.getView && window.HC.getView();
       if (CE && typeof CE.render === "function" && view && window.ctx) {
