@@ -36,6 +36,7 @@
   }
 
   const EFFECT_TIMER_COLORS = ["red", "yellow", "green", "blue"];
+  const RUN_TIMER_COLORS = ["red", "yellow", "green", "blue"];
 
   function buildEffectTimerState() {
     const timersByColor = {};
@@ -52,6 +53,25 @@
     const state = buildEffectTimerState();
     World.effectTimersByColor = state.timersByColor;
     World.effectTimerDurationMsByColor = state.durationMsByColor;
+  }
+
+  function buildRunTimerState() {
+    const timersByColor = {};
+    const durationMsByColor = {};
+    RUN_TIMER_COLORS.forEach((color) => {
+      timersByColor[color] = 0;
+      durationMsByColor[color] = 0;
+    });
+    return { timersByColor, durationMsByColor };
+  }
+
+  function resetRunTimers(World) {
+    if (!World) return;
+    const state = buildRunTimerState();
+    World.runColorTimers = state.timersByColor;
+    World.runColorDurations = state.durationMsByColor;
+    World.runWorldActiveUntilMs = 0;
+    World.runWorldStrengthMul = 1;
   }
 
   function ensureEffectTimers(World) {
@@ -73,6 +93,27 @@
     });
   }
 
+  function ensureRunTimers(World) {
+    if (!World) return;
+    if (!World.runColorTimers || typeof World.runColorTimers !== "object") {
+      resetRunTimers(World);
+      return;
+    }
+    if (!World.runColorDurations || typeof World.runColorDurations !== "object") {
+      World.runColorDurations = {};
+    }
+    RUN_TIMER_COLORS.forEach((color) => {
+      if (typeof World.runColorTimers[color] !== "number") {
+        World.runColorTimers[color] = 0;
+      }
+      if (typeof World.runColorDurations[color] !== "number") {
+        World.runColorDurations[color] = 0;
+      }
+    });
+    if (typeof World.runWorldActiveUntilMs !== "number") World.runWorldActiveUntilMs = 0;
+    if (typeof World.runWorldStrengthMul !== "number") World.runWorldStrengthMul = 1;
+  }
+
   function pruneExpiredTimers(World, nowMs) {
     if (!World) return;
     ensureEffectTimers(World);
@@ -83,6 +124,52 @@
       if (!list || !list.length) return;
       World.effectTimersByColor[color] = list.filter((untilMs) => untilMs > t);
     });
+  }
+
+  function updateRunWorldActiveUntil(World, nowMs) {
+    if (!World) return 0;
+    ensureRunTimers(World);
+    const maxUntil = Math.max(...RUN_TIMER_COLORS.map((color) => Number(World.runColorTimers[color] || 0)));
+    World.runWorldActiveUntilMs = Number.isFinite(maxUntil) ? maxUntil : 0;
+    const t = Number(nowMs);
+    if (Number.isFinite(t) && World.runWorldActiveUntilMs <= t) {
+      World.runWorldActiveUntilMs = 0;
+      World.runWorldStrengthMul = 1;
+    }
+    return World.runWorldActiveUntilMs;
+  }
+
+  function isRunColorDisabled(World, nowMs, color) {
+    if (!World || !color) return false;
+    ensureRunTimers(World);
+    const t = Number(nowMs);
+    if (!Number.isFinite(t)) return false;
+    return Number(World.runColorTimers[color] || 0) > t;
+  }
+
+  function isWorldSlotsActive(World, nowMs) {
+    if (!World) return false;
+    const t = Number(nowMs);
+    if (!Number.isFinite(t)) return false;
+    updateRunWorldActiveUntil(World, t);
+    return World.runWorldActiveUntilMs > t;
+  }
+
+  function startOrRefreshRunColorTimer(World, color, durationMs, nowMs, strengthMul) {
+    if (!World || !color) return false;
+    ensureRunTimers(World);
+    const dur = Number(durationMs);
+    const t = Number(nowMs);
+    if (!Number.isFinite(dur) || dur <= 0 || !Number.isFinite(t)) return false;
+    const untilMs = t + dur;
+    World.runColorTimers[color] = untilMs;
+    World.runColorDurations[color] = dur;
+    const strength = Number(strengthMul);
+    if (Number.isFinite(strength) && strength > World.runWorldStrengthMul) {
+      World.runWorldStrengthMul = strength;
+    }
+    updateRunWorldActiveUntil(World, t);
+    return true;
   }
 
   function getColorActiveUntil(World, color) {
@@ -137,6 +224,7 @@
     World.formaOrbitReductionBase = 0;
     World.formaColorKey = null;
     resetEffectTimers(World);
+    resetRunTimers(World);
   }
 
   function ensureFormaEffectState(World) {
@@ -147,6 +235,7 @@
     if (typeof World.formaOrbitReductionBase !== "number") World.formaOrbitReductionBase = 0;
     if (typeof World.formaColorKey !== "string") World.formaColorKey = null;
     ensureEffectTimers(World);
+    ensureRunTimers(World);
   }
 
   window.HC.WorldEvents = window.HC.WorldEvents || {};
@@ -157,6 +246,13 @@
   window.HC.EffectTimers.startOrRefresh = startOrRefreshColorTimer;
   window.HC.EffectTimers.getColorActiveUntil = getColorActiveUntil;
   window.HC.EffectTimers.isColorActive = isColorEffectActive;
+  window.HC.RunTimers = window.HC.RunTimers || {};
+  window.HC.RunTimers.ensure = ensureRunTimers;
+  window.HC.RunTimers.reset = resetRunTimers;
+  window.HC.RunTimers.updateWorldActiveUntil = updateRunWorldActiveUntil;
+  window.HC.RunTimers.isColorDisabled = isRunColorDisabled;
+  window.HC.RunTimers.isWorldSlotsActive = isWorldSlotsActive;
+  window.HC.RunTimers.startOrRefresh = startOrRefreshRunColorTimer;
   window.HC.WorldEvents.startMeteorShower = ({ durationMs, intensity } = {}) => {
     const World = window.HC.getWorld && window.HC.getWorld();
     if (!World) return;

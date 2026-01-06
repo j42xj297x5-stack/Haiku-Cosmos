@@ -291,6 +291,10 @@ const CardEngine = (() => {
     if (World.formaStrengthMul === undefined) World.formaStrengthMul = 1;
     if (World.formaOrbitReduction === undefined) World.formaOrbitReduction = 0;
     if (World.formaOrbitReductionBase === undefined) World.formaOrbitReductionBase = 0;
+    const runTimers = window.HC && window.HC.RunTimers;
+    if (runTimers && typeof runTimers.ensure === "function") {
+      runTimers.ensure(World);
+    }
 
     applyFormaToWorld(World);
 
@@ -583,9 +587,9 @@ const CardEngine = (() => {
     const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R1");
     const normalizedColor = normalizePack01Color(colorKey);
     if (normalizedColor) {
-      startRunTimerForColor(World, normalizedColor, durationMs, t);
+      startRunTimerForColor(World, normalizedColor, durationMs, t, 1);
     }
-    return startFormaEffect(World, t, "R1", baseDurationMs, normalizedColor);
+    return startFormaEffect(World, t, "R1", baseDurationMs);
   }
 
   function onRunActivateR2({ baseDurationMs, colorKeys } = {}) {
@@ -596,13 +600,9 @@ const CardEngine = (() => {
     const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R2");
     const colors = Array.isArray(colorKeys) ? colorKeys.map(normalizePack01Color).filter(Boolean) : [];
     colors.forEach((color) => {
-      startRunTimerForColor(World, color, durationMs, t);
+      startRunTimerForColor(World, color, durationMs, t, 2);
     });
-    const shouldApplyForma = colors.some((color) => color && getFormaEffectColor(World) === color);
-    if (shouldApplyForma) {
-      return startFormaEffect(World, t, "R2", baseDurationMs, getFormaEffectColor(World));
-    }
-    return false;
+    return startFormaEffect(World, t, "R2", baseDurationMs);
   }
 
   function setTrialState(stateName) {
@@ -741,9 +741,9 @@ const CardEngine = (() => {
 
     const World = state.world;
     if (World) {
-      const effectTimers = window.HC && window.HC.EffectTimers;
-      if (effectTimers && typeof effectTimers.pruneExpired === "function") {
-        effectTimers.pruneExpired(World, t);
+      const runTimers = window.HC && window.HC.RunTimers;
+      if (runTimers && typeof runTimers.updateWorldActiveUntil === "function") {
+        runTimers.updateWorldActiveUntil(World, t);
       }
       syncFormaActiveUntil(World, t);
       applyFormaToWorld(World);
@@ -913,6 +913,9 @@ const CardEngine = (() => {
     const gap = 14;
     const x = Math.floor(screenW - pad - rectW);
     const y0 = Math.floor(pad + 6);
+    const nowTime = nowMs();
+    const runTimers = World.runColorTimers || {};
+    const runDurations = World.runColorDurations || {};
 
     ctx.save();
     ctx.font = "11px system-ui";
@@ -929,6 +932,20 @@ const CardEngine = (() => {
         ctx.globalAlpha = 0.2;
         ctx.fillStyle = "rgba(255,255,255,0.9)";
         ctx.fillRect(x, y, rectW, rectH);
+      }
+      const activeUntil = Number(runTimers[key] || 0);
+      const durationMs = Number(runDurations[key] || 0);
+      if (activeUntil > nowTime && Number.isFinite(durationMs) && durationMs > 0) {
+        const remainingRatio = clamp01((activeUntil - nowTime) / durationMs);
+        if (remainingRatio > 0) {
+          const barW = 3;
+          const barH = Math.max(1, Math.floor(rectH * remainingRatio));
+          const barX = x - 6;
+          const barY = y + rectH - barH;
+          ctx.globalAlpha = 0.95;
+          ctx.fillStyle = PACK01_COLOR_HEX[key] || "#FFFFFF";
+          ctx.fillRect(barX, barY, barW, barH);
+        }
       }
       if (count > 1) {
         ctx.globalAlpha = 0.85;
@@ -1155,35 +1172,38 @@ const CardEngine = (() => {
     return runKind === "R2" ? 2 * total : total;
   }
 
-  function startRunTimerForColor(World, colorKey, durationMs, nowMs) {
-    const effectTimers = window.HC && window.HC.EffectTimers;
-    if (effectTimers && typeof effectTimers.startOrRefresh === "function") {
-      effectTimers.startOrRefresh(World, colorKey, durationMs, nowMs);
+  function startRunTimerForColor(World, colorKey, durationMs, nowMs, strengthMul) {
+    const runTimers = window.HC && window.HC.RunTimers;
+    if (runTimers && typeof runTimers.startOrRefresh === "function") {
+      runTimers.startOrRefresh(World, colorKey, durationMs, nowMs, strengthMul);
     }
   }
 
   function syncFormaActiveUntil(World, nowMs) {
-    const effectTimers = window.HC && window.HC.EffectTimers;
-    const colorKey = getFormaEffectColor(World);
-    if (!effectTimers || typeof effectTimers.getColorActiveUntil !== "function" || !colorKey) {
-      if (World.formaActiveUntilMs && nowMs >= World.formaActiveUntilMs) {
-        World.formaActiveUntilMs = 0;
+    const runTimers = window.HC && window.HC.RunTimers;
+    if (runTimers && typeof runTimers.updateWorldActiveUntil === "function") {
+      const activeUntil = runTimers.updateWorldActiveUntil(World, nowMs);
+      World.formaActiveUntilMs = activeUntil > nowMs ? activeUntil : 0;
+      if (!World.formaActiveUntilMs) {
         World.formaStrengthMul = 1;
         World.formaOrbitReduction = 0;
         World.formaOrbitReductionBase = 0;
       }
       return;
     }
-    const activeUntil = effectTimers.getColorActiveUntil(World, colorKey);
-    World.formaActiveUntilMs = activeUntil > nowMs ? activeUntil : 0;
+    if (World.formaActiveUntilMs && nowMs >= World.formaActiveUntilMs) {
+      World.formaActiveUntilMs = 0;
+      World.formaStrengthMul = 1;
+      World.formaOrbitReduction = 0;
+      World.formaOrbitReductionBase = 0;
+    }
   }
 
   function isFormaActive(World, now) {
     if (!World) return false;
-    const effectTimers = window.HC && window.HC.EffectTimers;
-    const colorKey = getFormaEffectColor(World);
-    if (effectTimers && typeof effectTimers.isColorActive === "function" && colorKey) {
-      return effectTimers.isColorActive(World, now, colorKey);
+    const runTimers = window.HC && window.HC.RunTimers;
+    if (runTimers && typeof runTimers.isWorldSlotsActive === "function") {
+      return runTimers.isWorldSlotsActive(World, now);
     }
     const untilMs = Number(World.formaActiveUntilMs || 0);
     return untilMs > 0 && now < untilMs;
@@ -1218,8 +1238,13 @@ const CardEngine = (() => {
     if (!World) return;
     const t = nowMs();
     const active = isFormaActive(World, t);
-    const reduction = active ? clampNum(World.formaOrbitReduction || 0, 0, 0.95) : 0;
+    const baseReduction = clampNum(World.formaOrbitReductionBase || World.formaOrbitReduction || 0, 0, 0.95);
+    const strengthMul = active ? (Number(World.runWorldStrengthMul) || World.formaStrengthMul || 1) : 1;
+    const reduction = active ? clampNum(baseReduction * strengthMul, 0, 0.95) : 0;
     const multiplier = 1 - reduction;
+
+    World.formaStrengthMul = strengthMul;
+    World.formaOrbitReduction = reduction;
 
     World.metaOrbitMulAsteroid = multiplier;
     World.metaOrbitMulPlanet = multiplier;
@@ -1236,26 +1261,22 @@ const CardEngine = (() => {
     }
   }
 
-  function startFormaEffect(World, now, runKind, baseDurationMs, colorKey) {
+  function startFormaEffect(World, now, runKind, baseDurationMs) {
     if (!World) return false;
     const assignment = World.metaSlots?.forma;
     if (!assignment) return false;
-    const assignedColor = getFormaEffectColor(World);
-    if (colorKey && assignedColor && colorKey !== assignedColor) return false;
     const tierKey = normalizeSubMetaTier(assignment.tier);
     const baseReduction = getFormaReductionForTier(tierKey);
     if (!(baseReduction > 0)) return false;
-    const strengthMul = runKind === "R2" ? 2 : 1;
-    const effectiveReduction = clampNum(baseReduction * strengthMul, 0, 0.95);
     const timeBonus = getFormaTimeBonusMs(World);
     const durationMs = computeActivationDurationMs(baseDurationMs, timeBonus, runKind);
     if (!Number.isFinite(durationMs) || durationMs <= 0) return false;
 
     World.formaOrbitReductionBase = baseReduction;
-    World.formaOrbitReduction = effectiveReduction;
-    World.formaStrengthMul = strengthMul;
+    World.formaOrbitReduction = baseReduction;
+    World.formaStrengthMul = runKind === "R2" ? 2 : 1;
     World.formaActiveUntilMs = now + durationMs;
-    World.formaColorKey = assignedColor;
+    World.formaColorKey = getFormaEffectColor(World);
     applyFormaToWorld(World);
     return true;
   }
@@ -1774,13 +1795,11 @@ const CardEngine = (() => {
       });
     });
     const nowTime = nowMs();
-    const timerDurationMap = World.effectTimerDurationMsByColor || {};
-    const timerListMap = World.effectTimersByColor || {};
+    const timerDurationMap = World.runColorDurations || {};
+    const timerListMap = World.runColorTimers || {};
     Object.keys(firstTimerRectByColor).forEach((colorKey) => {
       const rect = firstTimerRectByColor[colorKey];
-      const timerList = timerListMap[colorKey] || [];
-      if (!timerList.length) return;
-      const activeUntil = Math.max(...timerList);
+      const activeUntil = Number(timerListMap[colorKey] || 0);
       const durationMs = Number(timerDurationMap[colorKey] || 0);
       if (!Number.isFinite(activeUntil) || !Number.isFinite(durationMs) || durationMs <= 0) return;
       const remainingRatio = clamp01((activeUntil - nowTime) / durationMs);
