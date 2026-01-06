@@ -35,6 +35,20 @@
     return Date.now();
   }
 
+  function resetMetaOrbitMultipliers(World) {
+    if (!World) return;
+    World.metaOrbitMulAsteroid = 1;
+    World.metaOrbitMulPlanet = 1;
+    World.metaOrbitMulStar = 1;
+  }
+
+  function ensureMetaOrbitMultipliers(World) {
+    if (!World) return;
+    if (typeof World.metaOrbitMulAsteroid !== "number") World.metaOrbitMulAsteroid = 1;
+    if (typeof World.metaOrbitMulPlanet !== "number") World.metaOrbitMulPlanet = 1;
+    if (typeof World.metaOrbitMulStar !== "number") World.metaOrbitMulStar = 1;
+  }
+
   window.HC.WorldEvents = window.HC.WorldEvents || {};
   window.HC.WorldEvents.startMeteorShower = ({ durationMs, intensity } = {}) => {
     const World = window.HC.getWorld && window.HC.getWorld();
@@ -91,6 +105,26 @@
     }
     return true;
   };
+
+  window.HC.resetMetaOrbitMultipliers = resetMetaOrbitMultipliers;
+
+  let resetWorldWrapped = false;
+  window.addEventListener("load", () => {
+    const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
+    ensureMetaOrbitMultipliers(World);
+
+    if (resetWorldWrapped) return;
+    const baseResetWorld = window.resetWorld;
+    if (typeof baseResetWorld !== "function") return;
+    window.resetWorld = function (...args) {
+      const result = baseResetWorld.apply(this, args);
+      const worldNow = (window.HC.getWorld && window.HC.getWorld()) || window.World;
+      resetMetaOrbitMultipliers(worldNow);
+      return result;
+    };
+    if (window.HC) window.HC.resetWorld = window.resetWorld;
+    resetWorldWrapped = true;
+  });
 
   // Manual test:
   // 1) Utwórz pierwszą gwiazdę i potwierdź brak automatycznego deszczu meteorów.

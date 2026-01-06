@@ -875,6 +875,7 @@ const CardEngine = (() => {
     World.paused = false;
     state.subMeta.selectedSlotKey = null;
     state.subMeta.selectedCardKey = null;
+    applyMetaToWorld(World);
   }
 
   function assignSubMetaSlot(World, slotKey, assignment) {
@@ -901,6 +902,37 @@ const CardEngine = (() => {
     if (key === "PDR") return "pDR";
     if (key === "DR") return "DR";
     return "DR";
+  }
+
+  function applyMetaToWorld(World) {
+    if (!World) return;
+    World.metaOrbitMulAsteroid = 1;
+    World.metaOrbitMulPlanet = 1;
+    World.metaOrbitMulStar = 1;
+
+    const forma = World.metaSlots?.forma;
+    if (!forma) return;
+    const tier = normalizeSubMetaTier(forma.tier);
+
+    if (tier === "DR") {
+      World.metaOrbitMulAsteroid = 0.85;
+      World.metaOrbitMulPlanet = 0.85;
+      // TODO: CARDS_SYSTEM.md does not define FORMA (DR) reduction for stars.
+      return;
+    }
+
+    if (tier === "sDR") {
+      World.metaOrbitMulAsteroid = 0.7;
+      World.metaOrbitMulPlanet = 0.7;
+      World.metaOrbitMulStar = 0.85;
+      return;
+    }
+
+    if (tier === "pDR") {
+      World.metaOrbitMulAsteroid = 0.7;
+      World.metaOrbitMulPlanet = 0.7;
+      World.metaOrbitMulStar = 0.7;
+    }
   }
 
   function getSubMetaCardByKey(cardKey) {

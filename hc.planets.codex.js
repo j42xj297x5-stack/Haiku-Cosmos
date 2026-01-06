@@ -445,7 +445,8 @@
       const candidate = minOrbit + idx * step;
 
       const maxOrbit = Math.max(minOrbit, (p.orbitPx || (p.r * 2.4)) - orbR);
-      const orbitR = clamp(candidate, minOrbit, maxOrbit);
+      const baseOrbitRadius = clamp(candidate, minOrbit, maxOrbit);
+      const orbitR = baseOrbitRadius * ((typeof World.metaOrbitMulPlanet === "number") ? World.metaOrbitMulPlanet : 1);
 
       const baseOmega = rand(0.35, 0.95);
       const direction = Math.random() < 0.5 ? -1 : 1;
