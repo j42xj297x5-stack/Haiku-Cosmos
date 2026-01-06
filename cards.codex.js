@@ -183,6 +183,7 @@ const CardEngine = (() => {
 
   const SUB_META_COLORS = ["red", "yellow", "green", "blue"];
   const SUB_META_ASSIGN_COST = 10;
+  const SUB_META_SCALE = 1.25;
   const SUB_META_SLOT_COLORS = {
     forma: "red",
     intencja: "yellow",
@@ -1048,17 +1049,26 @@ const CardEngine = (() => {
       h: closeH
     };
     const cardsBottom = columnTop + SUB_META_COLORS.length * (cardH + cardGap) - cardGap;
-    const effectPanelY = Math.max(cardsBottom + 16, panelY + Math.floor(panelH * 0.55));
-    const effectPanelH = Math.max(110, closeButton.y - 12 - effectPanelY);
-    const effectPanel = {
-      x: rightX,
-      y: effectPanelY,
-      w: columnW,
-      h: effectPanelH
+    const modalMaxH = closeButton.y - 16 - (panelY + pad + headerH);
+    const modalW = Math.min(Math.floor(panelW * 0.78), panelW - pad * 2);
+    const modalH = Math.max(180, Math.min(Math.floor(panelH * 0.5), modalMaxH));
+    const modalX = panelX + Math.floor((panelW - modalW) / 2);
+    const modalY = panelY + pad + headerH + Math.max(0, Math.floor((modalMaxH - modalH) / 2));
+    const modalPanel = {
+      x: modalX,
+      y: modalY,
+      w: modalW,
+      h: modalH
     };
-    const assignButton = {
-      x: effectPanel.x + effectPanel.w - 86,
-      y: effectPanel.y + effectPanel.h - 30,
+    const modalCloseButton = {
+      x: modalPanel.x + 12,
+      y: modalPanel.y + modalPanel.h - 30,
+      w: 76,
+      h: 22
+    };
+    const modalAssignButton = {
+      x: modalPanel.x + modalPanel.w - 88,
+      y: modalPanel.y + modalPanel.h - 30,
       w: 76,
       h: 22
     };
@@ -1070,8 +1080,10 @@ const CardEngine = (() => {
       slots,
       picker,
       cards,
-      effectPanel,
-      assignButton,
+      cardsBottom,
+      modalPanel,
+      modalCloseButton,
+      modalAssignButton,
       closeButton
     };
   }
@@ -1081,13 +1093,34 @@ const CardEngine = (() => {
     if (!World || !World.subMetaOpen) return;
 
     const layout = getSubMetaLayout(screenW, screenH);
-    const { panel, pad, headerY, slots, picker, cards, effectPanel, assignButton, closeButton, columnW } = layout;
+    const {
+      panel,
+      pad,
+      headerY,
+      slots,
+      picker,
+      cards,
+      modalPanel,
+      modalCloseButton,
+      modalAssignButton,
+      closeButton,
+      columnW
+    } = layout;
     const rpValue = Math.max(0, Math.floor(World.score || 0));
     const hasEnoughRp = rpValue >= SUB_META_ASSIGN_COST;
+    const selectedSlotKey = state.subMeta.selectedSlotKey;
+    const selectedCard = getSubMetaCardByKey(state.subMeta.selectedCardKey);
+    const isModalOpen = Boolean(selectedSlotKey && selectedCard);
+    const scaleCenterX = panel.x + panel.w / 2;
+    const scaleCenterY = panel.y + panel.h / 2;
 
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fillRect(0, 0, screenW, screenH);
+
+    ctx.translate(scaleCenterX, scaleCenterY);
+    ctx.scale(SUB_META_SCALE, SUB_META_SCALE);
+    ctx.translate(-scaleCenterX, -scaleCenterY);
 
     ctx.globalAlpha = 0.95;
     ctx.fillStyle = "rgba(20,20,20,0.92)";
@@ -1100,7 +1133,6 @@ const CardEngine = (() => {
     ctx.fillStyle = "rgba(255,255,255,0.92)";
     ctx.fillText("SUB-META", panel.x + pad, headerY);
     ctx.fillStyle = "rgba(255,255,255,0.7)";
-    ctx.fillText("Sloty meta", panel.x + pad, headerY + 18);
     ctx.fillText("Wolne karty", panel.x + pad + columnW + 26, headerY + 18);
     ctx.fillStyle = "rgba(255,255,255,0.85)";
     ctx.fillText(`RP: ${rpValue}`, panel.x + panel.w - pad - 80, headerY);
@@ -1190,70 +1222,90 @@ const CardEngine = (() => {
       ctx.globalAlpha = 1.0;
     }
 
-    const selectedSlotKey = state.subMeta.selectedSlotKey;
-    const selectedCard = getSubMetaCardByKey(state.subMeta.selectedCardKey);
-    if (selectedSlotKey && selectedCard && effectPanel) {
+    if (isModalOpen && modalPanel) {
       const tierLabel = normalizeSubMetaTier(selectedCard.tier);
       const effectLines = getSubMetaEffectLines(selectedSlotKey, tierLabel);
       const effectHeader = `Efekt w slocie ${getSubMetaSlotLabel(selectedSlotKey).toUpperCase()}`;
       const cardTitle = getSubMetaCardTitle(selectedCard);
       const haikuLines = getSubMetaHaikuLines(selectedCard);
       ctx.save();
-      ctx.fillStyle = "rgba(255,255,255,0.08)";
-      ctx.fillRect(effectPanel.x, effectPanel.y, effectPanel.w, effectPanel.h);
-      ctx.strokeStyle = "rgba(255,255,255,0.12)";
-      ctx.strokeRect(effectPanel.x, effectPanel.y, effectPanel.w, effectPanel.h);
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(modalPanel.x, modalPanel.y, modalPanel.w, modalPanel.h);
+      ctx.strokeStyle = "rgba(255,255,255,0.2)";
+      ctx.strokeRect(modalPanel.x, modalPanel.y, modalPanel.w, modalPanel.h);
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.font = "15px system-ui";
-      ctx.fillText(cardTitle, effectPanel.x + 10, effectPanel.y + 20);
+      ctx.fillText(cardTitle, modalPanel.x + 12, modalPanel.y + 22);
       ctx.font = "12px system-ui";
       ctx.fillStyle = "rgba(255,255,255,0.75)";
-      ctx.fillText(effectHeader, effectPanel.x + 10, effectPanel.y + 40);
+      ctx.fillText(effectHeader, modalPanel.x + 12, modalPanel.y + 42);
       ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.fillText(`R1 ${tierLabel}`, effectPanel.x + 10, effectPanel.y + 56);
+      ctx.fillText(`R1 ${tierLabel}`, modalPanel.x + 12, modalPanel.y + 58);
       ctx.fillStyle = "rgba(255,255,255,0.85)";
       effectLines.slice(0, 4).forEach((line, index) => {
-        ctx.fillText(line, effectPanel.x + 10, effectPanel.y + 74 + index * 16);
+        ctx.fillText(line, modalPanel.x + 12, modalPanel.y + 76 + index * 16);
       });
-      const haikuTop = effectPanel.y + 74 + Math.min(4, effectLines.length) * 16 + 12;
+      const haikuTop = modalPanel.y + 76 + Math.min(4, effectLines.length) * 16 + 12;
       ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.fillText("Haiku", effectPanel.x + 10, haikuTop);
+      ctx.fillText("Haiku", modalPanel.x + 12, haikuTop);
       ctx.fillStyle = "rgba(255,255,255,0.88)";
       ctx.font = "12px system-ui";
       const haikuStartY = haikuTop + 16;
-      const haikuMaxWidth = effectPanel.w - 20;
+      const haikuMaxWidth = modalPanel.w - 24;
       let haikuCursorY = haikuStartY;
       if (haikuLines.length) {
         haikuLines.forEach((line) => {
           const wrapped = wrapTextLines(ctx, line, haikuMaxWidth);
           wrapped.forEach((wrappedLine) => {
-            ctx.fillText(wrappedLine, effectPanel.x + 10, haikuCursorY);
+            ctx.fillText(wrappedLine, modalPanel.x + 12, haikuCursorY);
             haikuCursorY += 14;
           });
         });
       } else {
-        ctx.fillText("(brak haiku)", effectPanel.x + 10, haikuCursorY);
+        ctx.fillText("(brak haiku)", modalPanel.x + 12, haikuCursorY);
         haikuCursorY += 14;
       }
 
       ctx.globalAlpha = hasEnoughRp ? 1.0 : 0.4;
       ctx.fillStyle = "rgba(255,255,255,0.12)";
-      ctx.fillRect(assignButton.x, assignButton.y, assignButton.w, assignButton.h);
+      ctx.fillRect(modalAssignButton.x, modalAssignButton.y, modalAssignButton.w, modalAssignButton.h);
       ctx.strokeStyle = "rgba(255,255,255,0.2)";
-      ctx.strokeRect(assignButton.x, assignButton.y, assignButton.w, assignButton.h);
+      ctx.strokeRect(modalAssignButton.x, modalAssignButton.y, modalAssignButton.w, modalAssignButton.h);
       ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.fillText("Assign", assignButton.x + 12, assignButton.y + 15);
+      ctx.fillText("Assign", modalAssignButton.x + 12, modalAssignButton.y + 15);
+
+      ctx.globalAlpha = 1.0;
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(modalCloseButton.x, modalCloseButton.y, modalCloseButton.w, modalCloseButton.h);
+      ctx.strokeStyle = "rgba(255,255,255,0.2)";
+      ctx.strokeRect(modalCloseButton.x, modalCloseButton.y, modalCloseButton.w, modalCloseButton.h);
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.fillText("Wróć", modalCloseButton.x + 16, modalCloseButton.y + 15);
       ctx.restore();
     }
 
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
-    ctx.fillRect(closeButton.x, closeButton.y, closeButton.w, closeButton.h);
-    ctx.strokeStyle = "rgba(255,255,255,0.15)";
-    ctx.strokeRect(closeButton.x, closeButton.y, closeButton.w, closeButton.h);
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.fillText("Wróć", closeButton.x + 24, closeButton.y + 19);
+    if (!isModalOpen) {
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(closeButton.x, closeButton.y, closeButton.w, closeButton.h);
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.strokeRect(closeButton.x, closeButton.y, closeButton.w, closeButton.h);
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.fillText("Wróć", closeButton.x + 24, closeButton.y + 19);
+    }
 
     ctx.restore();
+  }
+
+  function getSubMetaScaledPointer(mx, my, layout) {
+    const scale = SUB_META_SCALE;
+    const centerX = layout.panel.x + layout.panel.w / 2;
+    const centerY = layout.panel.y + layout.panel.h / 2;
+    return {
+      x: (mx - centerX) / scale + centerX,
+      y: (my - centerY) / scale + centerY
+    };
   }
 
   function handleSubMetaPointerDown(mx, my, screenW, screenH) {
@@ -1261,19 +1313,23 @@ const CardEngine = (() => {
     if (!World || !World.subMetaOpen) return false;
 
     const layout = getSubMetaLayout(screenW, screenH);
-    const { panel, slots, picker, closeButton, assignButton } = layout;
+    const { panel, slots, picker, closeButton, modalPanel, modalCloseButton, modalAssignButton } = layout;
     const hasEnoughRp = (World.score || 0) >= SUB_META_ASSIGN_COST;
-
-    if (mx >= closeButton.x && mx <= closeButton.x + closeButton.w
-      && my >= closeButton.y && my <= closeButton.y + closeButton.h) {
-      closeSubMeta(World);
-      return true;
-    }
+    const scaledPointer = getSubMetaScaledPointer(mx, my, layout);
+    mx = scaledPointer.x;
+    my = scaledPointer.y;
 
     const selectedCard = getSubMetaCardByKey(state.subMeta.selectedCardKey);
-    if (state.subMeta.selectedSlotKey && selectedCard) {
-      if (mx >= assignButton.x && mx <= assignButton.x + assignButton.w
-        && my >= assignButton.y && my <= assignButton.y + assignButton.h) {
+    const isModalOpen = Boolean(state.subMeta.selectedSlotKey && selectedCard);
+    if (isModalOpen) {
+      if (mx >= modalCloseButton.x && mx <= modalCloseButton.x + modalCloseButton.w
+        && my >= modalCloseButton.y && my <= modalCloseButton.y + modalCloseButton.h) {
+        state.subMeta.selectedCardKey = null;
+        return true;
+      }
+
+      if (mx >= modalAssignButton.x && mx <= modalAssignButton.x + modalAssignButton.w
+        && my >= modalAssignButton.y && my <= modalAssignButton.y + modalAssignButton.h) {
         if (!hasEnoughRp) return true;
         assignSubMetaSlot(World, state.subMeta.selectedSlotKey, {
           kind: "R1",
@@ -1282,6 +1338,20 @@ const CardEngine = (() => {
         });
         return true;
       }
+
+      if (mx < modalPanel.x || mx > modalPanel.x + modalPanel.w
+        || my < modalPanel.y || my > modalPanel.y + modalPanel.h) {
+        state.subMeta.selectedCardKey = null;
+        return true;
+      }
+
+      return true;
+    }
+
+    if (mx >= closeButton.x && mx <= closeButton.x + closeButton.w
+      && my >= closeButton.y && my <= closeButton.y + closeButton.h) {
+      closeSubMeta(World);
+      return true;
     }
 
     if (mx >= panel.x && mx <= panel.x + panel.w && my >= panel.y && my <= panel.y + panel.h) {
