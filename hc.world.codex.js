@@ -35,6 +35,86 @@
     return Date.now();
   }
 
+  const EFFECT_TIMER_COLORS = ["red", "yellow", "green", "blue"];
+
+  function buildEffectTimerState() {
+    const timersByColor = {};
+    const durationMsByColor = {};
+    EFFECT_TIMER_COLORS.forEach((color) => {
+      timersByColor[color] = [];
+      durationMsByColor[color] = 0;
+    });
+    return { timersByColor, durationMsByColor };
+  }
+
+  function resetEffectTimers(World) {
+    if (!World) return;
+    const state = buildEffectTimerState();
+    World.effectTimersByColor = state.timersByColor;
+    World.effectTimerDurationMsByColor = state.durationMsByColor;
+  }
+
+  function ensureEffectTimers(World) {
+    if (!World) return;
+    if (!World.effectTimersByColor || typeof World.effectTimersByColor !== "object") {
+      resetEffectTimers(World);
+      return;
+    }
+    if (!World.effectTimerDurationMsByColor || typeof World.effectTimerDurationMsByColor !== "object") {
+      World.effectTimerDurationMsByColor = {};
+    }
+    EFFECT_TIMER_COLORS.forEach((color) => {
+      if (!Array.isArray(World.effectTimersByColor[color])) {
+        World.effectTimersByColor[color] = [];
+      }
+      if (typeof World.effectTimerDurationMsByColor[color] !== "number") {
+        World.effectTimerDurationMsByColor[color] = 0;
+      }
+    });
+  }
+
+  function pruneExpiredTimers(World, nowMs) {
+    if (!World) return;
+    ensureEffectTimers(World);
+    const t = Number(nowMs);
+    if (!Number.isFinite(t)) return;
+    EFFECT_TIMER_COLORS.forEach((color) => {
+      const list = World.effectTimersByColor[color];
+      if (!list || !list.length) return;
+      World.effectTimersByColor[color] = list.filter((untilMs) => untilMs > t);
+    });
+  }
+
+  function getColorActiveUntil(World, color) {
+    if (!World || !color) return 0;
+    ensureEffectTimers(World);
+    const list = World.effectTimersByColor[color] || [];
+    if (!list.length) return 0;
+    return Math.max(...list);
+  }
+
+  function isColorEffectActive(World, nowMs, color) {
+    if (!World || !color) return false;
+    const untilMs = getColorActiveUntil(World, color);
+    const t = Number(nowMs);
+    return Number.isFinite(untilMs) && Number.isFinite(t) && untilMs > t;
+  }
+
+  function startOrRefreshColorTimer(World, color, durationMs, nowMs) {
+    if (!World || !color) return false;
+    ensureEffectTimers(World);
+    const dur = Number(durationMs);
+    const t = Number(nowMs);
+    if (!Number.isFinite(dur) || dur <= 0 || !Number.isFinite(t)) return false;
+    const untilMs = t + dur;
+    const list = World.effectTimersByColor[color] || [];
+    list.length = 0;
+    list.push(untilMs);
+    World.effectTimersByColor[color] = list;
+    World.effectTimerDurationMsByColor[color] = dur;
+    return true;
+  }
+
   function resetMetaOrbitMultipliers(World) {
     if (!World) return;
     World.metaOrbitMulAsteroid = 1;
@@ -55,6 +135,8 @@
     World.formaStrengthMul = 1;
     World.formaOrbitReduction = 0;
     World.formaOrbitReductionBase = 0;
+    World.formaColorKey = null;
+    resetEffectTimers(World);
   }
 
   function ensureFormaEffectState(World) {
@@ -63,9 +145,18 @@
     if (typeof World.formaStrengthMul !== "number") World.formaStrengthMul = 1;
     if (typeof World.formaOrbitReduction !== "number") World.formaOrbitReduction = 0;
     if (typeof World.formaOrbitReductionBase !== "number") World.formaOrbitReductionBase = 0;
+    if (typeof World.formaColorKey !== "string") World.formaColorKey = null;
+    ensureEffectTimers(World);
   }
 
   window.HC.WorldEvents = window.HC.WorldEvents || {};
+  window.HC.EffectTimers = window.HC.EffectTimers || {};
+  window.HC.EffectTimers.ensure = ensureEffectTimers;
+  window.HC.EffectTimers.reset = resetEffectTimers;
+  window.HC.EffectTimers.pruneExpired = pruneExpiredTimers;
+  window.HC.EffectTimers.startOrRefresh = startOrRefreshColorTimer;
+  window.HC.EffectTimers.getColorActiveUntil = getColorActiveUntil;
+  window.HC.EffectTimers.isColorActive = isColorEffectActive;
   window.HC.WorldEvents.startMeteorShower = ({ durationMs, intensity } = {}) => {
     const World = window.HC.getWorld && window.HC.getWorld();
     if (!World) return;

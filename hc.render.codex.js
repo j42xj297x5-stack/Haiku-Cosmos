@@ -83,14 +83,37 @@
       ctx.stroke();
 
       if (showNative) {
-        ctx.globalAlpha = 0.1;
-        ctx.setLineDash([4, 8]);
+        ctx.globalAlpha = 0.35;
+        ctx.setLineDash([6, 6]);
         ctx.beginPath();
         ctx.arc(x, y, nativeR, 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.restore();
       ctx.setLineDash([]);
+    }
+
+    function getTimerRemainingSeconds(world, colorKey, nowMs) {
+      const list = world?.effectTimersByColor?.[colorKey] || [];
+      if (!list.length) return 0;
+      const activeUntil = Math.max(...list);
+      if (!Number.isFinite(activeUntil)) return 0;
+      return Math.max(0, (activeUntil - nowMs) / 1000);
+    }
+
+    function drawEffectTimersHud() {
+      const worldNow = (world && typeof world.nowMs === "number") ? world.nowMs : (performance.now ? performance.now() : Date.now());
+      const colors = ["red", "yellow", "green", "blue"];
+      const label = colors.map((color) => {
+        const seconds = getTimerRemainingSeconds(world, color, worldNow);
+        return seconds > 0 ? seconds.toFixed(1) : "0";
+      }).join(" / ");
+      ctx.save();
+      ctx.font = "12px system-ui";
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.textAlign = "left";
+      ctx.fillText(`Timers R/Y/G/B: ${label}`, 12, 20);
+      ctx.restore();
     }
 
     function drawAsteroidOrbiters(a) {
@@ -533,6 +556,8 @@
       // CardEngine.render will draw panel; it will switch fillStyle for text internally
       CardEngine.render(ctx, view.w, view.h);
       ctx.restore();
+
+      drawEffectTimersHud();
     }
 
     window.HC.Render = {
