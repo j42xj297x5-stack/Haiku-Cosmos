@@ -49,6 +49,22 @@
     if (typeof World.metaOrbitMulStar !== "number") World.metaOrbitMulStar = 1;
   }
 
+  function resetFormaEffectState(World) {
+    if (!World) return;
+    World.formaActiveUntilMs = 0;
+    World.formaStrengthMul = 1;
+    World.formaOrbitReduction = 0;
+    World.formaOrbitReductionBase = 0;
+  }
+
+  function ensureFormaEffectState(World) {
+    if (!World) return;
+    if (typeof World.formaActiveUntilMs !== "number") World.formaActiveUntilMs = 0;
+    if (typeof World.formaStrengthMul !== "number") World.formaStrengthMul = 1;
+    if (typeof World.formaOrbitReduction !== "number") World.formaOrbitReduction = 0;
+    if (typeof World.formaOrbitReductionBase !== "number") World.formaOrbitReductionBase = 0;
+  }
+
   window.HC.WorldEvents = window.HC.WorldEvents || {};
   window.HC.WorldEvents.startMeteorShower = ({ durationMs, intensity } = {}) => {
     const World = window.HC.getWorld && window.HC.getWorld();
@@ -112,6 +128,7 @@
   window.addEventListener("load", () => {
     const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
     ensureMetaOrbitMultipliers(World);
+    ensureFormaEffectState(World);
 
     if (resetWorldWrapped) return;
     const baseResetWorld = window.resetWorld;
@@ -120,6 +137,7 @@
       const result = baseResetWorld.apply(this, args);
       const worldNow = (window.HC.getWorld && window.HC.getWorld()) || window.World;
       resetMetaOrbitMultipliers(worldNow);
+      resetFormaEffectState(worldNow);
       return result;
     };
     if (window.HC) window.HC.resetWorld = window.resetWorld;

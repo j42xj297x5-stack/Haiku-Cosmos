@@ -115,7 +115,7 @@
     function drawAsteroid(a) {
       const orbitR = (typeof a.orbitCurrentRadius === "number") ? a.orbitCurrentRadius : a.orbitPx;
       const nativeR = (typeof a.orbitNativeRadius === "number") ? a.orbitNativeRadius : orbitR;
-      drawOrbitRing(a.x, a.y, orbitR, nativeR, "rgba(220, 220, 220, 0.65)");
+      drawOrbitRing(a.x, a.y, orbitR, nativeR, "rgba(220, 220, 220, 0.7)");
 
       drawAsteroidOrbiters(a);
 
@@ -321,6 +321,11 @@
     }
 
     function drawStar(s, nowMs) {
+      const orbitR = (typeof s.orbitCurrentRadius === "number")
+        ? s.orbitCurrentRadius
+        : ((typeof s.gravityR === "number") ? s.gravityR : s.r);
+      const nativeR = (typeof s.orbitNativeRadius === "number") ? s.orbitNativeRadius : orbitR;
+      drawOrbitRing(s.x, s.y, orbitR, nativeR, "rgba(245, 220, 90, 0.7)");
       const colorName = s.gradientOuterColor || "yellow";
       const hue = hueFromName(colorName);
       let flicker = 1;
