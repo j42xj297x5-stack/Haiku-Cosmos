@@ -572,22 +572,37 @@ const CardEngine = (() => {
     const t = nowMs();
     World.pack01ReleaseBlockColor = key;
     World.pack01ReleaseBlockUntilMs = t + config.pack01TargetDurationMs;
-    onRunActivateR1({ baseDurationMs: config.pack01TargetDurationMs });
+    onRunActivateR1({ baseDurationMs: config.pack01TargetDurationMs, colorKey: key });
   }
 
-  function onRunActivateR1({ baseDurationMs } = {}) {
+  function onRunActivateR1({ baseDurationMs, colorKey } = {}) {
     const World = state.world;
     if (!World) return false;
     const t = nowMs();
-    return startFormaEffect(World, t, "R1", baseDurationMs);
+    const bonusMs = getFormaTimeBonusMs(World);
+    const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R1");
+    const normalizedColor = normalizePack01Color(colorKey);
+    if (normalizedColor) {
+      startRunTimerForColor(World, normalizedColor, durationMs, t);
+    }
+    return startFormaEffect(World, t, "R1", baseDurationMs, normalizedColor);
   }
 
-  function onRunActivateR2({ baseDurationMs } = {}) {
+  function onRunActivateR2({ baseDurationMs, colorKeys } = {}) {
     const World = state.world;
     if (!World) return false;
     const t = nowMs();
-    // TODO: R2 should disable two colors during activation.
-    return startFormaEffect(World, t, "R2", baseDurationMs);
+    const bonusMs = getFormaTimeBonusMs(World);
+    const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R2");
+    const colors = Array.isArray(colorKeys) ? colorKeys.map(normalizePack01Color).filter(Boolean) : [];
+    colors.forEach((color) => {
+      startRunTimerForColor(World, color, durationMs, t);
+    });
+    const shouldApplyForma = colors.some((color) => color && getFormaEffectColor(World) === color);
+    if (shouldApplyForma) {
+      return startFormaEffect(World, t, "R2", baseDurationMs, getFormaEffectColor(World));
+    }
+    return false;
   }
 
   function setTrialState(stateName) {
@@ -726,13 +741,12 @@ const CardEngine = (() => {
 
     const World = state.world;
     if (World) {
-      if (World.formaActiveUntilMs && t >= World.formaActiveUntilMs) {
-        World.formaActiveUntilMs = 0;
-        World.formaStrengthMul = 1;
-        World.formaOrbitReduction = 0;
-        World.formaOrbitReductionBase = 0;
-        applyFormaToWorld(World);
+      const effectTimers = window.HC && window.HC.EffectTimers;
+      if (effectTimers && typeof effectTimers.pruneExpired === "function") {
+        effectTimers.pruneExpired(World, t);
       }
+      syncFormaActiveUntil(World, t);
+      applyFormaToWorld(World);
 
       const trialState = World.trialPack01State;
       if (trialState !== state.trialUI.lastState) {
@@ -1126,8 +1140,51 @@ const CardEngine = (() => {
     return 0;
   }
 
+  function getFormaEffectColor(World) {
+    if (!World) return null;
+    const assignment = World.metaSlots?.forma;
+    const assignmentColor = normalizePack01Color(assignment?.color);
+    return assignmentColor || null;
+  }
+
+  function computeActivationDurationMs(baseDurationMs, timeBonusMs, runKind) {
+    const baseDuration = Number(baseDurationMs);
+    const bonus = Number(timeBonusMs || 0);
+    if (!Number.isFinite(baseDuration) || baseDuration <= 0) return 0;
+    const total = baseDuration + (Number.isFinite(bonus) ? bonus : 0);
+    return runKind === "R2" ? 2 * total : total;
+  }
+
+  function startRunTimerForColor(World, colorKey, durationMs, nowMs) {
+    const effectTimers = window.HC && window.HC.EffectTimers;
+    if (effectTimers && typeof effectTimers.startOrRefresh === "function") {
+      effectTimers.startOrRefresh(World, colorKey, durationMs, nowMs);
+    }
+  }
+
+  function syncFormaActiveUntil(World, nowMs) {
+    const effectTimers = window.HC && window.HC.EffectTimers;
+    const colorKey = getFormaEffectColor(World);
+    if (!effectTimers || typeof effectTimers.getColorActiveUntil !== "function" || !colorKey) {
+      if (World.formaActiveUntilMs && nowMs >= World.formaActiveUntilMs) {
+        World.formaActiveUntilMs = 0;
+        World.formaStrengthMul = 1;
+        World.formaOrbitReduction = 0;
+        World.formaOrbitReductionBase = 0;
+      }
+      return;
+    }
+    const activeUntil = effectTimers.getColorActiveUntil(World, colorKey);
+    World.formaActiveUntilMs = activeUntil > nowMs ? activeUntil : 0;
+  }
+
   function isFormaActive(World, now) {
     if (!World) return false;
+    const effectTimers = window.HC && window.HC.EffectTimers;
+    const colorKey = getFormaEffectColor(World);
+    if (effectTimers && typeof effectTimers.isColorActive === "function" && colorKey) {
+      return effectTimers.isColorActive(World, now, colorKey);
+    }
     const untilMs = Number(World.formaActiveUntilMs || 0);
     return untilMs > 0 && now < untilMs;
   }
@@ -1179,26 +1236,26 @@ const CardEngine = (() => {
     }
   }
 
-  function startFormaEffect(World, now, runKind, baseDurationMs) {
+  function startFormaEffect(World, now, runKind, baseDurationMs, colorKey) {
     if (!World) return false;
     const assignment = World.metaSlots?.forma;
     if (!assignment) return false;
+    const assignedColor = getFormaEffectColor(World);
+    if (colorKey && assignedColor && colorKey !== assignedColor) return false;
     const tierKey = normalizeSubMetaTier(assignment.tier);
     const baseReduction = getFormaReductionForTier(tierKey);
     if (!(baseReduction > 0)) return false;
     const strengthMul = runKind === "R2" ? 2 : 1;
     const effectiveReduction = clampNum(baseReduction * strengthMul, 0, 0.95);
-    const baseDuration = Number(baseDurationMs);
-    if (!Number.isFinite(baseDuration) || baseDuration <= 0) return false;
     const timeBonus = getFormaTimeBonusMs(World);
-    const durationMs = runKind === "R2"
-      ? 2 * (baseDuration + timeBonus)
-      : baseDuration + timeBonus;
+    const durationMs = computeActivationDurationMs(baseDurationMs, timeBonus, runKind);
+    if (!Number.isFinite(durationMs) || durationMs <= 0) return false;
 
     World.formaOrbitReductionBase = baseReduction;
     World.formaOrbitReduction = effectiveReduction;
     World.formaStrengthMul = strengthMul;
     World.formaActiveUntilMs = now + durationMs;
+    World.formaColorKey = assignedColor;
     applyFormaToWorld(World);
     return true;
   }
@@ -1698,6 +1755,7 @@ const CardEngine = (() => {
 
     const inventoryEntries = getSubMetaInventoryEntries(World);
     const inventoryGrid = getSubMetaCardGrid(inventoryInnerRect);
+    const firstTimerRectByColor = {};
     inventoryEntries.forEach((entry, index) => {
       const row = Math.floor(index / inventoryGrid.cols);
       if (row >= inventoryGrid.rows) return;
@@ -1709,6 +1767,33 @@ const CardEngine = (() => {
         color: colorA,
         count: entry.count
       }, { showCount: true });
+      entry.colors.forEach((colorKey) => {
+        if (!firstTimerRectByColor[colorKey]) {
+          firstTimerRectByColor[colorKey] = rect;
+        }
+      });
+    });
+    const nowTime = nowMs();
+    const timerDurationMap = World.effectTimerDurationMsByColor || {};
+    const timerListMap = World.effectTimersByColor || {};
+    Object.keys(firstTimerRectByColor).forEach((colorKey) => {
+      const rect = firstTimerRectByColor[colorKey];
+      const timerList = timerListMap[colorKey] || [];
+      if (!timerList.length) return;
+      const activeUntil = Math.max(...timerList);
+      const durationMs = Number(timerDurationMap[colorKey] || 0);
+      if (!Number.isFinite(activeUntil) || !Number.isFinite(durationMs) || durationMs <= 0) return;
+      const remainingRatio = clamp01((activeUntil - nowTime) / durationMs);
+      if (remainingRatio <= 0) return;
+      const barW = 3;
+      const fullH = SUB_META_CARD_H;
+      const barH = Math.max(1, Math.floor(fullH * remainingRatio));
+      const barX = rect.x + rect.w + 3;
+      const barY = rect.y + fullH - barH;
+      ctx.save();
+      ctx.fillStyle = PACK01_COLOR_HEX[colorKey] || "#FFFFFF";
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.restore();
     });
 
     if (state.subMeta.selectedSlotKey) {
