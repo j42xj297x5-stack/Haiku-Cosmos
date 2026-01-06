@@ -93,29 +93,6 @@
       ctx.setLineDash([]);
     }
 
-    function getTimerRemainingSeconds(world, colorKey, nowMs) {
-      const list = world?.effectTimersByColor?.[colorKey] || [];
-      if (!list.length) return 0;
-      const activeUntil = Math.max(...list);
-      if (!Number.isFinite(activeUntil)) return 0;
-      return Math.max(0, (activeUntil - nowMs) / 1000);
-    }
-
-    function drawEffectTimersHud() {
-      const worldNow = (world && typeof world.nowMs === "number") ? world.nowMs : (performance.now ? performance.now() : Date.now());
-      const colors = ["red", "yellow", "green", "blue"];
-      const label = colors.map((color) => {
-        const seconds = getTimerRemainingSeconds(world, color, worldNow);
-        return seconds > 0 ? seconds.toFixed(1) : "0";
-      }).join(" / ");
-      ctx.save();
-      ctx.font = "12px system-ui";
-      ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.textAlign = "left";
-      ctx.fillText(`Timers R/Y/G/B: ${label}`, 12, 20);
-      ctx.restore();
-    }
-
     function drawAsteroidOrbiters(a) {
       for (const o of a.orbiters) {
         const ox = a.x + Math.cos(o.angle) * o.orbitR;
@@ -557,7 +534,6 @@
       CardEngine.render(ctx, view.w, view.h);
       ctx.restore();
 
-      drawEffectTimersHud();
     }
 
     window.HC.Render = {

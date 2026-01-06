@@ -24,12 +24,20 @@
     const ctx = window.ctx;
 
     // ---------- Meteor palette ----------
-    function pickColor() {
-      return MeteorColors[(Math.random() * MeteorColors.length) | 0];
+    function pickColor(nowMs) {
+      const runTimers = window.HC && window.HC.RunTimers;
+      const attempts = Math.max(6, MeteorColors.length * 3);
+      for (let i = 0; i < attempts; i++) {
+        const color = MeteorColors[(Math.random() * MeteorColors.length) | 0];
+        if (!runTimers || typeof runTimers.isColorDisabled !== "function") return color;
+        if (!runTimers.isColorDisabled(World, nowMs, color.name)) return color;
+      }
+      return null;
     }
 
-    function spawnMeteor() {
-      const c = pickColor();
+    function spawnMeteor(nowMs) {
+      const c = pickColor(nowMs);
+      if (!c) return;
       const Rm = meteorBaseRadius();
       const r = rand(0.75, 1.35) * Rm;
 
@@ -68,8 +76,9 @@
       Events.emit("METEOR_SPAWNED", {});
     }
 
-    function spawnStreamMeteor(angle, streamIndex) {
-      const c = pickColor();
+    function spawnStreamMeteor(angle, streamIndex, nowMs) {
+      const c = pickColor(nowMs);
+      if (!c) return;
       const Rm = meteorBaseRadius();
       const r = rand(0.7, 1.2) * Rm;
 
@@ -137,8 +146,8 @@
     }
 
     function updateMeteors(dt, nowMs) {
+      const currentMs = nowMs ?? World.nowMs ?? performance.now();
       if (World.meteorStreams && World.meteorStreams.enabled && World.meteorStreams.untilMs != null) {
-        const currentMs = nowMs ?? World.nowMs ?? performance.now();
         if (currentMs >= World.meteorStreams.untilMs) {
           if (window.HC?.WorldEvents?.stopMeteorShower) {
             window.HC.WorldEvents.stopMeteorShower();
@@ -151,7 +160,7 @@
       World.spawnTimer += dt;
       while (World.spawnTimer >= (World.spawnInterval * (World.spawnIntervalMul || 1.0))) {
         World.spawnTimer -= (World.spawnInterval * (World.spawnIntervalMul || 1.0));
-        if (World.meteors.length < World.maxMeteors) spawnMeteor();
+        if (World.meteors.length < World.maxMeteors) spawnMeteor(currentMs);
       }
 
       if (World.epoch === "STAR" && World.meteorStreams && World.meteorStreams.enabled) {
@@ -170,7 +179,7 @@
           const i = Math.floor(Math.random() * ms.streams);
           const spread = 0.18;
           const a = ms.baseAngle + (i - (ms.streams - 1) / 2) * spread + ((Math.random() * 2 - 1) * 0.06);
-          spawnStreamMeteor(a, i);
+          spawnStreamMeteor(a, i, currentMs);
         }
       }
 
