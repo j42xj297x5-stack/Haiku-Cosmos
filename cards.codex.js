@@ -146,7 +146,7 @@ const CardEngine = (() => {
     subMeta: {
       selectedSlotKey: null,
       selectedCardKey: null,
-      selectedForgeKey: null,
+      selectedForge: null,
       showRemoveForSlotKey: null
     }
   };
@@ -184,7 +184,18 @@ const CardEngine = (() => {
   ];
 
   const SUB_META_COLORS = ["red", "yellow", "green", "blue"];
+  const SUB_META_TIERS = ["DR", "sDR", "pDR"];
+  const SUB_META_R2_PAIRS = [
+    ["red", "yellow"],
+    ["red", "green"],
+    ["red", "blue"],
+    ["yellow", "green"],
+    ["yellow", "blue"],
+    ["green", "blue"]
+  ];
   const SUB_META_ASSIGN_COST = 10;
+  const SUB_META_FORGE_COSTS = { sDR: 10, pDR: 20 };
+  const SUB_META_FORGE_CONSUMES = { sDR: 3, pDR: 9 };
   const SUB_META_SCALE = 1.0;
   const SUB_META_SLOT_COLORS = {
     forma: "red",
@@ -214,62 +225,7 @@ const CardEngine = (() => {
       pDR: ["Po aktywacji karty respawnują tylko jej kolory przez 15 s.", "Podslot: Ekspansja."]
     }
   };
-  const SUB_META_CARD_LIBRARY = [
-    { key: "R1_DR_red", title: "R1", tier: "DR", color: "red", allowedSlots: ["forma"], haiku: null },
-    { key: "R1_DR_yellow", title: "R1", tier: "DR", color: "yellow", allowedSlots: ["intencja"], haiku: null },
-    { key: "R1_DR_green", title: "R1", tier: "DR", color: "green", allowedSlots: ["czas"], haiku: null },
-    { key: "R1_DR_blue", title: "R1", tier: "DR", color: "blue", allowedSlots: ["cisza"], haiku: null }
-  ];
-  const SUB_META_FORGE_LIBRARY = [
-    {
-      key: "forge_r2_red_yellow",
-      label: "R2",
-      title: "R2: Czerwony + Żółty",
-      colors: ["red", "yellow"],
-      costRp: 20,
-      consumes: [{ color: "red", count: 1 }, { color: "yellow", count: 1 }]
-    },
-    {
-      key: "forge_r2_red_green",
-      label: "R2",
-      title: "R2: Czerwony + Zielony",
-      colors: ["red", "green"],
-      costRp: 20,
-      consumes: [{ color: "red", count: 1 }, { color: "green", count: 1 }]
-    },
-    {
-      key: "forge_r2_red_blue",
-      label: "R2",
-      title: "R2: Czerwony + Niebieski",
-      colors: ["red", "blue"],
-      costRp: 20,
-      consumes: [{ color: "red", count: 1 }, { color: "blue", count: 1 }]
-    },
-    {
-      key: "forge_r2_yellow_green",
-      label: "R2",
-      title: "R2: Żółty + Zielony",
-      colors: ["yellow", "green"],
-      costRp: 20,
-      consumes: [{ color: "yellow", count: 1 }, { color: "green", count: 1 }]
-    },
-    {
-      key: "forge_r2_yellow_blue",
-      label: "R2",
-      title: "R2: Żółty + Niebieski",
-      colors: ["yellow", "blue"],
-      costRp: 20,
-      consumes: [{ color: "yellow", count: 1 }, { color: "blue", count: 1 }]
-    },
-    {
-      key: "forge_r2_green_blue",
-      label: "R2",
-      title: "R2: Zielony + Niebieski",
-      colors: ["green", "blue"],
-      costRp: 20,
-      consumes: [{ color: "green", count: 1 }, { color: "blue", count: 1 }]
-    }
-  ];
+  const SUB_META_CARD_LIBRARY = buildSubMetaCardLibrary();
 
   function clampInt(v, a, b) {
     v = Number(v);
@@ -301,6 +257,7 @@ const CardEngine = (() => {
     if (!World.collectedCardsByColor) {
       World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
     }
+    ensureCardStock(World);
     if (!World.metaSlots || typeof World.metaSlots !== "object") {
       World.metaSlots = { forma: null, intencja: null, czas: null, cisza: null };
     } else {
@@ -565,7 +522,7 @@ const CardEngine = (() => {
     state.subMeta = {
       selectedSlotKey: null,
       selectedCardKey: null,
-      selectedForgeKey: null,
+      selectedForge: null,
       showRemoveForSlotKey: null
     };
     if (state.world) bindWorld(state.world);
@@ -582,10 +539,7 @@ const CardEngine = (() => {
     const World = state.world;
     const key = normalizePack01Color(color);
     if (!World || !key) return;
-    if (!World.collectedCardsByColor) {
-      World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
-    }
-    World.collectedCardsByColor[key] = (World.collectedCardsByColor[key] || 0) + 1;
+    addCardCount(World, "R1", [key], "DR", 1);
   }
 
   function activatePack01Target(color) {
@@ -889,7 +843,7 @@ const CardEngine = (() => {
 
   function renderPack01Collection(ctx, screenW, screenH) {
     const World = state.world;
-    if (!World || !World.collectedCardsByColor) return;
+    if (!World) return;
 
     const order = ["red", "yellow", "green", "blue"];
     const pad = 12;
@@ -904,7 +858,7 @@ const CardEngine = (() => {
     ctx.textAlign = "right";
     for (let i = 0; i < order.length; i++) {
       const key = order[i];
-      const count = World.collectedCardsByColor[key] || 0;
+      const count = getCardCount(World, "R1", [key], "DR");
       const y = y0 + i * (rectH + gap);
       if (count > 0) {
         ctx.globalAlpha = 0.95;
@@ -933,7 +887,7 @@ const CardEngine = (() => {
     World.paused = false;
     state.subMeta.selectedSlotKey = null;
     state.subMeta.selectedCardKey = null;
-    state.subMeta.selectedForgeKey = null;
+    state.subMeta.selectedForge = null;
     state.subMeta.showRemoveForSlotKey = null;
     applyMetaToWorld(World);
   }
@@ -942,13 +896,13 @@ const CardEngine = (() => {
     if (!World || !World.metaSlots || !assignment) return;
     const colorKey = assignment.color;
     if (!colorKey) return;
-    const counts = World.collectedCardsByColor || {};
-    const available = counts[colorKey] || 0;
+    const tierKey = normalizeSubMetaTier(assignment.tier);
+    const available = getCardCount(World, "R1", [colorKey], tierKey);
     if (available <= 0) return;
     if ((World.score || 0) < SUB_META_ASSIGN_COST) return;
 
     if (World.metaSlots[slotKey]) return;
-    counts[colorKey] = Math.max(0, available - 1);
+    addCardCount(World, "R1", [colorKey], tierKey, -1);
     World.metaSlots[slotKey] = assignment;
     World.score = Math.max(0, (World.score || 0) - SUB_META_ASSIGN_COST);
   }
@@ -959,10 +913,7 @@ const CardEngine = (() => {
     if (!assignment || !assignment.color) return;
     if ((World.score || 0) < SUB_META_ASSIGN_COST) return;
     World.score = Math.max(0, (World.score || 0) - SUB_META_ASSIGN_COST);
-    if (!World.collectedCardsByColor) {
-      World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
-    }
-    World.collectedCardsByColor[assignment.color] = (World.collectedCardsByColor[assignment.color] || 0) + 1;
+    addCardCount(World, "R1", [assignment.color], assignment.tier, 1);
     World.metaSlots[slotKey] = null;
   }
 
@@ -972,6 +923,140 @@ const CardEngine = (() => {
     if (key === "PDR") return "pDR";
     if (key === "DR") return "DR";
     return "DR";
+  }
+
+  function buildSubMetaCardLibrary() {
+    const slotMap = {
+      red: ["forma"],
+      yellow: ["intencja"],
+      green: ["czas"],
+      blue: ["cisza"]
+    };
+    const library = [];
+    SUB_META_COLORS.forEach((color) => {
+      const allowedSlots = slotMap[color] || [];
+      SUB_META_TIERS.forEach((tier) => {
+        library.push({
+          key: `R1_${tier}_${color}`,
+          title: "R1",
+          tier,
+          color,
+          allowedSlots,
+          haiku: null
+        });
+      });
+    });
+    return library;
+  }
+
+  function getCanonicalPairKey(colorA, colorB) {
+    const a = String(colorA || "");
+    const b = String(colorB || "");
+    const idxA = SUB_META_COLORS.indexOf(a);
+    const idxB = SUB_META_COLORS.indexOf(b);
+    if (idxA === -1 || idxB === -1) return `${a}-${b}`;
+    if (idxA <= idxB) return `${a}-${b}`;
+    return `${b}-${a}`;
+  }
+
+  function createTierBucket() {
+    return { DR: 0, sDR: 0, pDR: 0 };
+  }
+
+  function ensureCardStock(World) {
+    if (!World) return;
+    if (!World.cardStock || typeof World.cardStock !== "object") {
+      World.cardStock = { R1: {}, R2: {} };
+    }
+    if (!World.cardStock.R1 || typeof World.cardStock.R1 !== "object") {
+      World.cardStock.R1 = {};
+    }
+    if (!World.cardStock.R2 || typeof World.cardStock.R2 !== "object") {
+      World.cardStock.R2 = {};
+    }
+    SUB_META_COLORS.forEach((color) => {
+      if (!World.cardStock.R1[color] || typeof World.cardStock.R1[color] !== "object") {
+        World.cardStock.R1[color] = createTierBucket();
+      }
+    });
+    SUB_META_R2_PAIRS.forEach((pair) => {
+      const key = getCanonicalPairKey(pair[0], pair[1]);
+      if (!World.cardStock.R2[key] || typeof World.cardStock.R2[key] !== "object") {
+        World.cardStock.R2[key] = createTierBucket();
+      }
+    });
+
+    if (!World._cardStockMigrated) {
+      let hasStock = false;
+      SUB_META_COLORS.forEach((color) => {
+        const bucket = World.cardStock.R1[color];
+        SUB_META_TIERS.forEach((tier) => {
+          if (bucket?.[tier]) hasStock = true;
+        });
+      });
+      SUB_META_R2_PAIRS.forEach((pair) => {
+        const key = getCanonicalPairKey(pair[0], pair[1]);
+        const bucket = World.cardStock.R2[key];
+        SUB_META_TIERS.forEach((tier) => {
+          if (bucket?.[tier]) hasStock = true;
+        });
+      });
+      if (!hasStock) {
+        if (World.collectedCardsByColor) {
+          SUB_META_COLORS.forEach((color) => {
+            const count = Math.max(0, Math.floor(World.collectedCardsByColor[color] || 0));
+            if (count > 0) World.cardStock.R1[color].DR += count;
+          });
+        }
+        const comboCounts = World.collectedCardsByCombo || World.collectedCardsByPair;
+        if (comboCounts) {
+          SUB_META_R2_PAIRS.forEach((pair) => {
+            const count = getSubMetaComboCount(comboCounts, pair[0], pair[1]);
+            if (count > 0) {
+              const key = getCanonicalPairKey(pair[0], pair[1]);
+              World.cardStock.R2[key].DR += Math.max(0, Math.floor(count));
+            }
+          });
+        }
+      }
+      World._cardStockMigrated = true;
+    }
+  }
+
+  function getCardStockBucket(World, kind, colors) {
+    if (!World) return null;
+    ensureCardStock(World);
+    if (kind === "R1") {
+      const color = colors?.[0];
+      return World.cardStock.R1[color] || null;
+    }
+    if (kind === "R2") {
+      const key = getCanonicalPairKey(colors?.[0], colors?.[1]);
+      return World.cardStock.R2[key] || null;
+    }
+    return null;
+  }
+
+  function getCardCount(World, kind, colors, tier) {
+    const bucket = getCardStockBucket(World, kind, colors);
+    if (!bucket) return 0;
+    const tierKey = normalizeSubMetaTier(tier);
+    return Math.max(0, Math.floor(bucket[tierKey] || 0));
+  }
+
+  function addCardCount(World, kind, colors, tier, delta) {
+    const bucket = getCardStockBucket(World, kind, colors);
+    if (!bucket) return;
+    const tierKey = normalizeSubMetaTier(tier);
+    const next = Math.max(0, Math.floor((bucket[tierKey] || 0) + Number(delta || 0)));
+    bucket[tierKey] = next;
+    if (kind === "R1" && tierKey === "DR") {
+      if (!World.collectedCardsByColor) {
+        World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
+      }
+      const color = colors?.[0];
+      if (color) World.collectedCardsByColor[color] = next;
+    }
   }
 
   function applyMetaToWorld(World) {
@@ -1009,12 +1094,57 @@ const CardEngine = (() => {
     return SUB_META_CARD_LIBRARY.find((card) => card.key === cardKey) || null;
   }
 
-  function getSubMetaForgeByKey(forgeKey) {
-    return SUB_META_FORGE_LIBRARY.find((forge) => forge.key === forgeKey) || null;
+  function buildForgeCandidate(kind, colors, tierTarget) {
+    const tierKey = normalizeSubMetaTier(tierTarget);
+    const key = `forge_${kind}_${colors.join("_")}_${tierKey}`;
+    return {
+      key,
+      kind,
+      colors,
+      tierTarget: tierKey,
+      label: `${tierKey} ${kind}`,
+      costRp: SUB_META_FORGE_COSTS[tierKey] || 0,
+      consumes: SUB_META_FORGE_CONSUMES[tierKey] || 0
+    };
   }
 
-  function getSubMetaForgeList() {
-    return SUB_META_FORGE_LIBRARY.slice();
+  function getSubMetaForgeList(World) {
+    if (!World) return [];
+    const list = [];
+    SUB_META_COLORS.forEach((color) => {
+      const drCount = getCardCount(World, "R1", [color], "DR");
+      if (drCount >= 3) list.push(buildForgeCandidate("R1", [color], "sDR"));
+      if (drCount >= 9) list.push(buildForgeCandidate("R1", [color], "pDR"));
+    });
+    SUB_META_R2_PAIRS.forEach((pair) => {
+      const drCount = getCardCount(World, "R2", pair, "DR");
+      if (drCount >= 3) list.push(buildForgeCandidate("R2", pair, "sDR"));
+      if (drCount >= 9) list.push(buildForgeCandidate("R2", pair, "pDR"));
+    });
+    return list;
+  }
+
+  function getSubMetaForgeByKey(World, forgeKey) {
+    if (!forgeKey) return null;
+    const list = getSubMetaForgeList(World);
+    return list.find((forge) => forge.key === forgeKey) || null;
+  }
+
+  function canCraftForge(World, forge) {
+    if (!World || !forge) return false;
+    const rpValue = Math.max(0, Math.floor(World.score || 0));
+    const drAvailable = getCardCount(World, forge.kind, forge.colors, "DR");
+    return rpValue >= (forge.costRp || 0) && drAvailable >= (forge.consumes || 0);
+  }
+
+  function craftSubMetaForge(World, forge) {
+    if (!canCraftForge(World, forge)) return false;
+    const cost = Math.max(0, Math.floor(forge.costRp || 0));
+    const consume = Math.max(0, Math.floor(forge.consumes || 0));
+    World.score = Math.max(0, Math.floor((World.score || 0) - cost));
+    addCardCount(World, forge.kind, forge.colors, "DR", -consume);
+    addCardCount(World, forge.kind, forge.colors, forge.tierTarget, 1);
+    return true;
   }
 
   function getSubMetaComboCount(comboCounts, colorA, colorB) {
@@ -1026,51 +1156,37 @@ const CardEngine = (() => {
   }
 
   function getSubMetaInventoryEntries(World) {
-    const counts = World?.collectedCardsByColor || {};
-    const comboCounts = World?.collectedCardsByCombo || World?.collectedCardsByPair || {};
-    const entries = [
-      { kind: "R1", label: "R1 DR", colors: ["red"], count: counts.red || 0 },
-      { kind: "R1", label: "R1 DR", colors: ["yellow"], count: counts.yellow || 0 },
-      { kind: "R1", label: "R1 DR", colors: ["green"], count: counts.green || 0 },
-      { kind: "R1", label: "R1 DR", colors: ["blue"], count: counts.blue || 0 },
-      {
-        kind: "R2",
-        label: "R2",
-        colors: ["red", "yellow"],
-        count: getSubMetaComboCount(comboCounts, "red", "yellow")
-      },
-      {
-        kind: "R2",
-        label: "R2",
-        colors: ["red", "green"],
-        count: getSubMetaComboCount(comboCounts, "red", "green")
-      },
-      {
-        kind: "R2",
-        label: "R2",
-        colors: ["red", "blue"],
-        count: getSubMetaComboCount(comboCounts, "red", "blue")
-      },
-      {
-        kind: "R2",
-        label: "R2",
-        colors: ["yellow", "green"],
-        count: getSubMetaComboCount(comboCounts, "yellow", "green")
-      },
-      {
-        kind: "R2",
-        label: "R2",
-        colors: ["yellow", "blue"],
-        count: getSubMetaComboCount(comboCounts, "yellow", "blue")
-      },
-      {
-        kind: "R2",
-        label: "R2",
-        colors: ["green", "blue"],
-        count: getSubMetaComboCount(comboCounts, "green", "blue")
-      }
-    ];
-    return entries.filter((entry) => entry.count > 0);
+    if (!World) return [];
+    const entries = [];
+    SUB_META_COLORS.forEach((color) => {
+      SUB_META_TIERS.forEach((tier) => {
+        const count = getCardCount(World, "R1", [color], tier);
+        if (count > 0) {
+          entries.push({
+            kind: "R1",
+            label: `R1 ${tier}`,
+            tier,
+            colors: [color],
+            count
+          });
+        }
+      });
+    });
+    SUB_META_R2_PAIRS.forEach((pair) => {
+      SUB_META_TIERS.forEach((tier) => {
+        const count = getCardCount(World, "R2", pair, tier);
+        if (count > 0) {
+          entries.push({
+            kind: "R2",
+            label: `R2 ${tier}`,
+            tier,
+            colors: pair,
+            count
+          });
+        }
+      });
+    });
+    return entries;
   }
 
   function formatSubMetaCount(count) {
@@ -1082,11 +1198,10 @@ const CardEngine = (() => {
   function getSubMetaAvailableCards(World, slotKey) {
     if (!World || !slotKey) return [];
     const slotColor = SUB_META_SLOT_COLORS[slotKey];
-    const counts = World.collectedCardsByColor || {};
     return SUB_META_CARD_LIBRARY.filter((card) => {
       if (!card || card.color !== slotColor) return false;
       if (!Array.isArray(card.allowedSlots) || !card.allowedSlots.includes(slotKey)) return false;
-      return (counts[card.color] || 0) > 0;
+      return getCardCount(World, "R1", [card.color], card.tier) > 0;
     });
   }
 
@@ -1179,10 +1294,17 @@ const CardEngine = (() => {
     const pad = 4;
     const isSelected = !!flags.isSelected;
     const isDisabled = !!flags.isDisabled;
+    const glowColor = flags.glowColor;
+    const glowWidth = flags.glowWidth || 0;
     ctx.save();
     ctx.globalAlpha = isDisabled ? 0.35 : 1.0;
     ctx.fillStyle = "rgba(255,255,255,0.06)";
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    if (glowColor) {
+      ctx.strokeStyle = glowColor;
+      ctx.lineWidth = glowWidth > 0 ? glowWidth : 2;
+      ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
+    }
     ctx.lineWidth = isSelected ? 2 : 1;
     ctx.strokeStyle = isSelected ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.2)";
     ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
@@ -1289,6 +1411,14 @@ const CardEngine = (() => {
       w: assignW,
       h: assignH
     };
+    const infoBackW = 70;
+    const infoBackH = 26;
+    const infoBackButton = {
+      x: cardInfoRect.x + 12,
+      y: cardInfoRect.y + cardInfoRect.h - infoBackH - 10,
+      w: infoBackW,
+      h: infoBackH
+    };
     return {
       panel: { x: panelX, y: panelY, w: panelW, h: panelH },
       pad,
@@ -1302,6 +1432,7 @@ const CardEngine = (() => {
       cardInfoRect,
       slots,
       assignButton,
+      infoBackButton,
       closeButton
     };
   }
@@ -1324,15 +1455,18 @@ const CardEngine = (() => {
       pickerForgeRect,
       cardInfoRect,
       assignButton,
+      infoBackButton,
       closeButton
     } = layout;
     const rpValue = Math.max(0, Math.floor(World.score || 0));
-    const hasEnoughRp = rpValue >= SUB_META_ASSIGN_COST;
     const selectedSlotKey = state.subMeta.selectedSlotKey;
     const selectedCard = getSubMetaCardByKey(state.subMeta.selectedCardKey);
     const selectedSlotAssignment = selectedSlotKey ? World.metaSlots?.[selectedSlotKey] : null;
-    const selectedForge = getSubMetaForgeByKey(state.subMeta.selectedForgeKey);
+    const selectedForge = getSubMetaForgeByKey(World, state.subMeta.selectedForge?.key);
     const activeCard = selectedCard || getSubMetaCardFromAssignment(selectedSlotKey, selectedSlotAssignment);
+    const hasEnoughAssignRp = rpValue >= SUB_META_ASSIGN_COST;
+    const forgeRpCost = selectedForge?.costRp || 0;
+    const hasEnoughForgeRp = rpValue >= forgeRpCost;
     const scaleCenterX = panel.x + panel.w / 2;
     const scaleCenterY = panel.y + panel.h / 2;
 
@@ -1418,7 +1552,7 @@ const CardEngine = (() => {
           const removeX = slot.x + slot.w - removeW - 10;
           const removeY = bodyY + bodyH / 2 - removeH / 2;
           ctx.save();
-          ctx.globalAlpha = hasEnoughRp ? 0.9 : 0.35;
+          ctx.globalAlpha = hasEnoughAssignRp ? 0.9 : 0.35;
           ctx.fillStyle = "rgba(255,80,80,0.2)";
           ctx.fillRect(removeX, removeY, removeW, removeH);
           ctx.strokeStyle = "rgba(255,120,120,0.8)";
@@ -1461,7 +1595,7 @@ const CardEngine = (() => {
           null,
           {
             isSelected: state.subMeta.selectedCardKey === card.key,
-            isDisabled: !hasEnoughRp
+            isDisabled: !hasEnoughAssignRp
           }
         );
       });
@@ -1474,7 +1608,7 @@ const CardEngine = (() => {
       ctx.fillText("Wybierz slot, aby zobaczyć karty.", pickerAssignRect.x + 6, pickerAssignRect.y + 16);
     }
 
-    const forgeList = getSubMetaForgeList();
+    const forgeList = getSubMetaForgeList(World);
     const forgeGrid = getTallCardGrid(pickerForgeRect, 8);
     forgeList.forEach((forge, index) => {
       const row = Math.floor(index / forgeGrid.cols);
@@ -1482,8 +1616,13 @@ const CardEngine = (() => {
       const rect = getTallCardRect(pickerForgeRect, forgeGrid, index);
       const colorA = PACK01_COLOR_HEX[forge.colors[0]] || "#FFFFFF";
       const colorB = forge.colors[1] ? PACK01_COLOR_HEX[forge.colors[1]] : null;
+      const glowColor = forge.tierTarget === "pDR"
+        ? "rgba(255,210,80,0.9)"
+        : "rgba(255,255,255,0.6)";
       renderTallCard(ctx, rect, colorA, colorB, forge.label, null, {
-        isSelected: state.subMeta.selectedForgeKey === forge.key
+        isSelected: state.subMeta.selectedForge?.key === forge.key,
+        glowColor,
+        glowWidth: 2
       });
     });
 
@@ -1494,26 +1633,48 @@ const CardEngine = (() => {
     ctx.strokeRect(cardInfoRect.x, cardInfoRect.y, cardInfoRect.w, cardInfoRect.h);
 
     if (selectedForge) {
+      const tierLabel = normalizeSubMetaTier(selectedForge.tierTarget);
+      const typeLabel = selectedForge.kind || "R1";
+      const colorLabel = selectedForge.colors.length === 2
+        ? `${PACK01_COLOR_LABEL[selectedForge.colors[0]] || selectedForge.colors[0]} + ${PACK01_COLOR_LABEL[selectedForge.colors[1]] || selectedForge.colors[1]}`
+        : `${PACK01_COLOR_LABEL[selectedForge.colors[0]] || selectedForge.colors[0]}`;
+      const drNeeded = selectedForge.consumes || 0;
+      const drAvailable = getCardCount(World, selectedForge.kind, selectedForge.colors, "DR");
+      const canCraft = hasEnoughForgeRp && drAvailable >= drNeeded;
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.font = "15px system-ui";
-      ctx.fillText(selectedForge.title, cardInfoRect.x + 12, cardInfoRect.y + 22);
+      ctx.fillText(`Kuźnia: ${tierLabel}`, cardInfoRect.x + 12, cardInfoRect.y + 22);
       ctx.font = "12px system-ui";
       ctx.fillStyle = "rgba(255,255,255,0.75)";
-      ctx.fillText("Kuźnia kart", cardInfoRect.x + 12, cardInfoRect.y + 42);
+      ctx.fillText(`Typ: ${typeLabel}`, cardInfoRect.x + 12, cardInfoRect.y + 42);
       ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.fillText("Tworzenie typu", cardInfoRect.x + 12, cardInfoRect.y + 58);
-      const costLine = selectedForge.costRp ? `Koszt RP: ${selectedForge.costRp}` : "Koszt RP: brak";
+      ctx.fillText(`Kolor: ${colorLabel}`, cardInfoRect.x + 12, cardInfoRect.y + 58);
       ctx.fillStyle = "rgba(255,255,255,0.8)";
-      ctx.fillText(costLine, cardInfoRect.x + 12, cardInfoRect.y + 76);
-      const consumes = Array.isArray(selectedForge.consumes) ? selectedForge.consumes : [];
-      if (consumes.length) {
-        const consumeLabel = consumes
-          .map((item) => `${PACK01_COLOR_LABEL[item.color] || item.color} ×${item.count || 1}`)
-          .join(", ");
-        ctx.fillText("Wymaga:", cardInfoRect.x + 12, cardInfoRect.y + 94);
-        ctx.fillStyle = "rgba(255,255,255,0.7)";
-        ctx.fillText(consumeLabel, cardInfoRect.x + 12, cardInfoRect.y + 110);
-      }
+      ctx.fillText(`Koszt RP: ${forgeRpCost}`, cardInfoRect.x + 12, cardInfoRect.y + 76);
+      ctx.fillStyle = "rgba(255,255,255,0.75)";
+      ctx.fillText(`Składniki: ${drNeeded} × DR`, cardInfoRect.x + 12, cardInfoRect.y + 94);
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.fillText(`Magazyn DR: ${drAvailable}`, cardInfoRect.x + 12, cardInfoRect.y + 110);
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.fillText("Zamienia DR w wyższy tier.", cardInfoRect.x + 12, cardInfoRect.y + 128);
+      ctx.save();
+      ctx.globalAlpha = canCraft ? 1.0 : 0.35;
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(assignButton.x, assignButton.y, assignButton.w, assignButton.h);
+      ctx.strokeStyle = "rgba(255,255,255,0.3)";
+      ctx.strokeRect(assignButton.x, assignButton.y, assignButton.w, assignButton.h);
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.fillText("Potwierdź", assignButton.x + 12, assignButton.y + 17);
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(infoBackButton.x, infoBackButton.y, infoBackButton.w, infoBackButton.h);
+      ctx.strokeStyle = "rgba(180,180,180,0.5)";
+      ctx.strokeRect(infoBackButton.x, infoBackButton.y, infoBackButton.w, infoBackButton.h);
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      ctx.fillText("Wróć", infoBackButton.x + 14, infoBackButton.y + 17);
+      ctx.restore();
     } else if (activeCard && selectedSlotKey) {
       const tierLabel = normalizeSubMetaTier(activeCard.tier);
       const effectLines = getSubMetaEffectLines(selectedSlotKey, tierLabel);
@@ -1557,16 +1718,20 @@ const CardEngine = (() => {
       ctx.fillText("Kliknij kartę, aby zobaczyć opis.", cardInfoRect.x + 12, cardInfoRect.y + 24);
     }
 
-    const slotOccupied = selectedSlotKey && World.metaSlots?.[selectedSlotKey];
-    const canAssign = Boolean(selectedSlotKey && activeCard && hasEnoughRp && !slotOccupied);
-    ctx.globalAlpha = canAssign ? 1.0 : 0.35;
-    ctx.fillStyle = "rgba(255,255,255,0.12)";
-    ctx.fillRect(assignButton.x, assignButton.y, assignButton.w, assignButton.h);
-    ctx.strokeStyle = "rgba(255,255,255,0.3)";
-    ctx.strokeRect(assignButton.x, assignButton.y, assignButton.w, assignButton.h);
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.fillText("Potwierdź", assignButton.x + 12, assignButton.y + 17);
-    ctx.restore();
+    if (!selectedForge) {
+      const slotOccupied = selectedSlotKey && World.metaSlots?.[selectedSlotKey];
+      const canAssign = Boolean(selectedSlotKey && activeCard && hasEnoughAssignRp && !slotOccupied);
+      ctx.globalAlpha = canAssign ? 1.0 : 0.35;
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(assignButton.x, assignButton.y, assignButton.w, assignButton.h);
+      ctx.strokeStyle = "rgba(255,255,255,0.3)";
+      ctx.strokeRect(assignButton.x, assignButton.y, assignButton.w, assignButton.h);
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.fillText("Potwierdź", assignButton.x + 12, assignButton.y + 17);
+      ctx.restore();
+    } else {
+      ctx.restore();
+    }
 
     ctx.save();
     ctx.fillStyle = "rgba(255,255,255,0.08)";
@@ -1599,8 +1764,17 @@ const CardEngine = (() => {
     if (!World || !World.subMetaOpen) return false;
 
     const layout = getSubMetaLayout(screenW, screenH);
-    const { panel, slots, pickerAssignRect, pickerForgeRect, closeButton, assignButton, cardInfoRect } = layout;
-    const hasEnoughRp = (World.score || 0) >= SUB_META_ASSIGN_COST;
+    const {
+      panel,
+      slots,
+      pickerAssignRect,
+      pickerForgeRect,
+      closeButton,
+      assignButton,
+      cardInfoRect,
+      infoBackButton
+    } = layout;
+    const hasEnoughAssignRp = (World.score || 0) >= SUB_META_ASSIGN_COST;
     const scaledPointer = getSubMetaScaledPointer(mx, my, layout);
     mx = scaledPointer.x;
     my = scaledPointer.y;
@@ -1611,12 +1785,17 @@ const CardEngine = (() => {
       return true;
     }
 
+    const selectedForge = getSubMetaForgeByKey(World, state.subMeta.selectedForge?.key);
     const activeCard = getSubMetaCardByKey(state.subMeta.selectedCardKey)
       || getSubMetaCardFromAssignment(state.subMeta.selectedSlotKey, World.metaSlots?.[state.subMeta.selectedSlotKey]);
     const slotOccupied = state.subMeta.selectedSlotKey && World.metaSlots?.[state.subMeta.selectedSlotKey];
-    const canAssign = Boolean(state.subMeta.selectedSlotKey && activeCard && hasEnoughRp && !slotOccupied);
     if (mx >= assignButton.x && mx <= assignButton.x + assignButton.w
       && my >= assignButton.y && my <= assignButton.y + assignButton.h) {
+      if (selectedForge) {
+        craftSubMetaForge(World, selectedForge);
+        return true;
+      }
+      const canAssign = Boolean(state.subMeta.selectedSlotKey && activeCard && hasEnoughAssignRp && !slotOccupied);
       if (!canAssign) return true;
       assignSubMetaSlot(World, state.subMeta.selectedSlotKey, {
         kind: "R1",
@@ -1624,6 +1803,12 @@ const CardEngine = (() => {
         tier: normalizeSubMetaTier(activeCard.tier)
       });
       state.subMeta.showRemoveForSlotKey = null;
+      return true;
+    }
+    if (selectedForge
+      && mx >= infoBackButton.x && mx <= infoBackButton.x + infoBackButton.w
+      && my >= infoBackButton.y && my <= infoBackButton.y + infoBackButton.h) {
+      state.subMeta.selectedForge = null;
       return true;
     }
 
@@ -1636,7 +1821,7 @@ const CardEngine = (() => {
           state.subMeta.selectedSlotKey = slot.key;
           const assignmentCard = getSubMetaCardFromAssignment(slot.key, assignment);
           state.subMeta.selectedCardKey = assignmentCard?.key || null;
-          state.subMeta.selectedForgeKey = null;
+          state.subMeta.selectedForge = null;
           state.subMeta.showRemoveForSlotKey = null;
           if (assignment && my >= bodyY && my <= bodyY + bodyH) {
             state.subMeta.showRemoveForSlotKey = slot.key;
@@ -1645,7 +1830,7 @@ const CardEngine = (() => {
             const removeX = slot.x + slot.w - removeW - 10;
             const removeY = bodyY + bodyH / 2 - removeH / 2;
             if (mx >= removeX && mx <= removeX + removeW && my >= removeY && my <= removeY + removeH) {
-              if (!hasEnoughRp) return true;
+              if (!hasEnoughAssignRp) return true;
               removeSubMetaSlot(World, slot.key);
               state.subMeta.showRemoveForSlotKey = null;
               state.subMeta.selectedCardKey = null;
@@ -1666,12 +1851,12 @@ const CardEngine = (() => {
           if (mx >= rect.x && mx <= rect.x + rect.w && my >= rect.y && my <= rect.y + rect.h) {
             state.subMeta.selectedCardKey = card.key;
             state.subMeta.showRemoveForSlotKey = null;
-            state.subMeta.selectedForgeKey = null;
+            state.subMeta.selectedForge = null;
             return true;
           }
         }
       }
-      const forgeList = getSubMetaForgeList();
+      const forgeList = getSubMetaForgeList(World);
       const forgeGrid = getTallCardGrid(pickerForgeRect, 8);
       for (let i = 0; i < forgeList.length; i++) {
         const row = Math.floor(i / forgeGrid.cols);
@@ -1679,7 +1864,7 @@ const CardEngine = (() => {
         const forge = forgeList[i];
         const rect = getTallCardRect(pickerForgeRect, forgeGrid, i);
         if (mx >= rect.x && mx <= rect.x + rect.w && my >= rect.y && my <= rect.y + rect.h) {
-          state.subMeta.selectedForgeKey = forge.key;
+          state.subMeta.selectedForge = forge;
           state.subMeta.selectedCardKey = null;
           state.subMeta.showRemoveForSlotKey = null;
           return true;
