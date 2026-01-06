@@ -230,6 +230,11 @@ const CardEngine = (() => {
       pDR: ["Po aktywacji karty respawnują tylko jej kolory przez 15 s.", "Podslot: Ekspansja."]
     }
   };
+  const SUB_META_FORMA_REDUCTION = {
+    DR: 0.15,
+    sDR: 0.30,
+    pDR: 0.30
+  };
   // TODO: Align FORMA duration with CARDS_SYSTEM when duration is defined.
   const SUB_META_FORMA_DURATION_MS = {
     DR: 60000,
@@ -282,8 +287,12 @@ const CardEngine = (() => {
     if (World.paused === undefined) World.paused = false;
     if (World.pack01ReleaseBlockColor === undefined) World.pack01ReleaseBlockColor = null;
     if (World.pack01ReleaseBlockUntilMs === undefined) World.pack01ReleaseBlockUntilMs = 0;
-    if (World.metaFormaActiveUntilMs === undefined) World.metaFormaActiveUntilMs = 0;
-    if (World.metaFormaTier === undefined) World.metaFormaTier = null;
+    if (World.formaActiveUntilMs === undefined) World.formaActiveUntilMs = 0;
+    if (World.formaStrengthMul === undefined) World.formaStrengthMul = 1;
+    if (World.formaOrbitReduction === undefined) World.formaOrbitReduction = 0;
+    if (World.formaOrbitReductionBase === undefined) World.formaOrbitReductionBase = 0;
+
+    applyFormaToWorld(World);
 
     state.targets = new Map();
     state.targetLibrary = [];
@@ -563,6 +572,22 @@ const CardEngine = (() => {
     const t = nowMs();
     World.pack01ReleaseBlockColor = key;
     World.pack01ReleaseBlockUntilMs = t + config.pack01TargetDurationMs;
+    onRunActivateR1({ baseDurationMs: config.pack01TargetDurationMs });
+  }
+
+  function onRunActivateR1({ baseDurationMs } = {}) {
+    const World = state.world;
+    if (!World) return false;
+    const t = nowMs();
+    return startFormaEffect(World, t, "R1", baseDurationMs);
+  }
+
+  function onRunActivateR2({ baseDurationMs } = {}) {
+    const World = state.world;
+    if (!World) return false;
+    const t = nowMs();
+    // TODO: R2 should disable two colors during activation.
+    return startFormaEffect(World, t, "R2", baseDurationMs);
   }
 
   function setTrialState(stateName) {
@@ -701,10 +726,12 @@ const CardEngine = (() => {
 
     const World = state.world;
     if (World) {
-      if (World.metaFormaActiveUntilMs && t >= World.metaFormaActiveUntilMs) {
-        World.metaFormaActiveUntilMs = 0;
-        World.metaFormaTier = null;
-        applyMetaToWorld(World);
+      if (World.formaActiveUntilMs && t >= World.formaActiveUntilMs) {
+        World.formaActiveUntilMs = 0;
+        World.formaStrengthMul = 1;
+        World.formaOrbitReduction = 0;
+        World.formaOrbitReductionBase = 0;
+        applyFormaToWorld(World);
       }
 
       const trialState = World.trialPack01State;
@@ -909,7 +936,7 @@ const CardEngine = (() => {
     state.subMeta.selectedCardKey = null;
     state.subMeta.selectedForge = null;
     state.subMeta.showRemoveForSlotKey = null;
-    applyMetaToWorld(World);
+    applyFormaToWorld(World);
   }
 
   function assignSubMetaSlot(World, slotKey, assignment) {
@@ -1089,23 +1116,19 @@ const CardEngine = (() => {
     return Math.max(0, Number.isFinite(mapped) ? mapped : fallback);
   }
 
-  function getFormaMultipliersForTier(tier) {
+  function getFormaReductionForTier(tier) {
     const tierKey = normalizeSubMetaTier(tier);
-    if (tierKey === "DR") {
-      return { asteroid: 0.85, planet: 0.85, star: 1 };
-    }
-    if (tierKey === "sDR") {
-      return { asteroid: 0.7, planet: 0.7, star: 0.85 };
-    }
-    if (tierKey === "pDR") {
-      return { asteroid: 0.7, planet: 0.7, star: 0.7 };
-    }
-    return { asteroid: 1, planet: 1, star: 1 };
+    return Number(SUB_META_FORMA_REDUCTION[tierKey] || SUB_META_FORMA_REDUCTION.DR || 0);
   }
 
-  function isMetaFormaActive(World, now) {
+  function getFormaTimeBonusMs(_World) {
+    // TODO: integrate CZAS slot bonus.
+    return 0;
+  }
+
+  function isFormaActive(World, now) {
     if (!World) return false;
-    const untilMs = Number(World.metaFormaActiveUntilMs || 0);
+    const untilMs = Number(World.formaActiveUntilMs || 0);
     return untilMs > 0 && now < untilMs;
   }
 
@@ -1134,36 +1157,49 @@ const CardEngine = (() => {
     }
   }
 
-  function applyMetaToWorld(World) {
+  function applyFormaToWorld(World) {
     if (!World) return;
     const t = nowMs();
-    const active = isMetaFormaActive(World, t);
-    const multipliers = active ? getFormaMultipliersForTier(World.metaFormaTier) : { asteroid: 1, planet: 1, star: 1 };
+    const active = isFormaActive(World, t);
+    const reduction = active ? clampNum(World.formaOrbitReduction || 0, 0, 0.95) : 0;
+    const multiplier = 1 - reduction;
 
-    World.metaOrbitMulAsteroid = multipliers.asteroid;
-    World.metaOrbitMulPlanet = multipliers.planet;
-    World.metaOrbitMulStar = multipliers.star;
+    World.metaOrbitMulAsteroid = multiplier;
+    World.metaOrbitMulPlanet = multiplier;
+    World.metaOrbitMulStar = multiplier;
 
     if (World.asteroids && World.asteroids.length) {
-      for (const a of World.asteroids) syncOrbitRadiusForBody(a, "asteroid", multipliers.asteroid);
+      for (const a of World.asteroids) syncOrbitRadiusForBody(a, "asteroid", multiplier);
     }
     if (World.planets && World.planets.length) {
-      for (const p of World.planets) syncOrbitRadiusForBody(p, "planet", multipliers.planet);
+      for (const p of World.planets) syncOrbitRadiusForBody(p, "planet", multiplier);
     }
     if (World.stars && World.stars.length) {
-      for (const s of World.stars) syncOrbitRadiusForBody(s, "star", multipliers.star);
+      for (const s of World.stars) syncOrbitRadiusForBody(s, "star", multiplier);
     }
   }
 
-  function activateMetaForma(World, assignment) {
-    if (!World || !assignment) return false;
-    const durationMs = getFormaDurationMs(assignment);
-    if (!(durationMs > 0)) return false;
+  function startFormaEffect(World, now, runKind, baseDurationMs) {
+    if (!World) return false;
+    const assignment = World.metaSlots?.forma;
+    if (!assignment) return false;
     const tierKey = normalizeSubMetaTier(assignment.tier);
-    const t = nowMs();
-    World.metaFormaTier = tierKey;
-    World.metaFormaActiveUntilMs = t + durationMs;
-    applyMetaToWorld(World);
+    const baseReduction = getFormaReductionForTier(tierKey);
+    if (!(baseReduction > 0)) return false;
+    const strengthMul = runKind === "R2" ? 2 : 1;
+    const effectiveReduction = clampNum(baseReduction * strengthMul, 0, 0.95);
+    const baseDuration = Number(baseDurationMs);
+    if (!Number.isFinite(baseDuration) || baseDuration <= 0) return false;
+    const timeBonus = getFormaTimeBonusMs(World);
+    const durationMs = runKind === "R2"
+      ? 2 * (baseDuration + timeBonus)
+      : baseDuration + timeBonus;
+
+    World.formaOrbitReductionBase = baseReduction;
+    World.formaOrbitReduction = effectiveReduction;
+    World.formaStrengthMul = strengthMul;
+    World.formaActiveUntilMs = now + durationMs;
+    applyFormaToWorld(World);
     return true;
   }
 
@@ -1564,7 +1600,6 @@ const CardEngine = (() => {
       pickerForgeRect,
       cardInfoRect,
       assignButton,
-      activateButton,
       infoBackButton,
       closeButton
     } = layout;
@@ -1577,7 +1612,6 @@ const CardEngine = (() => {
     const hasEnoughAssignRp = rpValue >= SUB_META_ASSIGN_COST;
     const forgeRpCost = selectedForge?.costRp || 0;
     const hasEnoughForgeRp = rpValue >= forgeRpCost;
-    const formaActive = isMetaFormaActive(World, nowMs());
     const scaleCenterX = panel.x + panel.w / 2;
     const scaleCenterY = panel.y + panel.h / 2;
 
@@ -1827,18 +1861,6 @@ const CardEngine = (() => {
       ctx.fillText("Potwierdź", assignButton.x + 12, assignButton.y + 17);
       ctx.restore();
 
-      if (selectedSlotKey === "forma" && selectedSlotAssignment) {
-        const canActivate = !formaActive;
-        ctx.save();
-        ctx.globalAlpha = canActivate ? 1.0 : 0.35;
-        ctx.fillStyle = "rgba(255,255,255,0.12)";
-        ctx.fillRect(activateButton.x, activateButton.y, activateButton.w, activateButton.h);
-        ctx.strokeStyle = "rgba(255,255,255,0.3)";
-        ctx.strokeRect(activateButton.x, activateButton.y, activateButton.w, activateButton.h);
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        ctx.fillText("Aktywuj", activateButton.x + 16, activateButton.y + 17);
-        ctx.restore();
-      }
     } else {
       ctx.restore();
     }
@@ -1881,7 +1903,6 @@ const CardEngine = (() => {
       pickerForgeRect,
       closeButton,
       assignButton,
-      activateButton,
       cardInfoRect,
       infoBackButton
     } = layout;
@@ -1900,20 +1921,6 @@ const CardEngine = (() => {
     const activeCard = getSubMetaCardByKey(state.subMeta.selectedCardKey)
       || getSubMetaCardFromAssignment(state.subMeta.selectedSlotKey, World.metaSlots?.[state.subMeta.selectedSlotKey]);
     const slotOccupied = state.subMeta.selectedSlotKey && World.metaSlots?.[state.subMeta.selectedSlotKey];
-    if (state.subMeta.selectedSlotKey === "forma" && slotOccupied
-      && mx >= activateButton.x && mx <= activateButton.x + activateButton.w
-      && my >= activateButton.y && my <= activateButton.y + activateButton.h) {
-      const now = nowMs();
-      if (isMetaFormaActive(World, now)) return true;
-      const assignment = World.metaSlots?.forma;
-      if (!assignment) return true;
-      if (activateMetaForma(World, assignment)) {
-        World.metaSlots.forma = null;
-        state.subMeta.selectedCardKey = null;
-        state.subMeta.showRemoveForSlotKey = null;
-      }
-      return true;
-    }
     if (mx >= assignButton.x && mx <= assignButton.x + assignButton.w
       && my >= assignButton.y && my <= assignButton.y + assignButton.h) {
       if (selectedForge) {
@@ -2073,6 +2080,8 @@ const CardEngine = (() => {
     update,
     render,
     handlePointerDown,
+    onRunActivateR1,
+    onRunActivateR2,
 
     // Hooks for future systems
     onRitualTrigger,
