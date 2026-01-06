@@ -22,6 +22,19 @@
     const hash32 = (window.HC.Util && window.HC.Util.hash32) || window.hash32;
     const removeOrbitersConsumed = window.removeOrbitersConsumed;
 
+    function setBodyOrbitRadius(body, currentRadius) {
+      if (!body) return;
+      const isAsteroid = body.type === "asteroid";
+      const mul = isAsteroid
+        ? (typeof World.metaOrbitMulAsteroid === "number" ? World.metaOrbitMulAsteroid : 1)
+        : (typeof World.metaOrbitMulPlanet === "number" ? World.metaOrbitMulPlanet : 1);
+      const safeMul = Number.isFinite(mul) ? mul : 1;
+      const baseRadius = safeMul !== 0 ? (currentRadius / safeMul) : currentRadius;
+      body.orbitNativeRadius = baseRadius;
+      body.orbitCurrentRadius = currentRadius;
+      body.orbitPx = currentRadius;
+    }
+
     /* =========================
        COMETS (MONOLITH) — Part A: Config + State
        ========================= */
@@ -270,7 +283,8 @@
 
             // shrink asteroid gravity orbit (no rings for asteroids)
             const rr = removed.r || meteorBaseRadius();
-            a.orbitPx = clamp((a.orbitPx || (a.r * 2.0)) - rr, a.minOrbitPx, a.maxOrbitPx);
+            const nextOrbit = clamp((a.orbitPx || (a.r * 2.0)) - rr, a.minOrbitPx, a.maxOrbitPx);
+            setBodyOrbitRadius(a, nextOrbit);
 
             // reduce live stats (mirrors releaseAllOrbitersFromAsteroid)
             const colorName = removed.colorName || "green";
@@ -349,7 +363,10 @@
                 // shrink asteroid gravity/orbit (no rings on asteroids)
                 // (keep it gentle to avoid visual jumps)
                 const shrink = Math.max(0, (removed?.r || 0) * 0.9);
-                if (typeof a.orbitPx === "number") a.orbitPx = Math.max(a.r * 1.6, a.orbitPx - shrink);
+                if (typeof a.orbitPx === "number") {
+                  const nextOrbit = Math.max(a.r * 1.6, a.orbitPx - shrink);
+                  setBodyOrbitRadius(a, nextOrbit);
+                }
 
                 deflectCometByMass(c, removed);
                 c.hitCooldown = 0.08;
@@ -384,7 +401,10 @@
 
                 // shrink planet gravity/orbit slightly (since orbiter removed)
                 const shrink = Math.max(0, (removed?.r || 0) * 0.9);
-                if (typeof p.orbitPx === "number") p.orbitPx = Math.max(p.r * 1.8, p.orbitPx - shrink);
+                if (typeof p.orbitPx === "number") {
+                  const nextOrbit = Math.max(p.r * 1.8, p.orbitPx - shrink);
+                  setBodyOrbitRadius(p, nextOrbit);
+                }
 
                 deflectCometByMass(c, removed);
                 c.hitCooldown = 0.08;
@@ -411,7 +431,7 @@
           a.r = params.planetR;
           a.mass = params.planetMass;
           a.gravityR = params.gravityR;
-          a.orbitPx = params.gravityR;
+          setBodyOrbitRadius(a, params.gravityR);
           a.hueA = hueFromName(weights.monoColor || "yellow");
           a.hueB = a.hueA;
           a.orbiters = [];
@@ -637,7 +657,8 @@
         }
         a.orbiters.length = 0;
         // shrink orbit roughly (optional)
-        a.orbitPx = Math.max(a.r * 2.0, orbitPx * 0.7);
+        const shrunkOrbit = Math.max(a.r * 2.0, orbitPx * 0.7);
+        setBodyOrbitRadius(a, shrunkOrbit);
       }
       function releaseHalfOrbitersFromPlanet(p, nowMs, opts) {
         opts = opts || {};
@@ -687,9 +708,11 @@
           const maxOrbit = p.r * 9.0;
 
           if (orbitAdjust) {
-            p.orbitPx = clamp((p.orbitPx || minOrbit) - releasedR, minOrbit, maxOrbit);
+            const nextOrbit = clamp((p.orbitPx || minOrbit) - releasedR, minOrbit, maxOrbit);
+            setBodyOrbitRadius(p, nextOrbit);
           } else {
-            p.orbitPx = clamp((p.orbitPx || minOrbit), minOrbit, maxOrbit);
+            const nextOrbit = clamp((p.orbitPx || minOrbit), minOrbit, maxOrbit);
+            setBodyOrbitRadius(p, nextOrbit);
           }
         }
       }

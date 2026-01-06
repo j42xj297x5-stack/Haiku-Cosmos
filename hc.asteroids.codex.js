@@ -19,6 +19,15 @@
     // Internal ids (used for comet-release cooldown / ignore)
     let ASTEROID_ID_SEQ = 1;
 
+    function setAsteroidOrbitRadius(a, currentRadius) {
+      const mul = (typeof World.metaOrbitMulAsteroid === "number") ? World.metaOrbitMulAsteroid : 1;
+      const safeMul = Number.isFinite(mul) ? mul : 1;
+      const baseRadius = safeMul !== 0 ? (currentRadius / safeMul) : currentRadius;
+      a.orbitNativeRadius = baseRadius;
+      a.orbitCurrentRadius = currentRadius;
+      a.orbitPx = currentRadius;
+    }
+
     function spawnAsteroidFromCollision(a, b) {
       const x = (a.x + b.x) * 0.5;
       const y = (a.y + b.y) * 0.5;
@@ -29,7 +38,9 @@
       const light = rand(42, 62);
 
       const Rm = meteorBaseRadius();
-      const orbitPx = 3.0 * Rm;
+      const baseOrbitPx = 3.0 * Rm;
+      const orbitMul = (typeof World.metaOrbitMulAsteroid === "number") ? World.metaOrbitMulAsteroid : 1;
+      const orbitPx = baseOrbitPx * orbitMul;
 
       // Drift from conservation of momentum (mass ~ r^2), then scaled by World.asteroidDriftMul
       const ma = massFromR(a.r);
@@ -54,6 +65,8 @@
         grayLight: light,
 
         orbitPx,
+        orbitNativeRadius: baseOrbitPx,
+        orbitCurrentRadius: orbitPx,
         minOrbitPx: 1.5 * Rm,
         maxOrbitPx: 120.0 * Rm,
 
@@ -164,7 +177,8 @@
             a.liveColorCounts[m.colorName] = (a.liveColorCounts[m.colorName] || 0) + 1;
 
             a.r = clamp(a.r + m.r * 0.12, a.minR, a.maxR);
-            a.orbitPx = clamp(a.orbitPx + m.r, a.minOrbitPx, a.maxOrbitPx);
+            const nextOrbit = clamp(a.orbitPx + m.r, a.minOrbitPx, a.maxOrbitPx);
+            setAsteroidOrbitRadius(a, nextOrbit);
 
             addOrbiterToAsteroid(a, m);
 
@@ -213,6 +227,8 @@
 
       const planetMass = sumM + massFromR(a.r);
 
+      const orbitMul = (typeof World.metaOrbitMulPlanet === "number") ? World.metaOrbitMulPlanet : 1;
+      const currentOrbit = orbit0 * orbitMul;
       const p = {
         type: "planet",
         x: a.x,
@@ -220,7 +236,9 @@
         vx: a.vx,
         vy: a.vy,
         r: r0,
-        orbitPx: orbit0,
+        orbitPx: currentOrbit,
+        orbitNativeRadius: orbit0,
+        orbitCurrentRadius: currentOrbit,
         gravityR: computeGravityFromPlanetRadius(r0),
         hueA,
         hueB,
@@ -258,7 +276,8 @@
         o.omega *= (1.0 + 0.8 * dt);
       }
 
-      a.orbitPx = a.orbitPx + (Math.max(a.r * 1.2, a.orbitPx * 0.75) - a.orbitPx) * (0.05 + 0.25 * ease);
+      const collapseOrbit = a.orbitPx + (Math.max(a.r * 1.2, a.orbitPx * 0.75) - a.orbitPx) * (0.05 + 0.25 * ease);
+      setAsteroidOrbitRadius(a, collapseOrbit);
 
       if (t >= 1) {
         finishCollapseToPlanet(a);

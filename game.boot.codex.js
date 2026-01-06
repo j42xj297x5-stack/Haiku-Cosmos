@@ -219,14 +219,25 @@ meteorCollisionFudge: 1.12,
   // COMETS moved to hc.comets.codex.js
 
   // ---------- API (future cards) ----------
+  function setAsteroidOrbitRadius(asteroid, currentRadius) {
+    if (!asteroid) return;
+    const mul = (typeof World.metaOrbitMulAsteroid === "number") ? World.metaOrbitMulAsteroid : 1;
+    const safeMul = Number.isFinite(mul) ? mul : 1;
+    const baseRadius = safeMul !== 0 ? (currentRadius / safeMul) : currentRadius;
+    asteroid.orbitNativeRadius = baseRadius;
+    asteroid.orbitCurrentRadius = currentRadius;
+    asteroid.orbitPx = currentRadius;
+  }
+
   const WorldAPI = {
     adjustAsteroidOrbitByMeteorRadii(asteroid, deltaCount) {
       const Rm = meteorBaseRadius();
-      asteroid.orbitPx = clamp(
+      const nextOrbit = clamp(
         asteroid.orbitPx + deltaCount * Rm,
         asteroid.minOrbitPx,
         asteroid.maxOrbitPx
       );
+      setAsteroidOrbitRadius(asteroid, nextOrbit);
       this._clampOrbitersToOrbit(asteroid);
     },
 
