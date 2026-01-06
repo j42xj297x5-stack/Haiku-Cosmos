@@ -181,6 +181,7 @@ const CardEngine = (() => {
   ];
 
   const SUB_META_COLORS = ["red", "yellow", "green", "blue"];
+  const SUB_META_ASSIGN_COST = 10;
 
   function clampInt(v, a, b) {
     v = Number(v);
@@ -847,6 +848,7 @@ const CardEngine = (() => {
     const counts = World.collectedCardsByColor || {};
     const available = counts[colorKey] || 0;
     if (available <= 0) return;
+    if ((World.score || 0) < SUB_META_ASSIGN_COST) return;
 
     const prev = World.metaSlots[slotKey];
     if (prev && prev.color) {
@@ -854,6 +856,7 @@ const CardEngine = (() => {
     }
     counts[colorKey] = Math.max(0, available - 1);
     World.metaSlots[slotKey] = assignment;
+    World.score = Math.max(0, (World.score || 0) - SUB_META_ASSIGN_COST);
   }
 
   function getSubMetaLayout(screenW, screenH) {
@@ -923,6 +926,8 @@ const CardEngine = (() => {
 
     const layout = getSubMetaLayout(screenW, screenH);
     const { panel, pad, headerY, slots, picker, cards, closeButton, columnW } = layout;
+    const rpValue = Math.max(0, Math.floor(World.score || 0));
+    const hasEnoughRp = rpValue >= SUB_META_ASSIGN_COST;
 
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.55)";
@@ -941,6 +946,8 @@ const CardEngine = (() => {
     ctx.fillStyle = "rgba(255,255,255,0.7)";
     ctx.fillText("Sloty meta", panel.x + pad, headerY + 18);
     ctx.fillText("Wolne karty", panel.x + pad + columnW + 26, headerY + 18);
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillText(`RP: ${rpValue}`, panel.x + panel.w - pad - 80, headerY);
 
     for (const slot of slots) {
       const isSelected = state.subMeta.selectedSlotKey === slot.key;
@@ -977,8 +984,11 @@ const CardEngine = (() => {
       const available = SUB_META_COLORS.filter((color) => (World.collectedCardsByColor?.[color] || 0) > 0);
       ctx.fillStyle = "rgba(255,255,255,0.6)";
       ctx.fillText("Wybierz:", picker.x, picker.y - 6);
+      ctx.fillStyle = hasEnoughRp ? "rgba(255,255,255,0.6)" : "rgba(255,150,150,0.8)";
+      ctx.fillText(`Koszt: ${SUB_META_ASSIGN_COST} RP`, picker.x + 120, picker.y - 6);
       available.forEach((color, index) => {
         const y = picker.y + index * (picker.itemH + picker.gap);
+        ctx.globalAlpha = hasEnoughRp ? 1.0 : 0.35;
         ctx.fillStyle = "rgba(255,255,255,0.08)";
         ctx.fillRect(picker.x, y, picker.w, picker.itemH);
         const colorHex = PACK01_COLOR_HEX[color] || "#FFFFFF";
@@ -990,6 +1000,7 @@ const CardEngine = (() => {
         ctx.fillText(`R1 · ${label}`, picker.x + 30, y + picker.itemH / 2 + 5);
         ctx.fillStyle = "rgba(255,255,255,0.6)";
         ctx.fillText(`×${count}`, picker.x + picker.w - 34, y + picker.itemH / 2 + 5);
+        ctx.globalAlpha = 1.0;
       });
     }
 
@@ -1024,6 +1035,7 @@ const CardEngine = (() => {
 
     const layout = getSubMetaLayout(screenW, screenH);
     const { panel, slots, picker, closeButton } = layout;
+    const hasEnoughRp = (World.score || 0) >= SUB_META_ASSIGN_COST;
 
     if (mx >= closeButton.x && mx <= closeButton.x + closeButton.w
       && my >= closeButton.y && my <= closeButton.y + closeButton.h) {
@@ -1045,6 +1057,7 @@ const CardEngine = (() => {
           const color = available[i];
           const y = picker.y + i * (picker.itemH + picker.gap);
           if (mx >= picker.x && mx <= picker.x + picker.w && my >= y && my <= y + picker.itemH) {
+            if (!hasEnoughRp) return true;
             assignSubMetaSlot(World, state.subMeta.selectedSlotKey, { kind: "R1", color });
             return true;
           }
