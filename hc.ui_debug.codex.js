@@ -6,6 +6,7 @@
   let btnRestart = null;
   let btnSubMeta = null;
   let scoreLabel = null;
+  let metaFormaLabel = null;
   let topBar = null;
   let mpsUI = null;
   let fpsAcc = 0;
@@ -19,6 +20,18 @@
       lastScore = World.score;
       scoreLabel.textContent = `RP: ${World.score}`;
     }
+  }
+
+  function updateMetaFormaLabel(World) {
+    if (!metaFormaLabel || !World) return;
+    const asteroid = Number(World.metaOrbitMulAsteroid ?? 1);
+    const planet = Number(World.metaOrbitMulPlanet ?? 1);
+    const star = Number(World.metaOrbitMulStar ?? 1);
+    const fmt = (value) => {
+      if (!Number.isFinite(value)) return "1.00";
+      return value.toFixed(2);
+    };
+    metaFormaLabel.textContent = `META FORMA: A x${fmt(asteroid)}, P x${fmt(planet)}, S x${fmt(star)}`;
   }
 
   function updateMpsUI(World) {
@@ -52,6 +65,16 @@
     el.className = "pill";
     el.id = "scoreLabel";
     el.textContent = "RP: 0";
+    topBar.appendChild(el);
+    return el;
+  }
+
+  function ensureMetaFormaLabel() {
+    if (!topBar) return null;
+    const el = document.createElement("div");
+    el.className = "pill";
+    el.id = "metaFormaLabel";
+    el.textContent = "META FORMA: A x1.00, P x1.00, S x1.00";
     topBar.appendChild(el);
     return el;
   }
@@ -105,6 +128,7 @@
       topBar = document.getElementById("topBar");
 
       scoreLabel = ensureScoreLabel();
+      metaFormaLabel = ensureMetaFormaLabel();
       mpsUI = ensureMpsUI();
 
       if (mpsUI && World) {
@@ -133,6 +157,7 @@
       }
       if (window.resetWorld) window.resetWorld();
       updateScoreLabel(World, true);
+      updateMetaFormaLabel(World);
       updateMpsUI(World);
     },
     update(dt, nowMs) {
@@ -146,6 +171,7 @@
       }
       const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
       updateScoreLabel(World, false);
+      updateMetaFormaLabel(World);
       const CE = window.CardEngine;
       const view = window.HC.getView && window.HC.getView();
       if (CE && typeof CE.render === "function" && view && window.ctx) {

@@ -212,10 +212,10 @@ const CardEngine = (() => {
     }
   };
   const SUB_META_CARD_LIBRARY = [
-    { key: "R1_DR_red", title: "R1", tier: "DR", color: "red", allowedSlots: ["forma"] },
-    { key: "R1_DR_yellow", title: "R1", tier: "DR", color: "yellow", allowedSlots: ["intencja"] },
-    { key: "R1_DR_green", title: "R1", tier: "DR", color: "green", allowedSlots: ["czas"] },
-    { key: "R1_DR_blue", title: "R1", tier: "DR", color: "blue", allowedSlots: ["cisza"] }
+    { key: "R1_DR_red", title: "R1", tier: "DR", color: "red", allowedSlots: ["forma"], haiku: null },
+    { key: "R1_DR_yellow", title: "R1", tier: "DR", color: "yellow", allowedSlots: ["intencja"], haiku: null },
+    { key: "R1_DR_green", title: "R1", tier: "DR", color: "green", allowedSlots: ["czas"], haiku: null },
+    { key: "R1_DR_blue", title: "R1", tier: "DR", color: "blue", allowedSlots: ["cisza"], haiku: null }
   ];
 
   function clampInt(v, a, b) {
@@ -957,6 +957,43 @@ const CardEngine = (() => {
     return slotMap[tierKey] || slotMap.DR || [];
   }
 
+  function getSubMetaSlotLabel(slotKey) {
+    const slot = SUB_META_SLOTS.find((item) => item.key === slotKey);
+    return slot ? slot.label : String(slotKey || "");
+  }
+
+  function getSubMetaCardTitle(card) {
+    if (card && card.title) return card.title;
+    const tierLabel = normalizeSubMetaTier(card?.tier);
+    const colorLabel = PACK01_COLOR_LABEL[card?.color] || card?.color || "KOLOR";
+    return `KARTA ${colorLabel.toUpperCase()} / ${tierLabel}`;
+  }
+
+  function getSubMetaHaikuLines(card) {
+    const haiku = card?.haiku;
+    if (Array.isArray(haiku)) return haiku.map(String).filter(Boolean);
+    if (typeof haiku === "string" && haiku.trim()) return [haiku.trim()];
+    return [];
+  }
+
+  function wrapTextLines(ctx, text, maxWidth) {
+    const words = String(text || "").split(/\s+/).filter(Boolean);
+    if (!words.length) return [];
+    const lines = [];
+    let line = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const next = `${line} ${words[i]}`;
+      if (ctx.measureText(next).width <= maxWidth) {
+        line = next;
+      } else {
+        lines.push(line);
+        line = words[i];
+      }
+    }
+    lines.push(line);
+    return lines;
+  }
+
   function getSubMetaLayout(screenW, screenH) {
     const panelW = Math.min(560, Math.floor(screenW * 0.88));
     const panelH = Math.min(360, Math.floor(screenH * 0.8));
@@ -969,14 +1006,18 @@ const CardEngine = (() => {
     const leftX = panelX + pad;
     const rightX = leftX + columnW + columnGap;
     const columnTop = panelY + pad + headerH;
-    const slotH = 44;
+    const slotHeaderH = 24;
+    const slotBodyH = 38;
+    const slotH = slotHeaderH + slotBodyH;
     const slotGap = 10;
     const slots = SUB_META_SLOTS.map((slot, index) => ({
       ...slot,
       x: leftX,
       y: columnTop + index * (slotH + slotGap),
       w: columnW,
-      h: slotH
+      h: slotH,
+      headerH: slotHeaderH,
+      bodyH: slotBodyH
     }));
     const pickerTop = columnTop + SUB_META_SLOTS.length * (slotH + slotGap) + 6;
     const pickerItemH = 32;
@@ -1006,13 +1047,20 @@ const CardEngine = (() => {
       w: closeW,
       h: closeH
     };
-    const effectPanelY = columnTop + SUB_META_COLORS.length * (cardH + cardGap) + 8;
-    const effectPanelH = Math.max(60, closeButton.y - 12 - effectPanelY);
+    const cardsBottom = columnTop + SUB_META_COLORS.length * (cardH + cardGap) - cardGap;
+    const effectPanelY = Math.max(cardsBottom + 16, panelY + Math.floor(panelH * 0.55));
+    const effectPanelH = Math.max(110, closeButton.y - 12 - effectPanelY);
     const effectPanel = {
       x: rightX,
       y: effectPanelY,
       w: columnW,
       h: effectPanelH
+    };
+    const assignButton = {
+      x: effectPanel.x + effectPanel.w - 86,
+      y: effectPanel.y + effectPanel.h - 30,
+      w: 76,
+      h: 22
     };
     return {
       panel: { x: panelX, y: panelY, w: panelW, h: panelH },
@@ -1023,6 +1071,7 @@ const CardEngine = (() => {
       picker,
       cards,
       effectPanel,
+      assignButton,
       closeButton
     };
   }
@@ -1032,7 +1081,7 @@ const CardEngine = (() => {
     if (!World || !World.subMetaOpen) return;
 
     const layout = getSubMetaLayout(screenW, screenH);
-    const { panel, pad, headerY, slots, picker, cards, effectPanel, closeButton, columnW } = layout;
+    const { panel, pad, headerY, slots, picker, cards, effectPanel, assignButton, closeButton, columnW } = layout;
     const rpValue = Math.max(0, Math.floor(World.score || 0));
     const hasEnoughRp = rpValue >= SUB_META_ASSIGN_COST;
 
@@ -1061,10 +1110,6 @@ const CardEngine = (() => {
       const assignment = World.metaSlots?.[slot.key];
       const slotColorKey = SUB_META_SLOT_COLORS[slot.key];
       const slotColorHex = PACK01_COLOR_HEX[slotColorKey] || "#FFFFFF";
-      if (assignment) {
-        ctx.fillStyle = "rgba(255,255,255,0.08)";
-        ctx.fillRect(slot.x, slot.y, slot.w, slot.h);
-      }
       ctx.save();
       ctx.lineWidth = isSelected ? 2 : 1;
       ctx.globalAlpha = isSelected ? 0.95 : 0.45;
@@ -1072,18 +1117,35 @@ const CardEngine = (() => {
       ctx.strokeRect(slot.x + 0.5, slot.y + 0.5, slot.w - 1, slot.h - 1);
       ctx.restore();
 
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.04)";
+      ctx.fillRect(slot.x, slot.y, slot.w, slot.headerH);
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.moveTo(slot.x, slot.y + slot.headerH + 0.5);
+      ctx.lineTo(slot.x + slot.w, slot.y + slot.headerH + 0.5);
+      ctx.stroke();
+      ctx.fillStyle = slotColorHex;
+      ctx.fillText(slot.label.toUpperCase(), slot.x + 10, slot.y + slot.headerH - 7);
+      ctx.restore();
+
+      const bodyY = slot.y + slot.headerH;
+      const bodyH = slot.h - slot.headerH;
+      if (assignment) {
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.fillRect(slot.x + 6, bodyY + 6, slot.w - 12, bodyH - 12);
+      }
+
       if (assignment) {
         const colorHex = PACK01_COLOR_HEX[assignment.color] || "#FFFFFF";
         const tierLabel = normalizeSubMetaTier(assignment.tier);
         ctx.fillStyle = colorHex;
-        ctx.fillRect(slot.x + 10, slot.y + slot.h / 2 - 6, 12, 12);
+        ctx.fillRect(slot.x + 14, bodyY + bodyH / 2 - 6, 12, 12);
         ctx.fillStyle = "rgba(255,255,255,0.9)";
-        ctx.fillText(`R1 ${tierLabel}`, slot.x + 30, slot.y + slot.h / 2 + 5);
-        ctx.fillStyle = "rgba(255,255,255,0.5)";
-        ctx.fillText(slot.label, slot.x + 60, slot.y + slot.h / 2 + 5);
+        ctx.fillText(`R1 ${tierLabel}`, slot.x + 34, bodyY + bodyH / 2 + 5);
       } else {
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        ctx.fillText(slot.label, slot.x + 12, slot.y + slot.h / 2 + 5);
+        ctx.fillStyle = "rgba(255,255,255,0.45)";
+        ctx.fillText("(pusto)", slot.x + 14, bodyY + bodyH / 2 + 5);
       }
     }
 
@@ -1133,19 +1195,54 @@ const CardEngine = (() => {
     if (selectedSlotKey && selectedCard && effectPanel) {
       const tierLabel = normalizeSubMetaTier(selectedCard.tier);
       const effectLines = getSubMetaEffectLines(selectedSlotKey, tierLabel);
+      const effectHeader = `Efekt w slocie ${getSubMetaSlotLabel(selectedSlotKey).toUpperCase()}`;
+      const cardTitle = getSubMetaCardTitle(selectedCard);
+      const haikuLines = getSubMetaHaikuLines(selectedCard);
       ctx.save();
       ctx.fillStyle = "rgba(255,255,255,0.08)";
       ctx.fillRect(effectPanel.x, effectPanel.y, effectPanel.w, effectPanel.h);
       ctx.strokeStyle = "rgba(255,255,255,0.12)";
       ctx.strokeRect(effectPanel.x, effectPanel.y, effectPanel.w, effectPanel.h);
-      ctx.fillStyle = "rgba(255,255,255,0.9)";
-      ctx.fillText("Efekt po włożeniu karty do slotu:", effectPanel.x + 10, effectPanel.y + 18);
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.font = "15px system-ui";
+      ctx.fillText(cardTitle, effectPanel.x + 10, effectPanel.y + 20);
+      ctx.font = "12px system-ui";
+      ctx.fillStyle = "rgba(255,255,255,0.75)";
+      ctx.fillText(effectHeader, effectPanel.x + 10, effectPanel.y + 40);
       ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.fillText(`${selectedSlotKey.toUpperCase()} · R1 ${tierLabel}`, effectPanel.x + 10, effectPanel.y + 36);
+      ctx.fillText(`R1 ${tierLabel}`, effectPanel.x + 10, effectPanel.y + 56);
       ctx.fillStyle = "rgba(255,255,255,0.85)";
-      effectLines.slice(0, 3).forEach((line, index) => {
-        ctx.fillText(line, effectPanel.x + 10, effectPanel.y + 56 + index * 16);
+      effectLines.slice(0, 4).forEach((line, index) => {
+        ctx.fillText(line, effectPanel.x + 10, effectPanel.y + 74 + index * 16);
       });
+      const haikuTop = effectPanel.y + 74 + Math.min(4, effectLines.length) * 16 + 12;
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillText("Haiku", effectPanel.x + 10, haikuTop);
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
+      ctx.font = "12px system-ui";
+      const haikuStartY = haikuTop + 16;
+      const haikuMaxWidth = effectPanel.w - 20;
+      let haikuCursorY = haikuStartY;
+      if (haikuLines.length) {
+        haikuLines.forEach((line) => {
+          const wrapped = wrapTextLines(ctx, line, haikuMaxWidth);
+          wrapped.forEach((wrappedLine) => {
+            ctx.fillText(wrappedLine, effectPanel.x + 10, haikuCursorY);
+            haikuCursorY += 14;
+          });
+        });
+      } else {
+        ctx.fillText("(brak haiku)", effectPanel.x + 10, haikuCursorY);
+        haikuCursorY += 14;
+      }
+
+      ctx.globalAlpha = hasEnoughRp ? 1.0 : 0.4;
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(assignButton.x, assignButton.y, assignButton.w, assignButton.h);
+      ctx.strokeStyle = "rgba(255,255,255,0.2)";
+      ctx.strokeRect(assignButton.x, assignButton.y, assignButton.w, assignButton.h);
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.fillText("Assign", assignButton.x + 12, assignButton.y + 15);
       ctx.restore();
     }
 
@@ -1164,13 +1261,27 @@ const CardEngine = (() => {
     if (!World || !World.subMetaOpen) return false;
 
     const layout = getSubMetaLayout(screenW, screenH);
-    const { panel, slots, picker, closeButton } = layout;
+    const { panel, slots, picker, closeButton, assignButton } = layout;
     const hasEnoughRp = (World.score || 0) >= SUB_META_ASSIGN_COST;
 
     if (mx >= closeButton.x && mx <= closeButton.x + closeButton.w
       && my >= closeButton.y && my <= closeButton.y + closeButton.h) {
       closeSubMeta(World);
       return true;
+    }
+
+    const selectedCard = getSubMetaCardByKey(state.subMeta.selectedCardKey);
+    if (state.subMeta.selectedSlotKey && selectedCard) {
+      if (mx >= assignButton.x && mx <= assignButton.x + assignButton.w
+        && my >= assignButton.y && my <= assignButton.y + assignButton.h) {
+        if (!hasEnoughRp) return true;
+        assignSubMetaSlot(World, state.subMeta.selectedSlotKey, {
+          kind: "R1",
+          color: selectedCard.color,
+          tier: normalizeSubMetaTier(selectedCard.tier)
+        });
+        return true;
+      }
     }
 
     if (mx >= panel.x && mx <= panel.x + panel.w && my >= panel.y && my <= panel.y + panel.h) {
@@ -1195,7 +1306,6 @@ const CardEngine = (() => {
                 color: card.color,
                 tier: normalizeSubMetaTier(card.tier)
               });
-              state.subMeta.selectedCardKey = null;
               return true;
             }
             state.subMeta.selectedCardKey = card.key;
