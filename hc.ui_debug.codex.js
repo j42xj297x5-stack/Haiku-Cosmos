@@ -4,6 +4,7 @@
 
   let fpsLabel = null;
   let btnRestart = null;
+  let btnSubMeta = null;
   let scoreLabel = null;
   let topBar = null;
   let mpsUI = null;
@@ -100,6 +101,7 @@
 
       fpsLabel = document.getElementById("fpsLabel");
       btnRestart = document.getElementById("btnRestart");
+      btnSubMeta = document.getElementById("btnSubMeta");
       topBar = document.getElementById("topBar");
 
       scoreLabel = ensureScoreLabel();
@@ -119,6 +121,14 @@
           const refreshedWorld = (window.HC.getWorld && window.HC.getWorld()) || window.World;
           updateScoreLabel(refreshedWorld, true);
           updateMpsUI(refreshedWorld);
+        });
+      }
+      if (btnSubMeta) {
+        btnSubMeta.addEventListener("click", () => {
+          const currentWorld = (window.HC.getWorld && window.HC.getWorld()) || window.World;
+          if (!currentWorld || currentWorld.subMetaOpen) return;
+          currentWorld.subMetaOpen = true;
+          currentWorld.paused = true;
         });
       }
       if (window.resetWorld) window.resetWorld();
