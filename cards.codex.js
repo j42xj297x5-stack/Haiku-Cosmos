@@ -144,7 +144,8 @@ const CardEngine = (() => {
     },
 
     subMeta: {
-      selectedSlotKey: null
+      selectedSlotKey: null,
+      selectedCardKey: null
     }
   };
 
@@ -182,6 +183,40 @@ const CardEngine = (() => {
 
   const SUB_META_COLORS = ["red", "yellow", "green", "blue"];
   const SUB_META_ASSIGN_COST = 10;
+  const SUB_META_SLOT_COLORS = {
+    forma: "red",
+    intencja: "yellow",
+    czas: "green",
+    cisza: "blue"
+  };
+  const SUB_META_META_EFFECTS = {
+    forma: {
+      DR: ["Planetoidy + planety: orbity -15%."],
+      sDR: ["Planetoidy + planety: orbity -30%.", "Gwiazdy: orbity -15%."],
+      pDR: ["Wszystkie obiekty: orbity -30%.", "Podslot: Ekspansja."]
+    },
+    intencja: {
+      DR: ["Odbicie od planetoid 15%, od planet 10%."],
+      sDR: ["Planetoidy 30%, planety 15%."],
+      pDR: ["Planetoidy + planety 35%.", "Podslot: Ekspansja."]
+    },
+    czas: {
+      DR: ["+1 minuta do czasu kart aktywowanych."],
+      sDR: ["+2 minuty do czasu kart aktywowanych."],
+      pDR: ["+3 minuty do czasu kart aktywowanych.", "Podslot: Ekspansja."]
+    },
+    cisza: {
+      DR: ["Po aktywacji karty respawnują tylko jej kolory przez 5 s."],
+      sDR: ["Po aktywacji karty respawnują tylko jej kolory przez 10 s."],
+      pDR: ["Po aktywacji karty respawnują tylko jej kolory przez 15 s.", "Podslot: Ekspansja."]
+    }
+  };
+  const SUB_META_CARD_LIBRARY = [
+    { key: "R1_DR_red", title: "R1", tier: "DR", color: "red", allowedSlots: ["forma"] },
+    { key: "R1_DR_yellow", title: "R1", tier: "DR", color: "yellow", allowedSlots: ["intencja"] },
+    { key: "R1_DR_green", title: "R1", tier: "DR", color: "green", allowedSlots: ["czas"] },
+    { key: "R1_DR_blue", title: "R1", tier: "DR", color: "blue", allowedSlots: ["cisza"] }
+  ];
 
   function clampInt(v, a, b) {
     v = Number(v);
@@ -474,7 +509,7 @@ const CardEngine = (() => {
       collected: false,
       resultPoints: 0
     };
-    state.subMeta = { selectedSlotKey: null };
+    state.subMeta = { selectedSlotKey: null, selectedCardKey: null };
     if (state.world) bindWorld(state.world);
   }
 
@@ -839,6 +874,7 @@ const CardEngine = (() => {
     World.subMetaOpen = false;
     World.paused = false;
     state.subMeta.selectedSlotKey = null;
+    state.subMeta.selectedCardKey = null;
   }
 
   function assignSubMetaSlot(World, slotKey, assignment) {
@@ -857,6 +893,36 @@ const CardEngine = (() => {
     counts[colorKey] = Math.max(0, available - 1);
     World.metaSlots[slotKey] = assignment;
     World.score = Math.max(0, (World.score || 0) - SUB_META_ASSIGN_COST);
+  }
+
+  function normalizeSubMetaTier(tier) {
+    const key = String(tier || "DR").toUpperCase();
+    if (key === "SDR") return "sDR";
+    if (key === "PDR") return "pDR";
+    if (key === "DR") return "DR";
+    return "DR";
+  }
+
+  function getSubMetaCardByKey(cardKey) {
+    return SUB_META_CARD_LIBRARY.find((card) => card.key === cardKey) || null;
+  }
+
+  function getSubMetaAvailableCards(World, slotKey) {
+    if (!World || !slotKey) return [];
+    const slotColor = SUB_META_SLOT_COLORS[slotKey];
+    const counts = World.collectedCardsByColor || {};
+    return SUB_META_CARD_LIBRARY.filter((card) => {
+      if (!card || card.color !== slotColor) return false;
+      if (!Array.isArray(card.allowedSlots) || !card.allowedSlots.includes(slotKey)) return false;
+      return (counts[card.color] || 0) > 0;
+    });
+  }
+
+  function getSubMetaEffectLines(slotKey, tier) {
+    const tierKey = normalizeSubMetaTier(tier);
+    const slotMap = SUB_META_META_EFFECTS[slotKey];
+    if (!slotMap) return [];
+    return slotMap[tierKey] || slotMap.DR || [];
   }
 
   function getSubMetaLayout(screenW, screenH) {
@@ -908,6 +974,14 @@ const CardEngine = (() => {
       w: closeW,
       h: closeH
     };
+    const effectPanelY = columnTop + SUB_META_COLORS.length * (cardH + cardGap) + 8;
+    const effectPanelH = Math.max(60, closeButton.y - 12 - effectPanelY);
+    const effectPanel = {
+      x: rightX,
+      y: effectPanelY,
+      w: columnW,
+      h: effectPanelH
+    };
     return {
       panel: { x: panelX, y: panelY, w: panelW, h: panelH },
       pad,
@@ -916,6 +990,7 @@ const CardEngine = (() => {
       slots,
       picker,
       cards,
+      effectPanel,
       closeButton
     };
   }
@@ -925,7 +1000,7 @@ const CardEngine = (() => {
     if (!World || !World.subMetaOpen) return;
 
     const layout = getSubMetaLayout(screenW, screenH);
-    const { panel, pad, headerY, slots, picker, cards, closeButton, columnW } = layout;
+    const { panel, pad, headerY, slots, picker, cards, effectPanel, closeButton, columnW } = layout;
     const rpValue = Math.max(0, Math.floor(World.score || 0));
     const hasEnoughRp = rpValue >= SUB_META_ASSIGN_COST;
 
@@ -952,26 +1027,26 @@ const CardEngine = (() => {
     for (const slot of slots) {
       const isSelected = state.subMeta.selectedSlotKey === slot.key;
       const assignment = World.metaSlots?.[slot.key];
+      const slotColorKey = SUB_META_SLOT_COLORS[slot.key];
+      const slotColorHex = PACK01_COLOR_HEX[slotColorKey] || "#FFFFFF";
       if (assignment) {
         ctx.fillStyle = "rgba(255,255,255,0.08)";
         ctx.fillRect(slot.x, slot.y, slot.w, slot.h);
-      } else {
-        ctx.strokeStyle = "rgba(255,255,255,0.18)";
-        ctx.strokeRect(slot.x, slot.y, slot.w, slot.h);
       }
-      if (isSelected) {
-        ctx.strokeStyle = "rgba(255,255,255,0.55)";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(slot.x + 1, slot.y + 1, slot.w - 2, slot.h - 2);
-        ctx.lineWidth = 1;
-      }
+      ctx.save();
+      ctx.lineWidth = isSelected ? 2 : 1;
+      ctx.globalAlpha = isSelected ? 0.95 : 0.45;
+      ctx.strokeStyle = slotColorHex;
+      ctx.strokeRect(slot.x + 0.5, slot.y + 0.5, slot.w - 1, slot.h - 1);
+      ctx.restore();
 
       if (assignment) {
         const colorHex = PACK01_COLOR_HEX[assignment.color] || "#FFFFFF";
+        const tierLabel = normalizeSubMetaTier(assignment.tier);
         ctx.fillStyle = colorHex;
         ctx.fillRect(slot.x + 10, slot.y + slot.h / 2 - 6, 12, 12);
         ctx.fillStyle = "rgba(255,255,255,0.9)";
-        ctx.fillText("R1", slot.x + 30, slot.y + slot.h / 2 + 5);
+        ctx.fillText(`R1 ${tierLabel}`, slot.x + 30, slot.y + slot.h / 2 + 5);
         ctx.fillStyle = "rgba(255,255,255,0.5)";
         ctx.fillText(slot.label, slot.x + 60, slot.y + slot.h / 2 + 5);
       } else {
@@ -981,23 +1056,25 @@ const CardEngine = (() => {
     }
 
     if (state.subMeta.selectedSlotKey) {
-      const available = SUB_META_COLORS.filter((color) => (World.collectedCardsByColor?.[color] || 0) > 0);
+      const available = getSubMetaAvailableCards(World, state.subMeta.selectedSlotKey);
       ctx.fillStyle = "rgba(255,255,255,0.6)";
       ctx.fillText("Wybierz:", picker.x, picker.y - 6);
       ctx.fillStyle = hasEnoughRp ? "rgba(255,255,255,0.6)" : "rgba(255,150,150,0.8)";
       ctx.fillText(`Koszt: ${SUB_META_ASSIGN_COST} RP`, picker.x + 120, picker.y - 6);
-      available.forEach((color, index) => {
+      available.forEach((card, index) => {
         const y = picker.y + index * (picker.itemH + picker.gap);
+        const isSelected = state.subMeta.selectedCardKey === card.key;
         ctx.globalAlpha = hasEnoughRp ? 1.0 : 0.35;
-        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.fillStyle = isSelected ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)";
         ctx.fillRect(picker.x, y, picker.w, picker.itemH);
-        const colorHex = PACK01_COLOR_HEX[color] || "#FFFFFF";
+        const colorHex = PACK01_COLOR_HEX[card.color] || "#FFFFFF";
         ctx.fillStyle = colorHex;
         ctx.fillRect(picker.x + 10, y + picker.itemH / 2 - 6, 12, 12);
         ctx.fillStyle = "rgba(255,255,255,0.9)";
-        const label = PACK01_COLOR_LABEL[color] || color;
-        const count = World.collectedCardsByColor?.[color] || 0;
-        ctx.fillText(`R1 · ${label}`, picker.x + 30, y + picker.itemH / 2 + 5);
+        const label = PACK01_COLOR_LABEL[card.color] || card.color;
+        const count = World.collectedCardsByColor?.[card.color] || 0;
+        const tierLabel = normalizeSubMetaTier(card.tier);
+        ctx.fillText(`R1 ${tierLabel} · ${label}`, picker.x + 30, y + picker.itemH / 2 + 5);
         ctx.fillStyle = "rgba(255,255,255,0.6)";
         ctx.fillText(`×${count}`, picker.x + picker.w - 34, y + picker.itemH / 2 + 5);
         ctx.globalAlpha = 1.0;
@@ -1017,6 +1094,27 @@ const CardEngine = (() => {
       ctx.fillStyle = "rgba(255,255,255,0.7)";
       ctx.fillText(`×${count}`, card.x + card.w - 28, card.y + card.h / 2 + 5);
       ctx.globalAlpha = 1.0;
+    }
+
+    const selectedSlotKey = state.subMeta.selectedSlotKey;
+    const selectedCard = getSubMetaCardByKey(state.subMeta.selectedCardKey);
+    if (selectedSlotKey && selectedCard && effectPanel) {
+      const tierLabel = normalizeSubMetaTier(selectedCard.tier);
+      const effectLines = getSubMetaEffectLines(selectedSlotKey, tierLabel);
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(effectPanel.x, effectPanel.y, effectPanel.w, effectPanel.h);
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.strokeRect(effectPanel.x, effectPanel.y, effectPanel.w, effectPanel.h);
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillText("Efekt po włożeniu karty do slotu:", effectPanel.x + 10, effectPanel.y + 18);
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillText(`${selectedSlotKey.toUpperCase()} · R1 ${tierLabel}`, effectPanel.x + 10, effectPanel.y + 36);
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      effectLines.slice(0, 3).forEach((line, index) => {
+        ctx.fillText(line, effectPanel.x + 10, effectPanel.y + 56 + index * 16);
+      });
+      ctx.restore();
     }
 
     ctx.fillStyle = "rgba(255,255,255,0.08)";
@@ -1047,18 +1145,28 @@ const CardEngine = (() => {
       for (const slot of slots) {
         if (mx >= slot.x && mx <= slot.x + slot.w && my >= slot.y && my <= slot.y + slot.h) {
           state.subMeta.selectedSlotKey = slot.key;
+          state.subMeta.selectedCardKey = null;
           return true;
         }
       }
 
       if (state.subMeta.selectedSlotKey) {
-        const available = SUB_META_COLORS.filter((color) => (World.collectedCardsByColor?.[color] || 0) > 0);
+        const available = getSubMetaAvailableCards(World, state.subMeta.selectedSlotKey);
         for (let i = 0; i < available.length; i++) {
-          const color = available[i];
+          const card = available[i];
           const y = picker.y + i * (picker.itemH + picker.gap);
           if (mx >= picker.x && mx <= picker.x + picker.w && my >= y && my <= y + picker.itemH) {
-            if (!hasEnoughRp) return true;
-            assignSubMetaSlot(World, state.subMeta.selectedSlotKey, { kind: "R1", color });
+            if (state.subMeta.selectedCardKey === card.key) {
+              if (!hasEnoughRp) return true;
+              assignSubMetaSlot(World, state.subMeta.selectedSlotKey, {
+                kind: "R1",
+                color: card.color,
+                tier: normalizeSubMetaTier(card.tier)
+              });
+              state.subMeta.selectedCardKey = null;
+              return true;
+            }
+            state.subMeta.selectedCardKey = card.key;
             return true;
           }
         }
