@@ -1317,12 +1317,15 @@ const CardEngine = (() => {
       ctx.strokeRect(x - 1, y - 1, rectW + 2, rectH + 2);
     }
 
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    const textSquare = rectW - 4;
+    const textSquareX = x + Math.floor((rectW - textSquare) / 2);
+    const textSquareY = y + Math.floor((rectH - textSquare) / 2);
+    ctx.fillStyle = "rgb(0,0,0)";
     ctx.textAlign = "center";
-    ctx.font = "10px system-ui";
-    ctx.fillText(typeLabel, x + rectW / 2, y + 10);
-    ctx.font = "9px system-ui";
-    ctx.fillText(tierLabel, x + rectW / 2, y + 21);
+    ctx.font = "8px system-ui";
+    ctx.fillText(typeLabel, textSquareX + textSquare / 2, textSquareY + 6);
+    ctx.font = "8px system-ui";
+    ctx.fillText(tierLabel, textSquareX + textSquare / 2, textSquareY + 14);
     ctx.textAlign = "left";
 
     if (showCount) {
@@ -1546,7 +1549,7 @@ const CardEngine = (() => {
       }
 
       if (assignment) {
-        const cardX = slot.x + Math.floor((slot.w - SUB_META_CARD_W) / 2);
+        const cardX = slot.x + 12;
         const cardY = bodyY + Math.floor((bodyH - SUB_META_CARD_H) / 2);
         renderMetaCard(ctx, cardX, cardY, {
           type: "R1",
