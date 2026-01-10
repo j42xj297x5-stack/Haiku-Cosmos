@@ -248,6 +248,7 @@ const CardEngine = (() => {
 
     if (World.spawnIntervalMul === undefined) World.spawnIntervalMul = 1.0;
     if (World.score === undefined) World.score = 0;
+    if (World.r1HudPulse === undefined) World.r1HudPulse = null;
     ensureCardsPool(World);
     if (!World.metaSlots || typeof World.metaSlots !== "object") {
       World.metaSlots = { forma: null, intencja: null, czas: null, cisza: null };
@@ -466,7 +467,14 @@ const CardEngine = (() => {
       state._r1OverlayListenerBound = true;
       Events.on("R1_OPEN", (payload = {}) => {
         const colorKey = normalizePack01Color(payload.color);
-        showR1Overlay("OPEN", colorKey, 1200);
+        showR1Overlay("OPEN", colorKey, 2000);
+        if (state.world && colorKey) {
+          state.world.r1HudPulse = {
+            colorKey,
+            startedAtMs: nowMs(),
+            durationMs: 2000
+          };
+        }
       });
       Events.on("R1_FAIL", (payload = {}) => {
         const colorKey = normalizePack01Color(payload.color);
@@ -540,6 +548,7 @@ const CardEngine = (() => {
       showRemoveForSlotKey: null
     };
     if (state.world) {
+      state.world.r1HudPulse = null;
       resetCardPool(state.world);
       bindWorld(state.world);
     }
@@ -763,15 +772,21 @@ const CardEngine = (() => {
     }
 
     const isSuccess = overlay.mode === "SUCCESS";
+    const isActivated = overlay.mode === "ACTIVATED";
+    const isOpen = overlay.mode === "OPEN";
     const w = 320;
-    const h = isSuccess ? 78 : 64;
+    const h = isSuccess ? 78 : (isActivated || isOpen ? 56 : 64);
     const x = Math.floor(screenW / 2 - w / 2);
     const y = Math.max(12, Math.floor(config.offerYPad - 6));
     const colorKey = normalizePack01Color(overlay.colorKey);
     const barColor = (colorKey && PACK01_COLOR_HEX[colorKey]) || "rgba(255,255,255,0.9)";
+    const chipW = 16;
+    const chipH = 10;
+    const chipX = x + 16;
+    const chipY = y + 22;
 
     ctx.save();
-    ctx.textAlign = "center";
+    ctx.textAlign = (isOpen || isActivated) ? "left" : "center";
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = "rgba(18,18,18,0.6)";
     ctx.fillRect(x, y, w, h);
@@ -781,7 +796,10 @@ const CardEngine = (() => {
     ctx.font = "14px system-ui";
 
     if (overlay.mode === "OPEN") {
-      ctx.fillText("Sekwencja R1 otwarta", x + w / 2, y + 28);
+      ctx.fillStyle = barColor;
+      ctx.fillRect(chipX, chipY, chipW, chipH);
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.fillText("Sekwencja R1 otwarta", chipX + chipW + 10, y + 30);
     } else if (overlay.mode === "FAIL") {
       ctx.fillText("Sekwencja zakończona niepowodzeniem", x + w / 2, y + 26);
       ctx.fillText("Combo x2 = 6RP", x + w / 2, y + 46);
@@ -795,6 +813,11 @@ const CardEngine = (() => {
       const barY = y + h - 16;
       ctx.fillStyle = barColor;
       ctx.fillRect(barX, barY, barW, 8);
+    } else if (overlay.mode === "ACTIVATED") {
+      ctx.fillStyle = barColor;
+      ctx.fillRect(chipX, chipY, chipW, chipH);
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.fillText("R1 DR Aktywowany", chipX + chipW + 10, y + 30);
     }
 
     ctx.restore();
@@ -820,7 +843,7 @@ const CardEngine = (() => {
     ctx.textAlign = "right";
     for (let i = 0; i < order.length; i++) {
       const key = order[i];
-      const count = getCardCount(World, "R1", [key], "DR");
+      const count = getCardCount(World, "R1", [key], "DR", { availableOnly: true });
       const y = y0 + i * (rectH + gap);
       if (count > 0) {
         ctx.globalAlpha = 0.95;
@@ -843,6 +866,21 @@ const CardEngine = (() => {
           ctx.globalAlpha = 0.95;
           ctx.fillStyle = PACK01_COLOR_HEX[key] || "#FFFFFF";
           ctx.fillRect(barX, barY, barW, barH);
+        }
+      }
+      const pulse = World.r1HudPulse;
+      if (pulse && normalizePack01Color(pulse.colorKey) === key) {
+        const pulseDuration = Number(pulse.durationMs || 0);
+        const elapsed = nowTime - Number(pulse.startedAtMs || 0);
+        const t = pulseDuration > 0 ? clamp01(elapsed / pulseDuration) : 1;
+        if (t >= 1) {
+          World.r1HudPulse = null;
+        } else {
+          const alpha = t < 0.5 ? (t / 0.5) : ((1 - t) / 0.5);
+          ctx.globalAlpha = clamp01(alpha);
+          ctx.strokeStyle = "rgba(255,255,255,0.95)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x - 2, y - 2, rectW + 4, rectH + 4);
         }
       }
       if (count > 1) {
@@ -2231,6 +2269,28 @@ const CardEngine = (() => {
     const World = state.world;
     if (World && World.subMetaOpen) {
       return handleSubMetaPointerDown(mx, my, screenW, screenH);
+    }
+
+    if (state.r1Overlay && state.r1Overlay.visible && state.r1Overlay.mode === "SUCCESS") {
+      const w = 320;
+      const h = 78;
+      const x = Math.floor(screenW / 2 - w / 2);
+      const y = Math.max(12, Math.floor(config.offerYPad - 6));
+      const inside = mx >= x && mx <= x + w && my >= y && my <= y + h;
+      if (inside) {
+        const colorKey = normalizePack01Color(state.r1Overlay.colorKey);
+        if (colorKey) {
+          const activated = onRunActivateR1({
+            baseDurationMs: config.pack01TargetDurationMs,
+            colorKey,
+            tierKey: "DR"
+          });
+          if (activated) {
+            showR1Overlay("ACTIVATED", colorKey, 1000);
+          }
+        }
+        return true;
+      }
     }
 
     if (state.activeOffer) {
