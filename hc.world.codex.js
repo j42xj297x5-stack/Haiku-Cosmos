@@ -325,6 +325,12 @@
       const worldNow = (window.HC.getWorld && window.HC.getWorld()) || window.World;
       resetMetaOrbitMultipliers(worldNow);
       resetFormaEffectState(worldNow);
+      if (worldNow) {
+        worldNow.totalCards = 0;
+        if (window.CardEngine && typeof window.CardEngine.recomputeTotalCards === "function") {
+          window.CardEngine.recomputeTotalCards(worldNow);
+        }
+      }
       return result;
     };
     if (window.HC) window.HC.resetWorld = window.resetWorld;

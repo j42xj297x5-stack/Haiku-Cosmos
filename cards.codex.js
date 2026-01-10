@@ -1139,6 +1139,10 @@ const CardEngine = (() => {
         }
       }
       World._cardBankMigrated = true;
+      recomputeTotalCards(World);
+    }
+    if (typeof World.totalCards !== "number") {
+      recomputeTotalCards(World);
     }
   }
 
@@ -1146,6 +1150,7 @@ const CardEngine = (() => {
     if (!World) return;
     World.cardBank = buildCardBank();
     World._cardBankMigrated = true;
+    recomputeTotalCards(World);
     if (!World.collectedCardsByColor) {
       World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
     } else {
@@ -1212,6 +1217,7 @@ const CardEngine = (() => {
         World.collectedCardsByColor[colors[0]] = bucket.DR;
       }
     }
+    recomputeTotalCards(World);
   }
 
   function consumeCardCount(World, kind, colors, tier) {
@@ -1223,21 +1229,35 @@ const CardEngine = (() => {
 
   function getTotalCardCount(World) {
     if (!World) return 0;
-    ensureCardBank(World);
+    if (typeof World.totalCards === "number") return World.totalCards;
+    return recomputeTotalCards(World);
+  }
+
+  function recomputeTotalCards(World) {
     let total = 0;
-    SUB_META_COLORS.forEach((color) => {
-      const bucket = World.cardBank.R1[color];
-      SUB_META_TIERS.forEach((tier) => {
-        total += Math.max(0, Math.floor(bucket?.[tier] || 0));
-      });
-    });
-    SUB_META_R2_PAIRS.forEach((pair) => {
-      const key = getCanonicalPairKey(pair[0], pair[1]);
-      const bucket = World.cardBank.R2[key];
-      SUB_META_TIERS.forEach((tier) => {
-        total += Math.max(0, Math.floor(bucket?.[tier] || 0));
-      });
-    });
+    if (!World) return 0;
+    if (!World.cardBank) {
+      World.totalCards = 0;
+      return 0;
+    }
+
+    if (World.cardBank.R1) {
+      for (const colorKey in World.cardBank.R1) {
+        const tiers = World.cardBank.R1[colorKey];
+        if (!tiers) continue;
+        for (const tierKey in tiers) total += (tiers[tierKey] || 0);
+      }
+    }
+
+    if (World.cardBank.R2) {
+      for (const pairKey in World.cardBank.R2) {
+        const tiers = World.cardBank.R2[pairKey];
+        if (!tiers) continue;
+        for (const tierKey in tiers) total += (tiers[tierKey] || 0);
+      }
+    }
+
+    World.totalCards = total;
     return total;
   }
 
@@ -1894,6 +1914,9 @@ const CardEngine = (() => {
     const hasEnoughForgeRp = rpValue >= forgeRpCost;
     const scaleCenterX = panel.x + panel.w / 2;
     const scaleCenterY = panel.y + panel.h / 2;
+    const totalCards = (typeof World.totalCards === "number")
+      ? World.totalCards
+      : recomputeTotalCards(World);
 
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.55)";
@@ -2392,6 +2415,7 @@ const CardEngine = (() => {
     onRunActivateR1,
     onRunActivateR2,
     getTotalCardCount,
+    recomputeTotalCards,
     resetCardBank,
 
     // Hooks for future systems
