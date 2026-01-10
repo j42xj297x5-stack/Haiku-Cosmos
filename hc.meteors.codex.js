@@ -26,6 +26,26 @@
     // ---------- Meteor palette ----------
     function pickColor(nowMs) {
       const runTimers = window.HC && window.HC.RunTimers;
+      const silenceUntil = Number(World.fxSilenceOnlyColorsUntilMs || 0);
+      const silenceActive = Number.isFinite(silenceUntil) && nowMs < silenceUntil;
+      const silenceColors = silenceActive && Array.isArray(World.fxSilenceOnlyColors)
+        ? World.fxSilenceOnlyColors
+        : null;
+      if (silenceActive) {
+        const allowed = silenceColors && silenceColors.length
+          ? MeteorColors.filter((color) => silenceColors.includes(color.name))
+          : [];
+        for (let i = allowed.length - 1; i >= 0; i--) {
+          if (runTimers && typeof runTimers.isColorDisabled === "function"
+            && runTimers.isColorDisabled(World, nowMs, allowed[i].name)) {
+            allowed.splice(i, 1);
+          }
+        }
+        if (allowed.length) {
+          return allowed[(Math.random() * allowed.length) | 0];
+        }
+        return null;
+      }
       const attempts = Math.max(6, MeteorColors.length * 3);
       for (let i = 0; i < attempts; i++) {
         const color = MeteorColors[(Math.random() * MeteorColors.length) | 0];
