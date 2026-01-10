@@ -142,15 +142,18 @@ const CardEngine = (() => {
       colorB: null,
       shownAtMs: 0,
       ttlMs: 0,
-      order: null
+      order: null,
+      bonus: 0
     },
-    r2Seq: {
-      active: false,
-      colorA: null,
-      colorB: null,
-      progressB: 0,
-      order: null
-    },
+    r2Active: false,
+    r2ColorA: null,
+    r2ColorB: null,
+    r2HitsTotal: 0,
+    r2HitsB: 0,
+    r2CardsB: 0,
+    r2CostCardIdsA: [],
+    r2CostCardIdsB: [],
+    r2PendingCardIdsB: [],
 
     subMeta: {
       selectedSlotKey: null,
@@ -538,6 +541,62 @@ const CardEngine = (() => {
     return Number(timers[key] || 0) > t;
   }
 
+  function addScoreToWorld(World, bonus) {
+    const amount = Math.max(0, Math.floor(Number(bonus || 0)));
+    if (!World || !amount) return;
+    if (typeof window !== "undefined" && typeof window.addScore === "function") {
+      window.addScore(amount);
+    } else {
+      World.score = Math.max(0, Math.floor((World.score || 0) + amount));
+    }
+  }
+
+  function resetR2BSelection() {
+    state.r2ColorB = null;
+    state.r2HitsB = 0;
+    state.r2CardsB = 0;
+    state.r2CostCardIdsB = [];
+    state.r2PendingCardIdsB = [];
+  }
+
+  function failR2Sequence(World) {
+    if (!World || !state.r2Active) return;
+    const bonus = Math.max(0, Math.floor(state.r2HitsTotal * 3));
+    addScoreToWorld(World, bonus);
+    showR2Overlay("FAIL", state.r2ColorA, state.r2ColorB, 2000, null, bonus);
+    resetR2State();
+  }
+
+  function onHitColor(colorKey) {
+    if (!state.r2Active) return;
+    const World = state.world;
+    const normalized = normalizePack01Color(colorKey);
+    if (!World || !normalized) return;
+    state.r2HitsTotal += 1;
+
+    if (!state.r2ColorB) {
+      state.r2ColorB = normalized;
+      state.r2HitsB = 0;
+      state.r2CardsB = 0;
+      state.r2CostCardIdsB = [];
+      state.r2PendingCardIdsB = [];
+      showR2Overlay("CONTINUE", state.r2ColorA, state.r2ColorB, 2000, [state.r2ColorA, state.r2ColorB]);
+    }
+
+    if (normalized !== state.r2ColorB) {
+      failR2Sequence(World);
+      return;
+    }
+
+    state.r2HitsB += 1;
+    if (state.r2HitsB % 3 === 0) {
+      const created = onCardCollected({ kind: "R1", tier: "DR", colorA: state.r2ColorB });
+      if (created && created.id) {
+        state.r2PendingCardIdsB.push(String(created.id));
+      }
+    }
+  }
+
   function isOnCooldown(cardId, t) {
     const readyAt = state.cooldowns.get(cardId) ?? 0;
     return t < readyAt;
@@ -592,15 +651,10 @@ const CardEngine = (() => {
       colorB: null,
       shownAtMs: 0,
       ttlMs: 0,
-      order: null
+      order: null,
+      bonus: 0
     };
-    state.r2Seq = {
-      active: false,
-      colorA: null,
-      colorB: null,
-      progressB: 0,
-      order: null
-    };
+    resetR2State();
     state.subMeta = {
       selectedSlotKey: null,
       selectedCardKey: null,
@@ -643,7 +697,7 @@ const CardEngine = (() => {
     };
   }
 
-  function showR2Overlay(mode, colorA, colorB, ttlMs, order) {
+  function showR2Overlay(mode, colorA, colorB, ttlMs, order, bonus) {
     const now = nowMs();
     state.r2Overlay = {
       visible: true,
@@ -652,18 +706,21 @@ const CardEngine = (() => {
       colorB: colorB || null,
       shownAtMs: now,
       ttlMs: Math.max(0, Number(ttlMs || 0)),
-      order: Array.isArray(order) ? order.slice() : null
+      order: Array.isArray(order) ? order.slice() : null,
+      bonus: Math.max(0, Math.floor(Number(bonus || 0)))
     };
   }
 
-  function resetR2Sequence() {
-    state.r2Seq = {
-      active: false,
-      colorA: null,
-      colorB: null,
-      progressB: 0,
-      order: null
-    };
+  function resetR2State() {
+    state.r2Active = false;
+    state.r2ColorA = null;
+    state.r2ColorB = null;
+    state.r2HitsTotal = 0;
+    state.r2HitsB = 0;
+    state.r2CardsB = 0;
+    state.r2CostCardIdsA = [];
+    state.r2CostCardIdsB = [];
+    state.r2PendingCardIdsB = [];
   }
 
   function onRunActivateR1({ baseDurationMs, colorKey, tierKey } = {}) {
@@ -673,6 +730,9 @@ const CardEngine = (() => {
     const normalizedColor = normalizePack01Color(colorKey);
     const tier = normalizeSubMetaTier(tierKey || "DR");
     if (!consumePendingCard(World, { kind: "R1", tier, colors: [normalizedColor] }, t)) return false;
+    if (state.r2Active && state.r2ColorB && normalizedColor === state.r2ColorB) {
+      resetR2BSelection();
+    }
     applyWorldSlotEffectsOnRunActivation(World, t, [normalizedColor], "R1");
     const bonusMs = getFormaTimeBonusMs(World);
     const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R1");
@@ -939,6 +999,7 @@ const CardEngine = (() => {
     const isContinue = overlay.mode === "CONTINUE";
     const isSuccess = overlay.mode === "SUCCESS";
     const isActivated = overlay.mode === "ACTIVATED";
+    const isFail = overlay.mode === "FAIL";
     const w = 340;
     const h = isSuccess ? 88 : 72;
     const x = Math.floor(screenW / 2 - w / 2);
@@ -1014,6 +1075,10 @@ const CardEngine = (() => {
       ctx.fillRect(labelX, lineY - chipH + 8, chipW, chipH);
       ctx.fillStyle = colorBHex;
       ctx.fillRect(labelX + chipW + 4, lineY - chipH + 8, chipW, chipH);
+    } else if (isFail) {
+      const bonus = Math.max(0, Math.floor(Number(overlay.bonus || 0)));
+      ctx.fillText("Porażka sekwencji R2", x + w / 2, y + 28);
+      ctx.fillText(`+${bonus} RP`, x + w / 2, y + 48);
     }
 
     ctx.restore();
@@ -1343,6 +1408,36 @@ const CardEngine = (() => {
     return count - remaining;
   }
 
+  function removeCardsById(World, cardIds) {
+    if (!World || !Array.isArray(cardIds) || !cardIds.length) return 0;
+    ensureCardsPool(World);
+    const targetIds = new Set(cardIds.map(String));
+    let removed = 0;
+    for (let i = World.cardsPool.length - 1; i >= 0; i--) {
+      const card = World.cardsPool[i];
+      if (!card || !card.id) continue;
+      if (!targetIds.has(String(card.id))) continue;
+      World.cardsPool.splice(i, 1);
+      removed += 1;
+    }
+    if (removed) recomputeTotalCards(World);
+    return removed;
+  }
+
+  function getRecentCardIds(World, kind, colors, tier, count) {
+    if (!World) return [];
+    ensureCardsPool(World);
+    const wanted = Math.max(0, Math.floor(count || 0));
+    if (!wanted) return [];
+    const ids = [];
+    for (let i = World.cardsPool.length - 1; i >= 0 && ids.length < wanted; i--) {
+      const card = World.cardsPool[i];
+      if (!cardMatches(card, kind, colors, tier)) continue;
+      ids.push(String(card.id));
+    }
+    return ids;
+  }
+
   function addCardToPool(World, payload) {
     if (!World) return null;
     ensureCardsPool(World);
@@ -1403,62 +1498,52 @@ const CardEngine = (() => {
     const colorKey = normalizePack01Color(entity.colorA);
     if (!colorKey) return;
 
-    if (!state.r2Seq.active) {
-      const available = getCardCount(World, "R1", [colorKey], "DR", { availableOnly: true });
+    if (!state.r2Active) {
+      const available = getCardCount(World, "R1", [colorKey], "DR");
       if (available >= 2) {
-        state.r2Seq.active = true;
-        state.r2Seq.colorA = colorKey;
-        state.r2Seq.colorB = null;
-        state.r2Seq.progressB = 0;
-        state.r2Seq.order = [colorKey];
-        showR2Overlay("START", colorKey, null, 2000, [colorKey]);
+        const recentIds = getRecentCardIds(World, "R1", [colorKey], "DR", 2);
+        if (recentIds.length >= 2) {
+          state.r2Active = true;
+          state.r2ColorA = colorKey;
+          state.r2ColorB = null;
+          state.r2HitsTotal = 6;
+          state.r2HitsB = 0;
+          state.r2CardsB = 0;
+          state.r2CostCardIdsA = recentIds.slice(0, 2);
+          state.r2CostCardIdsB = [];
+          state.r2PendingCardIdsB = [];
+          showR2Overlay("START", colorKey, null, 2000, [colorKey]);
+        }
       }
       return;
     }
 
-    if (state.r2Seq.colorA && state.r2Seq.colorB) {
-      if (colorKey === state.r2Seq.colorB) {
-        state.r2Seq.progressB += 1;
-        if (state.r2Seq.progressB >= 2) {
+    if (state.r2Active && state.r2PendingCardIdsB.length) {
+      const idx = state.r2PendingCardIdsB.indexOf(String(entity.id));
+      if (idx !== -1) {
+        state.r2PendingCardIdsB.splice(idx, 1);
+        state.r2CostCardIdsB.push(String(entity.id));
+        state.r2CardsB += 1;
+        if (state.r2CardsB >= 2) {
           completeR2Sequence(World);
         }
-        return;
       }
-      if (colorKey !== state.r2Seq.colorA) {
-        resetR2Sequence();
-      }
-      return;
-    }
-
-    if (state.r2Seq.colorA && !state.r2Seq.colorB) {
-      if (colorKey === state.r2Seq.colorA) return;
-      state.r2Seq.colorB = colorKey;
-      state.r2Seq.progressB = 1;
-      state.r2Seq.order = [state.r2Seq.colorA, colorKey];
-      showR2Overlay("CONTINUE", state.r2Seq.colorA, state.r2Seq.colorB, 2000, state.r2Seq.order);
     }
   }
 
   function completeR2Sequence(World) {
-    if (!World || !state.r2Seq.active) return;
-    const colorA = state.r2Seq.colorA;
-    const colorB = state.r2Seq.colorB;
+    if (!World || !state.r2Active) return;
+    const colorA = state.r2ColorA;
+    const colorB = state.r2ColorB;
     if (!colorA || !colorB) {
-      resetR2Sequence();
+      resetR2State();
       return;
     }
-    const availableA = getCardCount(World, "R1", [colorA], "DR", { availableOnly: true });
-    const availableB = getCardCount(World, "R1", [colorB], "DR", { availableOnly: true });
-    if (availableA < 2 || availableB < 2) {
-      resetR2Sequence();
-      return;
-    }
-    consumeAvailableCards(World, "R1", [colorA], "DR", 2);
-    consumeAvailableCards(World, "R1", [colorB], "DR", 2);
     const [canonA, canonB] = getCanonicalPairColors(colorA, colorB);
     onCardCollected({ kind: "R2", tier: "DR", colorA: canonA, colorB: canonB });
-    showR2Overlay("SUCCESS", canonA, canonB, 3000);
-    resetR2Sequence();
+    showR2Overlay("SUCCESS", canonA, canonB, 3000, [canonA, canonB]);
+    removeCardsById(World, [...state.r2CostCardIdsA, ...state.r2CostCardIdsB]);
+    resetR2State();
   }
 
   function onCardCollected(payload) {
@@ -2657,6 +2742,7 @@ const CardEngine = (() => {
     handlePointerDown,
     onRunActivateR1,
     onRunActivateR2,
+    onHitColor,
     getTotalCardCount,
     recomputeTotalCards,
     resetCardPool,
