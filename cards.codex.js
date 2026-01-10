@@ -276,6 +276,7 @@ const CardEngine = (() => {
     }
     ensureCardBank(World);
     ensureRunSequences(World);
+    updateR2Candidate(World);
     if (!World.metaSlots || typeof World.metaSlots !== "object") {
       World.metaSlots = { forma: null, intencja: null, czas: null, cisza: null };
     } else {
@@ -580,9 +581,6 @@ const CardEngine = (() => {
     const World = state.world;
     const key = normalizePack01Color(color);
     if (!World || !key) return;
-    const t = nowMs();
-    World.pack01ReleaseBlockColor = key;
-    World.pack01ReleaseBlockUntilMs = t + config.pack01TargetDurationMs;
     onRunActivateR1({ baseDurationMs: config.pack01TargetDurationMs, colorKey: key, tierKey: "DR" });
   }
 
@@ -914,6 +912,20 @@ const CardEngine = (() => {
     ctx.restore();
   }
 
+  function getR2HintText(World) {
+    if (!World) return null;
+    const seq = World.r2Seq;
+    const candidate = World.r2Candidate;
+    if (seq?.active && seq.colorB) {
+      const label = PACK01_COLOR_LABEL[seq.colorB] || seq.colorB;
+      return `R2: zbierz 2×DR koloru ${label} (bez trzeciego koloru).`;
+    }
+    if (candidate?.ready) {
+      return "R2: gotowe. Zdobądź 2×DR innego koloru.";
+    }
+    return null;
+  }
+
   function renderPack01Collection(ctx, screenW, screenH) {
     const World = state.world;
     if (!World) return;
@@ -967,6 +979,12 @@ const CardEngine = (() => {
         ctx.fillStyle = "rgba(255,255,255,0.92)";
         ctx.fillText(String(count), x - 4, y + rectH - 2);
       }
+    }
+    const r2Hint = getR2HintText(World);
+    if (r2Hint) {
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = "rgba(255,255,255,0.78)";
+      ctx.fillText(r2Hint, x + rectW, y0 + order.length * (rectH + gap) + 6);
     }
     ctx.restore();
   }
@@ -1217,6 +1235,9 @@ const CardEngine = (() => {
         World.collectedCardsByColor[colors[0]] = bucket.DR;
       }
     }
+    if (kind === "R1" && tierKey === "DR") {
+      updateR2Candidate(World);
+    }
     recomputeTotalCards(World);
   }
 
@@ -1269,12 +1290,16 @@ const CardEngine = (() => {
     if (!World.r2Seq || typeof World.r2Seq !== "object") {
       World.r2Seq = { active: false, colorA: null, colorB: null, phase: "", needBdr: 0 };
     }
+    if (!World.r2Candidate || typeof World.r2Candidate !== "object") {
+      World.r2Candidate = { colorA: null, ready: false };
+    }
   }
 
   function resetRunSequences(World) {
     if (!World) return;
     World.r1Seq = { color: null, streak: 0, windowOpen: false };
     World.r2Seq = { active: false, colorA: null, colorB: null, phase: "", needBdr: 0 };
+    World.r2Candidate = { colorA: null, ready: false };
   }
 
   function resetR2Sequence(seq) {
@@ -1286,12 +1311,25 @@ const CardEngine = (() => {
     seq.needBdr = 0;
   }
 
-  function findR2StartColor(World, excludeColor) {
-    for (const color of SUB_META_COLORS) {
-      if (color === excludeColor) continue;
-      if (getCardCount(World, "R1", [color], "DR") >= 2) return color;
+  function updateR2Candidate(World) {
+    if (!World) return;
+    ensureRunSequences(World);
+    const candidate = World.r2Candidate;
+    if (!candidate) return;
+    const current = candidate.colorA;
+    if (current && getCardCount(World, "R1", [current], "DR") >= 2) {
+      candidate.ready = true;
+      return;
     }
-    return null;
+    let next = null;
+    for (const color of SUB_META_COLORS) {
+      if (getCardCount(World, "R1", [color], "DR") >= 2) {
+        next = color;
+        break;
+      }
+    }
+    candidate.colorA = next;
+    candidate.ready = Boolean(next);
   }
 
   function handleR1Sequence(World, colorKey) {
@@ -1307,6 +1345,7 @@ const CardEngine = (() => {
       if (seq.streak === 2) seq.windowOpen = true;
       if (seq.streak === 3) {
         addCardCount(World, "R1", [colorKey], "DR", 1);
+        handleR2Sequence(World, colorKey);
         seq.color = null;
         seq.streak = 0;
         seq.windowOpen = false;
@@ -1324,17 +1363,20 @@ const CardEngine = (() => {
 
   function handleR2Sequence(World, colorKey) {
     const seq = World.r2Seq;
+    const candidate = World.r2Candidate;
+    if (!seq || !candidate) return;
     if (!seq.active) {
-      const colorA = findR2StartColor(World, colorKey);
-      if (colorA) {
+      if (candidate.ready && candidate.colorA && colorKey !== candidate.colorA) {
         seq.active = true;
-        seq.colorA = colorA;
+        seq.colorA = candidate.colorA;
         seq.colorB = colorKey;
         seq.phase = "COLLECT_B";
         seq.needBdr = 2;
+        seq.startedAtMs = nowMs();
       }
     } else if (colorKey !== seq.colorA && colorKey !== seq.colorB) {
       resetR2Sequence(seq);
+      updateR2Candidate(World);
       return;
     }
 
@@ -1346,6 +1388,7 @@ const CardEngine = (() => {
       addCardCount(World, "R1", [seq.colorB], "DR", -2);
       addCardCount(World, "R2", [seq.colorA, seq.colorB], "DR", 1);
       resetR2Sequence(seq);
+      updateR2Candidate(World);
     }
   }
 
@@ -1355,7 +1398,6 @@ const CardEngine = (() => {
     if (!World || !colorKey) return;
     ensureRunSequences(World);
     handleR1Sequence(World, colorKey);
-    handleR2Sequence(World, colorKey);
   }
 
   function getFormaDurationMs(assignment) {
