@@ -72,6 +72,7 @@
     World.runColorDurations = state.durationMsByColor;
     World.runWorldActiveUntilMs = 0;
     World.runWorldStrengthMul = 1;
+    World.runActiveColors = [];
   }
 
   function ensureEffectTimers(World) {
@@ -112,6 +113,43 @@
     });
     if (typeof World.runWorldActiveUntilMs !== "number") World.runWorldActiveUntilMs = 0;
     if (typeof World.runWorldStrengthMul !== "number") World.runWorldStrengthMul = 1;
+    if (!Array.isArray(World.runActiveColors)) World.runActiveColors = [];
+  }
+
+  function resetWorldSlotEffects(World) {
+    if (!World) return;
+    World.fxIntentBounceAsteroidPct = 0;
+    World.fxIntentBouncePlanetPct = 0;
+    World.fxSilenceOnlyColorsUntilMs = 0;
+    World.fxSilenceOnlyColors = [];
+    World.fxTimeBonusMs = 0;
+    World.fxLastActivation = null;
+  }
+
+  function ensureWorldSlotEffects(World) {
+    if (!World) return;
+    if (typeof World.fxIntentBounceAsteroidPct !== "number") World.fxIntentBounceAsteroidPct = 0;
+    if (typeof World.fxIntentBouncePlanetPct !== "number") World.fxIntentBouncePlanetPct = 0;
+    if (typeof World.fxSilenceOnlyColorsUntilMs !== "number") World.fxSilenceOnlyColorsUntilMs = 0;
+    if (!Array.isArray(World.fxSilenceOnlyColors)) World.fxSilenceOnlyColors = [];
+    if (typeof World.fxTimeBonusMs !== "number") World.fxTimeBonusMs = 0;
+    if (World.fxLastActivation === undefined) World.fxLastActivation = null;
+  }
+
+  function normalizeMetaTier(tier) {
+    if (!tier) return null;
+    const key = String(tier).toUpperCase();
+    if (key === "DR") return "DR";
+    if (key === "SDR") return "sDR";
+    if (key === "PDR") return "pDR";
+    return null;
+  }
+
+  function getMetaTier(World, slotKey) {
+    if (!World || !slotKey) return null;
+    const key = String(slotKey).toLowerCase();
+    const assignment = World.metaSlots?.[key];
+    return normalizeMetaTier(assignment?.tier);
   }
 
   function pruneExpiredTimers(World, nowMs) {
@@ -225,6 +263,7 @@
     World.formaColorKey = null;
     resetEffectTimers(World);
     resetRunTimers(World);
+    resetWorldSlotEffects(World);
   }
 
   function ensureFormaEffectState(World) {
@@ -236,6 +275,7 @@
     if (typeof World.formaColorKey !== "string") World.formaColorKey = null;
     ensureEffectTimers(World);
     ensureRunTimers(World);
+    ensureWorldSlotEffects(World);
   }
 
   window.HC.WorldEvents = window.HC.WorldEvents || {};
@@ -253,6 +293,13 @@
   window.HC.RunTimers.isColorDisabled = isRunColorDisabled;
   window.HC.RunTimers.isWorldSlotsActive = isWorldSlotsActive;
   window.HC.RunTimers.startOrRefresh = startOrRefreshRunColorTimer;
+  window.HC.WorldSlots = window.HC.WorldSlots || {};
+  window.HC.WorldSlots.reset = resetWorldSlotEffects;
+  window.HC.WorldSlots.ensure = ensureWorldSlotEffects;
+  window.HC.WorldSlots.getMetaTier = (slotKey) => {
+    const World = window.HC.getWorld && window.HC.getWorld();
+    return getMetaTier(World, slotKey);
+  };
   window.HC.WorldEvents.startMeteorShower = ({ durationMs, intensity } = {}) => {
     const World = window.HC.getWorld && window.HC.getWorld();
     if (!World) return;

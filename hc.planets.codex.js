@@ -479,6 +479,20 @@
       });
     }
 
+    function bounceMeteorFromBody(meteor, body, radius) {
+      const dx = meteor.x - body.x;
+      const dy = meteor.y - body.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const nx = dx / dist;
+      const ny = dy / dist;
+      const dot = (meteor.vx || 0) * nx + (meteor.vy || 0) * ny;
+      meteor.vx = (meteor.vx || 0) - 2 * dot * nx;
+      meteor.vy = (meteor.vy || 0) - 2 * dot * ny;
+      const push = (Number(radius) || 0) + meteor.r + 0.5;
+      meteor.x = body.x + nx * push;
+      meteor.y = body.y + ny * push;
+    }
+
     function captureMeteorsByPlanets(dt, nowMs) {
       if (!World.planets.length || !World.meteors.length) return;
 
@@ -535,6 +549,14 @@
 
           const capR = (p.orbitPx || (p.r * 2.4)) + m.r;
           if (d2 <= capR * capR) {
+            const runTimers = window.HC && window.HC.RunTimers;
+            const worldActive = runTimers && typeof runTimers.isWorldSlotsActive === "function"
+              && runTimers.isWorldSlotsActive(World, nowMs);
+            const bouncePct = Number(World.fxIntentBouncePlanetPct || 0);
+            if (worldActive && Number.isFinite(bouncePct) && bouncePct > 0 && Math.random() < bouncePct) {
+              bounceMeteorFromBody(m, p, capR);
+              continue;
+            }
             meteors.splice(mi, 1);
 
             p.captureCount = (p.captureCount || 0) + 1;

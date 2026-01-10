@@ -297,6 +297,10 @@ const CardEngine = (() => {
     if (runTimers && typeof runTimers.ensure === "function") {
       runTimers.ensure(World);
     }
+    const worldSlots = window.HC && window.HC.WorldSlots;
+    if (worldSlots && typeof worldSlots.ensure === "function") {
+      worldSlots.ensure(World);
+    }
 
     applyFormaToWorld(World);
 
@@ -588,11 +592,12 @@ const CardEngine = (() => {
     const World = state.world;
     if (!World) return false;
     const t = nowMs();
-    const bonusMs = getFormaTimeBonusMs(World);
-    const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R1");
     const normalizedColor = normalizePack01Color(colorKey);
     const tier = normalizeSubMetaTier(tierKey || "DR");
     if (normalizedColor && !consumeCardCount(World, "R1", [normalizedColor], tier)) return false;
+    applyWorldSlotEffectsOnRunActivation(World, t, [normalizedColor], "R1");
+    const bonusMs = getFormaTimeBonusMs(World);
+    const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R1");
     if (normalizedColor) {
       startRunTimerForColor(World, normalizedColor, durationMs, t, 1);
     }
@@ -603,12 +608,13 @@ const CardEngine = (() => {
     const World = state.world;
     if (!World) return false;
     const t = nowMs();
-    const bonusMs = getFormaTimeBonusMs(World);
-    const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R2");
     const colors = Array.isArray(colorKeys) ? colorKeys.map(normalizePack01Color).filter(Boolean) : [];
     const tier = normalizeSubMetaTier(tierKey || "DR");
     const pairKey = colors.length >= 2 ? getCanonicalPairKey(colors[0], colors[1]) : null;
     if (pairKey && !consumeCardCount(World, "R2", [colors[0], colors[1]], tier)) return false;
+    applyWorldSlotEffectsOnRunActivation(World, t, colors, "R2");
+    const bonusMs = getFormaTimeBonusMs(World);
+    const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R2");
     colors.forEach((color) => {
       startRunTimerForColor(World, color, durationMs, t, 2);
     });
@@ -1415,9 +1421,64 @@ const CardEngine = (() => {
     return Number(SUB_META_FORMA_REDUCTION[tierKey] || SUB_META_FORMA_REDUCTION.DR || 0);
   }
 
-  function getFormaTimeBonusMs(_World) {
-    // TODO: integrate CZAS slot bonus.
-    return 0;
+  function applyWorldSlotEffectsOnRunActivation(World, nowMs, activatedColors, cardKind) {
+    if (!World) return;
+    const strengthMul = cardKind === "R2" ? 2 : 1;
+    World.runWorldStrengthMul = strengthMul;
+    World.runActiveColors = Array.isArray(activatedColors) ? activatedColors.filter(Boolean) : [];
+
+    const worldSlots = window.HC && window.HC.WorldSlots;
+    const getMetaTier = (slotKey) => {
+      if (worldSlots && typeof worldSlots.getMetaTier === "function") {
+        return worldSlots.getMetaTier(slotKey);
+      }
+      const assignment = World.metaSlots?.[slotKey];
+      return assignment ? normalizeSubMetaTier(assignment.tier) : null;
+    };
+
+    const timeTier = getMetaTier("czas");
+    const timeBonusMap = { DR: 60000, sDR: 120000, pDR: 180000 };
+    const timeBonus = timeTier ? (timeBonusMap[timeTier] || 0) : 0;
+    World.fxTimeBonusMs = Math.max(0, timeBonus);
+
+    const intentTier = getMetaTier("intencja");
+    const intentBase = {
+      DR: { asteroid: 0.15, planet: 0.10 },
+      sDR: { asteroid: 0.30, planet: 0.15 },
+      pDR: { asteroid: 0.35, planet: 0.35 }
+    };
+    const intent = intentTier ? (intentBase[intentTier] || null) : null;
+    World.fxIntentBounceAsteroidPct = intent
+      ? clampNum(intent.asteroid * strengthMul, 0, 0.95)
+      : 0;
+    World.fxIntentBouncePlanetPct = intent
+      ? clampNum(intent.planet * strengthMul, 0, 0.95)
+      : 0;
+
+    const silenceTier = getMetaTier("cisza");
+    const silenceSecondsMap = { DR: 5, sDR: 10, pDR: 15 };
+    const baseSeconds = silenceTier ? (silenceSecondsMap[silenceTier] || 0) : 0;
+    const silenceSeconds = Math.max(0, baseSeconds * strengthMul);
+    World.fxSilenceOnlyColors = silenceSeconds > 0 && Array.isArray(activatedColors)
+      ? activatedColors.filter(Boolean)
+      : [];
+    World.fxSilenceOnlyColorsUntilMs = silenceSeconds > 0 ? (nowMs + silenceSeconds * 1000) : 0;
+
+    World.fxLastActivation = {
+      cardKind,
+      activatedColors: Array.isArray(activatedColors) ? activatedColors.slice() : [],
+      strengthMul,
+      timeTier,
+      intentTier,
+      silenceTier,
+      atMs: nowMs
+    };
+  }
+
+  function getFormaTimeBonusMs(World) {
+    if (!World) return 0;
+    const bonus = Number(World.fxTimeBonusMs || 0);
+    return Number.isFinite(bonus) ? bonus : 0;
   }
 
   function getFormaEffectColor(World) {
