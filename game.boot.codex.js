@@ -533,6 +533,22 @@ meteorCollisionFudge: 1.12,
   }
 
   function resetWorld() {
+    const buildCardBank = () => ({
+      R1: {
+        red: { DR: 0, sDR: 0, pDR: 0 },
+        yellow: { DR: 0, sDR: 0, pDR: 0 },
+        green: { DR: 0, sDR: 0, pDR: 0 },
+        blue: { DR: 0, sDR: 0, pDR: 0 },
+      },
+      R2: {
+        "red-yellow": { DR: 0, sDR: 0, pDR: 0 },
+        "red-green": { DR: 0, sDR: 0, pDR: 0 },
+        "red-blue": { DR: 0, sDR: 0, pDR: 0 },
+        "yellow-green": { DR: 0, sDR: 0, pDR: 0 },
+        "yellow-blue": { DR: 0, sDR: 0, pDR: 0 },
+        "green-blue": { DR: 0, sDR: 0, pDR: 0 },
+      }
+    });
     World.meteors = [];
     World.asteroids = [];
     World.planets = [];
@@ -550,6 +566,10 @@ meteorCollisionFudge: 1.12,
     World.trialPack01Color = null;
     World.trialPack01State = "idle";
     World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
+    World.cardBank = buildCardBank();
+    World._cardBankMigrated = true;
+    World.r1Seq = { color: null, streak: 0, windowOpen: false };
+    World.r2Seq = { active: false, colorA: null, colorB: null, phase: "", needBdr: 0 };
     World.pack01ReleaseBlockColor = null;
     World.pack01ReleaseBlockUntilMs = 0;
     World.meteorBounceEnabled = false;
@@ -574,6 +594,9 @@ meteorCollisionFudge: 1.12,
 
     if (window.CardEngine && typeof window.CardEngine.resetForNewRun === "function") {
       window.CardEngine.resetForNewRun();
+    }
+    if (window.HC?.RunTimers?.reset) {
+      window.HC.RunTimers.reset(World);
     }
   }
   window.resetWorld = resetWorld;

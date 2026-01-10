@@ -6,18 +6,52 @@
   let btnRestart = null;
   let btnSubMeta = null;
   let scoreLabel = null;
+  let cardsLabel = null;
   let topBar = null;
   let mpsUI = null;
   let fpsAcc = 0;
   let fpsFrames = 0;
   let initialized = false;
   let lastScore = null;
+  let lastCardsTotal = null;
 
   function updateScoreLabel(World, force) {
     if (!scoreLabel || !World) return;
     if (force || World.score !== lastScore) {
       lastScore = World.score;
       scoreLabel.textContent = `RP: ${World.score}`;
+    }
+  }
+
+  function getTotalCards(World) {
+    const CardEngine = window.CardEngine;
+    if (CardEngine && typeof CardEngine.getTotalCardCount === "function") {
+      return CardEngine.getTotalCardCount(World);
+    }
+    const bank = World?.cardBank;
+    if (!bank) return 0;
+    let total = 0;
+    Object.values(bank.R1 || {}).forEach((bucket) => {
+      if (!bucket) return;
+      total += Math.max(0, Math.floor(bucket.DR || 0));
+      total += Math.max(0, Math.floor(bucket.sDR || 0));
+      total += Math.max(0, Math.floor(bucket.pDR || 0));
+    });
+    Object.values(bank.R2 || {}).forEach((bucket) => {
+      if (!bucket) return;
+      total += Math.max(0, Math.floor(bucket.DR || 0));
+      total += Math.max(0, Math.floor(bucket.sDR || 0));
+      total += Math.max(0, Math.floor(bucket.pDR || 0));
+    });
+    return total;
+  }
+
+  function updateCardsLabel(World, force) {
+    if (!cardsLabel || !World) return;
+    const total = getTotalCards(World);
+    if (force || total !== lastCardsTotal) {
+      lastCardsTotal = total;
+      cardsLabel.textContent = `KARTY: ${total}`;
     }
   }
 
@@ -52,6 +86,16 @@
     el.className = "pill";
     el.id = "scoreLabel";
     el.textContent = "RP: 0";
+    topBar.appendChild(el);
+    return el;
+  }
+
+  function ensureCardsLabel() {
+    if (!topBar) return null;
+    const el = document.createElement("div");
+    el.className = "pill";
+    el.id = "cardsLabel";
+    el.textContent = "KARTY: 0";
     topBar.appendChild(el);
     return el;
   }
@@ -105,6 +149,7 @@
       topBar = document.getElementById("topBar");
 
       scoreLabel = ensureScoreLabel();
+      cardsLabel = ensureCardsLabel();
       mpsUI = ensureMpsUI();
 
       if (mpsUI && World) {
@@ -120,6 +165,7 @@
           window.resetWorld();
           const refreshedWorld = (window.HC.getWorld && window.HC.getWorld()) || window.World;
           updateScoreLabel(refreshedWorld, true);
+          updateCardsLabel(refreshedWorld, true);
           updateMpsUI(refreshedWorld);
         });
       }
@@ -133,6 +179,7 @@
       }
       if (window.resetWorld) window.resetWorld();
       updateScoreLabel(World, true);
+      updateCardsLabel(World, true);
       updateMpsUI(World);
     },
     update(dt, nowMs) {
@@ -146,6 +193,7 @@
       }
       const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
       updateScoreLabel(World, false);
+      updateCardsLabel(World, false);
       const CE = window.CardEngine;
       const view = window.HC.getView && window.HC.getView();
       if (CE && typeof CE.render === "function" && view && window.ctx) {
