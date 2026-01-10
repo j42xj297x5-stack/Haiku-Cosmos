@@ -1914,10 +1914,6 @@ const CardEngine = (() => {
     const hasEnoughForgeRp = rpValue >= forgeRpCost;
     const scaleCenterX = panel.x + panel.w / 2;
     const scaleCenterY = panel.y + panel.h / 2;
-    const totalCards = (typeof World.totalCards === "number")
-      ? World.totalCards
-      : recomputeTotalCards(World);
-
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fillRect(0, 0, screenW, screenH);
@@ -1940,8 +1936,6 @@ const CardEngine = (() => {
     ctx.textAlign = "left";
     ctx.fillStyle = "rgba(255,255,255,0.85)";
     ctx.fillText(`Punkty Rezonansu: ${rpValue}`, panel.x + pad, headerY);
-    ctx.textAlign = "right";
-    ctx.fillText(`Karty: ${totalCards}`, panel.x + panel.w - pad, headerY);
     ctx.textAlign = "left";
 
     ctx.save();

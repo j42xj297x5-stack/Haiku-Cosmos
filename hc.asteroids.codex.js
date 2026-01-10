@@ -38,7 +38,7 @@
       const light = rand(42, 62);
 
       const Rm = meteorBaseRadius();
-      const baseOrbitPx = 3.0 * Rm;
+      const baseOrbitPx = Math.max(r * 1.10, r + 2.2 * Rm);
       const orbitMul = (typeof World.metaOrbitMulAsteroid === "number") ? World.metaOrbitMulAsteroid : 1;
       const orbitPx = baseOrbitPx * orbitMul;
 
@@ -177,7 +177,9 @@
             a.liveColorCounts[m.colorName] = (a.liveColorCounts[m.colorName] || 0) + 1;
 
             a.r = clamp(a.r + m.r * 0.12, a.minR, a.maxR);
-            const nextOrbit = clamp(a.orbitPx + m.r, a.minOrbitPx, a.maxOrbitPx);
+            const Rm2 = meteorBaseRadius();
+            const baseOrbit = Math.max(a.r * 1.10, a.r + 2.2 * Rm2);
+            const nextOrbit = clamp(baseOrbit, a.minOrbitPx, a.maxOrbitPx);
             setAsteroidOrbitRadius(a, nextOrbit);
 
             addOrbiterToAsteroid(a, m);
@@ -219,11 +221,8 @@
         90.0 * Rm
       );
 
-      const orbit0 = clamp(
-        r0 * 2.1 + sumR * 0.35,
-        4.0 * Rm,
-        160.0 * Rm
-      );
+      const baseOrbit = Math.max(r0 * 1.20, r0 + 2.8 * Rm);
+      const orbit0 = clamp(baseOrbit, baseOrbit, 420.0 * Rm);
 
       const planetMass = sumM + massFromR(a.r);
 

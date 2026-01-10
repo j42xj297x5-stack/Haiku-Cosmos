@@ -23,7 +23,7 @@
       if (star._epochZoomStarted) return;
       const margin = 0.88;
       const minHalf = Math.min(screenW, screenH) * 0.5 * margin;
-      const desiredFit = minHalf / Math.max(1e-6, (star.gravityR || computeGravityFromPlanetRadius(star.r)));
+      const desiredFit = minHalf / Math.max(1e-6, (star.gravityR || (star.r * 1.30)));
       const nudge = cam.scale * 0.86;
       const toZoom = Math.min(desiredFit, nudge);
 
@@ -62,7 +62,7 @@
       const dy = o.y - s.y;
       const d = Math.hypot(dx, dy) || 1;
       const minR = Math.max(1, s.r + o.r + 2);
-      const maxR = Math.max(1, (s.gravityR || computeGravityFromPlanetRadius(s.r)) - o.r - 2);
+      const maxR = Math.max(1, (s.gravityR || (s.r * 1.30)) - o.r - 2);
       const baseOrbitRadius = clamp(d, minR, maxR);
       const orbitR = baseOrbitRadius * ((typeof World.metaOrbitMulStar === "number") ? World.metaOrbitMulStar : 1);
       const theta = Math.atan2(dy, dx);
@@ -122,7 +122,7 @@
     function captureBodiesByStars(dt) {
       if (!World.stars || !World.stars.length) return;
       for (const s of World.stars) {
-        const gravityR = s.gravityR || computeGravityFromPlanetRadius(s.r);
+        const gravityR = s.gravityR || (s.r * 1.30);
         if (World.asteroids && World.asteroids.length) {
           for (const a of World.asteroids) {
             if (!isCaptureToStarAllowed(a)) continue;
