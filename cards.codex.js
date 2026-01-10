@@ -516,6 +516,28 @@ const CardEngine = (() => {
     return (state.world && state.world.nowMs) ? state.world.nowMs : performance.now();
   }
 
+  function startR1TimerForColor(World, colorKey, durationMs, nowMsValue) {
+    if (!World || !colorKey) return;
+    const t = Number(nowMsValue);
+    const dur = Number(durationMs);
+    if (!Number.isFinite(t) || !Number.isFinite(dur) || dur <= 0) return;
+    if (!World.r1ColorTimers || typeof World.r1ColorTimers !== "object") {
+      World.r1ColorTimers = {};
+    }
+    World.r1ColorTimers[colorKey] = t + dur;
+  }
+
+  function isColorR1Active(colorKey, nowMsValue) {
+    const World = state.world;
+    const key = normalizePack01Color(colorKey);
+    if (!World || !key) return false;
+    const timers = World.r1ColorTimers;
+    if (!timers || typeof timers !== "object") return false;
+    const t = Number((typeof nowMsValue === "number") ? nowMsValue : nowMs());
+    if (!Number.isFinite(t)) return false;
+    return Number(timers[key] || 0) > t;
+  }
+
   function isOnCooldown(cardId, t) {
     const readyAt = state.cooldowns.get(cardId) ?? 0;
     return t < readyAt;
@@ -656,6 +678,7 @@ const CardEngine = (() => {
     const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R1");
     if (normalizedColor) {
       startRunTimerForColor(World, normalizedColor, durationMs, t, 1);
+      startR1TimerForColor(World, normalizedColor, durationMs, t);
     }
     return startFormaEffect(World, t, "R1", baseDurationMs);
   }
@@ -2622,6 +2645,7 @@ const CardEngine = (() => {
     config,
     state,
     bindWorld,
+    isColorR1Active,
 
     getTargetLibrary: () => state.targetLibrary.slice(),
     getTargetMeta: (id) => state.targetMeta.get(id) || null,

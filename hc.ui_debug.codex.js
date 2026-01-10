@@ -7,7 +7,6 @@
   let btnSubMeta = null;
   let scoreLabel = null;
   let topBar = null;
-  let mpsUI = null;
   let fpsAcc = 0;
   let fpsFrames = 0;
   let initialized = false;
@@ -30,13 +29,6 @@
     return 0;
   }
 
-  function updateMpsUI(World) {
-    if (!mpsUI || !World) return;
-    const current = Math.max(1, Math.round(1 / World.spawnInterval));
-    mpsUI.value.textContent = String(current);
-    mpsUI.slider.value = String(current);
-  }
-
   function addScore(points) {
     const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
     if (!World) return;
@@ -45,14 +37,6 @@
   }
 
   window.addScore = addScore;
-
-  function setMeteorsPerSec(mps, World, clamp) {
-    const v = clamp(mps, 1, 60);
-    if (mpsUI) {
-      mpsUI.value.textContent = String(Math.round(v));
-      mpsUI.slider.value = String(Math.round(v));
-    }
-  }
 
   function ensureScoreLabel() {
     if (!topBar) return null;
@@ -64,62 +48,21 @@
     return el;
   }
 
-  function ensureMpsUI() {
-    if (!topBar) return null;
-
-    const wrap = document.createElement("div");
-    wrap.className = "pill";
-    wrap.style.display = "flex";
-    wrap.style.alignItems = "center";
-    wrap.style.gap = "6px";
-    wrap.style.padding = "4px 8px";
-    wrap.style.marginRight = "48px";
-
-    const value = document.createElement("span");
-    value.id = "mpsValue";
-    value.style.minWidth = "22px";
-    value.style.textAlign = "right";
-
-    const slider = document.createElement("input");
-    slider.type = "range";
-    slider.min = "1";
-    slider.max = "20";
-    slider.step = "1";
-    slider.value = "5";
-    slider.style.width = "100px";
-    wrap.appendChild(value);
-    wrap.appendChild(slider);
-    topBar.appendChild(wrap);
-
-    return { wrap, value, slider };
-  }
-
   window.HC.UI = {
     init() {
       if (initialized) return;
       initialized = true;
 
       const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
-      const clamp = (window.HC && window.HC.Util && window.HC.Util.clamp) || window.clamp;
-
       fpsLabel = document.getElementById("fpsLabel");
       btnRestart = document.getElementById("btnRestart");
       btnSubMeta = document.getElementById("btnSubMeta");
       topBar = document.getElementById("topBar");
 
       scoreLabel = ensureScoreLabel();
-      mpsUI = ensureMpsUI();
 
       if (World && World.r1HudPulse === undefined) {
         World.r1HudPulse = null;
-      }
-
-      if (mpsUI && World) {
-        updateMpsUI(World);
-        mpsUI.slider.addEventListener("input", () => {
-          const v = parseInt(mpsUI.slider.value, 10) || 1;
-          setMeteorsPerSec(v, World, clamp);
-        });
       }
 
       if (btnRestart && window.resetWorld) {
@@ -127,7 +70,6 @@
           window.resetWorld();
           const refreshedWorld = (window.HC.getWorld && window.HC.getWorld()) || window.World;
           updateScoreLabel(refreshedWorld, true);
-          updateMpsUI(refreshedWorld);
         });
       }
       if (btnSubMeta) {
@@ -140,7 +82,6 @@
       }
       if (window.resetWorld) window.resetWorld();
       updateScoreLabel(World, true);
-      updateMpsUI(World);
     },
     update(dt, nowMs) {
       fpsAcc += dt;
