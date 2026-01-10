@@ -373,6 +373,9 @@
       resetMetaOrbitMultipliers(worldNow);
       resetFormaEffectState(worldNow);
       if (worldNow) {
+        worldNow.cardsPool = [];
+        worldNow.pendingCard = null;
+        worldNow.pendingCardUntilMs = 0;
         worldNow.totalCards = 0;
         if (window.CardEngine && typeof window.CardEngine.recomputeTotalCards === "function") {
           window.CardEngine.recomputeTotalCards(worldNow);
