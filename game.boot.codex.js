@@ -349,7 +349,8 @@ meteorCollisionFudge: 1.12,
   }
 
   function computeGravityFromPlanetRadius(r) {
-    return r * 2.6;
+    // KANON v1: planeta = r + 20%
+    return r * 1.20;
   }
 
   function hash01(n) {

@@ -355,7 +355,7 @@
       clearSystemOrbitersForStar(p);
 
       if (!World.stars) World.stars = [];
-      const starBaseGravity = computeGravityFromPlanetRadius(p.r);
+      const starBaseGravity = p.r * 1.30;
       const starOrbitMul = (typeof World.metaOrbitMulStar === "number") ? World.metaOrbitMulStar : 1;
       const star = {
         type: "star",
@@ -391,7 +391,7 @@
       const maxR = oldGravityR * World.STAR_BIRTH_RADIUS_MAX_FRACTION;
       newR = Math.min(newR, maxR);
       star.r = newR;
-      const updatedBaseGravity = computeGravityFromPlanetRadius(star.r);
+      const updatedBaseGravity = star.r * 1.30;
       const updatedOrbitMul = (typeof World.metaOrbitMulStar === "number") ? World.metaOrbitMulStar : 1;
       star.orbitNativeRadius = updatedBaseGravity;
       star.orbitCurrentRadius = updatedBaseGravity * updatedOrbitMul;
@@ -545,9 +545,10 @@
 
             // Planet grows a bit and its orbit expands by meteor size (visual clarity)
             p.r = clamp(p.r + m.r * 0.06, meteorBaseRadius() * 2.0, meteorBaseRadius() * 180);
-            const minOrbit = p.r * 2.1;
-            const maxOrbit = meteorBaseRadius() * 420;
-            const nextOrbit = clamp((p.orbitPx || minOrbit) + m.r, minOrbit, maxOrbit);
+            p.gravityR = computeGravityFromPlanetRadius(p.r);
+            const Rm = meteorBaseRadius();
+            const baseOrbit = Math.max(p.r * 1.20, p.r + 2.8 * Rm);
+            const nextOrbit = clamp(baseOrbit, baseOrbit, meteorBaseRadius() * 420);
             setPlanetOrbitRadius(p, nextOrbit);
 
             addOrbiterToPlanet(p, m);
@@ -621,10 +622,10 @@
                 p.rockyLocked = true;
               }
             }
-            const baseOrbit = (p.orbitPx || (p.r * 2.6));
+            const Rm = meteorBaseRadius();
+            const baseOrbit = Math.max(p.r * 1.20, p.r + 2.8 * Rm);
             const orbitR = baseOrbit + a.r;
             const theta = Math.atan2(dy, dx);
-            const Rm = meteorBaseRadius();
             const baseOmega = rand(0.35, 0.95);
             const direction = Math.random() < 0.5 ? -1 : 1;
             const omega = direction * computeOmega(baseOmega, orbitR, Rm);
@@ -636,9 +637,7 @@
             a.omega = omega;
 
             // Orbit expands only by the asteroid size (as per design)
-            const minOrbit = p.r * 2.1;
-            const maxOrbit = p.r * 10.0;
-            const nextOrbit = clamp(baseOrbit + a.r, minOrbit, maxOrbit);
+            const nextOrbit = clamp(baseOrbit, baseOrbit, meteorBaseRadius() * 420);
             setPlanetOrbitRadius(p, nextOrbit);
 
             if (p.isRocky && countSystemOrbitersForRocky(p) >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
