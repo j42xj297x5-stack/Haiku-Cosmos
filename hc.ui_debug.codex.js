@@ -111,6 +111,10 @@
       scoreLabel = ensureScoreLabel();
       mpsUI = ensureMpsUI();
 
+      if (World && World.r1HudPulse === undefined) {
+        World.r1HudPulse = null;
+      }
+
       if (mpsUI && World) {
         updateMpsUI(World);
         mpsUI.slider.addEventListener("input", () => {
