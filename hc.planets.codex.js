@@ -493,6 +493,12 @@
       meteor.y = body.y + ny * push;
     }
 
+    function isR1ColorActive(colorName, nowMs) {
+      const CE = window.CardEngine;
+      if (!CE || typeof CE.isColorR1Active !== "function") return false;
+      return CE.isColorR1Active(colorName, nowMs);
+    }
+
     function captureMeteorsByPlanets(dt, nowMs) {
       if (!World.planets.length || !World.meteors.length) return;
 
@@ -513,6 +519,7 @@
           && m.colorName === World.pack01ReleaseBlockColor) {
           continue;
         }
+        if (isR1ColorActive(m.colorName, nowMs)) continue;
 
         for (let pi = 0; pi < World.planets.length; pi++) {
           const p = World.planets[pi];

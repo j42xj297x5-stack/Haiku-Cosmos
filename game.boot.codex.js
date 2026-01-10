@@ -118,7 +118,7 @@ console.log("[HC] game.boot.codex.js loaded");
     flags: { firstPlanetZoomed: false, firstStarZoomed: false },
 
     spawnTimer: 0,
-    spawnInterval: 0.22,
+    spawnInterval: 1.0,
     maxMeteors: 60,
 
   // Pointer tuning (base) — cards modify with multipliers:
@@ -571,6 +571,7 @@ meteorCollisionFudge: 1.12,
     World._cardBankMigrated = true;
     World.r1Seq = { color: null, streak: 0, windowOpen: false };
     World.r2Seq = { active: false, colorA: null, colorB: null, phase: "", needBdr: 0 };
+    World.r1ColorTimers = {};
     World.pack01ReleaseBlockColor = null;
     World.pack01ReleaseBlockUntilMs = 0;
     World.meteorBounceEnabled = false;

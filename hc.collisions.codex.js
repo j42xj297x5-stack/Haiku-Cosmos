@@ -8,6 +8,12 @@
     const addScore = window.addScore;
     const spawnAsteroidFromCollision = window.spawnAsteroidFromCollision;
 
+    function isR1ColorActive(colorName, nowMs) {
+      const CE = window.CardEngine;
+      if (!CE || typeof CE.isColorR1Active !== "function") return false;
+      return CE.isColorR1Active(colorName, nowMs);
+    }
+
     function ensureR1State() {
       if (!World.r1 || typeof World.r1 !== "object") {
         World.r1 = { color: null, streak: 0 };
@@ -60,6 +66,12 @@
           if (b.age < 0.25) continue;
 
           if ((a.noMeteorCollisionUntilMs && nowMs < a.noMeteorCollisionUntilMs) || (b.noMeteorCollisionUntilMs && nowMs < b.noMeteorCollisionUntilMs)) continue;
+
+          const r1ActiveA = isR1ColorActive(a.colorName, nowMs);
+          const r1ActiveB = isR1ColorActive(b.colorName, nowMs);
+          if (r1ActiveA || r1ActiveB) {
+            if (!(a.colorName === b.colorName && r1ActiveA && r1ActiveB)) continue;
+          }
 
           const dx = b.x - a.x;
           const dy = b.y - a.y;
