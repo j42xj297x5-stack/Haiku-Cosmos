@@ -86,16 +86,13 @@
     wrap.className = "pill";
     wrap.style.display = "flex";
     wrap.style.alignItems = "center";
-    wrap.style.gap = "10px";
-    wrap.style.padding = "6px 10px";
-
-    const label = document.createElement("span");
-    label.textContent = "Meteors/s:";
-    label.style.opacity = "0.9";
+    wrap.style.gap = "6px";
+    wrap.style.padding = "4px 8px";
+    wrap.style.marginRight = "48px";
 
     const value = document.createElement("span");
     value.id = "mpsValue";
-    value.style.minWidth = "34px";
+    value.style.minWidth = "22px";
     value.style.textAlign = "right";
 
     const slider = document.createElement("input");
@@ -104,14 +101,12 @@
     slider.max = "20";
     slider.step = "1";
     slider.value = "5";
-    slider.style.width = "140px";
-
-    wrap.appendChild(label);
+    slider.style.width = "100px";
     wrap.appendChild(value);
     wrap.appendChild(slider);
     topBar.appendChild(wrap);
 
-    return { wrap, label, value, slider };
+    return { wrap, value, slider };
   }
 
   window.HC.UI = {
