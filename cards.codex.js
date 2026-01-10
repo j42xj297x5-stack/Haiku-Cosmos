@@ -248,10 +248,7 @@ const CardEngine = (() => {
 
     if (World.spawnIntervalMul === undefined) World.spawnIntervalMul = 1.0;
     if (World.score === undefined) World.score = 0;
-    if (!World.collectedCardsByColor) {
-      World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
-    }
-    ensureCardBank(World);
+    ensureCardsPool(World);
     if (!World.metaSlots || typeof World.metaSlots !== "object") {
       World.metaSlots = { forma: null, intencja: null, czas: null, cisza: null };
     } else {
@@ -478,7 +475,7 @@ const CardEngine = (() => {
       Events.on("R1_SUCCESS", (payload = {}) => {
         const colorKey = normalizePack01Color(payload.color);
         if (state.world && colorKey) {
-          addCardCount(state.world, "R1", [colorKey], "DR", 1);
+          onCardCollected({ kind: "R1", tier: "DR", colorA: colorKey });
         }
         showR1Overlay("SUCCESS", colorKey, 3000);
       });
@@ -543,7 +540,7 @@ const CardEngine = (() => {
       showRemoveForSlotKey: null
     };
     if (state.world) {
-      resetCardBank(state.world);
+      resetCardPool(state.world);
       bindWorld(state.world);
     }
   }
@@ -572,7 +569,7 @@ const CardEngine = (() => {
     const t = nowMs();
     const normalizedColor = normalizePack01Color(colorKey);
     const tier = normalizeSubMetaTier(tierKey || "DR");
-    if (normalizedColor && !consumeCardCount(World, "R1", [normalizedColor], tier)) return false;
+    if (!consumePendingCard(World, { kind: "R1", tier, colors: [normalizedColor] }, t)) return false;
     applyWorldSlotEffectsOnRunActivation(World, t, [normalizedColor], "R1");
     const bonusMs = getFormaTimeBonusMs(World);
     const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R1");
@@ -589,7 +586,7 @@ const CardEngine = (() => {
     const colors = Array.isArray(colorKeys) ? colorKeys.map(normalizePack01Color).filter(Boolean) : [];
     const tier = normalizeSubMetaTier(tierKey || "DR");
     const pairKey = colors.length >= 2 ? getCanonicalPairKey(colors[0], colors[1]) : null;
-    if (pairKey && !consumeCardCount(World, "R2", [colors[0], colors[1]], tier)) return false;
+    if (pairKey && !consumePendingCard(World, { kind: "R2", tier, colors: [colors[0], colors[1]] }, t)) return false;
     applyWorldSlotEffectsOnRunActivation(World, t, colors, "R2");
     const bonusMs = getFormaTimeBonusMs(World);
     const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R2");
@@ -687,6 +684,7 @@ const CardEngine = (() => {
       }
       syncFormaActiveUntil(World, t);
       applyFormaToWorld(World);
+      flushPendingCard(World, t);
       if (state.r1Overlay.visible && state.r1Overlay.ttlMs > 0) {
         if (t - state.r1Overlay.shownAtMs >= state.r1Overlay.ttlMs) {
           state.r1Overlay.visible = false;
@@ -875,12 +873,14 @@ const CardEngine = (() => {
     const colorKey = assignment.color;
     if (!colorKey) return;
     const tierKey = normalizeSubMetaTier(assignment.tier);
-    const available = getCardCount(World, "R1", [colorKey], tierKey);
+    const available = getCardCount(World, "R1", [colorKey], tierKey, { availableOnly: true });
     if (available <= 0) return;
     if ((World.score || 0) < SUB_META_ASSIGN_COST) return;
 
     if (World.metaSlots[slotKey]) return;
-    addCardCount(World, "R1", [colorKey], tierKey, -1);
+    const card = getFirstAvailableCard(World, "R1", [colorKey], tierKey);
+    if (!card) return;
+    card.inSlotKey = slotKey;
     World.metaSlots[slotKey] = assignment;
     World.score = Math.max(0, (World.score || 0) - SUB_META_ASSIGN_COST);
   }
@@ -891,7 +891,9 @@ const CardEngine = (() => {
     if (!assignment || !assignment.color) return;
     if ((World.score || 0) < SUB_META_ASSIGN_COST) return;
     World.score = Math.max(0, (World.score || 0) - SUB_META_ASSIGN_COST);
-    addCardCount(World, "R1", [assignment.color], assignment.tier, 1);
+    ensureCardsPool(World);
+    const card = World.cardsPool.find((entry) => entry && entry.inSlotKey === slotKey) || null;
+    if (card) card.inSlotKey = null;
     World.metaSlots[slotKey] = null;
   }
 
@@ -953,166 +955,220 @@ const CardEngine = (() => {
     return bank;
   }
 
-  function ensureCardBank(World) {
-    if (!World) return;
-    if (!World.cardBank || typeof World.cardBank !== "object") {
-      World.cardBank = buildCardBank();
-    }
-    if (!World.cardBank.R1 || typeof World.cardBank.R1 !== "object") {
-      World.cardBank.R1 = {};
-    }
-    if (!World.cardBank.R2 || typeof World.cardBank.R2 !== "object") {
-      World.cardBank.R2 = {};
-    }
-    SUB_META_COLORS.forEach((color) => {
-      if (!World.cardBank.R1[color] || typeof World.cardBank.R1[color] !== "object") {
-        World.cardBank.R1[color] = createTierBucket();
-      }
-    });
-    SUB_META_R2_PAIRS.forEach((pair) => {
-      const key = getCanonicalPairKey(pair[0], pair[1]);
-      if (!World.cardBank.R2[key] || typeof World.cardBank.R2[key] !== "object") {
-        World.cardBank.R2[key] = createTierBucket();
-      }
-    });
+  let cardIdCounter = 0;
 
-    if (!World._cardBankMigrated) {
-      let hasStock = false;
-      SUB_META_COLORS.forEach((color) => {
-        const bucket = World.cardBank.R1[color];
-        SUB_META_TIERS.forEach((tier) => {
-          if (bucket?.[tier]) hasStock = true;
-        });
-      });
-      SUB_META_R2_PAIRS.forEach((pair) => {
-        const key = getCanonicalPairKey(pair[0], pair[1]);
-        const bucket = World.cardBank.R2[key];
-        SUB_META_TIERS.forEach((tier) => {
-          if (bucket?.[tier]) hasStock = true;
-        });
-      });
-      if (!hasStock) {
-        if (World.cardStock) {
-          SUB_META_COLORS.forEach((color) => {
-            const bucket = World.cardStock.R1?.[color];
-            SUB_META_TIERS.forEach((tier) => {
-              const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
-              if (count > 0) World.cardBank.R1[color][tier] += count;
-            });
-          });
-          SUB_META_R2_PAIRS.forEach((pair) => {
-            const key = getCanonicalPairKey(pair[0], pair[1]);
-            const bucket = World.cardStock.R2?.[key];
-            SUB_META_TIERS.forEach((tier) => {
-              const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
-              if (count > 0) World.cardBank.R2[key][tier] += count;
-            });
-          });
-        }
-        if (World.collectedCardsByColor) {
-          SUB_META_COLORS.forEach((color) => {
-            const count = Math.max(0, Math.floor(World.collectedCardsByColor[color] || 0));
-            if (count > 0) World.cardBank.R1[color].DR += count;
-          });
-        }
-        const comboCounts = World.collectedCardsByCombo || World.collectedCardsByPair;
-        if (comboCounts) {
-          SUB_META_R2_PAIRS.forEach((pair) => {
-            const count = getSubMetaComboCount(comboCounts, pair[0], pair[1]);
-            if (count > 0) {
-              const key = getCanonicalPairKey(pair[0], pair[1]);
-              World.cardBank.R2[key].DR += Math.max(0, Math.floor(count));
-            }
-          });
-        }
-      }
-      World._cardBankMigrated = true;
-      recomputeTotalCards(World);
-    }
-    if (typeof World.totalCards !== "number") {
-      recomputeTotalCards(World);
-    }
+  function createCardEntity({ kind, tier, colorA, colorB, inSlotKey } = {}) {
+    if (!kind) return null;
+    const kindKey = String(kind).toUpperCase();
+    const tierKey = normalizeSubMetaTier(tier || "DR");
+    const primary = normalizePack01Color(colorA);
+    if (!primary) return null;
+    const secondary = colorB ? normalizePack01Color(colorB) : null;
+    if (kindKey === "R2" && !secondary) return null;
+    if (kindKey !== "R1" && kindKey !== "R2") return null;
+    cardIdCounter += 1;
+    return {
+      id: `card:${Date.now()}:${cardIdCounter}`,
+      kind: kindKey,
+      tier: tierKey,
+      colorA: primary,
+      colorB: secondary,
+      inSlotKey: inSlotKey || null
+    };
   }
 
-  function resetCardBank(World) {
+  function ensureCardsPool(World) {
     if (!World) return;
-    World.cardBank = buildCardBank();
-    World._cardBankMigrated = true;
+    if (!Array.isArray(World.cardsPool)) {
+      World.cardsPool = [];
+    }
+    if (World.pendingCard === undefined) World.pendingCard = null;
+    if (typeof World.pendingCardUntilMs !== "number") World.pendingCardUntilMs = 0;
+
+    if (World._cardsPoolMigrated) return;
+
+    const hasPoolStock = Array.isArray(World.cardsPool) && World.cardsPool.length > 0;
+    if (hasPoolStock) {
+      World._cardsPoolMigrated = true;
+      recomputeTotalCards(World);
+      return;
+    }
+
+    const pushCards = (kind, colors, tier, count) => {
+      const total = Math.max(0, Math.floor(count || 0));
+      for (let i = 0; i < total; i++) {
+        const card = createCardEntity({
+          kind,
+          tier,
+          colorA: colors[0],
+          colorB: colors[1] || null,
+          inSlotKey: null
+        });
+        if (card) World.cardsPool.push(card);
+      }
+    };
+
+    const bank = World.cardBank || World.cardStock;
+    if (bank) {
+      SUB_META_COLORS.forEach((color) => {
+        const bucket = bank.R1?.[color];
+        SUB_META_TIERS.forEach((tier) => {
+          const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
+          if (count > 0) pushCards("R1", [color], tier, count);
+        });
+      });
+      Object.keys(bank.R2 || {}).forEach((pairKey) => {
+        const colors = pairKey.split("-");
+        if (colors.length < 2) return;
+        const bucket = bank.R2?.[pairKey];
+        SUB_META_TIERS.forEach((tier) => {
+          const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
+          if (count > 0) pushCards("R2", colors, tier, count);
+        });
+      });
+    }
+
+    if (!World.cardsPool.length && World.collectedCardsByColor) {
+      SUB_META_COLORS.forEach((color) => {
+        const count = Math.max(0, Math.floor(World.collectedCardsByColor[color] || 0));
+        if (count > 0) pushCards("R1", [color], "DR", count);
+      });
+    }
+    if (!World.cardsPool.length) {
+      const comboCounts = World.collectedCardsByCombo || World.collectedCardsByPair;
+      if (comboCounts) {
+        SUB_META_R2_PAIRS.forEach((pair) => {
+          const count = getSubMetaComboCount(comboCounts, pair[0], pair[1]);
+          if (count > 0) pushCards("R2", pair, "DR", count);
+        });
+      }
+    }
+
+    World._cardsPoolMigrated = true;
     recomputeTotalCards(World);
-    if (!World.collectedCardsByColor) {
-      World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
-    } else {
-      SUB_META_COLORS.forEach((color) => {
-        World.collectedCardsByColor[color] = 0;
-      });
-    }
   }
 
-  function getCardBankBucket(World, kind, colors) {
-    if (!World) return null;
-    ensureCardBank(World);
-    if (kind === "R1") {
-      const color = colors?.[0];
-      return World.cardBank.R1[color] || null;
+  function resetCardPool(World) {
+    if (!World) return;
+    World.cardsPool = [];
+    World.pendingCard = null;
+    World.pendingCardUntilMs = 0;
+    World._cardsPoolMigrated = true;
+    recomputeTotalCards(World);
+  }
+
+  function cardMatches(card, kind, colors, tier) {
+    if (!card) return false;
+    const kindKey = String(kind || "").toUpperCase();
+    if (card.kind !== kindKey) return false;
+    const tierKey = normalizeSubMetaTier(tier || "DR");
+    if (card.tier !== tierKey) return false;
+    if (kindKey === "R1") {
+      return card.colorA === colors?.[0];
     }
-    if (kind === "R2") {
+    if (kindKey === "R2") {
       const key = getCanonicalPairKey(colors?.[0], colors?.[1]);
-      return World.cardBank.R2[key] || null;
+      const cardKey = getCanonicalPairKey(card.colorA, card.colorB);
+      return key === cardKey;
     }
-    return null;
+    return false;
   }
 
-  function getCardCount(World, kind, colors, tier) {
-    const bucket = getCardBankBucket(World, kind, colors);
-    if (!bucket) return 0;
-    const tierKey = normalizeSubMetaTier(tier);
-    return Math.max(0, Math.floor(bucket[tierKey] || 0));
+  function getCardCount(World, kind, colors, tier, { availableOnly = false } = {}) {
+    if (!World) return 0;
+    ensureCardsPool(World);
+    let count = 0;
+    for (const card of World.cardsPool) {
+      if (!cardMatches(card, kind, colors, tier)) continue;
+      if (availableOnly && card.inSlotKey) continue;
+      count += 1;
+    }
+    return count;
   }
 
-  function convertDrBucket(bucket) {
-    if (!bucket) return;
-    let dr = Math.max(0, Math.floor(bucket.DR || 0));
-    if (dr >= 9) {
-      const pdrGain = Math.floor(dr / 9);
-      dr -= pdrGain * 9;
-      bucket.pDR = Math.max(0, Math.floor(bucket.pDR || 0)) + pdrGain;
-    }
-    if (dr >= 3) {
-      const sdrGain = Math.floor(dr / 3);
-      dr -= sdrGain * 3;
-      bucket.sDR = Math.max(0, Math.floor(bucket.sDR || 0)) + sdrGain;
-    }
-    bucket.DR = Math.max(0, Math.floor(dr));
+  function getFirstAvailableCard(World, kind, colors, tier) {
+    if (!World) return null;
+    ensureCardsPool(World);
+    return World.cardsPool.find((card) => cardMatches(card, kind, colors, tier) && !card.inSlotKey) || null;
   }
 
-  function addCardCount(World, kind, colors, tier, delta) {
-    const bucket = getCardBankBucket(World, kind, colors);
-    if (!bucket) return;
-    const tierKey = normalizeSubMetaTier(tier);
-    const deltaNum = Number(delta || 0);
-    const next = Math.max(0, Math.floor((bucket[tierKey] || 0) + deltaNum));
-    bucket[tierKey] = next;
-    if (kind === "R1" && tierKey === "DR") {
-      if (!World.collectedCardsByColor) {
-        World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
-      }
-      const color = colors?.[0];
-      if (color) World.collectedCardsByColor[color] = next;
-    }
-    if (tierKey === "DR" && deltaNum > 0 && (kind === "R1" || kind === "R2")) {
-      convertDrBucket(bucket);
-      if (kind === "R1" && colors?.[0]) {
-        World.collectedCardsByColor[colors[0]] = bucket.DR;
-      }
+  function consumeAvailableCards(World, kind, colors, tier, count) {
+    if (!World) return 0;
+    ensureCardsPool(World);
+    let remaining = Math.max(0, Math.floor(count || 0));
+    if (!remaining) return 0;
+    for (let i = World.cardsPool.length - 1; i >= 0 && remaining > 0; i--) {
+      const card = World.cardsPool[i];
+      if (!cardMatches(card, kind, colors, tier)) continue;
+      if (card.inSlotKey) continue;
+      World.cardsPool.splice(i, 1);
+      remaining -= 1;
     }
     recomputeTotalCards(World);
+    return count - remaining;
   }
 
-  function consumeCardCount(World, kind, colors, tier) {
-    const available = getCardCount(World, kind, colors, tier);
-    if (available <= 0) return false;
-    addCardCount(World, kind, colors, tier, -1);
+  function addCardToPool(World, payload) {
+    if (!World) return null;
+    ensureCardsPool(World);
+    let entity = null;
+    if (payload && payload.id && payload.kind && payload.tier && payload.colorA) {
+      entity = {
+        id: String(payload.id),
+        kind: String(payload.kind).toUpperCase(),
+        tier: normalizeSubMetaTier(payload.tier),
+        colorA: normalizePack01Color(payload.colorA),
+        colorB: payload.colorB ? normalizePack01Color(payload.colorB) : null,
+        inSlotKey: payload.inSlotKey || null
+      };
+    } else {
+      entity = createCardEntity(payload);
+    }
+    if (!entity || !entity.colorA || (entity.kind === "R2" && !entity.colorB)) return null;
+    World.cardsPool.push(entity);
+    recomputeTotalCards(World);
+    return entity;
+  }
+
+  function flushPendingCard(World, nowMs) {
+    if (!World || !World.pendingCard) return false;
+    const now = Number(nowMs);
+    if (!Number.isFinite(now)) return false;
+    if (now < (World.pendingCardUntilMs || 0)) return false;
+    addCardToPool(World, World.pendingCard);
+    World.pendingCard = null;
+    World.pendingCardUntilMs = 0;
     return true;
+  }
+
+  function consumePendingCard(World, { kind, tier, colors } = {}, nowMs) {
+    if (!World) return false;
+    ensureCardsPool(World);
+    const pending = World.pendingCard;
+    const now = Number(nowMs);
+    if (!pending || !Number.isFinite(now) || now > (World.pendingCardUntilMs || 0)) return false;
+    if (!cardMatches(pending, kind, colors, tier)) return false;
+    World.pendingCard = null;
+    World.pendingCardUntilMs = 0;
+    if (state.r1Overlay) state.r1Overlay.visible = false;
+    return true;
+  }
+
+  function onCardCollected(payload) {
+    const World = state.world;
+    if (!World) return null;
+    ensureCardsPool(World);
+    const now = nowMs();
+    if (World.pendingCard) {
+      addCardToPool(World, World.pendingCard);
+      World.pendingCard = null;
+      World.pendingCardUntilMs = 0;
+    }
+    const entity = createCardEntity(payload);
+    if (!entity) return null;
+    World.pendingCard = entity;
+    World.pendingCardUntilMs = now + 3000;
+    return entity;
   }
 
   function getTotalCardCount(World) {
@@ -1122,29 +1178,11 @@ const CardEngine = (() => {
   }
 
   function recomputeTotalCards(World) {
-    let total = 0;
     if (!World) return 0;
-    if (!World.cardBank) {
-      World.totalCards = 0;
-      return 0;
+    if (!Array.isArray(World.cardsPool)) {
+      World.cardsPool = [];
     }
-
-    if (World.cardBank.R1) {
-      for (const colorKey in World.cardBank.R1) {
-        const tiers = World.cardBank.R1[colorKey];
-        if (!tiers) continue;
-        for (const tierKey in tiers) total += (tiers[tierKey] || 0);
-      }
-    }
-
-    if (World.cardBank.R2) {
-      for (const pairKey in World.cardBank.R2) {
-        const tiers = World.cardBank.R2[pairKey];
-        if (!tiers) continue;
-        for (const tierKey in tiers) total += (tiers[tierKey] || 0);
-      }
-    }
-
+    const total = Array.isArray(World.cardsPool) ? World.cardsPool.length : 0;
     World.totalCards = total;
     return total;
   }
@@ -1370,12 +1408,12 @@ const CardEngine = (() => {
     if (!World) return [];
     const list = [];
     SUB_META_COLORS.forEach((color) => {
-      const drCount = getCardCount(World, "R1", [color], "DR");
+      const drCount = getCardCount(World, "R1", [color], "DR", { availableOnly: true });
       if (drCount >= 3) list.push(buildForgeCandidate("R1", [color], "sDR"));
       if (drCount >= 9) list.push(buildForgeCandidate("R1", [color], "pDR"));
     });
     SUB_META_R2_PAIRS.forEach((pair) => {
-      const drCount = getCardCount(World, "R2", pair, "DR");
+      const drCount = getCardCount(World, "R2", pair, "DR", { availableOnly: true });
       if (drCount >= 3) list.push(buildForgeCandidate("R2", pair, "sDR"));
       if (drCount >= 9) list.push(buildForgeCandidate("R2", pair, "pDR"));
     });
@@ -1391,8 +1429,7 @@ const CardEngine = (() => {
   function canCraftForge(World, forge) {
     if (!World || !forge) return false;
     const rpValue = Math.max(0, Math.floor(World.score || 0));
-    const totalCards = getTotalCardCount(World);
-    const drAvailable = getCardCount(World, forge.kind, forge.colors, "DR");
+    const drAvailable = getCardCount(World, forge.kind, forge.colors, "DR", { availableOnly: true });
     return rpValue >= (forge.costRp || 0) && drAvailable >= (forge.consumes || 0);
   }
 
@@ -1401,8 +1438,14 @@ const CardEngine = (() => {
     const cost = Math.max(0, Math.floor(forge.costRp || 0));
     const consume = Math.max(0, Math.floor(forge.consumes || 0));
     World.score = Math.max(0, Math.floor((World.score || 0) - cost));
-    addCardCount(World, forge.kind, forge.colors, "DR", -consume);
-    addCardCount(World, forge.kind, forge.colors, forge.tierTarget, 1);
+    const removed = consumeAvailableCards(World, forge.kind, forge.colors, "DR", consume);
+    if (removed !== consume) return false;
+    addCardToPool(World, {
+      kind: forge.kind,
+      tier: forge.tierTarget,
+      colorA: forge.colors[0],
+      colorB: forge.colors[1] || null
+    });
     return true;
   }
 
@@ -1454,7 +1497,7 @@ const CardEngine = (() => {
     return SUB_META_CARD_LIBRARY.filter((card) => {
       if (!card || card.color !== slotColor) return false;
       if (!Array.isArray(card.allowedSlots) || !card.allowedSlots.includes(slotKey)) return false;
-      return getCardCount(World, "R1", [card.color], card.tier) > 0;
+      return getCardCount(World, "R1", [card.color], card.tier, { availableOnly: true }) > 0;
     });
   }
 
@@ -1890,7 +1933,7 @@ const CardEngine = (() => {
         const row = Math.floor(index / assignGrid.cols);
         if (row >= assignGrid.rows) return;
         const rect = getSubMetaCardRect(pickerAssignRect, assignGrid, index);
-        const count = getCardCount(World, "R1", [card.color], card.tier);
+        const count = getCardCount(World, "R1", [card.color], card.tier, { availableOnly: true });
         renderMetaCard(ctx, rect.x, rect.y, {
           type: "R1",
           tier: card.tier,
@@ -1942,7 +1985,7 @@ const CardEngine = (() => {
         ? `${PACK01_COLOR_LABEL[selectedForge.colors[0]] || selectedForge.colors[0]} + ${PACK01_COLOR_LABEL[selectedForge.colors[1]] || selectedForge.colors[1]}`
         : `${PACK01_COLOR_LABEL[selectedForge.colors[0]] || selectedForge.colors[0]}`;
       const drNeeded = selectedForge.consumes || 0;
-      const drAvailable = getCardCount(World, selectedForge.kind, selectedForge.colors, "DR");
+      const drAvailable = getCardCount(World, selectedForge.kind, selectedForge.colors, "DR", { availableOnly: true });
       const canCraft = hasEnoughForgeRp && drAvailable >= drNeeded;
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.font = "15px system-ui";
@@ -2233,7 +2276,8 @@ const CardEngine = (() => {
     onRunActivateR2,
     getTotalCardCount,
     recomputeTotalCards,
-    resetCardBank,
+    resetCardPool,
+    onCardCollected,
 
     // Hooks for future systems
     onRitualTrigger,

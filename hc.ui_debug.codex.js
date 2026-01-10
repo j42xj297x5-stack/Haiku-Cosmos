@@ -26,22 +26,8 @@
     if (CardEngine && typeof CardEngine.getTotalCardCount === "function") {
       return CardEngine.getTotalCardCount(World);
     }
-    const bank = World?.cardBank;
-    if (!bank) return 0;
-    let total = 0;
-    Object.values(bank.R1 || {}).forEach((bucket) => {
-      if (!bucket) return;
-      total += Math.max(0, Math.floor(bucket.DR || 0));
-      total += Math.max(0, Math.floor(bucket.sDR || 0));
-      total += Math.max(0, Math.floor(bucket.pDR || 0));
-    });
-    Object.values(bank.R2 || {}).forEach((bucket) => {
-      if (!bucket) return;
-      total += Math.max(0, Math.floor(bucket.DR || 0));
-      total += Math.max(0, Math.floor(bucket.sDR || 0));
-      total += Math.max(0, Math.floor(bucket.pDR || 0));
-    });
-    return total;
+    if (Array.isArray(World?.cardsPool)) return World.cardsPool.length;
+    return 0;
   }
 
   function updateMpsUI(World) {
