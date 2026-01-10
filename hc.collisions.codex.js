@@ -8,6 +8,12 @@
     const addScore = window.addScore;
     const spawnAsteroidFromCollision = window.spawnAsteroidFromCollision;
 
+    function notifyHitColor(colorName) {
+      const CE = window.CardEngine;
+      if (!CE || typeof CE.onHitColor !== "function") return;
+      CE.onHitColor(colorName);
+    }
+
     function isR1ColorActive(colorName, nowMs) {
       const CE = window.CardEngine;
       if (!CE || typeof CE.isColorR1Active !== "function") return false;
@@ -83,6 +89,7 @@
             if (a.colorName === b.colorName) {
               addScore(1);
               Events.emit("METEOR_SAME_COLOR_COLLISION", { color: a.colorName });
+              notifyHitColor(a.colorName);
               handleR1SameColorCollision(a.colorName);
               toRemove.add(i);
               toRemove.add(j);
