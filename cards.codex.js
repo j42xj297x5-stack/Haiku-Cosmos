@@ -99,13 +99,7 @@ const CardEngine = (() => {
     offerYPad: 64,
     offerW: 320,
     offerH: 120,
-    trialW: 320,
-    trialH: 150,
-    trialGap: 12,
-    trialResultMs: 5000,
     pack01TargetDurationMs: 180000,
-    trialFailBasePoints: 1,
-    trialFailComboMul: 2
   };
 
   const state = {
@@ -134,13 +128,12 @@ const CardEngine = (() => {
 
     ui: { enabled: true },
 
-    trialUI: {
-      lastState: "idle",
-      resultUntilMs: 0,
-      resultState: null,
-      clicked: false,
-      collected: false,
-      resultPoints: 0
+    r1Overlay: {
+      visible: false,
+      mode: null,
+      colorKey: null,
+      shownAtMs: 0,
+      ttlMs: 0
     },
 
     subMeta: {
@@ -149,17 +142,6 @@ const CardEngine = (() => {
       selectedForge: null,
       showRemoveForSlotKey: null
     }
-  };
-
-  const PACK01_TRIAL = {
-    id: "RITUAL_RELEASE_SINGLE_COLOR",
-    title: "Puszczanie (pojedynczy kolor)",
-    desc: "Utrzymaj 3× harmonijną kolizję jednego koloru.",
-    haiku: [
-      "Próżnia ma barwę",
-      "Kolor odrywa się od kręgu",
-      "I leci poza kadr"
-    ]
   };
 
   const PACK01_COLOR_HEX = {
@@ -266,17 +248,10 @@ const CardEngine = (() => {
 
     if (World.spawnIntervalMul === undefined) World.spawnIntervalMul = 1.0;
     if (World.score === undefined) World.score = 0;
-    if (World.colorStreakKey === undefined) World.colorStreakKey = null;
-    if (World.colorStreakCount === undefined) World.colorStreakCount = 0;
-    if (World.trialPack01Active === undefined) World.trialPack01Active = false;
-    if (World.trialPack01Color === undefined) World.trialPack01Color = null;
-    if (World.trialPack01State === undefined) World.trialPack01State = "idle";
     if (!World.collectedCardsByColor) {
       World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
     }
     ensureCardBank(World);
-    ensureRunSequences(World);
-    updateR2Candidate(World);
     if (!World.metaSlots || typeof World.metaSlots !== "object") {
       World.metaSlots = { forma: null, intencja: null, czas: null, cisza: null };
     } else {
@@ -490,14 +465,22 @@ const CardEngine = (() => {
       );
     }
 
-    if (!state._trialListenerBound) {
-      state._trialListenerBound = true;
-      Events.on("METEOR_SAME_COLOR_COLLISION", (payload = {}) => {
-        const color = payload.color;
-        if (!color || !state.world) return;
-        const colorKey = String(color);
-        handleTrialColorPick(colorKey);
-        handleRunCardCollision(colorKey);
+    if (!state._r1OverlayListenerBound) {
+      state._r1OverlayListenerBound = true;
+      Events.on("R1_OPEN", (payload = {}) => {
+        const colorKey = normalizePack01Color(payload.color);
+        showR1Overlay("OPEN", colorKey, 1200);
+      });
+      Events.on("R1_FAIL", (payload = {}) => {
+        const colorKey = normalizePack01Color(payload.color);
+        showR1Overlay("FAIL", colorKey, 1500);
+      });
+      Events.on("R1_SUCCESS", (payload = {}) => {
+        const colorKey = normalizePack01Color(payload.color);
+        if (state.world && colorKey) {
+          addCardCount(state.world, "R1", [colorKey], "DR", 1);
+        }
+        showR1Overlay("SUCCESS", colorKey, 3000);
       });
     }
   }
@@ -546,13 +529,12 @@ const CardEngine = (() => {
       pointer_radius_mul: 1.0,
       pointer_strength_mul: 1.0,
     };
-    state.trialUI = {
-      lastState: "idle",
-      resultUntilMs: 0,
-      resultState: null,
-      clicked: false,
-      collected: false,
-      resultPoints: 0
+    state.r1Overlay = {
+      visible: false,
+      mode: null,
+      colorKey: null,
+      shownAtMs: 0,
+      ttlMs: 0
     };
     state.subMeta = {
       selectedSlotKey: null,
@@ -562,7 +544,6 @@ const CardEngine = (() => {
     };
     if (state.world) {
       resetCardBank(state.world);
-      resetRunSequences(state.world);
       bindWorld(state.world);
     }
   }
@@ -574,18 +555,15 @@ const CardEngine = (() => {
     return null;
   }
 
-  function collectPack01Card(color) {
-    const World = state.world;
-    const key = normalizePack01Color(color);
-    if (!World || !key) return;
-    addCardCount(World, "R1", [key], "DR", 1);
-  }
-
-  function activatePack01Target(color) {
-    const World = state.world;
-    const key = normalizePack01Color(color);
-    if (!World || !key) return;
-    onRunActivateR1({ baseDurationMs: config.pack01TargetDurationMs, colorKey: key, tierKey: "DR" });
+  function showR1Overlay(mode, colorKey, ttlMs) {
+    const now = nowMs();
+    state.r1Overlay = {
+      visible: true,
+      mode,
+      colorKey: colorKey || null,
+      shownAtMs: now,
+      ttlMs: Math.max(0, Number(ttlMs || 0))
+    };
   }
 
   function onRunActivateR1({ baseDurationMs, colorKey, tierKey } = {}) {
@@ -619,60 +597,6 @@ const CardEngine = (() => {
       startRunTimerForColor(World, color, durationMs, t, 2);
     });
     return startFormaEffect(World, t, "R2", baseDurationMs);
-  }
-
-  function setTrialState(stateName) {
-    const World = state.world;
-    if (!World) return;
-    World.trialPack01State = stateName;
-    World.trialPack01Active = stateName === "active";
-  }
-
-  function resetTrialToIdle() {
-    const World = state.world;
-    if (!World) return;
-    World.trialPack01State = "idle";
-    World.trialPack01Active = false;
-    World.trialPack01Color = null;
-  }
-
-  function handleTrialColorPick(color) {
-    const World = state.world;
-    if (!World) return;
-
-    const pickColor = normalizePack01Color(color);
-    if (!pickColor) return;
-
-    const prevKey = World.colorStreakKey;
-    const prevCount = World.colorStreakCount || 0;
-
-    if (pickColor === prevKey) {
-      World.colorStreakCount = prevCount + 1;
-    } else {
-      if (World.trialPack01State === "active" && prevCount >= 2) {
-        setTrialState("fail");
-        const basePoints = config.trialFailBasePoints;
-        const comboMul = config.trialFailComboMul;
-        const finalPoints = Math.max(0, Math.floor(basePoints * comboMul));
-        const addScore = window.addScore;
-        if (typeof addScore === "function") addScore(finalPoints);
-        state.trialUI.resultPoints = finalPoints;
-      }
-      World.colorStreakKey = pickColor;
-      World.colorStreakCount = 1;
-    }
-
-    if (World.trialPack01State === "idle" && World.colorStreakCount === 2) {
-      World.trialPack01Active = true;
-      World.trialPack01Color = pickColor;
-      World.trialPack01State = "active";
-    }
-
-    if (World.trialPack01State === "active"
-      && World.trialPack01Color === pickColor
-      && World.colorStreakCount === 3) {
-      setTrialState("success");
-    }
   }
 
   function applyOp(before, op, value) {
@@ -763,29 +687,10 @@ const CardEngine = (() => {
       }
       syncFormaActiveUntil(World, t);
       applyFormaToWorld(World);
-
-      const trialState = World.trialPack01State;
-      if (trialState !== state.trialUI.lastState) {
-        if (trialState === "success" || trialState === "fail") {
-          state.trialUI.resultUntilMs = t + config.trialResultMs;
-          state.trialUI.resultState = trialState;
-          state.trialUI.clicked = false;
-          state.trialUI.collected = false;
-          if (trialState === "success") state.trialUI.resultPoints = 0;
+      if (state.r1Overlay.visible && state.r1Overlay.ttlMs > 0) {
+        if (t - state.r1Overlay.shownAtMs >= state.r1Overlay.ttlMs) {
+          state.r1Overlay.visible = false;
         }
-        state.trialUI.lastState = trialState;
-      }
-
-      if (state.trialUI.resultUntilMs && t >= state.trialUI.resultUntilMs) {
-        if (state.trialUI.resultState === "success" && !state.trialUI.collected) {
-          collectPack01Card(World.trialPack01Color);
-          state.trialUI.collected = true;
-        }
-        state.trialUI.resultUntilMs = 0;
-        state.trialUI.resultState = null;
-        state.trialUI.resultPoints = 0;
-        resetTrialToIdle();
-        state.trialUI.lastState = "idle";
       }
 
       if (World.pack01ReleaseBlockColor
@@ -843,93 +748,58 @@ const CardEngine = (() => {
       ctx.restore();
     }
 
-    renderTrialPack01(ctx, screenW, screenH);
+    renderR1Overlay(ctx, screenW, screenH);
     renderPack01Collection(ctx, screenW, screenH);
     renderSubMetaOverlay(ctx, screenW, screenH);
   }
 
-  function getTrialRect(screenW) {
-    const w = config.trialW;
-    const h = config.trialH;
-    const x = Math.floor(screenW - w - config.offerXPad);
-    const y = Math.floor(config.offerYPad + (state.activeOffer ? (config.offerH + config.trialGap) : 0));
-    return { x, y, w, h };
-  }
-
-  function renderTrialPack01(ctx, screenW, screenH) {
-    const World = state.world;
-    if (!World) return;
+  function renderR1Overlay(ctx, screenW) {
+    const overlay = state.r1Overlay;
+    if (!overlay || !overlay.visible) return;
 
     const now = nowMs();
-    const showResult = state.trialUI.resultUntilMs && now <= state.trialUI.resultUntilMs;
-    const active = World.trialPack01State === "active";
-    if (!active && !showResult) return;
+    const elapsed = now - overlay.shownAtMs;
+    if (overlay.ttlMs > 0 && elapsed >= overlay.ttlMs) {
+      overlay.visible = false;
+      return;
+    }
 
-    const trialColor = normalizePack01Color(World.trialPack01Color);
-    const colorHex = (trialColor && PACK01_COLOR_HEX[trialColor]) || "#FFFFFF";
-    const colorLabel = (trialColor && PACK01_COLOR_LABEL[trialColor]) || "—";
-
-    const { x, y, w, h } = getTrialRect(screenW);
+    const isSuccess = overlay.mode === "SUCCESS";
+    const w = 320;
+    const h = isSuccess ? 78 : 64;
+    const x = Math.floor(screenW / 2 - w / 2);
+    const y = Math.max(12, Math.floor(config.offerYPad - 6));
+    const colorKey = normalizePack01Color(overlay.colorKey);
+    const barColor = (colorKey && PACK01_COLOR_HEX[colorKey]) || "rgba(255,255,255,0.9)";
 
     ctx.save();
-    ctx.textAlign = "left";
+    ctx.textAlign = "center";
     ctx.globalAlpha = 0.9;
-    ctx.fillStyle = "rgba(18,18,18,0.9)";
+    ctx.fillStyle = "rgba(18,18,18,0.6)";
     ctx.fillRect(x, y, w, h);
 
     ctx.globalAlpha = 1.0;
     ctx.fillStyle = "rgba(255,255,255,0.95)";
     ctx.font = "14px system-ui";
-    if (active) {
-      ctx.fillText(`TRIAL · ${PACK01_TRIAL.title}`, x + 12, y + 24);
-      ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.fillText("2× ten sam kolor uruchamia. 3× kończy.", x + 12, y + 44);
-      ctx.fillText(`Kolor: ${colorLabel}`, x + 12, y + 64);
-      ctx.fillStyle = colorHex;
-      ctx.fillRect(x + 12, y + h - 24, 54, 6);
-    } else if (showResult) {
-      const isSuccess = state.trialUI.resultState === "success";
-      if (isSuccess) {
-        ctx.fillText("SUKCES", x + 12, y + 24);
-      } else {
-        ctx.fillText("Nie udało się — combo x2", x + 12, y + 24);
-      }
-      ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.fillText(`Kolor: ${colorLabel}`, x + 12, y + 44);
 
-      if (isSuccess) {
-        ctx.fillStyle = "rgba(255,255,255,0.78)";
-        ctx.fillText(PACK01_TRIAL.haiku[0], x + 12, y + 70);
-        ctx.fillText(PACK01_TRIAL.haiku[1], x + 12, y + 88);
-        ctx.fillText(PACK01_TRIAL.haiku[2], x + 12, y + 106);
-        ctx.fillStyle = "rgba(255,255,255,0.8)";
-        const hint = state.trialUI.clicked ? "Nagroda aktywna." : "Kliknij, aby aktywować efekt.";
-        ctx.fillText(hint, x + 12, y + h - 18);
-      } else {
-        const points = Math.max(0, Math.floor(state.trialUI.resultPoints || 0));
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        ctx.fillText(`+${points} pkt`, x + 12, y + 70);
-      }
-
-      ctx.fillStyle = colorHex;
-      ctx.fillRect(x + 12, y + h - 30, 54, 6);
+    if (overlay.mode === "OPEN") {
+      ctx.fillText("Sekwencja R1 otwarta", x + w / 2, y + 28);
+    } else if (overlay.mode === "FAIL") {
+      ctx.fillText("Sekwencja zakończona niepowodzeniem", x + w / 2, y + 26);
+      ctx.fillText("Combo x2 = 6RP", x + w / 2, y + 46);
+    } else if (overlay.mode === "SUCCESS") {
+      ctx.fillText("Sekwencja ukończona", x + w / 2, y + 26);
+      ctx.fillText("Aktywuj kartę R1", x + w / 2, y + 46);
+      const ratio = clamp01(1 - (elapsed / 3000));
+      const barMax = Math.floor(w * 0.7);
+      const barW = Math.max(0, Math.floor(barMax * ratio));
+      const barX = Math.floor(x + (w - barMax) / 2);
+      const barY = y + h - 16;
+      ctx.fillStyle = barColor;
+      ctx.fillRect(barX, barY, barW, 8);
     }
 
     ctx.restore();
-  }
-
-  function getR2HintText(World) {
-    if (!World) return null;
-    const seq = World.r2Seq;
-    const candidate = World.r2Candidate;
-    if (seq?.active && seq.colorB) {
-      const label = PACK01_COLOR_LABEL[seq.colorB] || seq.colorB;
-      return `R2: zbierz 2×DR koloru ${label} (bez trzeciego koloru).`;
-    }
-    if (candidate?.ready) {
-      return "R2: gotowe. Zdobądź 2×DR innego koloru.";
-    }
-    return null;
   }
 
   function renderPack01Collection(ctx, screenW, screenH) {
@@ -985,12 +855,6 @@ const CardEngine = (() => {
         ctx.fillStyle = "rgba(255,255,255,0.92)";
         ctx.fillText(String(count), x - 4, y + rectH - 2);
       }
-    }
-    const r2Hint = getR2HintText(World);
-    if (r2Hint) {
-      ctx.globalAlpha = 0.85;
-      ctx.fillStyle = "rgba(255,255,255,0.78)";
-      ctx.fillText(r2Hint, x + rectW, y0 + order.length * (rectH + gap) + 6);
     }
     ctx.restore();
   }
@@ -1241,9 +1105,6 @@ const CardEngine = (() => {
         World.collectedCardsByColor[colors[0]] = bucket.DR;
       }
     }
-    if (kind === "R1" && tierKey === "DR") {
-      updateR2Candidate(World);
-    }
     recomputeTotalCards(World);
   }
 
@@ -1286,124 +1147,6 @@ const CardEngine = (() => {
 
     World.totalCards = total;
     return total;
-  }
-
-  function ensureRunSequences(World) {
-    if (!World) return;
-    if (!World.r1Seq || typeof World.r1Seq !== "object") {
-      World.r1Seq = { color: null, streak: 0, windowOpen: false };
-    }
-    if (!World.r2Seq || typeof World.r2Seq !== "object") {
-      World.r2Seq = { active: false, colorA: null, colorB: null, phase: "", needBdr: 0 };
-    }
-    if (!World.r2Candidate || typeof World.r2Candidate !== "object") {
-      World.r2Candidate = { colorA: null, ready: false };
-    }
-  }
-
-  function resetRunSequences(World) {
-    if (!World) return;
-    World.r1Seq = { color: null, streak: 0, windowOpen: false };
-    World.r2Seq = { active: false, colorA: null, colorB: null, phase: "", needBdr: 0 };
-    World.r2Candidate = { colorA: null, ready: false };
-  }
-
-  function resetR2Sequence(seq) {
-    if (!seq) return;
-    seq.active = false;
-    seq.colorA = null;
-    seq.colorB = null;
-    seq.phase = "";
-    seq.needBdr = 0;
-  }
-
-  function updateR2Candidate(World) {
-    if (!World) return;
-    ensureRunSequences(World);
-    const candidate = World.r2Candidate;
-    if (!candidate) return;
-    const current = candidate.colorA;
-    if (current && getCardCount(World, "R1", [current], "DR") >= 2) {
-      candidate.ready = true;
-      return;
-    }
-    let next = null;
-    for (const color of SUB_META_COLORS) {
-      if (getCardCount(World, "R1", [color], "DR") >= 2) {
-        next = color;
-        break;
-      }
-    }
-    candidate.colorA = next;
-    candidate.ready = Boolean(next);
-  }
-
-  function handleR1Sequence(World, colorKey) {
-    const seq = World.r1Seq;
-    if (!seq.color) {
-      seq.color = colorKey;
-      seq.streak = 1;
-      seq.windowOpen = false;
-      return;
-    }
-    if (colorKey === seq.color) {
-      seq.streak += 1;
-      if (seq.streak === 2) seq.windowOpen = true;
-      if (seq.streak === 3) {
-        addCardCount(World, "R1", [colorKey], "DR", 1);
-        handleR2Sequence(World, colorKey);
-        seq.color = null;
-        seq.streak = 0;
-        seq.windowOpen = false;
-      }
-      return;
-    }
-    if (seq.windowOpen && seq.streak === 2) {
-      const addScore = window.addScore;
-      if (typeof addScore === "function") addScore(3);
-    }
-    seq.color = colorKey;
-    seq.streak = 1;
-    seq.windowOpen = false;
-  }
-
-  function handleR2Sequence(World, colorKey) {
-    const seq = World.r2Seq;
-    const candidate = World.r2Candidate;
-    if (!seq || !candidate) return;
-    if (!seq.active) {
-      if (candidate.ready && candidate.colorA && colorKey !== candidate.colorA) {
-        seq.active = true;
-        seq.colorA = candidate.colorA;
-        seq.colorB = colorKey;
-        seq.phase = "COLLECT_B";
-        seq.needBdr = 2;
-        seq.startedAtMs = nowMs();
-      }
-    } else if (colorKey !== seq.colorA && colorKey !== seq.colorB) {
-      resetR2Sequence(seq);
-      updateR2Candidate(World);
-      return;
-    }
-
-    if (!seq.active || seq.phase !== "COLLECT_B") return;
-    const countA = getCardCount(World, "R1", [seq.colorA], "DR");
-    const countB = getCardCount(World, "R1", [seq.colorB], "DR");
-    if (countA >= 2 && countB >= 2) {
-      addCardCount(World, "R1", [seq.colorA], "DR", -2);
-      addCardCount(World, "R1", [seq.colorB], "DR", -2);
-      addCardCount(World, "R2", [seq.colorA, seq.colorB], "DR", 1);
-      resetR2Sequence(seq);
-      updateR2Candidate(World);
-    }
-  }
-
-  function handleRunCardCollision(color) {
-    const World = state.world;
-    const colorKey = normalizePack01Color(color);
-    if (!World || !colorKey) return;
-    ensureRunSequences(World);
-    handleR1Sequence(World, colorKey);
   }
 
   function getFormaDurationMs(assignment) {
@@ -2461,30 +2204,7 @@ const CardEngine = (() => {
       }
     }
 
-    return handleTrialPointerDown(mx, my, screenW, screenH);
-  }
-
-  function handleTrialPointerDown(mx, my, screenW, screenH) {
-    const World = state.world;
-    if (!World) return false;
-
-    const now = nowMs();
-    const showResult = state.trialUI.resultUntilMs && now <= state.trialUI.resultUntilMs;
-    if (!showResult || state.trialUI.resultState !== "success") return false;
-
-    const { x, y, w, h } = getTrialRect(screenW);
-    const inside = mx >= x && mx <= x + w && my >= y && my <= y + h;
-    if (!inside) return false;
-
-    if (!state.trialUI.collected) {
-      collectPack01Card(World.trialPack01Color);
-      state.trialUI.collected = true;
-    }
-    if (!state.trialUI.clicked) {
-      activatePack01Target(World.trialPack01Color);
-      state.trialUI.clicked = true;
-    }
-    return true;
+    return false;
   }
 
   // ---- HOOKS (Stage 1 placeholders) ----
