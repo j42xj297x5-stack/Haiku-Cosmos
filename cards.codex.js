@@ -135,6 +135,22 @@ const CardEngine = (() => {
       shownAtMs: 0,
       ttlMs: 0
     },
+    r2Overlay: {
+      visible: false,
+      mode: null,
+      colorA: null,
+      colorB: null,
+      shownAtMs: 0,
+      ttlMs: 0,
+      order: null
+    },
+    r2Seq: {
+      active: false,
+      colorA: null,
+      colorB: null,
+      progressB: 0,
+      order: null
+    },
 
     subMeta: {
       selectedSlotKey: null,
@@ -178,6 +194,7 @@ const CardEngine = (() => {
   const SUB_META_ASSIGN_COST = 10;
   const SUB_META_FORGE_COSTS = { sDR: 10, pDR: 20 };
   const SUB_META_FORGE_CONSUMES = { sDR: 3, pDR: 9 };
+  const SUB_META_FORGE_ENABLED = false;
   const SUB_META_SCALE = 1.0;
   const SUB_META_CARD_W = 20;
   const SUB_META_CARD_H = 26;
@@ -192,30 +209,30 @@ const CardEngine = (() => {
   };
   const SUB_META_META_EFFECTS = {
     forma: {
-      DR: ["Planetoidy + planety: orbity -15%."],
-      sDR: ["Planetoidy + planety: orbity -30%.", "Gwiazdy: orbity -15%."],
-      pDR: ["Wszystkie obiekty: orbity -30%.", "Podslot: Ekspansja."]
+      DR: ["Planetoidy: orbity -20%.", "Planety: orbity -10%."],
+      sDR: ["Planetoidy: orbity -40%.", "Planety + gwiazdy: orbity -20%."],
+      pDR: ["Planetoidy: orbity -60%.", "Planety + gwiazdy: orbity -40%."]
     },
     intencja: {
-      DR: ["Odbicie od planetoid 15%, od planet 10%."],
-      sDR: ["Planetoidy 30%, planety 15%."],
-      pDR: ["Planetoidy + planety 35%.", "Podslot: Ekspansja."]
+      DR: ["Odbicie od orbity: 30%."],
+      sDR: ["Odbicie od orbity: 60%."],
+      pDR: ["Odbicie od orbity: 80%."]
     },
     czas: {
-      DR: ["+1 minuta do czasu kart aktywowanych."],
-      sDR: ["+2 minuty do czasu kart aktywowanych."],
-      pDR: ["+3 minuty do czasu kart aktywowanych.", "Podslot: Ekspansja."]
+      DR: ["+30 sekund do czasu kart aktywowanych."],
+      sDR: ["+1 minuta do czasu kart aktywowanych."],
+      pDR: ["+2 minuty do czasu kart aktywowanych."]
     },
     cisza: {
-      DR: ["Po aktywacji karty respawnują tylko jej kolory przez 5 s."],
-      sDR: ["Po aktywacji karty respawnują tylko jej kolory przez 10 s."],
-      pDR: ["Po aktywacji karty respawnują tylko jej kolory przez 15 s.", "Podslot: Ekspansja."]
+      DR: ["Globalny respawn meteorów -20%."],
+      sDR: ["Globalny respawn meteorów -40%."],
+      pDR: ["Globalny respawn meteorów -60%."]
     }
   };
   const SUB_META_FORMA_REDUCTION = {
-    DR: 0.15,
-    sDR: 0.30,
-    pDR: 0.30
+    DR: { asteroid: 0.20, planet: 0.10, star: 0.0 },
+    sDR: { asteroid: 0.40, planet: 0.20, star: 0.20 },
+    pDR: { asteroid: 0.60, planet: 0.40, star: 0.40 }
   };
   // TODO: Align FORMA duration with CARDS_SYSTEM when duration is defined.
   const SUB_META_FORMA_DURATION_MS = {
@@ -247,6 +264,8 @@ const CardEngine = (() => {
     state.world = World;
 
     if (World.spawnIntervalMul === undefined) World.spawnIntervalMul = 1.0;
+    if (World.spawnIntervalMulBase === undefined) World.spawnIntervalMulBase = World.spawnIntervalMul;
+    if (World.fxSpawnIntervalMul === undefined) World.fxSpawnIntervalMul = 1.0;
     if (World.score === undefined) World.score = 0;
     if (World.r1HudPulse === undefined) World.r1HudPulse = null;
     ensureCardsPool(World);
@@ -266,6 +285,9 @@ const CardEngine = (() => {
     if (World.formaStrengthMul === undefined) World.formaStrengthMul = 1;
     if (World.formaOrbitReduction === undefined) World.formaOrbitReduction = 0;
     if (World.formaOrbitReductionBase === undefined) World.formaOrbitReductionBase = 0;
+    if (World.formaOrbitReductionAsteroidBase === undefined) World.formaOrbitReductionAsteroidBase = 0;
+    if (World.formaOrbitReductionPlanetBase === undefined) World.formaOrbitReductionPlanetBase = 0;
+    if (World.formaOrbitReductionStarBase === undefined) World.formaOrbitReductionStarBase = 0;
     const runTimers = window.HC && window.HC.RunTimers;
     if (runTimers && typeof runTimers.ensure === "function") {
       runTimers.ensure(World);
@@ -541,6 +563,22 @@ const CardEngine = (() => {
       shownAtMs: 0,
       ttlMs: 0
     };
+    state.r2Overlay = {
+      visible: false,
+      mode: null,
+      colorA: null,
+      colorB: null,
+      shownAtMs: 0,
+      ttlMs: 0,
+      order: null
+    };
+    state.r2Seq = {
+      active: false,
+      colorA: null,
+      colorB: null,
+      progressB: 0,
+      order: null
+    };
     state.subMeta = {
       selectedSlotKey: null,
       selectedCardKey: null,
@@ -561,6 +599,17 @@ const CardEngine = (() => {
     return null;
   }
 
+  function getCanonicalPairColors(colorA, colorB) {
+    const a = normalizePack01Color(colorA);
+    const b = normalizePack01Color(colorB);
+    if (!a || !b) return [a, b];
+    const idxA = SUB_META_COLORS.indexOf(a);
+    const idxB = SUB_META_COLORS.indexOf(b);
+    if (idxA === -1 || idxB === -1) return [a, b];
+    if (idxA <= idxB) return [a, b];
+    return [b, a];
+  }
+
   function showR1Overlay(mode, colorKey, ttlMs) {
     const now = nowMs();
     state.r1Overlay = {
@@ -569,6 +618,29 @@ const CardEngine = (() => {
       colorKey: colorKey || null,
       shownAtMs: now,
       ttlMs: Math.max(0, Number(ttlMs || 0))
+    };
+  }
+
+  function showR2Overlay(mode, colorA, colorB, ttlMs, order) {
+    const now = nowMs();
+    state.r2Overlay = {
+      visible: true,
+      mode,
+      colorA: colorA || null,
+      colorB: colorB || null,
+      shownAtMs: now,
+      ttlMs: Math.max(0, Number(ttlMs || 0)),
+      order: Array.isArray(order) ? order.slice() : null
+    };
+  }
+
+  function resetR2Sequence() {
+    state.r2Seq = {
+      active: false,
+      colorA: null,
+      colorB: null,
+      progressB: 0,
+      order: null
     };
   }
 
@@ -699,6 +771,11 @@ const CardEngine = (() => {
           state.r1Overlay.visible = false;
         }
       }
+      if (state.r2Overlay.visible && state.r2Overlay.ttlMs > 0) {
+        if (t - state.r2Overlay.shownAtMs >= state.r2Overlay.ttlMs) {
+          state.r2Overlay.visible = false;
+        }
+      }
 
       if (World.pack01ReleaseBlockColor
         && t >= (World.pack01ReleaseBlockUntilMs || 0)) {
@@ -756,6 +833,7 @@ const CardEngine = (() => {
     }
 
     renderR1Overlay(ctx, screenW, screenH);
+    renderR2Overlay(ctx, screenW, screenH);
     renderPack01Collection(ctx, screenW, screenH);
     renderSubMetaOverlay(ctx, screenW, screenH);
   }
@@ -818,6 +896,101 @@ const CardEngine = (() => {
       ctx.fillRect(chipX, chipY, chipW, chipH);
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.fillText("R1 DR Aktywowany", chipX + chipW + 10, y + 30);
+    }
+
+    ctx.restore();
+  }
+
+  function renderR2Overlay(ctx, screenW) {
+    const overlay = state.r2Overlay;
+    if (!overlay || !overlay.visible) return;
+
+    const now = nowMs();
+    const elapsed = now - overlay.shownAtMs;
+    if (overlay.ttlMs > 0 && elapsed >= overlay.ttlMs) {
+      overlay.visible = false;
+      return;
+    }
+
+    const isStart = overlay.mode === "START";
+    const isContinue = overlay.mode === "CONTINUE";
+    const isSuccess = overlay.mode === "SUCCESS";
+    const isActivated = overlay.mode === "ACTIVATED";
+    const w = 340;
+    const h = isSuccess ? 88 : 72;
+    const x = Math.floor(screenW / 2 - w / 2);
+    const y = Math.max(12, Math.floor(config.offerYPad - 6));
+    const chipW = 12;
+    const chipH = 24;
+    const chipGap = 8;
+    const colorA = normalizePack01Color(overlay.colorA);
+    const colorB = normalizePack01Color(overlay.colorB);
+    const colorAHex = (colorA && PACK01_COLOR_HEX[colorA]) || "rgba(255,255,255,0.8)";
+    const colorBHex = (colorB && PACK01_COLOR_HEX[colorB]) || "rgba(255,255,255,0.8)";
+
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "rgba(18,18,18,0.6)";
+    ctx.fillRect(x, y, w, h);
+
+    ctx.globalAlpha = 1.0;
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.font = "14px system-ui";
+    ctx.textAlign = "center";
+
+    if (isStart || isContinue) {
+      const title = isStart ? "Rozpoczęcie sekwencji R2" : "Kontynuacja sekwencji R2";
+      ctx.fillText(title, x + w / 2, y + 26);
+
+      ctx.textAlign = "left";
+      const lineY = y + 50;
+      const labelX = x + 86;
+      ctx.fillText("R2", labelX, lineY);
+      let chipX = labelX + 24;
+      ctx.fillStyle = colorAHex;
+      ctx.fillRect(chipX, lineY - chipH + 6, chipW, chipH);
+      chipX += chipW + chipGap;
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      if (isStart) {
+        ctx.fillText("+", chipX - 2, lineY);
+        chipX += chipGap;
+        ctx.strokeStyle = "rgba(255,255,255,0.45)";
+        ctx.strokeRect(chipX, lineY - chipH + 6, chipW, chipH);
+      } else if (isContinue && colorB) {
+        ctx.fillStyle = colorBHex;
+        ctx.fillRect(chipX, lineY - chipH + 6, chipW, chipH);
+      }
+    } else if (isSuccess) {
+      ctx.fillText("Sekwencja R2 ukończona", x + w / 2, y + 26);
+      ctx.fillText("Aktywuj kartę R2", x + w / 2, y + 46);
+
+      const cardX = x + 24;
+      const cardY = y + 24;
+      const cardW = 14;
+      const cardH = 28;
+      ctx.save();
+      ctx.fillStyle = colorAHex;
+      ctx.fillRect(cardX, cardY, cardW, Math.floor(cardH / 2));
+      ctx.fillStyle = colorBHex;
+      ctx.fillRect(cardX, cardY + Math.floor(cardH / 2), cardW, Math.ceil(cardH / 2));
+      ctx.restore();
+
+      const ratio = clamp01(1 - (elapsed / 3000));
+      const barMax = Math.floor(w * 0.7);
+      const barW = Math.max(0, Math.floor(barMax * ratio));
+      const barX = Math.floor(x + (w - barMax) / 2);
+      const barY = y + h - 16;
+      ctx.fillStyle = colorAHex;
+      ctx.fillRect(barX, barY, barW, 8);
+    } else if (isActivated) {
+      ctx.textAlign = "left";
+      const lineY = y + 34;
+      const labelX = x + 24;
+      ctx.fillText("R2 DR Aktywowany", labelX + 24, lineY);
+      ctx.fillStyle = colorAHex;
+      ctx.fillRect(labelX, lineY - chipH + 8, chipW, chipH);
+      ctx.fillStyle = colorBHex;
+      ctx.fillRect(labelX + chipW + 4, lineY - chipH + 8, chipW, chipH);
     }
 
     ctx.restore();
@@ -1005,12 +1178,13 @@ const CardEngine = (() => {
     if (kindKey === "R2" && !secondary) return null;
     if (kindKey !== "R1" && kindKey !== "R2") return null;
     cardIdCounter += 1;
+    const orderedColors = kindKey === "R2" ? getCanonicalPairColors(primary, secondary) : [primary, secondary];
     return {
       id: `card:${Date.now()}:${cardIdCounter}`,
       kind: kindKey,
       tier: tierKey,
-      colorA: primary,
-      colorB: secondary,
+      colorA: orderedColors[0],
+      colorB: orderedColors[1] || null,
       inSlotKey: inSlotKey || null
     };
   }
@@ -1151,12 +1325,16 @@ const CardEngine = (() => {
     ensureCardsPool(World);
     let entity = null;
     if (payload && payload.id && payload.kind && payload.tier && payload.colorA) {
+      const kindKey = String(payload.kind).toUpperCase();
+      const normalizedA = normalizePack01Color(payload.colorA);
+      const normalizedB = payload.colorB ? normalizePack01Color(payload.colorB) : null;
+      const orderedColors = kindKey === "R2" ? getCanonicalPairColors(normalizedA, normalizedB) : [normalizedA, normalizedB];
       entity = {
         id: String(payload.id),
-        kind: String(payload.kind).toUpperCase(),
+        kind: kindKey,
         tier: normalizeSubMetaTier(payload.tier),
-        colorA: normalizePack01Color(payload.colorA),
-        colorB: payload.colorB ? normalizePack01Color(payload.colorB) : null,
+        colorA: orderedColors[0],
+        colorB: orderedColors[1] || null,
         inSlotKey: payload.inSlotKey || null
       };
     } else {
@@ -1173,9 +1351,11 @@ const CardEngine = (() => {
     const now = Number(nowMs);
     if (!Number.isFinite(now)) return false;
     if (now < (World.pendingCardUntilMs || 0)) return false;
-    addCardToPool(World, World.pendingCard);
+    const pending = World.pendingCard;
+    addCardToPool(World, pending);
     World.pendingCard = null;
     World.pendingCardUntilMs = 0;
+    handleR2SequenceCardAdded(World, pending);
     return true;
   }
 
@@ -1190,6 +1370,72 @@ const CardEngine = (() => {
     World.pendingCardUntilMs = 0;
     if (state.r1Overlay) state.r1Overlay.visible = false;
     return true;
+  }
+
+  function handleR2SequenceCardAdded(World, entity) {
+    if (!World || !entity) return;
+    if (String(entity.kind || "").toUpperCase() !== "R1") return;
+    const tierKey = normalizeSubMetaTier(entity.tier || "DR");
+    if (tierKey !== "DR") return;
+    const colorKey = normalizePack01Color(entity.colorA);
+    if (!colorKey) return;
+
+    if (!state.r2Seq.active) {
+      const available = getCardCount(World, "R1", [colorKey], "DR", { availableOnly: true });
+      if (available >= 2) {
+        state.r2Seq.active = true;
+        state.r2Seq.colorA = colorKey;
+        state.r2Seq.colorB = null;
+        state.r2Seq.progressB = 0;
+        state.r2Seq.order = [colorKey];
+        showR2Overlay("START", colorKey, null, 2000, [colorKey]);
+      }
+      return;
+    }
+
+    if (state.r2Seq.colorA && state.r2Seq.colorB) {
+      if (colorKey === state.r2Seq.colorB) {
+        state.r2Seq.progressB += 1;
+        if (state.r2Seq.progressB >= 2) {
+          completeR2Sequence(World);
+        }
+        return;
+      }
+      if (colorKey !== state.r2Seq.colorA) {
+        resetR2Sequence();
+      }
+      return;
+    }
+
+    if (state.r2Seq.colorA && !state.r2Seq.colorB) {
+      if (colorKey === state.r2Seq.colorA) return;
+      state.r2Seq.colorB = colorKey;
+      state.r2Seq.progressB = 1;
+      state.r2Seq.order = [state.r2Seq.colorA, colorKey];
+      showR2Overlay("CONTINUE", state.r2Seq.colorA, state.r2Seq.colorB, 2000, state.r2Seq.order);
+    }
+  }
+
+  function completeR2Sequence(World) {
+    if (!World || !state.r2Seq.active) return;
+    const colorA = state.r2Seq.colorA;
+    const colorB = state.r2Seq.colorB;
+    if (!colorA || !colorB) {
+      resetR2Sequence();
+      return;
+    }
+    const availableA = getCardCount(World, "R1", [colorA], "DR", { availableOnly: true });
+    const availableB = getCardCount(World, "R1", [colorB], "DR", { availableOnly: true });
+    if (availableA < 2 || availableB < 2) {
+      resetR2Sequence();
+      return;
+    }
+    consumeAvailableCards(World, "R1", [colorA], "DR", 2);
+    consumeAvailableCards(World, "R1", [colorB], "DR", 2);
+    const [canonA, canonB] = getCanonicalPairColors(colorA, colorB);
+    onCardCollected({ kind: "R2", tier: "DR", colorA: canonA, colorB: canonB });
+    showR2Overlay("SUCCESS", canonA, canonB, 3000);
+    resetR2Sequence();
   }
 
   function onCardCollected(payload) {
@@ -1237,7 +1483,7 @@ const CardEngine = (() => {
 
   function getFormaReductionForTier(tier) {
     const tierKey = normalizeSubMetaTier(tier);
-    return Number(SUB_META_FORMA_REDUCTION[tierKey] || SUB_META_FORMA_REDUCTION.DR || 0);
+    return SUB_META_FORMA_REDUCTION[tierKey] || SUB_META_FORMA_REDUCTION.DR || null;
   }
 
   function applyWorldSlotEffectsOnRunActivation(World, nowMs, activatedColors, cardKind) {
@@ -1256,15 +1502,15 @@ const CardEngine = (() => {
     };
 
     const timeTier = getMetaTier("czas");
-    const timeBonusMap = { DR: 60000, sDR: 120000, pDR: 180000 };
+    const timeBonusMap = { DR: 30000, sDR: 60000, pDR: 120000 };
     const timeBonus = timeTier ? (timeBonusMap[timeTier] || 0) : 0;
     World.fxTimeBonusMs = Math.max(0, timeBonus);
 
     const intentTier = getMetaTier("intencja");
     const intentBase = {
-      DR: { asteroid: 0.15, planet: 0.10 },
-      sDR: { asteroid: 0.30, planet: 0.15 },
-      pDR: { asteroid: 0.35, planet: 0.35 }
+      DR: { asteroid: 0.30, planet: 0.30 },
+      sDR: { asteroid: 0.60, planet: 0.60 },
+      pDR: { asteroid: 0.80, planet: 0.80 }
     };
     const intent = intentTier ? (intentBase[intentTier] || null) : null;
     World.fxIntentBounceAsteroidPct = intent
@@ -1275,13 +1521,15 @@ const CardEngine = (() => {
       : 0;
 
     const silenceTier = getMetaTier("cisza");
-    const silenceSecondsMap = { DR: 5, sDR: 10, pDR: 15 };
-    const baseSeconds = silenceTier ? (silenceSecondsMap[silenceTier] || 0) : 0;
-    const silenceSeconds = Math.max(0, baseSeconds * strengthMul);
-    World.fxSilenceOnlyColors = silenceSeconds > 0 && Array.isArray(activatedColors)
-      ? activatedColors.filter(Boolean)
-      : [];
-    World.fxSilenceOnlyColorsUntilMs = silenceSeconds > 0 ? (nowMs + silenceSeconds * 1000) : 0;
+    const silenceRateMap = { DR: 0.20, sDR: 0.40, pDR: 0.60 };
+    const baseReduction = silenceTier ? (silenceRateMap[silenceTier] || 0) : 0;
+    const reduction = clampNum(baseReduction * strengthMul, 0, 0.95);
+    const mul = reduction > 0 ? (1 / (1 - reduction)) : 1;
+    const spawnBase = Number.isFinite(World.spawnIntervalMulBase) ? World.spawnIntervalMulBase : 1;
+    World.fxSpawnIntervalMul = mul;
+    World.spawnIntervalMul = clampNum(spawnBase * mul, 0.25, 6.0);
+    World.fxSilenceOnlyColors = [];
+    World.fxSilenceOnlyColorsUntilMs = 0;
 
     World.fxLastActivation = {
       cardKind,
@@ -1331,6 +1579,9 @@ const CardEngine = (() => {
         World.formaStrengthMul = 1;
         World.formaOrbitReduction = 0;
         World.formaOrbitReductionBase = 0;
+        World.formaOrbitReductionAsteroidBase = 0;
+        World.formaOrbitReductionPlanetBase = 0;
+        World.formaOrbitReductionStarBase = 0;
       }
       return;
     }
@@ -1339,6 +1590,9 @@ const CardEngine = (() => {
       World.formaStrengthMul = 1;
       World.formaOrbitReduction = 0;
       World.formaOrbitReductionBase = 0;
+      World.formaOrbitReductionAsteroidBase = 0;
+      World.formaOrbitReductionPlanetBase = 0;
+      World.formaOrbitReductionStarBase = 0;
     }
   }
 
@@ -1381,26 +1635,39 @@ const CardEngine = (() => {
     if (!World) return;
     const t = nowMs();
     const active = isFormaActive(World, t);
-    const baseReduction = clampNum(World.formaOrbitReductionBase || World.formaOrbitReduction || 0, 0, 0.95);
+    const baseFallback = clampNum(World.formaOrbitReductionBase || World.formaOrbitReduction || 0, 0, 0.95);
+    const baseAsteroid = clampNum(Number.isFinite(World.formaOrbitReductionAsteroidBase)
+      ? World.formaOrbitReductionAsteroidBase
+      : baseFallback, 0, 0.95);
+    const basePlanet = clampNum(Number.isFinite(World.formaOrbitReductionPlanetBase)
+      ? World.formaOrbitReductionPlanetBase
+      : baseFallback, 0, 0.95);
+    const baseStar = clampNum(Number.isFinite(World.formaOrbitReductionStarBase)
+      ? World.formaOrbitReductionStarBase
+      : baseFallback, 0, 0.95);
     const strengthMul = active ? (Number(World.runWorldStrengthMul) || World.formaStrengthMul || 1) : 1;
-    const reduction = active ? clampNum(baseReduction * strengthMul, 0, 0.95) : 0;
-    const multiplier = 1 - reduction;
+    const reductionAsteroid = active ? clampNum(baseAsteroid * strengthMul, 0, 0.95) : 0;
+    const reductionPlanet = active ? clampNum(basePlanet * strengthMul, 0, 0.95) : 0;
+    const reductionStar = active ? clampNum(baseStar * strengthMul, 0, 0.95) : 0;
+    const multiplierAsteroid = 1 - reductionAsteroid;
+    const multiplierPlanet = 1 - reductionPlanet;
+    const multiplierStar = 1 - reductionStar;
 
     World.formaStrengthMul = strengthMul;
-    World.formaOrbitReduction = reduction;
+    World.formaOrbitReduction = reductionAsteroid;
 
-    World.metaOrbitMulAsteroid = multiplier;
-    World.metaOrbitMulPlanet = multiplier;
-    World.metaOrbitMulStar = multiplier;
+    World.metaOrbitMulAsteroid = multiplierAsteroid;
+    World.metaOrbitMulPlanet = multiplierPlanet;
+    World.metaOrbitMulStar = multiplierStar;
 
     if (World.asteroids && World.asteroids.length) {
-      for (const a of World.asteroids) syncOrbitRadiusForBody(a, "asteroid", multiplier);
+      for (const a of World.asteroids) syncOrbitRadiusForBody(a, "asteroid", multiplierAsteroid);
     }
     if (World.planets && World.planets.length) {
-      for (const p of World.planets) syncOrbitRadiusForBody(p, "planet", multiplier);
+      for (const p of World.planets) syncOrbitRadiusForBody(p, "planet", multiplierPlanet);
     }
     if (World.stars && World.stars.length) {
-      for (const s of World.stars) syncOrbitRadiusForBody(s, "star", multiplier);
+      for (const s of World.stars) syncOrbitRadiusForBody(s, "star", multiplierStar);
     }
   }
 
@@ -1410,13 +1677,20 @@ const CardEngine = (() => {
     if (!assignment) return false;
     const tierKey = normalizeSubMetaTier(assignment.tier);
     const baseReduction = getFormaReductionForTier(tierKey);
-    if (!(baseReduction > 0)) return false;
+    if (!baseReduction) return false;
+    const baseAsteroid = clampNum(Number(baseReduction.asteroid || 0), 0, 0.95);
+    const basePlanet = clampNum(Number(baseReduction.planet || 0), 0, 0.95);
+    const baseStar = clampNum(Number(baseReduction.star || 0), 0, 0.95);
+    if (!(baseAsteroid > 0 || basePlanet > 0 || baseStar > 0)) return false;
     const timeBonus = getFormaTimeBonusMs(World);
     const durationMs = computeActivationDurationMs(baseDurationMs, timeBonus, runKind);
     if (!Number.isFinite(durationMs) || durationMs <= 0) return false;
 
-    World.formaOrbitReductionBase = baseReduction;
-    World.formaOrbitReduction = baseReduction;
+    World.formaOrbitReductionBase = baseAsteroid;
+    World.formaOrbitReduction = baseAsteroid;
+    World.formaOrbitReductionAsteroidBase = baseAsteroid;
+    World.formaOrbitReductionPlanetBase = basePlanet;
+    World.formaOrbitReductionStarBase = baseStar;
     World.formaStrengthMul = runKind === "R2" ? 2 : 1;
     World.formaActiveUntilMs = now + durationMs;
     World.formaColorKey = getFormaEffectColor(World);
@@ -1444,6 +1718,7 @@ const CardEngine = (() => {
 
   function getSubMetaForgeList(World) {
     if (!World) return [];
+    if (!SUB_META_FORGE_ENABLED) return [];
     const list = [];
     SUB_META_COLORS.forEach((color) => {
       const drCount = getCardCount(World, "R1", [color], "DR", { availableOnly: true });
@@ -1472,6 +1747,7 @@ const CardEngine = (() => {
   }
 
   function craftSubMetaForge(World, forge) {
+    if (!SUB_META_FORGE_ENABLED) return false;
     if (!canCraftForge(World, forge)) return false;
     const cost = Math.max(0, Math.floor(forge.costRp || 0));
     const consume = Math.max(0, Math.floor(forge.consumes || 0));
@@ -2269,6 +2545,29 @@ const CardEngine = (() => {
     const World = state.world;
     if (World && World.subMetaOpen) {
       return handleSubMetaPointerDown(mx, my, screenW, screenH);
+    }
+
+    if (state.r2Overlay && state.r2Overlay.visible && state.r2Overlay.mode === "SUCCESS") {
+      const w = 340;
+      const h = 88;
+      const x = Math.floor(screenW / 2 - w / 2);
+      const y = Math.max(12, Math.floor(config.offerYPad - 6));
+      const inside = mx >= x && mx <= x + w && my >= y && my <= y + h;
+      if (inside) {
+        const colorA = normalizePack01Color(state.r2Overlay.colorA);
+        const colorB = normalizePack01Color(state.r2Overlay.colorB);
+        if (colorA && colorB) {
+          const activated = onRunActivateR2({
+            baseDurationMs: config.pack01TargetDurationMs,
+            colorKeys: [colorA, colorB],
+            tierKey: "DR"
+          });
+          if (activated) {
+            showR2Overlay("ACTIVATED", colorA, colorB, 1000);
+          }
+        }
+        return true;
+      }
     }
 
     if (state.r1Overlay && state.r1Overlay.visible && state.r1Overlay.mode === "SUCCESS") {

@@ -48,7 +48,6 @@
 
   function setMeteorsPerSec(mps, World, clamp) {
     const v = clamp(mps, 1, 60);
-    World.spawnInterval = 1 / v;
     if (mpsUI) {
       mpsUI.value.textContent = String(Math.round(v));
       mpsUI.slider.value = String(Math.round(v));
