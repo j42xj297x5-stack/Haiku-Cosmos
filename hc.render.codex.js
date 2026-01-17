@@ -97,16 +97,17 @@
       for (const o of a.orbiters) {
         const ox = a.x + Math.cos(o.angle) * o.orbitR;
         const oy = a.y + Math.sin(o.angle) * o.orbitR;
+        const orbR = (typeof o.renderMul === "number") ? o.r * o.renderMul : o.r;
 
         ctx.beginPath();
         ctx.fillStyle = `hsl(${o.hue} 90% 70%)`;
-        ctx.arc(ox, oy, o.r, 0, Math.PI * 2);
+        ctx.arc(ox, oy, orbR, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.globalAlpha = 0.55;
         ctx.beginPath();
         ctx.fillStyle = "white";
-        ctx.arc(ox - o.r * 0.25, oy - o.r * 0.25, o.r * 0.25, 0, Math.PI * 2);
+        ctx.arc(ox - orbR * 0.25, oy - orbR * 0.25, orbR * 0.25, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
       }
@@ -464,16 +465,17 @@
       for (const o of p.orbiters) {
         const ox = p.x + Math.cos(o.angle) * o.orbitR;
         const oy = p.y + Math.sin(o.angle) * o.orbitR;
+        const orbR = (typeof o.renderMul === "number") ? o.r * o.renderMul : o.r;
 
         ctx.beginPath();
         ctx.fillStyle = `hsl(${o.hue} 95% 70%)`;
-        ctx.arc(ox, oy, o.r, 0, Math.PI * 2);
+        ctx.arc(ox, oy, orbR, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.globalAlpha = 0.35;
         ctx.beginPath();
         ctx.fillStyle = "white";
-        ctx.arc(ox - o.r * 0.25, oy - o.r * 0.25, o.r * 0.25, 0, Math.PI * 2);
+        ctx.arc(ox - orbR * 0.25, oy - orbR * 0.25, orbR * 0.25, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
       }
