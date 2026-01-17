@@ -12,233 +12,69 @@ i stanowi obszar największej ekspresji stylu gry.
 ## 1. Definicja
 
 **Pole Reakcji Gracza (PRG)** to zbiór reguł określających:
+
 - jak obiekty świata reagują na kursor,
 - w jakim zasięgu,
 - z jaką siłą i charakterem,
 - oraz w jakich warunkach reakcja może być zmieniona lub odwrócona.
 
 PRG nie jest:
+
 - kamerą,
 - UI,
 - globalną fizyką świata.
 
 PRG jest:
+
 - intencjonalnym narzędziem gracza,
 - warstwą pośrednią między decyzją a fizyką,
-- mechaniką wysokiego wpływu, ale ograniczonego czasu.
+- mechaniką wysokiego wpływu.
 
 ---
 
 ## 2. Parametry PRG
 
 Poniższe parametry definiują Pole Reakcji
-i mogą być modyfikowane kartami oraz meta.
+i mogą być modyfikowane kartami.
 
-### 2.1 Zasięg (Radius)
+### 2.1 🔴 Zasięg (Radius)
 
-- promień obszaru reakcji wokół kursora
-- wpływa na łatwość przechwytywania meteorów
-
-Uwagi projektowe:
-- powiększenie zasięgu istniało we wcześniejszych wersjach
-- przywracane jako efekt czasowy kart
-- brak użycia karty może wpływać na meta kolejnych runów
+- czerwony kolor kategorii,
+- definiuje wielkość ringu (obszaru), którym gracz oddziaływuje na świat,
+- wpływa na precyzję lub jej brak,
+- korzystając z podstawowych kart R1 można Ring pomniejszyć (zwiększyć precyzję),
+- korzystając z karty pasującej do miejsca Odbicie (ODB) można ring powiększyć,
 
 ---
 
-### 2.2 Znak reakcji (Attraction / Repulsion)
+### 2.2 🟡 Glue - odpychanie (Attraction / Repulsion)
 
-- tryb domyślny: przyciąganie
-- tryb alternatywny: odpychanie
-
-Zastosowania:
-- ochrona planet przed kolapsem
-- rozpraszanie deszczy meteorów
-- defensywne reagowanie na eskalację
-
-Odwrócenie znaku:
-- nie zwiększa mocy
-- zmienia charakter decyzji gracza
+- żółty kolor kategorii,
+- definiuje moc przyciągania lub odpychania na obszarze ringu.
+- korzystając z podstawowych kart R1 można zwiększyć przyciąganie,
+- korzystając z karty pasującej do miejsca Odbicie (ODB) można obiekty od ringu odpychać. 
 
 ---
 
-### 2.3 Siła i tempo reakcji
+### 2.3 🟢 PRĘDKOŚĆ — spowolnienie lub przyśpieszenie wpływu na obiekty
 
-Obecny stan:
-- meteory zwalniają w polu reakcji
-
-Rozszerzenie:
-- możliwość przyśpieszania obiektów w PRG
-
-Znaczenie:
-- agresywny, ryzykowny styl gry
-- szybkie kolizje
-- większe wymagania precyzji
-
-Meta:
-- wpływ na kolejne runy poprzez Ekspansję
+- zielony kolor kategorii,
+- definiuje prędkość obiektów na obszarze ringu.
+- korzystając z podstawowych kart R1 można zpowolnić obiekty,
+- korzystając z karty pasującej do miejsca Odbicie (ODB) można obiekty przyśpieszać.
 
 ---
 
-### 2.4 Glue (lepkość trajektorii)
+### 2.4 🔵 OBIEKTY — oddziaływanie na większe obiekty
 
-Glue określa:
-- jak silnie trajektorie obiektów zakrzywiają się w stronę kursora
-
-Znaczenie:
-- kluczowy parametr przy wysokiej prędkości świata
-- umożliwia precyzyjne kolizje mimo chaosu
-
-Niski glue:
-- ruch balistyczny
-- większy chaos
-
-Wysoki glue:
-- kontrola
-- precyzja
+- niebieski kolor kategorii,
+- definiuje na które obiekty gracz ma wpływ w obszarze ringu.
+- korzystając z podstawowych kart R1 można zwiększać wpływ na obiekty,
+- korzystając z karty pasującej do miejsca Odbicie (ODB) można zmieniać możliwości wpływu na obiekty.
 
 ---
 
-## 3. Stany świata wpływające na PRG
-
-Poniższe efekty nie są parametrami kursora,
-lecz czasowymi zmianami warunków świata.
-
----
-
-### 3.1 Kondensacja świata (zamknięte pole)
-
-- czasowe włączenie odbić od krawędzi ekranu
-- obiekty nie mogą opuścić obszaru gry
-
-Efekt:
-- wzrost gęstości
-- presja i chaos
-- możliwość rytualnej kondensacji materii
-
-Interpretacja:
-- utrudnienie i szansa jednocześnie
-
----
-
-### 3.2 Zatrzymanie obiektów w oknie
-
-- jedna karta stabilizuje jeden obiekt:
-  - planetę lub gwiazdę
-- mniejsze obiekty nie są objęte efektem
-
-Zastosowania:
-- ochrona kluczowych struktur
-- stabilizacja świata
-- decyzja punktowa, nie globalna
-
----
-
-### 3.3 Globalna rotacja (wczesna rotacja)
-
-- rotacyjny ruch wszystkich obiektów
-- efekt znany z zachowania świata przy czarnej dziurze
-
-Charakter:
-- silnie wizualny
-- rytualny
-- używany rzadko
-
-Zastosowanie:
-- karta wysokiego poziomu
-- nagroda za meta-progresję
-
----
-
-## 4. PRG a sloty meta
-
-PRG nie tworzy nowego slotu meta.
-Jest interpretowane przez istniejące osie.
-
-### Forma
-- trajektorie
-- glue
-- znak reakcji
-- rotacja
-
-### Czas
-- czas trwania efektów PRG
-- cooldowny
-- wpływ na kolejne runy (Ekspansja)
-
-### Intencja
-- kontekst użycia:
-  - ochrona
-  - przygotowanie rytuału
-  - kontrolowana kondensacja
-
-### Cisza (pośrednio)
-- brak reakcji
-- neutralizacja pola
-- odwrócenie działania
-
----
-
-## 5. PRG a karty
-
-- większość efektów PRG jest czasowa
-- aktywowane poprzez karty
-- brak użycia karty:
-  - zasila meta
-  - modyfikuje przyszłe runy
-
-PRG jest w pełni zgodne z filozofią kart Haiku Cosmos:
-- decyzja teraz
-- konsekwencja później
-
----
-
-## 6. PRG a Ekspansja
-
-PRG naturalnie korzysta z Ekspansji slotu Czas.
-
-Poziomy:
-- DR: niewielka zmiana parametru
-- sDR: zależność od epoki lub prędkości świata
-- PDR: zmiana reguły reakcji
-
-Ekspansja:
-- nie zwiększa mocy
-- rozszerza zasięg, czas lub warunki działania
-
----
-
-## 7. PRG a Wiązania (v1)
-
-### Czas + Cisza
-- odwrócenie reakcji
-- brak przyciągania
-- defensywna kontrola eskalacji
-
-### Forma + Intencja
-- świadome kształtowanie trajektorii
-- wybór między precyzją a chaosem
-
-PRG jest jednym z głównych obszarów,
-w których Wiązania są odczuwalne w gameplayu.
-
----
-
-## 8. Granice systemu
-
-PRG:
-- nie działa stale
-- nie automatyzuje gry
-- nie przejmuje kontroli nad światem
-
-PRG:
-- tworzy krótkie, intensywne momenty decyzji
-- wzmacnia styl gry
-- pozostawia odpowiedzialność po stronie gracza
-
----
-
-## 9. Status dokumentu
+## 3. Status dokumentu
 
 Dokument koncepcyjny.
 Stanowi podstawę do:
