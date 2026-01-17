@@ -120,6 +120,7 @@
         hue: meteor.hue,
         colorName: meteor.colorName,
         r: orbR,
+        renderMul: 0.5,
         orbitR,
         angle: rand(0, Math.PI * 2),
         omega,
@@ -205,10 +206,7 @@
             a.liveSumMass += massFromR(m.r);
             a.liveColorCounts[m.colorName] = (a.liveColorCounts[m.colorName] || 0) + 1;
 
-            a.r = clamp(a.r + m.r * 0.12, a.minR, a.maxR);
-            const Rm2 = meteorBaseRadius();
-            const baseOrbit = Math.max(a.r * 1.10, a.r + 2.2 * Rm2);
-            const nextOrbit = clamp(baseOrbit, a.minOrbitPx, a.maxOrbitPx);
+            const nextOrbit = clamp(a.orbitPx + m.r * 0.6, a.minOrbitPx, a.maxOrbitPx);
             setAsteroidOrbitRadius(a, nextOrbit);
 
             addOrbiterToAsteroid(a, m);
@@ -244,11 +242,8 @@
       const sumR = (typeof a.liveSumR === 'number') ? a.liveSumR : a.captureSumR;
       const sumM = (typeof a.liveSumMass === 'number') ? a.liveSumMass : a.captureSumMass;
 
-      const r0 = clamp(
-        (sumR * 0.55) + Math.sqrt(sumM) * 0.18,
-        1.6 * Rm,
-        90.0 * Rm
-      );
+      const gravOrbitR = (typeof a.orbitCurrentRadius === "number") ? a.orbitCurrentRadius : a.orbitPx;
+      const r0 = clamp(gravOrbitR * 0.5, 1.6 * Rm, 90.0 * Rm);
 
       const baseOrbit = Math.max(r0 * 1.20, r0 + 2.8 * Rm);
       const orbit0 = clamp(baseOrbit, baseOrbit, 420.0 * Rm);
