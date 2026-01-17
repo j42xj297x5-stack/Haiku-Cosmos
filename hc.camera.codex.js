@@ -16,6 +16,10 @@
 
   window.HC.Camera = Camera;
   window.HC.getCamera = () => window.Camera || window.HC.Camera;
+  window.HC.Camera.getScale = window.HC.Camera.getScale || (() => {
+    const cam = window.HC.getCamera();
+    return cam.zoom || cam.scale || 1;
+  });
 
   function update(dt, view) {
     const cam = window.HC.getCamera();

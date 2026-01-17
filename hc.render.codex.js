@@ -15,6 +15,55 @@
     const hueFromName = window.hueFromName;
     const makeRng = (window.HC.Util && window.HC.Util.makeRng) || window.makeRng;
     const hash32 = (window.HC.Util && window.HC.Util.hash32) || window.hash32;
+    const CLASS_RENDER_R = {
+      ASTEROID: 9,
+      PLANET: 20,
+      STAR: 36,
+      METEOR: 3,
+    };
+
+    const getCameraScale = () => {
+      if (cam && typeof cam.getScale === "function") return cam.getScale();
+      return cam.zoom || cam.scale || 1;
+    };
+
+    const clampValue = (value, lo, hi) => {
+      if (typeof clamp === "function") return clamp(value, lo, hi);
+      return Math.min(hi, Math.max(lo, value));
+    };
+
+    function isMobileViewport() {
+      const w = window.innerWidth || view.w || 0;
+      const h = window.innerHeight || view.h || 0;
+      return Math.min(w, h) < 700;
+    }
+
+    function getMinMeteorPx() {
+      return isMobileViewport() ? 3 : 2;
+    }
+
+    function getMaxMeteorPx() {
+      return 10;
+    }
+
+    function getEpochRenderScale(epochId) {
+      const id = (typeof epochId === "string") ? epochId.toUpperCase() : "";
+      if (id === "STAR") return 0.7;
+      if (id === "PLANET") return 0.85;
+      return 1.0;
+    }
+
+    function getWorldEpochId() {
+      if (world && typeof world.epoch === "string" && world.epoch) return world.epoch;
+      if (world && world.stars && world.stars.length) return "STAR";
+      if (world && world.planets && world.planets.length) return "PLANET";
+      return "METEOR";
+    }
+
+    function getRenderRadiusPx(baseRenderR, epochId) {
+      const cameraScale = getCameraScale();
+      return baseRenderR * getEpochRenderScale(epochId) * cameraScale;
+    }
 
     function hashFloat(str) {
       return (hash32(str) >>> 0) / 4294967296;
@@ -73,9 +122,17 @@
       if (!Number.isFinite(currentRadius)) return;
       const nativeR = Number.isFinite(nativeRadius) ? nativeRadius : currentRadius;
       const showNative = Math.abs(nativeR - currentRadius) > 0.5;
+      const cameraScale = getCameraScale();
+      const epochScale = getEpochRenderScale(getWorldEpochId());
+      const orbitLinePx = clampValue(1 * epochScale, 1, 3);
+      const lineW = orbitLinePx / Math.max(0.001, cameraScale);
+      const dashPx = clampValue(6 * epochScale, 3, 8);
+      const gapPx = clampValue(6 * epochScale, 3, 8);
+      const dashWorld = dashPx / Math.max(0.001, cameraScale);
+      const gapWorld = gapPx / Math.max(0.001, cameraScale);
 
       ctx.save();
-      ctx.lineWidth = 1;
+      ctx.lineWidth = lineW;
       ctx.setLineDash([]);
       ctx.strokeStyle = strokeStyle;
       ctx.beginPath();
@@ -84,7 +141,7 @@
 
       if (showNative) {
         ctx.globalAlpha = 0.35;
-        ctx.setLineDash([6, 6]);
+        ctx.setLineDash([dashWorld, gapWorld]);
         ctx.beginPath();
         ctx.arc(x, y, nativeR, 0, Math.PI * 2);
         ctx.stroke();
@@ -118,9 +175,11 @@
       drawOrbitRing(a.x, a.y, orbitR, nativeR, "rgba(220, 220, 220, 0.7)");
 
       drawAsteroidOrbiters(a);
+      const baseRenderR = (typeof a.renderR === "number") ? a.renderR : CLASS_RENDER_R.ASTEROID;
+      const renderR = baseRenderR * getEpochRenderScale("ASTEROID");
 
       ctx.save();
-      drawRegularPolygon(a.x, a.y, a.r, a.sides, a.angle);
+      drawRegularPolygon(a.x, a.y, renderR, a.sides, a.angle);
       ctx.fillStyle = `hsl(0 0% ${a.grayLight}%)`;
       ctx.fill();
       ctx.strokeStyle = "rgba(255,255,255,0.16)";
@@ -128,7 +187,7 @@
       ctx.stroke();
 
       ctx.globalAlpha = 0.35;
-      drawRegularPolygon(a.x - a.r * 0.12, a.y - a.r * 0.12, a.r * 0.55, a.sides, a.angle);
+      drawRegularPolygon(a.x - renderR * 0.12, a.y - renderR * 0.12, renderR * 0.55, a.sides, a.angle);
       ctx.fillStyle = "white";
       ctx.fill();
       ctx.restore();
@@ -144,8 +203,12 @@
         const bandWidth = (typeof rg.bandWidth === "number" && isFinite(rg.bandWidth))
           ? rg.bandWidth
           : ((typeof rg.w === "number" && isFinite(rg.w)) ? rg.w : meteorBaseRadius());
-        const bands = clamp(Math.round(bandWidth / 2), 2, 16);
-        const lineW = Math.max(0.8, bandWidth / (bands * 1.35));
+        const cameraScale = getCameraScale();
+        const bandWidthPx = clampValue(bandWidth * cameraScale, 1, 6);
+        const bandWidthWorld = bandWidthPx / Math.max(0.001, cameraScale);
+        const bands = clampValue(Math.round(bandWidthPx / 2), 2, 16);
+        const linePx = clampValue(bandWidthPx / (bands * 1.35), 1, 6);
+        const lineW = linePx / Math.max(0.001, cameraScale);
         const palette = (rg.palette && rg.palette.length) ? rg.palette : (rg.colors || []);
         const baseHue = (typeof rg.hue === "number") ? rg.hue : hueFromName(rg.colorName || "blue");
         const seed = (typeof rg.seed === "number") ? rg.seed : 0.0;
@@ -155,10 +218,12 @@
         ctx.globalAlpha = ringAlpha;
         for (let i = 0; i < bands; i++) {
           const t = (bands === 1) ? 0.5 : (i / (bands - 1));
-          const r = rg.r - bandWidth * 0.5 + t * bandWidth;
+          const r = rg.r - bandWidthWorld * 0.5 + t * bandWidthWorld;
           const jitter = Math.sin((seed + i * 13.1) * 3.7) * 0.5 + 0.5;
-          const dash = Math.max(3, (rg.dashBase || 6) + jitter * 3);
-          const gap = Math.max(3, (rg.gapBase || 10) + (1 - jitter) * 4);
+          const dashPx = clampValue((rg.dashBase || 6) + jitter * 3, 3, 12);
+          const gapPx = clampValue((rg.gapBase || 10) + (1 - jitter) * 4, 3, 16);
+          const dash = dashPx / Math.max(0.001, cameraScale);
+          const gap = gapPx / Math.max(0.001, cameraScale);
           const paletteColor = palette.length ? palette[i % palette.length] : null;
           const hue = paletteColor
             ? ((typeof paletteColor.hue === "number") ? paletteColor.hue : hueFromName(paletteColor.colorName || "blue"))
@@ -176,23 +241,24 @@
       }
     }
 
-    function drawRockyPatchwork(p, rockySurface, alpha) {
+    function drawRockyPatchwork(p, rockySurface, alpha, radiusOverride) {
       const blobs = Array.isArray(rockySurface.blobs) ? rockySurface.blobs : [];
       if (!blobs.length) return;
+      const planetR = (typeof radiusOverride === "number") ? radiusOverride : p.r;
 
       ctx.save();
       ctx.globalAlpha *= alpha;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, planetR, 0, Math.PI * 2);
       ctx.clip();
 
       const TAU = Math.PI * 2;
       for (let i = 0; i < blobs.length; i++) {
         const blob = blobs[i];
         const steps = 12;
-        const blobR = p.r * blob.rN;
-        const cx = p.x + blob.xN * p.r * 0.95;
-        const cy = p.y + blob.yN * p.r * 0.95;
+        const blobR = planetR * blob.rN;
+        const cx = p.x + blob.xN * planetR * 0.95;
+        const cy = p.y + blob.yN * planetR * 0.95;
         ctx.beginPath();
         for (let k = 0; k <= steps; k++) {
           const ang = (k / steps) * TAU;
@@ -210,26 +276,27 @@
       ctx.restore();
     }
 
-    function drawRockyRimAndCracks(p, rocky, alpha) {
+    function drawRockyRimAndCracks(p, rocky, alpha, radiusOverride) {
       const avgHue = (typeof rocky.avgHue === "number") ? rocky.avgHue : hueFromName(rocky.monoColor || "yellow");
       const seed = p._id || p.id || 1;
       const rimAngle = hashFloat(`rim:${seed}`) * Math.PI * 2;
+      const planetR = (typeof radiusOverride === "number") ? radiusOverride : p.r;
 
       ctx.save();
       ctx.globalAlpha *= alpha;
       ctx.beginPath();
       ctx.strokeStyle = `hsla(${avgHue} 85% 72% / ${world.ROCKY_RIM_ALPHA})`;
-      ctx.lineWidth = Math.max(1, p.r * 0.05);
-      ctx.arc(p.x, p.y, p.r * 0.98, rimAngle - 0.7, rimAngle + 0.7);
+      ctx.lineWidth = Math.max(1, planetR * 0.05);
+      ctx.arc(p.x, p.y, planetR * 0.98, rimAngle - 0.7, rimAngle + 0.7);
       ctx.stroke();
 
       const crackRng = makeRng(hash32(`cracks:${seed}`));
-      ctx.lineWidth = Math.max(0.6, p.r * 0.02);
+      ctx.lineWidth = Math.max(0.6, planetR * 0.02);
       ctx.strokeStyle = `hsla(0 0% 100% / ${world.ROCKY_CRACK_ALPHA})`;
       for (let i = 0; i < world.ROCKY_CRACK_COUNT; i++) {
         const ang = crackRng() * Math.PI * 2;
-        const r0 = p.r * (0.15 + 0.7 * crackRng());
-        const len = p.r * (0.05 + 0.12 * crackRng());
+        const r0 = planetR * (0.15 + 0.7 * crackRng());
+        const len = planetR * (0.05 + 0.12 * crackRng());
         const sx = p.x + Math.cos(ang) * r0;
         const sy = p.y + Math.sin(ang) * r0;
         const ex = p.x + Math.cos(ang) * (r0 + len);
@@ -242,16 +309,17 @@
       ctx.restore();
     }
 
-    function drawRockyPlanet(p, nowMs) {
+    function drawRockyPlanet(p, nowMs, radiusOverride) {
       const rocky = p.rocky || {};
       const rockySurface = p.rockySurface || {};
       const avgHue = (typeof rocky.avgHue === "number") ? rocky.avgHue : hueFromName(rocky.monoColor || "yellow");
       const form = p.rockyForm;
+      const planetR = (typeof radiusOverride === "number") ? radiusOverride : p.r;
 
       if (form && form.active) {
         ctx.beginPath();
         ctx.fillStyle = `hsl(${avgHue} 35% 30%)`;
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, planetR, 0, Math.PI * 2);
         ctx.fill();
 
         let ringAlpha = world.ROCKY_RING_OPACITY;
@@ -293,7 +361,7 @@
             ctx.rotate(p.spinAngle || 0);
             ctx.translate(-p.x, -p.y);
           }
-          drawRockyPatchwork(p, rockySurface, blendAlpha);
+          drawRockyPatchwork(p, rockySurface, blendAlpha, planetR);
           if (p.spinLikeAsteroid) ctx.restore();
         }
         return;
@@ -310,12 +378,12 @@
       const baseHue = hueFromName(baseColor || "yellow");
       ctx.beginPath();
       ctx.fillStyle = `hsl(${baseHue} 85% 55%)`;
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, planetR, 0, Math.PI * 2);
       ctx.fill();
       if (!rockySurface.isMono) {
-        drawRockyPatchwork(p, rockySurface, 1);
+        drawRockyPatchwork(p, rockySurface, 1, planetR);
       }
-      drawRockyRimAndCracks(p, rocky, 1);
+      drawRockyRimAndCracks(p, rocky, 1, planetR);
 
       if (p.spinLikeAsteroid) ctx.restore();
     }
@@ -328,6 +396,9 @@
       drawOrbitRing(s.x, s.y, orbitR, nativeR, "rgba(245, 220, 90, 0.7)");
       const colorName = s.gradientOuterColor || "yellow";
       const hue = hueFromName(colorName);
+      const baseRenderR = (typeof s.renderR === "number") ? s.renderR : CLASS_RENDER_R.STAR;
+      const renderR = baseRenderR * getEpochRenderScale("STAR");
+      const renderScale = renderR / Math.max(0.001, s.r || renderR);
       let flicker = 1;
       if (s.starKind === "rare" && s.shimmer && s.shimmer.active) {
         const phase = (s.shimmer.seed || 1) * 0.4;
@@ -346,23 +417,25 @@
       ctx.beginPath();
       const light = 56 + (flicker * 8) + (whiteMix * 35);
       ctx.fillStyle = `hsl(${hue} 90% ${light}%)`;
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.arc(s.x, s.y, renderR, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.globalAlpha = 0.35 * flicker;
-      ctx.beginPath();
-      ctx.fillStyle = `hsl(${hue} 90% 70%)`;
-      ctx.arc(s.x, s.y, s.r * 1.08, 0, Math.PI * 2);
-      ctx.fill();
+      if (renderR >= 18) {
+        ctx.globalAlpha = 0.35 * flicker;
+        ctx.beginPath();
+        ctx.fillStyle = `hsl(${hue} 90% 70%)`;
+        ctx.arc(s.x, s.y, renderR * 1.08, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       if (s.birth && s.birth.active && s.birth.absorb && s.birth.absorb.length) {
         for (const ab of s.birth.absorb) {
-          const x = s.x + Math.cos(ab.theta) * ab.r;
-          const y = s.y + Math.sin(ab.theta) * ab.r;
+          const x = s.x + Math.cos(ab.theta) * ab.r * renderScale;
+          const y = s.y + Math.sin(ab.theta) * ab.r * renderScale;
           ctx.globalAlpha = Math.max(0, ab.alpha || 1) * 0.9;
           ctx.beginPath();
           ctx.fillStyle = `hsla(${ab.hue} 85% 60% / 0.8)`;
-          ctx.arc(x, y, Math.max(1, (ab.ref?.r || 3) * 0.45), 0, Math.PI * 2);
+          ctx.arc(x, y, Math.max(1, (ab.ref?.r || 3) * 0.45 * renderScale), 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -416,7 +489,8 @@
       const preStarActive = !!(p.preStar && p.preStar.active);
       const preStarFreq = (typeof world.PRESTAR_PULSE_FREQ === "number") ? world.PRESTAR_PULSE_FREQ : 0.22;
       const preStarPulse = preStarActive ? (1 + 0.03 * Math.sin(Math.PI * 2 * preStarFreq * (p.preStar.timeAbs || 0))) : 1;
-      const renderR = p.r * preStarPulse;
+      const baseRenderR = (typeof p.renderR === "number") ? p.renderR : CLASS_RENDER_R.PLANET;
+      const renderR = baseRenderR * getEpochRenderScale("PLANET") * preStarPulse;
       const orbitR = (typeof p.orbitCurrentRadius === "number") ? p.orbitCurrentRadius : p.orbitPx;
       const nativeR = (typeof p.orbitNativeRadius === "number") ? p.orbitNativeRadius : orbitR;
       const isRocky = Boolean(p.isRocky || p.planetKind === "rocky");
@@ -424,12 +498,12 @@
       drawOrbitRing(p.x, p.y, orbitR, nativeR, orbitColor);
 
       drawPlanetRings(p, nowMs);
-    ctx.beginPath();
+      ctx.beginPath();
       drawPlanetOrbiters(p);
 
       ctx.beginPath();
       if (p.isRocky) {
-        drawRockyPlanet(p, nowMs);
+        drawRockyPlanet(p, nowMs, renderR);
       } else {
         ctx.fillStyle = makePlanetGradient(p.x, p.y, renderR, p.hueA, p.hueB);
         ctx.arc(p.x, p.y, renderR, 0, Math.PI * 2);
@@ -497,7 +571,17 @@
 
     function drawMeteor(m) {
       if (!window.HC || !window.HC.Meteors || !window.HC.Meteors.drawMeteor) return;
-      window.HC.Meteors.drawMeteor(m);
+      const cameraScale = getCameraScale();
+      const minMeteorPx = getMinMeteorPx();
+      const maxMeteorPx = getMaxMeteorPx();
+      const drawRpx = clampValue(
+        getRenderRadiusPx(CLASS_RENDER_R.METEOR, "METEOR"),
+        minMeteorPx,
+        maxMeteorPx,
+      );
+      const drawR = drawRpx / Math.max(0.001, cameraScale);
+      const detail = drawRpx >= 6;
+      window.HC.Meteors.drawMeteor(m, { drawR, detail });
     }
 
     function frame() {

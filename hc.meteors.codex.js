@@ -105,37 +105,45 @@
       });
     }
 
-    function drawMeteor(m) {
+    function drawMeteor(m, renderOptions = {}) {
       const maxTrail = 10;
+      const drawR = (typeof renderOptions.drawR === "number") ? renderOptions.drawR : m.r;
+      const detail = (typeof renderOptions.detail === "boolean") ? renderOptions.detail : true;
       if (!m.trail) {
         m.trail = [{ x: m.x, y: m.y, t: 0 }];
       }
-      m.trail.push({ x: m.x, y: m.y });
-      if (m.trail.length > maxTrail) m.trail.shift();
-
-      ctx.globalAlpha = 0.18;
-      for (let i = 0; i < m.trail.length; i++) {
-        const t = m.trail[i];
-        const k = (i + 1) / m.trail.length;
-        const rr = m.r * (0.6 + 0.8 * k);
-        ctx.beginPath();
-        ctx.fillStyle = `hsl(${m.hue} 90% 70%)`;
-        ctx.arc(t.x, t.y, rr, 0, Math.PI * 2);
-        ctx.fill();
+      if (detail) {
+        m.trail.push({ x: m.x, y: m.y });
+        if (m.trail.length > maxTrail) m.trail.shift();
       }
-      ctx.globalAlpha = 1;
+
+      if (detail) {
+        ctx.globalAlpha = 0.18;
+        for (let i = 0; i < m.trail.length; i++) {
+          const t = m.trail[i];
+          const k = (i + 1) / m.trail.length;
+          const rr = drawR * (0.6 + 0.8 * k);
+          ctx.beginPath();
+          ctx.fillStyle = `hsl(${m.hue} 90% 70%)`;
+          ctx.arc(t.x, t.y, rr, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
 
       ctx.beginPath();
       ctx.fillStyle = `hsl(${m.hue} 90% 70%)`;
-      ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+      ctx.arc(m.x, m.y, drawR, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.globalAlpha = 0.65;
-      ctx.beginPath();
-      ctx.fillStyle = "white";
-      ctx.arc(m.x - m.r * 0.25, m.y - m.r * 0.25, m.r * 0.25, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
+      if (detail) {
+        ctx.globalAlpha = 0.65;
+        ctx.beginPath();
+        ctx.fillStyle = "white";
+        ctx.arc(m.x - drawR * 0.25, m.y - drawR * 0.25, drawR * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
     }
 
     function updateMeteors(dt, nowMs) {
