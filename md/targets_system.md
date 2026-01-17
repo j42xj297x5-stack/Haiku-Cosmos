@@ -1,9 +1,11 @@
 # Haiku Cosmos — TARGETS SYSTEM
-## System targetów, rytuałów i efektów świata (kanon)
+
+System targetów, sekwencji i efektów świata (kanon)
 
 Ten dokument opisuje:
+
 - czym są targety,
-- czym są rytuały,
+- czym są sekwencje,
 - jak karty wpływają na świat,
 - oraz jak NIE są realizowane sloty (ważne).
 
@@ -11,8 +13,10 @@ Ten dokument opisuje:
 
 ## 1. Definicje podstawowe
 
-### Target
+### 1.1 Target
+
 Target to konkretny efekt w świecie gry, który:
+
 - modyfikuje zachowanie obiektów (meteory, planetoidy, planety, gwiazdy),
 - działa w czasie lub jednorazowo,
 - jest uruchamiany przez:
@@ -25,91 +29,91 @@ Jest czysto mechanicznym efektem runtime.
 
 ---
 
-### Rytuał
-Rytuał to sekwencja akcji gracza w RUN,
-która spełnia określone warunki (np. streak koloru, harmonia, kolejność zdarzeń).
+### 1.1 Sekwencja harmoniczna
 
-Rytuał:
+Sekwencja harmoniczna jest działaniem gracza w RUN, która spełnia określone warunki (np. połączenie dwóch meteorów tego samego koloru).
+
+Sekwencja harmoniczna:
+
 - może zakończyć się sukcesem lub porażką,
 - może wygenerować kartę,
 - może przyznać punkty lub modyfikator punktowy.
 
-Rytuał NIE jest slotem.
-Rytuał NIE jest elementem META.
+Sekwencja harmoniczna NIE jest slotem.
+Sekwencja harmoniczna NIE jest elementem META.
 
 ---
 
-## 2. Karty rytualne
+## 2. Karty sekwencji harmonicznych R1, R2, R3(TODO), R4(TODO)
 
-Karty zdobyte w wyniku rytuałów:
-- są normalnymi kartami,
+Karty zdobyte w wyniku sekwencji:
+
+- są związane z kolorami meteorów,
 - trafiają do kolekcji,
 - mogą być używane w SUB-META lub META.
 
 Każda karta posiada:
+
 - typ (np. R1, R2),
-- kolor lub zestaw parametrów,
-- listę dozwolonych slotów (allowedSlots),
-- koszt przypisania do slotu (opisany w SUB_META_SYSTEM.md),
+- kolor oraz zestaw parametrów,
+- listę dozwolonych slotów zależną od koloru (allowedSlots),
+- koszt przypisania do slotu (opisany w ECONOMY SYSTEM.md),
 - definicję targetu, który uruchamia po aktywacji.
 
 ---
 
-## 3. Sloty META — KANON
+## 3. Sloty META-ŚWIAT I META-PRG — KANON
 
-W grze istnieją WYŁĄCZNIE cztery sloty META:
+W grze istnieją cztery sloty(gałęzie) META-ŚWIAT i cztery kategorie (gałęzie) META-PRG:
 
-1. Forma  
-2. Intencja  
-3. Czas  
-4. Cisza  
+Dla Świata:
 
-Nie istnieje „Slot Rytuał”.
+1. 🔴 Forma  
+2. 🟡 Intencja  
+3. 🟢 Czas  
+4. 🔵 Cisza  
 
-Jeśli w starszych wersjach dokumentacji pojawiało się pojęcie „Slot Rytuał”,
-należy je uznać za nieaktualne i archiwalne.
+Dla PRG
+
+1. 🔴 Wielkość ringu
+2. 🟡 Glue ↔ Odpychanie
+3. 🟢 Przyśpiesz ↔ Zwolnij
+4. 🔵 Wpływ na obiekty Meteory ↔ Komety ↔ Planetoidy ↔ Planety
 
 ---
 
-## 4. Rytuały a sloty
+## 4. Sekwencje a sloty Świata i kategorie PRG
 
-Rytuał:
+Sekwencja harmoniczna:
+
 - jest procesem w RUN,
-- generuje kartę,
-- NIE jest przypisywany do slotu.
+- generuje kartę jeśli sukces,
+- generuje combo punktowe jeśli porażka (dla karty R1),
+- generuje combo punktowe i karty jeśli porażka (dla kart R2, R3, R4),
+- nie przypisuje automatycznie wygenerowanej karty do slotu.
 
-Karta:
-- jest wynikiem rytuału,
-- może być przypisana do jednego lub kilku z czterech slotów,
+Karta R1, R2, R3, R4:
+
+- jest wynikiem sekwencji,
+- może być przypisana do jednego z czterech slotów Świata lub jednego z czterech kategorii PRG,
 - po przypisaniu modyfikuje działanie targetów.
 
 Wzmocnienia typu:
+
 - wydłużenie czasu działania,
 - zmiana zakresu,
 - zmiana intensywności,
 
-są realizowane przez SLOTY, a nie przez rytuał.
+są realizowane przez SLOTY, a nie przez sekwencję.
 
 ---
 
-## 5. Przykład: R1 „Puszczanie” (kanon)
+## 5. Typy i rodzaje kart
 
-Rytuał R1:
-- warunek: sekwencja zdarzeń jednego koloru,
-- sukces: karta R1 danego koloru,
-- porażka: punktowe combo (np. x2).
+Wszelkie dane dotyczące kart są zamieszczone w plikach:
 
-Karta R1:
-- allowedSlots: Czas, Cisza,
-- efekt bazowy:
-  „wolne meteory danego koloru nie mogą wchodzić na orbity”,
-- czas bazowy: 3 minuty.
-
-Sloty:
-- Slot Czas: wydłuża czas działania targetu,
-- Slot Cisza: również wydłuża czas (inna semantyka, ten sam efekt v1).
-
----
+- CARDS_SYSTEM.md
+- ECONOMY SYSTEM.md
 
 ## 6. Status dokumentu
 

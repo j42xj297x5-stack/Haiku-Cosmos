@@ -1,12 +1,14 @@
 # Haiku Cosmos — SUB META SYSTEM
+
 ## System SUB-META: decyzje, oddech i konfiguracja RUN (KANON)
 
 SUB-META jest warstwą pomiędzy RUN a META końcowym.
 Nie resetuje świata — umożliwia **świadome ingerencje** w jego reguły.
 
 SUB-META to miejsce:
+
 - wydawania Punktów Rezonansu (RP),
-- przypisywania kart do slotów META,
+- przypisywania kart do slotów Świata i PRG,
 - zarządzania PRG (Programami Reakcji Gracza),
 - przygotowania konfiguracji na dalszy przebieg RUN.
 
@@ -21,31 +23,38 @@ RUN
 → META (koniec cyklu / eonu)
 
 SUB-META:
+
 - nie resetuje RUN,
 - nie resetuje świata,
-- zatrzymuje lub silnie spowalnia symulację,
+- zatrzymuje symulację,
 - pozwala na zmiany konfiguracyjne.
 
 ---
 
 ## 2. Dostęp do SUB-META
 
-### Automatyczne wyzwalanie (v1)
+### 2.1. Automatyczne wyzwalanie
+
 SUB-META otwiera się automatycznie:
-- po utworzeniu pierwszej planety w RUN.
+
+- po utworzeniu pierwszej planety gazowej w RUN.
 
 Ten trigger:
+
 - występuje tylko raz na RUN,
 - ma charakter wprowadzający.
 
 ---
 
-### Manualny dostęp
+### 2.2 Manualny dostęp
+
 SUB-META jest dostępna **zawsze** poprzez przycisk UI:
+
 - przycisk widoczny w RUN (np. krawędź ekranu),
 - otwarcie SUB-META pauzuje symulację.
 
 Manualne otwarcie:
+
 - nie resetuje żadnych stanów,
 - umożliwia modyfikacje w dowolnym momencie RUN.
 
@@ -55,8 +64,9 @@ Manualne otwarcie:
 
 SUB-META wyświetla overlay składający się z trzech warstw:
 
-### GÓRA — Panel PRG
-Na górze panelu znajduje się pasek z czterema zakładkami PRG:
+### 3.1. GÓRA — Panel PRG
+
+Na górze panelu znajduje się poziomy pasek z czterema zakładkami - kategoriami PRG:
 
 1. 🔴 Wielkość ringu  
 2. 🟡 Glue ↔ Odpychanie  
@@ -64,14 +74,16 @@ Na górze panelu znajduje się pasek z czterema zakładkami PRG:
 4. 🔵 Meteory ↔ Planetoidy  
 
 Każda zakładka:
+
 - reprezentuje jedną kategorię PRG,
 - zawiera przeciwstawne opcje,
-- może być rozwijana w przyszłości (ikony, poziomy).
+- może być rozwijana poprzez łączenie kategorii (gałęzi).
 
 ---
 
-### ŚRODEK — Sloty META
-Cztery sloty META ułożone pionowo:
+### 3.2 ŚRODEK — Sloty Świat
+
+Cztery sloty Świata ułożone pionowo:
 
 1. Forma (🔴)  
 2. Intencja (🟡)  
@@ -79,131 +91,129 @@ Cztery sloty META ułożone pionowo:
 4. Cisza (🔵)  
 
 Każdy slot:
+
 - posiada miejsca na karty,
 - początkowo ma jedno miejsce,
-- maksymalnie może mieć trzy miejsca.
+- maksymalnie może mieć trzy miejsca - jedno dla kart R1, dwa dla kart specjalnych.
 
 Kliknięcie slotu:
+
 - wybiera slot,
-- wyświetla możliwe karty do przypisania (zgodnie z allowedSlots).
+- wyświetla (poniżej) możliwe karty do przypisania (zgodnie z allowedSlots).
 
 ---
 
-### PRAWA STRONA — Kolekcja / Kuźnia
-Prawa kolumna SUB-META pełni rolę kuźni:
+### 3.3 PRAWA STRONA — Kolekcja / Magazyn
 
-- wyświetla zebrane karty kolorów (DR),
+Prawa kolumna SUB-META pełni rolę magazynu:
+
+- wyświetla zebrane karty,
 - pokazuje ich ilość,
-- w przyszłości umożliwia konwersję DR → sDR → PDR.
 
-Na tym etapie:
-- kolekcja służy do przypisywania kart do slotów,
-- oraz jako koszt odblokowań.
+### 3.4 PRAWA STRONA dolny róg - Informacje o karcie
+
+Poniżej magazynu mieści się pole wyświetlania informacji o przeglądanych kartach. Podzielone jest na 2 części:
+
+- po lewej widzimy opis karty wraz z jej tytułem oraz możliwościami wpływu na Świat lub PRG
+- po prawej wyświetlane jest haiku i graficzna reprezentacja karty
+
+### 3.5 LEWA STRONA dolny róg - Kuźnia
+
+Miejsce podzielone jest horyzontalnie na 2 części:
+
+- na górze mieści się lista dostępnych kart dla wybranego slotu Świata lub PRG,
+- na dole pokazane są karty, które można konwertować na inne, modyfikować lub wzmacniać (DR → sDR → PDR).
+- na samym dole wyświetlany jest koszt działania w RP (Punkty Rezonansu)
 
 ---
 
-## 4. Sloty META — zasady
+## 4. Sloty w META — zasady
 
-### Przypisywanie kart
+### 4.1. Przypisywanie i usuwanie kart
+
 Przypisanie karty do slotu:
+
 - jest akcją płatną,
-- zużywa kartę z kolekcji,
+- usuwa kartę z kolekcji (magazynu),
 - zapisuje konfigurację na dalszy RUN.
 
-#### Koszt przypisania:
-- 10 RP za każdą operację.
+Usuwanie karty ze slotu:
 
-Operacje płatne:
-- wpięcie karty do pustego miejsca,
-- podmiana karty w slocie.
+- jest akcją płatną,
+- usuwa kartę ze slotu i przywraca ją do magazynu,
+- zapisuje konfigurację na dalszy RUN.
+
+#### 4.2. Koszt przypisania
+
+- 10 RP za każdą operację przypisania,
+- 10 RP za usunięcie karty ze slotu.
 
 Jeśli RP są niewystarczające:
-- opcja jest zablokowana,
+
+- opcja jest zablokowana (wyszarzona),
 - UI komunikuje koszt.
 
 ---
 
-### Odblokowywanie miejsc w slotach
-Każdy slot META może posiadać maksymalnie 3 miejsca.
+### 4.3. Odblokowywanie miejsc w slotach Świata
 
-Odblokowanie nowego miejsca kosztuje:
-- 10 RP
-- 3 karty DR koloru slotu
-
-UI:
-- przy slocie pojawia się mały „+” w kolorze slotu,
-- kliknięcie inicjuje zakup miejsca.
+- Każdy slot Świata w META może posiadać maksymalnie 3 miejsca. 1 na kartę typu R1 oraz 1 na kartę Ekspansji oraz 1 na kartę Specjalną.
+- Aby odblokować miejsce Ekspansja należy umieścić kartę R1 poziomu pDR,
+- Aby odblokować miejsce na dodatową kartę Specjalną należy wykonać w kuźni kartę Dodatkowy Slot, która jest właściwa dla danego slotu (koloru), oraz aktywować ją w wybranym slocie.
 
 ---
 
-### Dozwolone sloty (allowedSlots)
+### 4.4 Wiązanie slotów (gałęzi) w META-Świat
+
+Pomiędzy 4 slotami Świata istnieją 3 miejsca na karty R2, które łączą przyległe do siebie gałęzie.
+
+Rodzaje wiązań gałęzi ŚWIAT
+
+1) 🔴🟡 Forma - Intencja
+2) 🟡🟢 Intencja - Czas
+3) 🟢🔵 Czas - Cisza
+
+UI wyświetla miejsce w postaci pustego prostokąta znajdującego się pomiędzy 2 slotami
+
+---
+
+### 4.5 Dozwolone sloty (allowedSlots)
+
 Każda karta definiuje listę allowedSlots.
 
 Jeśli karta:
+
 - nie pasuje do slotu → nie jest wyświetlana,
 - nie może być przypisana.
 
-Przykład:
-- karty rytualne R1/R2:
-  - allowedSlots: Czas, Cisza.
-
 ---
 
-## 5. PRG — Programy Reakcji Gracza
+## 5. PRG i kategorie (gałęzie) — Programy Reakcji Gracza
 
-PRG są systemem aktywnym, niezależnym od slotów META.
+PRG są systemem aktywnym, niezależnym od slotów Świata.
 
-PRG:
-- są kupowane w SUB-META,
-- są używane w RUN,
-- działają jako tryby przełączane w locie.
-
----
-
-### Kategorie PRG
 Istnieją cztery kategorie PRG, odpowiadające kolorom i aspektom:
 
-1. 🔴 Wielkość ringu  
-2. 🟡 Glue ↔ Odpychanie  
-3. 🟢 Przyśpiesz ↔ Zwolnij  
-4. 🔵 Meteory ↔ Planetoidy  
+1. 🔴 Wielkość ringu
+2. 🟡 Glue ↔ Odpychanie
+3. 🟢 Przyśpiesz ↔ Zwolnij
+4. 🔵 Wpływ na obiekty Meteory ↔ Komety ↔ Planetoidy ↔ Planety
 
 Każda kategoria:
+
 - zawiera przeciwstawne opcje,
-- pozwala na wybór stylu reakcji gracza.
-
----
-
-### Miejsca PRG
-Każda kategoria PRG:
-- posiada maksymalnie 2 miejsca,
-- miejsca są droższe niż sloty META.
-
-Koszt odblokowania miejsca PRG:
-- 30 RP
-- 6 kart DR koloru kategorii
-
----
-
-## 6. PRG w RUN
-
-Po zakupie:
-- PRG są dostępne w trakcie RUN,
-- gracz może je przełączać w locie (toggle UI),
-- aktywny jest jeden tryb PRG naraz (v1).
-
-Przełączanie:
-- jest natychmiastowe,
-- nie wymaga powrotu do SUB-META.
+- pozwala na wybór stylu gry / reakcji gracza na świat.
 
 ---
 
 ## 7. Pauza i zamykanie SUB-META
 
 Otwarcie SUB-META:
-- zatrzymuje lub silnie spowalnia symulację świata.
+
+- zatrzymuje symulację świata.
 
 Zamknięcie SUB-META:
+
 - przyciskiem „Wróć”,
 - wznawia symulację bez resetów.
 
@@ -212,13 +222,15 @@ Zamknięcie SUB-META:
 ## 8. Relacja z META końcowym
 
 SUB-META:
+
 - przygotowuje konfigurację RUN,
 - umożliwia wielokrotne ingerencje.
 
 META końcowe:
-- jest pojedynczym, kosztownym zdarzeniem,
+
+- finalizuje RUN i jeden cykl (EON) świata,
 - resetuje RUN,
-- przekształca zasoby w trwałe zmiany.
+- umożliwia rozpoczęcie cyklu z nową wiedzą i zasobami.
 
 ---
 
