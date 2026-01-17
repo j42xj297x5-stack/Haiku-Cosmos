@@ -355,7 +355,6 @@
       clearSystemOrbitersForStar(p);
 
       if (!World.stars) World.stars = [];
-      const starBaseGravity = p.r * 1.30;
       const starOrbitMul = (typeof World.metaOrbitMulStar === "number") ? World.metaOrbitMulStar : 1;
       const star = {
         type: "star",
@@ -363,9 +362,9 @@
         y: p.y,
         r: p.r,
         mass: p.mass,
-        gravityR: starBaseGravity * starOrbitMul,
-        orbitNativeRadius: starBaseGravity,
-        orbitCurrentRadius: starBaseGravity * starOrbitMul,
+        gravityR: 0,
+        orbitNativeRadius: 0,
+        orbitCurrentRadius: 0,
         orbiters: [],
         starKind: kind,
         dominantKey: info.dominantKey,
@@ -385,16 +384,10 @@
         sizeClass: kind === "rare" ? "small" : null,
         gradientOuterColor: kind === "rare" ? (info.monoColorKey || info.dominantKey || "yellow") : null,
       };
-      const targetFromGravity = oldGravityR * World.STAR_BIRTH_RADIUS_FROM_OLD_GRAVITY;
-      const targetFromOldR = p.r * World.STAR_BIRTH_RADIUS_MIN_MULT_OF_OLD_R;
-      let newR = Math.max(star.r, targetFromGravity, targetFromOldR);
-      const maxR = oldGravityR * World.STAR_BIRTH_RADIUS_MAX_FRACTION;
-      newR = Math.min(newR, maxR);
-      star.r = newR;
+      star.r = Math.max(1, oldGravityR * 0.5);
       const updatedBaseGravity = star.r * 1.30;
-      const updatedOrbitMul = (typeof World.metaOrbitMulStar === "number") ? World.metaOrbitMulStar : 1;
       star.orbitNativeRadius = updatedBaseGravity;
-      star.orbitCurrentRadius = updatedBaseGravity * updatedOrbitMul;
+      star.orbitCurrentRadius = updatedBaseGravity * starOrbitMul;
       star.gravityR = star.orbitCurrentRadius;
       World.stars.push(star);
       if (reconcileStarOwnershipOnBirth) reconcileStarOwnershipOnBirth(p, star);
@@ -473,6 +466,7 @@
         hue: meteor.hue,
         colorName: meteor.colorName,
         r: orbR,
+        renderMul: 0.5,
         orbitR,
         angle: rand(0, Math.PI * 2),
         omega,
@@ -572,13 +566,11 @@
             if (!p.captureColorCounts) p.captureColorCounts = Object.create(null);
             p.captureColorCounts[m.colorName] = (p.captureColorCounts[m.colorName] || 0) + 1;
 
-            // Planet grows a bit and its orbit expands by meteor size (visual clarity)
-            p.r = clamp(p.r + m.r * 0.06, meteorBaseRadius() * 2.0, meteorBaseRadius() * 180);
-            p.gravityR = computeGravityFromPlanetRadius(p.r);
-            const Rm = meteorBaseRadius();
-            const baseOrbit = Math.max(p.r * 1.20, p.r + 2.8 * Rm);
-            const nextOrbit = clamp(baseOrbit, baseOrbit, meteorBaseRadius() * 420);
+            const baseOrbit = Math.max(p.orbitPx || (p.r * 2.4), p.r * 2.4);
+            const nextOrbit = clamp(baseOrbit + m.r * 0.9, baseOrbit, meteorBaseRadius() * 420);
             setPlanetOrbitRadius(p, nextOrbit);
+            const baseGravity = computeGravityFromPlanetRadius(p.r);
+            p.gravityR = Math.max((p.gravityR || 0), baseGravity, nextOrbit);
 
             addOrbiterToPlanet(p, m);
 
@@ -652,7 +644,7 @@
               }
             }
             const Rm = meteorBaseRadius();
-            const baseOrbit = Math.max(p.r * 1.20, p.r + 2.8 * Rm);
+            const baseOrbit = Math.max(p.orbitPx || (p.r * 2.4), p.r * 2.4);
             const orbitR = baseOrbit + a.r;
             const theta = Math.atan2(dy, dx);
             const baseOmega = rand(0.35, 0.95);
@@ -665,9 +657,10 @@
             a.theta = theta;
             a.omega = omega;
 
-            // Orbit expands only by the asteroid size (as per design)
-            const nextOrbit = clamp(baseOrbit, baseOrbit, meteorBaseRadius() * 420);
+            const nextOrbit = clamp(baseOrbit + a.r, baseOrbit, meteorBaseRadius() * 420);
             setPlanetOrbitRadius(p, nextOrbit);
+            const baseGravity = computeGravityFromPlanetRadius(p.r);
+            p.gravityR = Math.max((p.gravityR || 0), baseGravity, nextOrbit);
 
             if (p.isRocky && countSystemOrbitersForRocky(p) >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
               p.rockyLocked = true;
@@ -771,7 +764,8 @@
           }
         }
 
-        p.gravityR = computeGravityFromPlanetRadius(p.r);
+        const baseGravity = computeGravityFromPlanetRadius(p.r);
+        p.gravityR = Math.max((p.gravityR || 0), baseGravity);
 
         if (p.isRocky && !p.spinLikeAsteroid) {
           for (const g of World.planets) {
