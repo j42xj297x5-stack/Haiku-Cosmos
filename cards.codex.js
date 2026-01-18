@@ -133,7 +133,7 @@ const CardEngine = (() => {
       stepIndex: 0,
       currentColor: null,
       hits: 0,
-      colors: []
+      colorsClosed: []
     },
     sequenceOverlay: {
       visible: false,
@@ -539,7 +539,7 @@ const CardEngine = (() => {
       stepIndex: 0,
       currentColor: null,
       hits: 0,
-      colors: []
+      colorsClosed: []
     };
     if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
   }
@@ -584,37 +584,43 @@ const CardEngine = (() => {
     state.sequence.stepIndex = 0;
     state.sequence.currentColor = colorKey;
     state.sequence.hits = 1;
-    state.sequence.colors = [colorKey];
+    state.sequence.colorsClosed = [];
   }
 
   function handleSequenceStepClosed(World) {
     const seq = state.sequence;
-    const level = seq.stepIndex + 1;
-    const colors = seq.colors.slice(0, level);
+    const colorKey = seq.currentColor;
+    if (colorKey && !seq.colorsClosed.includes(colorKey)) {
+      seq.colorsClosed.push(colorKey);
+    }
+    const level = seq.colorsClosed.length;
+    const colors = seq.colorsClosed.slice(0, level);
     grantSequenceCombo(World, level);
-    showSequenceOverlay(level, colors, seq.currentColor, 3000);
-    if (World && seq.currentColor) {
+    showSequenceOverlay(level, colors, colorKey, 3000);
+    if (World && colorKey) {
       World.r1HudPulse = {
-        colorKey: seq.currentColor,
+        colorKey,
         startedAtMs: nowMs(),
         durationMs: 2000
       };
     }
+    seq.stepIndex = level;
     seq.currentColor = null;
     seq.hits = 0;
   }
 
   function rewardSequenceFail(World, colors) {
-    if (!World || !Array.isArray(colors) || !colors.length) return;
-    colors.forEach((color) => {
+    const normalized = canonicalizeColors(colors);
+    if (!World || !normalized.length) return;
+    normalized.forEach((color) => {
       onCardCollected({ kind: "R1", tier: "DR", colorA: color });
     });
   }
 
   function failSequence(World) {
     const seq = state.sequence;
-    const level = seq.stepIndex + 1;
-    const completedColors = seq.colors.slice(0, seq.stepIndex);
+    const completedColors = seq.colorsClosed.slice();
+    const level = completedColors.length + 1;
     rewardSequenceFail(World, completedColors);
     showSequenceToast(`Niepowodzenie sekwencji R${level}`, completedColors.length ? "Przyznano karty R1." : "Brak nagrody.", seq.currentColor, 2000);
     resetSequenceState();
@@ -634,7 +640,6 @@ const CardEngine = (() => {
 
     if (!seq.currentColor) {
       seq.currentColor = normalized;
-      seq.colors[seq.stepIndex] = normalized;
       seq.hits = 1;
       return;
     }
@@ -656,12 +661,14 @@ const CardEngine = (() => {
     if (t - overlay.shownAtMs < overlay.ttlMs) return;
     overlay.visible = false;
     const level = Math.max(1, Math.min(4, Number(overlay.level || 1)));
+    const colorsClosed = Array.isArray(overlay.colors) ? overlay.colors.slice() : [];
     if (level >= 4) {
       resetSequenceState();
       return;
     }
     state.sequence.active = true;
-    state.sequence.stepIndex = level;
+    state.sequence.stepIndex = colorsClosed.length;
+    state.sequence.colorsClosed = colorsClosed;
     state.sequence.currentColor = null;
     state.sequence.hits = 0;
   }
@@ -678,16 +685,17 @@ const CardEngine = (() => {
   }
 
   function cashOutSequence(level, colors) {
-    const normalized = (Array.isArray(colors) ? colors : []).map(normalizePack01Color).filter(Boolean);
-    if (normalized.length < level) return false;
+    const normalized = canonicalizeColors(colors);
+    const cappedLevel = Math.max(1, Math.min(4, Number(level || 1)));
+    if (normalized.length < cappedLevel) return false;
     const tier = "DR";
-    if (level === 1) {
+    if (cappedLevel === 1) {
       onCardCollected({ kind: "R1", tier, colorA: normalized[0] });
-    } else if (level === 2) {
+    } else if (cappedLevel === 2) {
       onCardCollected({ kind: "R2", tier, colorA: normalized[0], colorB: normalized[1] });
-    } else if (level === 3) {
+    } else if (cappedLevel === 3) {
       onCardCollected({ kind: "R3", tier, colorA: normalized[0], colorB: normalized[1], colorC: normalized[2] });
-    } else if (level === 4) {
+    } else if (cappedLevel === 4) {
       onCardCollected({
         kind: "R4",
         tier,
@@ -697,7 +705,7 @@ const CardEngine = (() => {
         colorD: normalized[3]
       });
     }
-    showSequenceToast(`Kolekcja R${level}`, "Sekwencja zamknięta.", normalized[level - 1] || normalized[0], 1500);
+    showSequenceToast(`Kolekcja R${cappedLevel}`, "Sekwencja zamknięta.", normalized[cappedLevel - 1] || normalized[0], 1500);
     resetSequenceState();
     return true;
   }
@@ -747,7 +755,7 @@ const CardEngine = (() => {
       stepIndex: 0,
       currentColor: null,
       hits: 0,
-      colors: []
+      colorsClosed: []
     };
     state.sequenceOverlay = {
       visible: false,
@@ -803,6 +811,14 @@ const CardEngine = (() => {
     return [...normalized].sort((a, b) => CARD_KEY_ORDER.indexOf(a) - CARD_KEY_ORDER.indexOf(b));
   }
 
+  function canonicalizeColors(colors) {
+    if (!Array.isArray(colors)) return [];
+    const normalized = colors.map((color) => normalizePack01Color(color)).filter(Boolean);
+    if (!normalized.length) return [];
+    const ordered = getCanonicalColors(normalized);
+    return ordered.length ? ordered : normalized;
+  }
+
   function getCardKey(kind, colors) {
     const kindKey = String(kind || "").toUpperCase();
     const required = { R1: 1, R2: 2, R3: 3, R4: 4 }[kindKey];
@@ -831,7 +847,7 @@ const CardEngine = (() => {
     const t = nowMs();
     const normalizedColor = normalizePack01Color(colorKey);
     const tier = normalizeSubMetaTier(tierKey || "DR");
-    if (!consumePendingCard(World, { kind: "R1", tier, colors: [normalizedColor] }, t)) return false;
+    consumePendingCard(World, { kind: "R1", tier, colors: [normalizedColor] }, t);
     resetSequenceState();
     applyWorldSlotEffectsOnRunActivation(World, t, [normalizedColor], "R1");
     const bonusMs = getFormaTimeBonusMs(World);
@@ -1543,8 +1559,6 @@ const CardEngine = (() => {
     const now = Number(nowMs);
     if (!Number.isFinite(now)) return false;
     if (now < (World.pendingCardUntilMs || 0)) return false;
-    const pending = World.pendingCard;
-    addCardToPool(World, pending);
     World.pendingCard = null;
     World.pendingCardUntilMs = 0;
     return true;
@@ -1569,11 +1583,10 @@ const CardEngine = (() => {
     ensureCardsPool(World);
     const now = nowMs();
     if (World.pendingCard) {
-      addCardToPool(World, World.pendingCard);
       World.pendingCard = null;
       World.pendingCardUntilMs = 0;
     }
-    const entity = createCardEntity(payload);
+    const entity = addCardToPool(World, payload);
     if (!entity) return null;
     World.pendingCard = entity;
     World.pendingCardUntilMs = now + 3000;
