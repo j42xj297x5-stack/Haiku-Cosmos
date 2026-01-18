@@ -199,6 +199,8 @@ const CardEngine = (() => {
     ["yellow", "blue"],
     ["green", "blue"]
   ];
+  const SUB_META_R3_COMBOS = buildSubMetaComboList(3);
+  const SUB_META_R4_COMBOS = buildSubMetaComboList(4);
   const SUB_META_ASSIGN_COST = 10;
   const SUB_META_FORGE_COSTS = { sDR: 10, pDR: 20 };
   const SUB_META_FORGE_CONSUMES = { sDR: 3, pDR: 9 };
@@ -250,6 +252,28 @@ const CardEngine = (() => {
   };
   const SUB_META_FORMA_FALLBACK_DURATION_MS = 60000;
   const SUB_META_CARD_LIBRARY = buildSubMetaCardLibrary();
+
+  function buildSubMetaComboList(size) {
+    const combos = [];
+    const colors = SUB_META_COLORS;
+    const total = colors.length;
+    if (!Number.isFinite(size) || size < 1 || size > total) return combos;
+    if (size === total) {
+      const key = getCardKey(`R${size}`, colors);
+      if (key) combos.push({ key, colors: [...colors] });
+      return combos;
+    }
+    for (let i = 0; i < total - 2; i++) {
+      for (let j = i + 1; j < total - 1; j++) {
+        for (let k = j + 1; k < total; k++) {
+          const comboColors = [colors[i], colors[j], colors[k]];
+          const key = getCardKey(`R${size}`, comboColors);
+          if (key) combos.push({ key, colors: comboColors });
+        }
+      }
+    }
+    return combos;
+  }
 
   function clampInt(v, a, b) {
     v = Number(v);
@@ -1353,13 +1377,21 @@ const CardEngine = (() => {
   }
 
   function buildCardBank() {
-    const bank = { R1: {}, R2: {} };
+    const bank = { R1: {}, R2: {}, R3: {}, R4: {} };
     SUB_META_COLORS.forEach((color) => {
       bank.R1[color] = createTierBucket();
     });
     SUB_META_R2_PAIRS.forEach((pair) => {
       const key = getCanonicalPairKey(pair[0], pair[1]);
       bank.R2[key] = createTierBucket();
+    });
+    SUB_META_R3_COMBOS.forEach((combo) => {
+      if (!combo.key) return;
+      bank.R3[combo.key] = createTierBucket();
+    });
+    SUB_META_R4_COMBOS.forEach((combo) => {
+      if (!combo.key) return;
+      bank.R4[combo.key] = createTierBucket();
     });
     return bank;
   }
@@ -1416,6 +1448,8 @@ const CardEngine = (() => {
           tier,
           colorA: colors[0],
           colorB: colors[1] || null,
+          colorC: colors[2] || null,
+          colorD: colors[3] || null,
           inSlotKey: null
         });
         if (card) World.cardsPool.push(card);
@@ -1438,6 +1472,24 @@ const CardEngine = (() => {
         SUB_META_TIERS.forEach((tier) => {
           const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
           if (count > 0) pushCards("R2", colors, tier, count);
+        });
+      });
+      Object.keys(bank.R3 || {}).forEach((cardKey) => {
+        const combo = SUB_META_R3_COMBOS.find((entry) => entry.key === cardKey);
+        if (!combo) return;
+        const bucket = bank.R3?.[cardKey];
+        SUB_META_TIERS.forEach((tier) => {
+          const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
+          if (count > 0) pushCards("R3", combo.colors, tier, count);
+        });
+      });
+      Object.keys(bank.R4 || {}).forEach((cardKey) => {
+        const combo = SUB_META_R4_COMBOS.find((entry) => entry.key === cardKey);
+        if (!combo) return;
+        const bucket = bank.R4?.[cardKey];
+        SUB_META_TIERS.forEach((tier) => {
+          const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
+          if (count > 0) pushCards("R4", combo.colors, tier, count);
         });
       });
     }
@@ -1989,6 +2041,34 @@ const CardEngine = (() => {
             label: `R2 ${tier}`,
             tier,
             colors: pair,
+            count
+          });
+        }
+      });
+    });
+    SUB_META_R3_COMBOS.forEach((combo) => {
+      SUB_META_TIERS.forEach((tier) => {
+        const count = getCardCount(World, "R3", combo.colors, tier);
+        if (count > 0) {
+          entries.push({
+            kind: "R3",
+            label: `R3 ${tier}`,
+            tier,
+            colors: combo.colors,
+            count
+          });
+        }
+      });
+    });
+    SUB_META_R4_COMBOS.forEach((combo) => {
+      SUB_META_TIERS.forEach((tier) => {
+        const count = getCardCount(World, "R4", combo.colors, tier);
+        if (count > 0) {
+          entries.push({
+            kind: "R4",
+            label: `R4 ${tier}`,
+            tier,
+            colors: combo.colors,
             count
           });
         }
