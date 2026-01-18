@@ -2101,7 +2101,7 @@ const CardEngine = (() => {
     const entries = [];
     SUB_META_COLORS.forEach((color) => {
       SUB_META_TIERS.forEach((tier) => {
-        const count = getCardCount(World, "R1", [color], tier);
+        const count = getCardCount(World, "R1", [color], tier, { availableOnly: true });
         if (count > 0) {
           entries.push({
             kind: "R1",
@@ -2115,7 +2115,7 @@ const CardEngine = (() => {
     });
     SUB_META_R2_PAIRS.forEach((pair) => {
       SUB_META_TIERS.forEach((tier) => {
-        const count = getCardCount(World, "R2", pair, tier);
+        const count = getCardCount(World, "R2", pair, tier, { availableOnly: true });
         if (count > 0) {
           entries.push({
             kind: "R2",
@@ -2129,7 +2129,7 @@ const CardEngine = (() => {
     });
     SUB_META_R3_COMBOS.forEach((combo) => {
       SUB_META_TIERS.forEach((tier) => {
-        const count = getCardCount(World, "R3", combo.colors, tier);
+        const count = getCardCount(World, "R3", combo.colors, tier, { availableOnly: true });
         if (count > 0) {
           entries.push({
             kind: "R3",
@@ -2143,7 +2143,7 @@ const CardEngine = (() => {
     });
     SUB_META_R4_COMBOS.forEach((combo) => {
       SUB_META_TIERS.forEach((tier) => {
-        const count = getCardCount(World, "R4", combo.colors, tier);
+        const count = getCardCount(World, "R4", combo.colors, tier, { availableOnly: true });
         if (count > 0) {
           entries.push({
             kind: "R4",
