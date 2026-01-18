@@ -1,130 +1,140 @@
-# Haiku Cosmos — UI WORLD
+# Haiku Cosmos — UI WORLD (KANON)
 
-## Interfejs świata, HUD i panele (KANON)
+Dokument definiuje **strukturę interfejsu użytkownika oraz flow UI**
+w grze Haiku Cosmos.
 
-Ten dokument opisuje UI w RUN oraz panele konfiguracyjne SUB-META / META.
-Celem UI jest:
+UI WORLD:
 
-- minimalizm,
-- czytelność,
-- brak „ciężkiego HUD”,
-- szybka decyzja bez przerywania flow.
+- opisuje *jak* gracz widzi i obsługuje system,
+- nie definiuje kart, kosztów ani logiki mechanicznej,
+- jest spójny z CARDS / ECONOMY / SUB META.
 
-UI jest kosmiczne, zen, lekkie.
+Jeżeli inny dokument opisuje *co* lub *ile* —  
+UI WORLD opisuje *gdzie*, *kiedy* i *w jakiej formie*.
 
 ---
 
 ## 1. Warstwy UI
 
-UI składa się z trzech warstw:
+UI gry składa się z trzech warstw:
 
-1) RUN HUD (na ekranie gry, zawsze widoczny)  
-2) SUB-META Overlay (panel konfiguracyjny dostępny w trakcie RUN)  
-3) META Overlay (panel końca cyklu / eonu)
+1) **RUN HUD** — interfejs podczas aktywnej gry  
+2) **SUB-META Overlay** — panel konfiguracyjny dostępny w trakcie RUN  
+3) **META Overlay** — panel końca cyklu (EONU)
 
-SUB-META i META to overlay na canvas (lub dedykowana warstwa DOM), ale muszą wyglądać jak część gry.
+SUB-META i META:
+
+- są overlayami nad canvasem (lub osobną warstwą DOM),
+- muszą wizualnie pozostać „częścią świata gry”.
 
 ---
 
 ## 2. RUN HUD (w trakcie gry)
 
-RUN HUD jest minimalistyczny i nie zasłania świata.
+RUN HUD jest **minimalistyczny** i **nie zasłania świata**.
 
-### 2.1. RP (Punkty Rezonansu)
+### 2.1. RP — Punkty Rezonansu
 
-- widoczne stale jako liczba (u góry w prawym rogu),
-- traktowane jako podstawowa waluta decyzji (tlen zmian),
-- format: `RP: <liczba>`
+- widoczne stale w prawym górnym rogu,
+- prezentowane jako liczba,
+- format: `RP: <wartość>`.
 
-RP jest używane do:
+RP są:
 
-- działań w SUB-META (sloty, PRG),
-- działań META końcowego.
+- walutą decyzji,
+- sygnałem gotowości do zmian w SUB-META i META.
 
 ---
 
 ### 2.2. Kolekcja kart kolorów (DR)
 
-- w prawym górnym rogu: wąskie prostokąty z licznikami,
-- kolejność od góry:
-  1) czerwony
-  2) żółty
-  3) zielony
-  4) niebieski
-- jeśli count > 1: mała cyferka ilości,
-- jeśli count == 0: prostokąt niewidoczny lub wyszarzony.
+W prawym górnym rogu:
 
-To jest szybka informacja o zasobach do slotów i PRG.
+- cztery wąskie pionowe prostokąty z licznikami,
+- kolejność od góry:
+  1) 🔴 czerwony
+  2) 🟡 żółty
+  3) 🟢 zielony
+  4) 🔵 niebieski
+
+Zasady:
+
+- `count > 1` → mała cyfra ilości,
+- `count == 0` → prostokąt wyszarzony lub niewidoczny.
+
+Jest to szybka informacja o zasobach do:
+
+- slotów ŚWIAT,
+- konfiguracji PRG,
+- Kuźni.
 
 ---
 
 ### 2.3. Panel przełączania PRG (RUN toggle)
 
-Po uzupełnieniu PRG w SUB-META, gracz musi mieć możliwość używania PRG w locie.
+Po skonfigurowaniu PRG w SUB-META, gracz musi móc **zmieniać aktywny tryb w RUN**.
 
-- po lewej stronie ekranu: pionowy pasek przycisków / ikon PRG,
-- 3 wiązania kategorii (gałęzi) PRG (jeśli istnieją) - karta prostokątna pionowa dwukolorowa (jak w subMETA)
-- wyświetla się w momencie gdy istnieje choć jedno połączenie kategorii (gałęzi):
+- po lewej stronie ekranu: pionowy pasek przycisków PRG,
+- pojawia się **tylko jeśli istnieje co najmniej jedno wiązanie PRG (R2)**,
+- każdy przycisk reprezentuje jedno aktywne połączenie gałęzi.
 
-  -- 🔴🟢 Wielkość - Prędkość
-  -- 🔴🔵 Wielkość - Obiekty
-  -- 🟡🔵 Klej - Obiekty
+Obsługiwane połączenia:
 
-- klik w przycisk zmienia aktywny tryb (toggle),
-- w danym momencie aktywny jest jeden tryb (połączenie) PRG naraz,
-- WAŻNE: wszystkie kategorie obsadzone kartami wpływają na ring gracza podczas RUN.
+- 🔴🟢 Wielkość – Prędkość  
+- 🔴🔵 Wielkość – Obiekty  
+- 🟡🔵 Klej – Obiekty  
 
-Przyciski mogą być placeholderami (tekst/znak), później zastąpione ikonami.
+Zasady:
+
+- w danym momencie aktywny jest **jeden tryb PRG**,
+- klik zmienia aktywne wiązanie,
+- wszystkie obsadzone kategorie PRG wpływają na ring gracza niezależnie.
 
 ---
 
-### 2.4. Przycisk SUB-META (zawsze dostępny)
+### 2.4. Przycisk SUB-META
 
-SUB-META ma być dostępna zawsze.
+SUB-META jest **zawsze dostępna**.
 
-- mały przycisk/znak UI w RUN (np. górna krawędź ekranu na środku),
+- mały, dyskretny przycisk UI (np. górna krawędź ekranu, środek),
 - klik otwiera SUB-META,
-- otwarcie pauzuje świat.
-
-Przycisk powinien być dyskretny, ale zauważalny.
+- otwarcie **pauzuje lub silnie spowalnia świat**.
 
 ---
 
-### 2.5. Sekwencje / Karty akcji (overlay informacyjny)
+### 2.5. Sekwencje i komunikaty akcji
 
-Sekwencje i komunikaty kart:
+Informacje o sekwencjach i kartach:
 
 - nie są stałym HUD,
-- są zminimalizowane do podstawowych treści, aby nie zasłaniać ekranu, 
 - pojawiają się jako krótkie overlaye,
+- znikają automatycznie.
 
 Zasada:
-
-- UI informuje, ale nie spamuje.
+> UI informuje, ale nie spamuje.
 
 ---
 
 ## 3. SUB-META Overlay (panel konfiguracyjny)
 
-SUB-META jest panelem taktycznym.
+SUB-META jest **panelem taktycznym**.
+
 Otwierany:
 
 - automatycznie po pierwszej planecie,
-- manualnie przyciskiem (zawsze).
+- manualnie przez przycisk.
 
 Po otwarciu:
 
-- świat jest zatrzymany lub silnie spowolniony.
+- świat jest zatrzymany lub spowolniony.
+
+---
 
 ### 3.1. Układ SUB-META
 
-Overlay jest wyśrodkowany i składa się z:
+#### 3.1.1. GÓRA — Panel PRG (4 zakładki)
 
-#### 3.1.1 GÓRA — Panel PRG (4 zakładki)
-
-Na samej górze panelu:
-
-- poziomy pasek z czterema zakładkami (kategorie - gałęzie) PRG:
+Poziomy pasek zakładek:
 
 1) 🔴 Wielkość ringu  
 2) 🟡 Glue ↔ Odpychanie  
@@ -133,158 +143,155 @@ Na samej górze panelu:
 
 Każda zakładka:
 
-- prezentuje możliwe do obsadzenia kartami miejsca - 1 karta R1, 1 karta ODB (początkowo wyszarzona)
-- pozwala odblokowywać jedno miejsce na Odbicia (ODB).
+- 1 slot na kartę R1,
+- 1 slot ODB (początkowo wyszarzony).
 
-Pod głównymi kategoriami istnieje dodatkowe poziome miejsce na karty R2 (3 miejsca) tworzące połączenia. Są one wyśrodkowane względem całego pola.
-Gdy aktywowane jest dane połączenie kategorii (gałęzi), obie kategorie podświetlają się w swoim kolorze.
+Pod zakładkami:
+
+- 3 centralne sloty na karty R2 (wiązania PRG),
+- aktywne połączenie podświetla obie kategorie.
 
 ---
 
-#### 3.1.2. ŚRODEK po lewej — Sloty ŚWIATA (4)
+### 3.1.2. ŚRODEK — Sloty ŚWIATA
 
-Po lewej stronie środka panelu:
+Po lewej stronie:
 
-- pionowa lista slotów META:
-
-1) Forma (🔴)  
-2) Intencja (🟡)  
-3) Czas (🟢)  
-4) Cisza (🔵)  
+1) 🔴 Forma  
+2) 🟡 Intencja  
+3) 🟢 Czas  
+4) 🔵 Cisza  
 
 Każdy slot:
 
-- ma miejsca na 3 karty,
-- start: 1 miejsce puste (lub z kartą danego koloru typu R1)
-- można wykupić dodatkowy slot na kartę R1 za pomocą karty Dodatkowy Slot, koło aktywnej karty R1 pojawia się wtedy mały plusik danego koloru. Jego kliknięcie dodaje slot, wykorzystując kartę DS (jej usunięcie)
-- max: 2 miejsca na karty R1 i jedno na kartę Ekspancji (EKS).
+- maks. 3 miejsca:
+  - do 2 kart R1,
+  - 1 karta Ekspansji (EKS).
 
-UI slotu:
+UI:
 
-- pokazuje czy slot jest pusty (prostokąt pionowy pusty)/ zajęty (prostokąt wypełniony kolorem z opisem),
-- pokazuje małe “+” jeśli można dokupić miejsce (warunki spełnione).
+- pusty / zajęty stan,
+- mały „+” gdy możliwe dokupienie miejsca (karta DS).
 
 Klik w slot:
 
-- pokazuje picker kart pasujących do slotu (allowedSlots),
-- przed przypięciem pokazuje podgląd efektu i koszt.
+- pokazuje dozwolone karty,
+- pokazuje podgląd efektu i koszt RP.
 
 ---
 
-#### 3.1.3. PRAWA — Magazyn / Kolekcja
+### 3.1.3. PRAWA — Magazyn / Kolekcja
 
-Prawa kolumna SUB-META:
-
-- pokazuje zebrane karty (wszystkie),
-- pozwala nimi zarządzać.
+- lista wszystkich posiadanych kart,
+- źródło kart do slotów i Kuźni.
 
 ---
 
-#### 3.1.4. PRAWA - Dolny róg - OPIS Karty
+### 3.1.4. PRAWA DÓŁ — Opis karty
 
-W dolnym prawym rogu pod Magazynem znajduje się okno wyświetlania informacji o karcie. Jest ono podzielone na 2 części (pionowo):
+Panel podzielony pionowo:
 
-Po lewej znajduje się okno podstawowych informacji:
+**Lewa strona**
 
-- Tutył karty oraz jej moc (np. R1 sDR) - kolor biały,
-- Podstawowe atrybuty / cechy / możliwości kolorem białym,
-- Dodatkowe możliwości (dla sDR) - kolorem niebieskim,
-- Wyjątkowe możliwości (dla pDR lub innego typu rozszerzenia (TODO)) - kolorem złotym.
+- tytuł + tier (R1 sDR itd.),
+- cechy podstawowe (biały),
+- cechy dodatkowe (niebieski),
+- cechy wyjątkowe (złoty).
 
-Po prawej znajduje się okno wyświetlania Haiku wraz z grafiką karty (TODO)
+**Prawa strona**
 
-- grafika / logo na górze
-- haiku w formie 3 wersów poniżej
+- grafika karty,
+- haiku (3 wersy).
 
-#### 3.1.5. LEWA - pod slotami świata Pole informacji o slocie - Możliwe do obsadzenia karty
+---
 
-Pod slotami Świata znajduje się niewielkie okno pokazujące dostępne karty dla danego slotu (allowedSlots).
-Jest to pojedyńczy rząd wysokości karty, szerokość całego pola Sloty Świata. 
-Jeśli gracz kliknie w Kategorię PRG lub slot Świata, zostaną pokazane dostępne dla slotu karty. 
-Z tego miejsca można wybierać karty do danego miejsca. 
+### 3.1.5. LEWA DÓŁ — Dostępne karty dla slotu
 
-#### 3.1.6. LEWA pod Polem informacji o slocie - Kuźnia
+- pojedynczy rząd kart,
+- filtr: only allowedSlots,
+- służy do szybkiego przypinania kart.
 
-Kuźnia to miejsce gdzie wyświetlane są możliwe do wykonania karty z zasobów zgromadzonych w Magazynie.
-Kuźnia wyświetla wszystkie dostępne karty, które można wykonać w danej chwili. Warunkiem koniecznym pokazania i wykonania danej karty jest dostępność zasobów (inne karty, punkty rezonansu RP).
-Podstawowe karty do wykonania (więcej w ECONOMY SYSTEM)
-R1 sDR = 3 x R1 DR + RP
-R1 pDR = 3 x R1 sDR + RP
-R2 sDR = 3 x R2 DR + RP
-R2 pDR = 3 x R2 sDR + RP
+---
 
-W kuźni będzie można też dostosować zdobytą kartę do slotu (ODB) lub (EKS)
-Aby móc zastosować zdobytą podczas gry kartę w odpowiednim slocie trzeba ją nasycić kolorem tego slotu:
-np:
+### 3.1.6. LEWA DÓŁ — Kuźnia
 
-- 1 karta Specjalna + 1 karta sDR R1 koloru czerwonego = 1 karta Ekspancji dla slotu czerwonego,
-- 1 karta Specjalna + 1 karta pDR R1 koloru niebieskiego = 1 karta Ekspancji dla slotu niebieskiego.
+Kuźnia pokazuje:
+
+- wszystkie możliwe do wykonania karty,
+- tylko gdy spełnione są warunki kart + RP.
+
+UI Kuźni:
+
+- pokazuje koszt przed wykonaniem,
+- blokuje niedostępne opcje,
+- nie używa agresywnych alertów.
+
+---
 
 ### 3.2. Koszty w SUB-META (UI)
 
-Wszystkie akcje w SUB-META są płatne, a o zasadach mówi dokument ECONOMY SYSTEM.
+Wszystkie akcje:
 
-przykłady:
+- są płatne RP,
+- koszt musi być widoczny **przed kliknięciem**,
+- brak RP → czytelna blokada.
 
-- przypisanie karty do slotu,
-- usunięcie karty ze sloty,
-- odblokowanie miejsca slotu.
-
-UI musi:
-
-- wyświetlać koszt przed kliknięciem (podgląd),
-- blokować opcje, gdy brak RP/kart,
-- nie frustrować: blokada czytelna, bez agresywnych alertów.
+Zasady kosztów są w `ECONOMY_SYSTEM.md`.
 
 ---
 
 ### 3.3. Zamknięcie SUB-META
 
-SUB-META zamykane jest przez:
-
-- przycisk “Wróć” (prawy górny róg panelu),
-- zamknięcie wznawia świat bez resetów.
+- przycisk „Wróć” (prawy górny róg),
+- zamknięcie wznawia RUN bez resetów.
 
 ---
 
-## 4. META Overlay (koniec cyklu - EONU)
+## 4. META Overlay (koniec cyklu / EON)
 
-META to panel kończący RUN:
+META:
 
-- reset świata / nowy eon,
-- możliwe do wykonania w kuźni karty Specjalne z pozyskanych podczas RUN kart,
-- używa RP + sDR + PDR + kart jakościowych.
+- zamyka RUN,
+- obsługuje reset świata / nowy eon,
+- umożliwia tworzenie kart Specjalnych.
 
-META jest rzadsze i cięższe niż SUB-META. Ma dodatkową grafikę i zajmuje całe okno gry.
+META:
+
+- zajmuje całe okno gry,
+- ma bogatszą oprawę wizualną niż SUB-META,
+- używa RP oraz kart jakościowych.
 
 ---
 
 ## 5. Kolory jako logika UI
 
-Kolory nie są ozdobą.
 Kolor = semantyka systemu:
 
-- 🔴 Forma / ring size
-- 🟡 Intencja / glue vs repel
-- 🟢 Czas / speed up vs slow down
-- 🔵 Cisza / meteors vs asteroids
+- 🔴 Forma / wielkość
+- 🟡 Intencja / glue–repel
+- 🟢 Czas / tempo
+- 🔵 Cisza / skala obiektów
 
-UI ma tę mapę utrzymywać wszędzie:
+Mapa kolorów musi być spójna:
 
-- w slotach,
+- w HUD,
+- w SUB-META,
 - w PRG,
-- w kosztach i ikonach,
-- w kolekcji.
+- w kartach i kosztach.
 
 ---
 
 ## 6. Status dokumentu
 
-KANON v1.
+**KANON UI WORLD v1**
+
 Zgodny z:
+- CARDS_SYSTEM.md
 - ECONOMY_SYSTEM.md
 - SUB_META_SYSTEM.md
 - TARGETS_SYSTEM.md
 
 Dokument opisuje UI i flow,
-bez wchodzenia w implementację.
+bez wchodzenia w implementację techniczną.
+
+---
