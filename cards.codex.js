@@ -304,6 +304,7 @@ const CardEngine = (() => {
     if (World.fxSpawnIntervalMul === undefined) World.fxSpawnIntervalMul = 1.0;
     if (World.score === undefined) World.score = 0;
     if (World.r1HudPulse === undefined) World.r1HudPulse = null;
+    if (!Array.isArray(World.sequencePulseColors)) World.sequencePulseColors = [];
     ensureCardsPool(World);
     if (!World.metaSlots || typeof World.metaSlots !== "object") {
       World.metaSlots = { forma: null, intencja: null, czas: null, cisza: null };
@@ -572,6 +573,7 @@ const CardEngine = (() => {
       colorsClosed: []
     };
     if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
+    if (state.world) state.world.sequencePulseColors = [];
   }
 
   function showSequenceOverlay(level, colors, colorKey, ttlMs) {
@@ -830,6 +832,7 @@ const CardEngine = (() => {
     };
     if (state.world) {
       state.world.r1HudPulse = null;
+      state.world.sequencePulseColors = [];
       resetCardPool(state.world);
       bindWorld(state.world);
     }
@@ -1033,6 +1036,18 @@ const CardEngine = (() => {
         && t >= (World.pack01ReleaseBlockUntilMs || 0)) {
         World.pack01ReleaseBlockColor = null;
       }
+
+      const sequenceColors = new Set();
+      if (state.sequence) {
+        const closed = Array.isArray(state.sequence.colorsClosed) ? state.sequence.colorsClosed : [];
+        closed.forEach((color) => {
+          const normalized = normalizePack01Color(color);
+          if (normalized) sequenceColors.add(normalized);
+        });
+        const current = normalizePack01Color(state.sequence.currentColor);
+        if (current) sequenceColors.add(current);
+      }
+      World.sequencePulseColors = [...sequenceColors];
     }
   }
 
@@ -1266,6 +1281,18 @@ const CardEngine = (() => {
           ctx.fillStyle = PACK01_COLOR_HEX[key] || "#FFFFFF";
           ctx.fillRect(barX, barY, barW, barH);
         }
+      }
+      const sequencePulseColors = Array.isArray(World.sequencePulseColors) ? World.sequencePulseColors : [];
+      if (sequencePulseColors.includes(key)) {
+        const pulseDuration = 2000;
+        const pulsePhase = ((nowTime % pulseDuration) / pulseDuration) * Math.PI * 2;
+        const pulseAlpha = 0.15 + 0.35 * (0.5 + 0.5 * Math.sin(pulsePhase));
+        ctx.save();
+        ctx.globalAlpha = clamp01(pulseAlpha);
+        ctx.strokeStyle = "rgba(255,255,255,0.9)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - 2, y - 2, rectW + 4, rectH + 4);
+        ctx.restore();
       }
       const pulse = World.r1HudPulse;
       if (pulse && normalizePack01Color(pulse.colorKey) === key) {
