@@ -117,11 +117,13 @@
       const direction = Math.random() < 0.5 ? -1 : 1;
       const omega = direction * computeOmega(baseOmega, orbitR, Rm);
 
+      const renderMul = 0.5;
       a.orbiters.push({
         hue: meteor.hue,
         colorName: meteor.colorName,
         r: orbR,
-        renderMul: 0.5,
+        renderMul,
+        orbitContributionR: orbR * renderMul,
         orbitR,
         angle: rand(0, Math.PI * 2),
         omega,
@@ -198,16 +200,17 @@
             meteors.splice(mi, 1);
 
             a.captureCount += 1;
-            a.captureSumR += m.r;
+            const rEff = (typeof m.orbitContributionR === "number") ? m.orbitContributionR : (m.r * 0.5);
+            a.captureSumR += rEff;
             a.captureSumMass += massFromR(m.r);
             a.captureColorCounts[m.colorName] = (a.captureColorCounts[m.colorName] || 0) + 1;
 
             // live stats (used for final planet size / composition)
-            a.liveSumR += m.r;
+            a.liveSumR += rEff;
             a.liveSumMass += massFromR(m.r);
             a.liveColorCounts[m.colorName] = (a.liveColorCounts[m.colorName] || 0) + 1;
 
-            const nextOrbit = clamp(a.orbitPx + m.r * 0.6, a.minOrbitPx, a.maxOrbitPx);
+            const nextOrbit = clamp(a.orbitPx + rEff * 0.6, a.minOrbitPx, a.maxOrbitPx);
             setAsteroidOrbitRadius(a, nextOrbit);
 
             addOrbiterToAsteroid(a, m);
@@ -240,10 +243,14 @@
       const hueB = hueFromName(top2);
 
       const Rm = meteorBaseRadius();
-      const sumR = (typeof a.liveSumR === 'number') ? a.liveSumR : a.captureSumR;
       const sumM = (typeof a.liveSumMass === 'number') ? a.liveSumMass : a.captureSumMass;
 
       const planetMass = sumM + massFromR(a.r);
+      const orbitR = a.gravOrbitR ?? a.orbitR ?? a.orbitPx ?? a.orbitNativeRadius ?? 80;
+      if (!a.gravOrbitR && !a.orbitR && !a.orbitPx && !a.orbitNativeRadius && typeof console !== "undefined" && console.warn) {
+        console.warn("Missing asteroid orbit radius for planet sizing", a);
+      }
+      const r0 = orbitR * 0.5;
 
       const orbitMul = (typeof World.metaOrbitMulPlanet === "number") ? World.metaOrbitMulPlanet : 1;
       const currentOrbit = 0;
@@ -253,7 +260,7 @@
         y: a.y,
         vx: a.vx,
         vy: a.vy,
-        r: 0,
+        r: r0,
         orbitPx: currentOrbit,
         orbitNativeRadius: 0,
         orbitCurrentRadius: currentOrbit,
@@ -264,6 +271,8 @@
         planetKind: (a.cometHits && a.cometHits > 0) ? "rocky" : "gas",
         cometHits: a.cometHits || 0,
         rockyLocked: false,
+        lockRadius: true,
+        fixedR: r0,
 
         // Planet orbital system
         orbiters: [],
@@ -279,9 +288,12 @@
 
       if (typeof finalizePlanetSpawn === "function") {
         finalizePlanetSpawn(a, p, { kind: "gas" });
-      } else {
-        const fallbackOrbit = (typeof a.orbitCurrentRadius === "number") ? a.orbitCurrentRadius : a.orbitPx;
-        p.r = (Number.isFinite(fallbackOrbit) ? fallbackOrbit : 0) * 0.5;
+      }
+      if (!p.lockRadius) {
+        p.lockRadius = true;
+      }
+      if (!Number.isFinite(p.fixedR)) {
+        p.fixedR = p.r;
       }
       const baseOrbit = Math.max(p.r * 1.20, p.r + 2.8 * Rm);
       const orbit0 = clamp(baseOrbit, baseOrbit, 420.0 * Rm);
