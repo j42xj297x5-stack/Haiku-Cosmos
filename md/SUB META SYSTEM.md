@@ -1,241 +1,196 @@
-# Haiku Cosmos — SUB META SYSTEM
+# Haiku Cosmos — SUB META SYSTEM (KANON)
 
-## System SUB-META: decyzje, oddech i konfiguracja RUN (KANON)
+Ten dokument definiuje **warstwę SUB META** w Haiku Cosmos.
 
-SUB-META jest warstwą pomiędzy RUN a META końcowym.
-Nie resetuje świata — umożliwia **świadome ingerencje** w jego reguły.
+SUB META to poziom:
 
-SUB-META to miejsce:
+- pomiędzy **CARDS SYSTEM** a **UI / ŚWIAT / RUN**,
+- w którym karty stają się **stałymi trybami działania**,
+- bez bezpośredniego opisu procentów, animacji i UI.
 
-- wydawania Punktów Rezonansu (RP),
-- przypisywania kart do slotów Świata i PRG,
-- zarządzania PRG (Programami Reakcji Gracza),
-- przygotowania konfiguracji na dalszy przebieg RUN.
-
----
-
-## 1. Pozycja SUB-META w strukturze gry
-
-Struktura gry:
-
-RUN  
-→ SUB-META (wiele wejść w jednym RUN)  
-→ META (koniec cyklu / eonu)
-
-SUB-META:
-
-- nie resetuje RUN,
-- nie resetuje świata,
-- zatrzymuje symulację,
-- pozwala na zmiany konfiguracyjne.
+Jeżeli inny dokument opisuje *jak dokładnie* coś działa —  
+ten dokument opisuje *dlaczego* i *w jakiej strukturze*.
 
 ---
 
-## 2. Dostęp do SUB-META
+## 1. Czym jest SUB META
 
-### 2.1. Automatyczne wyzwalanie
+SUB META to **warstwa konfiguracji świadomości gracza**.
 
-SUB-META otwiera się automatycznie:
+Nie jest to:
 
-- po utworzeniu pierwszej planety gazowej w RUN.
+- ekonomia (RP),
+- ani aktywna mechanika RUN,
+- ani wizualny UI.
 
-Ten trigger:
+SUB META:
 
-- występuje tylko raz na RUN,
-- ma charakter wprowadzający.
-
----
-
-### 2.2 Manualny dostęp
-
-SUB-META jest dostępna **zawsze** poprzez przycisk UI:
-
-- przycisk widoczny w RUN (np. krawędź ekranu),
-- otwarcie SUB-META pauzuje symulację.
-
-Manualne otwarcie:
-
-- nie resetuje żadnych stanów,
-- umożliwia modyfikacje w dowolnym momencie RUN.
+- określa **jak karty są osadzane**,
+- określa **jak wpływają na tryb gry**,
+- definiuje **relacje między gałęziami** (PRG / ŚWIAT).
 
 ---
 
-## 3. Layout UI SUB-META (v1)
+## 2. Gałęzie SUB META
 
-SUB-META wyświetla overlay składający się z trzech warstw:
+SUB META składa się z dwóch głównych drzew:
 
-### 3.1. GÓRA — Panel PRG
+1. **ŚWIAT** — wpływ kart na zachowanie świata gry  
+2. **PRG** — wpływ kart na reakcje i możliwości gracza  
 
-Na górze panelu znajduje się poziomy pasek z czterema zakładkami - kategoriami PRG:
+Każda gałąź:
 
-1. 🔴 Wielkość ringu  
-2. 🟡 Glue ↔ Odpychanie  
-3. 🟢 Przyśpiesz ↔ Zwolnij  
-4. 🔵 Meteory ↔ Planetoidy  
-
-Każda zakładka:
-
-- reprezentuje jedną kategorię PRG,
-- zawiera przeciwstawne opcje,
-- może być rozwijana poprzez łączenie kategorii (gałęzi).
+- posiada własne sloty,
+- przyjmuje tylko określone typy kart,
+- może być modyfikowana przez wiązania (R2).
 
 ---
 
-### 3.2 ŚRODEK — Sloty Świat
+## 3. Karty w SUB META — role systemowe
 
-Cztery sloty Świata ułożone pionowo:
+### 3.1. R1 — tryby podstawowe
 
-1. Forma (🔴)  
-2. Intencja (🟡)  
-3. Czas (🟢)  
-4. Cisza (🔵)  
+- R1 są **jedynymi kartami aktywowalnymi w RUN**.
+- W SUB META R1:
+  - definiują **podstawowy tryb działania** danej gałęzi,
+  - są wymagane do odblokowania dalszych struktur (np. wiązań).
 
-Każdy slot:
+R1:
 
-- posiada miejsca na karty,
-- początkowo ma jedno miejsce,
-- maksymalnie może mieć trzy miejsca - jedno dla kart R1, dwa dla kart specjalnych.
-
-Kliknięcie slotu:
-
-- wybiera slot,
-- wyświetla (poniżej) możliwe karty do przypisania (zgodnie z allowedSlots).
+- są osadzane bezpośrednio w slotach PRG i ŚWIAT,
+- ich tier (DR / sDR / pDR) wpływa na **siłę i zakres trybu**,
+- stanowią fundament całego META.
 
 ---
 
-### 3.3 PRAWA STRONA — Kolekcja / Magazyn
+### 3.2. R2 — wiązania (relacje)
 
-Prawa kolumna SUB-META pełni rolę magazynu:
+- R2 **nie działają samodzielnie**.
+- R2 pełnią rolę **kluczy relacyjnych** pomiędzy gałęziami.
 
-- wyświetla zebrane karty,
-- pokazuje ich ilość,
+R2 w SUB META:
 
-### 3.4 PRAWA STRONA dolny róg - Informacje o karcie
+- umożliwiają **połączenie dwóch gałęzi** (PRG–PRG lub ŚWIAT–ŚWIAT),
+- wzmacniają i synchronizują ich działanie,
+- nigdy nie istnieją bez aktywnych kart R1 w połączonych gałęziach.
 
-Poniżej magazynu mieści się pole wyświetlania informacji o przeglądanych kartach. Podzielone jest na 2 części:
+Bez R2:
 
-- po lewej widzimy opis karty wraz z jej tytułem oraz możliwościami wpływu na Świat lub PRG
-- po prawej wyświetlane jest haiku i graficzna reprezentacja karty
-
-### 3.5 LEWA STRONA dolny róg - Kuźnia
-
-Miejsce podzielone jest horyzontalnie na 2 części:
-
-- na górze mieści się lista dostępnych kart dla wybranego slotu Świata lub PRG,
-- na dole pokazane są karty, które można konwertować na inne, modyfikować lub wzmacniać (DR → sDR → PDR).
-- na samym dole wyświetlany jest koszt działania w RP (Punkty Rezonansu)
+- każda gałąź działa **izolowanie**.
 
 ---
 
-## 4. Sloty w META — zasady
+### 3.3. R3 — stabilizacja trybów (rezerwacja)
 
-### 4.1. Przypisywanie i usuwanie kart
+- R3 są kartami **wysokiego poziomu META**.
+- Ich rola polega na:
+  - utrwalaniu konfiguracji,
+  - zmniejszaniu kosztów zmiany,
+  - stabilizowaniu wybranych trybów.
 
-Przypisanie karty do slotu:
+R3:
 
-- jest akcją płatną,
-- usuwa kartę z kolekcji (magazynu),
-- zapisuje konfigurację na dalszy RUN.
+- nie są wymagane do podstawowej gry,
+- umożliwiają długoterminowe strategie,
+- są przeznaczone dla graczy świadomie budujących konfiguracje.
 
-Usuwanie karty ze slotu:
-
-- jest akcją płatną,
-- usuwa kartę ze slotu i przywraca ją do magazynu,
-- zapisuje konfigurację na dalszy RUN.
-
-#### 4.2. Koszt przypisania
-
-- 10 RP za każdą operację przypisania,
-- 10 RP za usunięcie karty ze slotu.
-
-Jeśli RP są niewystarczające:
-
-- opcja jest zablokowana (wyszarzona),
-- UI komunikuje koszt.
+(Szczegółowe efekty R3 są definiowane w osobnych dokumentach META.)
 
 ---
 
-### 4.3. Odblokowywanie miejsc w slotach Świata
+### 3.4. R4 — jedność konfiguracji
 
-- Każdy slot Świata w META może posiadać maksymalnie 3 miejsca. 1 na kartę typu R1 oraz 1 na kartę Ekspansji oraz 1 na kartę Specjalną.
-- Aby odblokować miejsce Ekspansja należy umieścić kartę R1 poziomu pDR,
-- Aby odblokować miejsce na dodatową kartę Specjalną należy wykonać w kuźni kartę Dodatkowy Slot, która jest właściwa dla danego slotu (koloru), oraz aktywować ją w wybranym slocie.
+- R4 reprezentują **pełną integrację systemu**.
+- Są kartami rzadkimi i meta-strukturalnymi.
 
----
+R4 w SUB META:
 
-### 4.4 Wiązanie slotów (gałęzi) w META-Świat
+- działają na **całe drzewo**, nie pojedynczy slot,
+- umożliwiają globalne modyfikacje zasad,
+- są projektowane jako fundament pod przyszłe systemy endgame.
 
-Pomiędzy 4 slotami Świata istnieją 3 miejsca na karty R2, które łączą przyległe do siebie gałęzie.
-
-Rodzaje wiązań gałęzi ŚWIAT
-
-1) 🔴🟡 Forma - Intencja
-2) 🟡🟢 Intencja - Czas
-3) 🟢🔵 Czas - Cisza
-
-UI wyświetla miejsce w postaci pustego prostokąta znajdującego się pomiędzy 2 slotami
+R4 nie są wymagane do ukończenia gry podstawowej.
 
 ---
 
-### 4.5 Dozwolone sloty (allowedSlots)
+## 4. Sloty i konfiguracja
 
-Każda karta definiuje listę allowedSlots.
+### 4.1. Sloty PRG
 
-Jeśli karta:
+- Sloty PRG definiują **jak gracz oddziałuje na świat**.
+- Przyjmują wyłącznie karty R1.
+- Dodatkowe sloty mogą zostać odblokowane przez:
+  - wyższy tier R1,
+  - aktywne wiązania R2.
 
-- nie pasuje do slotu → nie jest wyświetlana,
-- nie może być przypisana.
-
----
-
-## 5. PRG i kategorie (gałęzie) — Programy Reakcji Gracza
-
-PRG są systemem aktywnym, niezależnym od slotów Świata.
-
-Istnieją cztery kategorie PRG, odpowiadające kolorom i aspektom:
-
-1. 🔴 Wielkość ringu
-2. 🟡 Glue ↔ Odpychanie
-3. 🟢 Przyśpiesz ↔ Zwolnij
-4. 🔵 Wpływ na obiekty Meteory ↔ Komety ↔ Planetoidy ↔ Planety
-
-Każda kategoria:
-
-- zawiera przeciwstawne opcje,
-- pozwala na wybór stylu gry / reakcji gracza na świat.
+PRG jest **aktywną stroną META** — wpływa bezpośrednio na RUN.
 
 ---
 
-## 7. Pauza i zamykanie SUB-META
+### 4.2. Sloty ŚWIAT
 
-Otwarcie SUB-META:
+- Sloty ŚWIAT definiują **jak świat reaguje na działania gracza**.
+- Przyjmują wyłącznie karty R1.
+- Są modyfikowane przez:
+  - tier karty,
+  - wiązania R2.
 
-- zatrzymuje symulację świata.
-
-Zamknięcie SUB-META:
-
-- przyciskiem „Wróć”,
-- wznawia symulację bez resetów.
-
----
-
-## 8. Relacja z META końcowym
-
-SUB-META:
-
-- przygotowuje konfigurację RUN,
-- umożliwia wielokrotne ingerencje.
-
-META końcowe:
-
-- finalizuje RUN i jeden cykl (EON) świata,
-- resetuje RUN,
-- umożliwia rozpoczęcie cyklu z nową wiedzą i zasobami.
+ŚWIAT jest **reaktywną stroną META**.
 
 ---
 
-## 9. Status dokumentu
+## 5. Wiązania (R2) w SUB META
 
-KANON v1.1
-Zgodny z ECONOMY_SYSTEM.md.
-SUB-META jest miejscem decyzji, nie resetu.
+1. Wiązania są zawsze:
+   - jawne,
+   - wybierane przez gracza,
+   - ograniczone do **jednego aktywnego naraz**.
+2. R2 nie tworzy efektu bez obecnych kart R1.
+3. Usunięcie R2:
+   - natychmiast zrywa wiązanie,
+   - nie usuwa kart R1.
+
+Wiązania:
+
+- wzmacniają współdziałanie,
+- nie zastępują indywidualnych efektów gałęzi.
+
+---
+
+## 6. Koszty i ekonomia
+
+SUB META **nie definiuje kosztów**.
+
+- Koszty RP są opisane w `ECONOMY_SYSTEM.md`.
+- Logika tworzenia i wzmacniania kart jest opisana w `CARDS_SYSTEM.md`.
+
+Ten dokument opisuje **strukturę i relacje**, nie liczby.
+
+---
+
+## 7. Relacja z UI i ŚWIATEM
+
+- SUB META **nie definiuje UI**.
+- SUB META **nie definiuje procentów ani timingów**.
+- SUB META definiuje:
+  - *co* jest możliwe,
+  - *co* jest połączone,
+  - *co* zależy od czego.
+
+UI oraz reakcje świata są opisane w `UI_WORLD.md` i dokumentach świata.
+
+---
+
+## 8. Status dokumentu
+
+**KANON OBOWIĄZUJĄCY.**
+
+SUB META jest:
+
+- warstwą spajającą system kart,
+- językiem konfiguracji gry,
+- pomostem między koncentracją a mechaniką.
+
+---
+
+11 stycznia 2026
