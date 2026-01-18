@@ -32,6 +32,38 @@
       p.orbitPx = currentRadius;
     }
 
+    function finalizePlanetSpawn(parentBody, planet, opts) {
+      const safeOpts = opts || {};
+      const orbitR = parentBody?.gravOrbitR
+        ?? parentBody?.orbitR
+        ?? parentBody?.orbitCurrentRadius
+        ?? parentBody?.orbitPx
+        ?? parentBody?.gravR
+        ?? null;
+      let resolvedOrbitR = orbitR;
+      if (!Number.isFinite(resolvedOrbitR)) {
+        const fallbackBase = (typeof meteorBaseRadius === "function") ? meteorBaseRadius() : 120;
+        resolvedOrbitR = fallbackBase * 40;
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn("Planet spawn fallback orbit radius used.", { parentBody, planet, opts: safeOpts, resolvedOrbitR });
+        }
+      }
+
+      planet.r = resolvedOrbitR * 0.5;
+      if ("radius" in planet) planet.radius = planet.r;
+      if ("baseR" in planet) planet.baseR = planet.r;
+      planet.fixedR = planet.r;
+      planet.lockRadius = true;
+
+      if (typeof console !== "undefined" && console.warn) {
+        if (planet.r < 5 || planet.r < resolvedOrbitR * 0.4 || planet.r > resolvedOrbitR * 0.6) {
+          console.warn("Planet radius suspiciously small or scaled incorrectly.", { parentBody, planet, opts: safeOpts, orbitR: resolvedOrbitR });
+        }
+      }
+
+      return planet;
+    }
+
     function buildColorWeightsFromOrbiters(orbiters) {
       const map = new Map();
       let total = 0;
@@ -195,9 +227,13 @@
       for (const b of bodies) {
         const r = b?.r || 0;
         p.mass = (p.mass || 0) + massFromR(r);
-        p.r = clamp(p.r + r * 0.06, Rm * 2.0, Rm * 220);
+        if (!p.lockRadius) {
+          p.r = clamp(p.r + r * 0.06, Rm * 2.0, Rm * 220);
+        }
       }
-      p.gravityR = computeGravityFromPlanetRadius(p.r);
+      if (!p.lockRadius) {
+        p.gravityR = computeGravityFromPlanetRadius(p.r);
+      }
     }
 
     function getSystemMeteorsForPlanet(p) {
@@ -793,6 +829,7 @@
     window.buildBlobPatchwork = buildBlobPatchwork;
     window.computeRockyParamsFromOrbiters = computeRockyParamsFromOrbiters;
     window.addPlanetRingMark = addPlanetRingMark;
+    window.finalizePlanetSpawn = finalizePlanetSpawn;
 
     if (Events && typeof Events.on === "function") {
       Events.on("PLANET_CREATED", () => {
