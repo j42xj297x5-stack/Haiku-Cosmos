@@ -1364,20 +1364,19 @@ const CardEngine = (() => {
     return bank;
   }
 
-  function createCardEntity({ kind, tier, colorA, colorB, colorC, colorD, inSlotKey } = {}) {
+  function createCardEntity({ kind, tier, colors, colorA, colorB, colorC, colorD, inSlotKey } = {}) {
     if (!kind) return null;
     const kindKey = String(kind).toUpperCase();
     const tierKey = normalizeSubMetaTier(tier || "DR");
-    const primary = normalizePack01Color(colorA);
-    if (!primary) return null;
-    const secondary = colorB ? normalizePack01Color(colorB) : null;
-    const tertiary = colorC ? normalizePack01Color(colorC) : null;
-    const quaternary = colorD ? normalizePack01Color(colorD) : null;
-    if (kindKey === "R2" && !secondary) return null;
-    if (kindKey === "R3" && (!secondary || !tertiary)) return null;
-    if (kindKey === "R4" && (!secondary || !tertiary || !quaternary)) return null;
-    if (kindKey !== "R1" && kindKey !== "R2" && kindKey !== "R3" && kindKey !== "R4") return null;
-    const orderedColors = getCardColorsForKind(kindKey, [primary, secondary, tertiary, quaternary].filter(Boolean));
+    const requiredCount = { R1: 1, R2: 2, R3: 3, R4: 4 }[kindKey];
+    if (!requiredCount) return null;
+    const inputColors = (Array.isArray(colors) && colors.length)
+      ? colors
+      : [colorA, colorB, colorC, colorD];
+    const normalizedColors = inputColors.map((color) => (color ? normalizePack01Color(color) : null));
+    const pickedColors = normalizedColors.slice(0, requiredCount);
+    if (pickedColors.some((color) => !color)) return null;
+    const orderedColors = getCardColorsForKind(kindKey, pickedColors);
     const cardKey = getCardKey(kindKey, orderedColors);
     if (!cardKey) return null;
     return {
@@ -1638,7 +1637,11 @@ const CardEngine = (() => {
       World.pendingCardUntilMs = 0;
     }
     const entity = addCardToPool(World, payload);
-    if (!entity) return null;
+    if (!entity) {
+      const debugCards = typeof window !== "undefined" && window.HC && window.HC.debugCards;
+      if (debugCards) console.warn("[CARD_COLLECT_FAIL]", payload);
+      return null;
+    }
     World.pendingCard = entity;
     World.pendingCardUntilMs = now + 3000;
     return entity;
