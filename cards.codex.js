@@ -133,6 +133,7 @@ const CardEngine = (() => {
       stepIndex: 0,
       currentColor: null,
       hits: 0,
+      opened: false,
       colorsClosed: []
     },
     sequenceOverlay: {
@@ -539,6 +540,7 @@ const CardEngine = (() => {
       stepIndex: 0,
       currentColor: null,
       hits: 0,
+      opened: false,
       colorsClosed: []
     };
     if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
@@ -584,6 +586,7 @@ const CardEngine = (() => {
     state.sequence.stepIndex = 0;
     state.sequence.currentColor = colorKey;
     state.sequence.hits = 1;
+    state.sequence.opened = false;
     state.sequence.colorsClosed = [];
   }
 
@@ -607,6 +610,7 @@ const CardEngine = (() => {
     seq.stepIndex = level;
     seq.currentColor = null;
     seq.hits = 0;
+    seq.opened = false;
   }
 
   function rewardSequenceFail(World, colors) {
@@ -641,16 +645,30 @@ const CardEngine = (() => {
     if (!seq.currentColor) {
       seq.currentColor = normalized;
       seq.hits = 1;
+      seq.opened = false;
       return;
     }
 
     if (normalized !== seq.currentColor) {
+      if (seq.hits < 2) {
+        seq.currentColor = normalized;
+        seq.hits = 1;
+        seq.opened = false;
+        return;
+      }
       failSequence(World);
       return;
     }
 
     seq.hits += 1;
     if (seq.hits === 2) {
+      seq.opened = true;
+      const nextLevel = seq.colorsClosed.length + 1;
+      showSequenceToast(`Sekwencja R${nextLevel} rozpoczęta`, "", seq.currentColor, 1500);
+      return;
+    }
+
+    if (seq.hits === 3) {
       handleSequenceStepClosed(World);
     }
   }
@@ -671,6 +689,7 @@ const CardEngine = (() => {
     state.sequence.colorsClosed = colorsClosed;
     state.sequence.currentColor = null;
     state.sequence.hits = 0;
+    state.sequence.opened = false;
   }
 
   function activateSequenceR1(colorKey) {
@@ -756,6 +775,7 @@ const CardEngine = (() => {
       stepIndex: 0,
       currentColor: null,
       hits: 0,
+      opened: false,
       colorsClosed: []
     };
     state.sequenceOverlay = {
