@@ -236,6 +236,6 @@ META końcowe:
 
 ## 9. Status dokumentu
 
-KANON v1.
+KANON v1.1
 Zgodny z ECONOMY_SYSTEM.md.
 SUB-META jest miejscem decyzji, nie resetu.
