@@ -15,6 +15,7 @@
     const getWorldViewBounds = window.getWorldViewBounds;
     const sidesFromColors = window.sidesFromColors;
     const WorldAPI = window.WorldAPI;
+    const finalizePlanetSpawn = window.finalizePlanetSpawn;
 
     // Internal ids (used for comet-release cooldown / ignore)
     let ASTEROID_ID_SEQ = 1;
@@ -242,27 +243,21 @@
       const sumR = (typeof a.liveSumR === 'number') ? a.liveSumR : a.captureSumR;
       const sumM = (typeof a.liveSumMass === 'number') ? a.liveSumMass : a.captureSumMass;
 
-      const gravOrbitR = (typeof a.orbitCurrentRadius === "number") ? a.orbitCurrentRadius : a.orbitPx;
-      const r0 = clamp(gravOrbitR * 0.5, 1.6 * Rm, 90.0 * Rm);
-
-      const baseOrbit = Math.max(r0 * 1.20, r0 + 2.8 * Rm);
-      const orbit0 = clamp(baseOrbit, baseOrbit, 420.0 * Rm);
-
       const planetMass = sumM + massFromR(a.r);
 
       const orbitMul = (typeof World.metaOrbitMulPlanet === "number") ? World.metaOrbitMulPlanet : 1;
-      const currentOrbit = orbit0 * orbitMul;
+      const currentOrbit = 0;
       const p = {
         type: "planet",
         x: a.x,
         y: a.y,
         vx: a.vx,
         vy: a.vy,
-        r: r0,
+        r: 0,
         orbitPx: currentOrbit,
-        orbitNativeRadius: orbit0,
+        orbitNativeRadius: 0,
         orbitCurrentRadius: currentOrbit,
-        gravityR: computeGravityFromPlanetRadius(r0),
+        gravityR: 0,
         hueA,
         hueB,
         mass: planetMass,
@@ -281,6 +276,21 @@
               rings: [],
         capturedAsteroids: [],
       };
+
+      if (typeof finalizePlanetSpawn === "function") {
+        finalizePlanetSpawn(a, p, { kind: "gas" });
+      } else {
+        const fallbackOrbit = (typeof a.orbitCurrentRadius === "number") ? a.orbitCurrentRadius : a.orbitPx;
+        p.r = (Number.isFinite(fallbackOrbit) ? fallbackOrbit : 0) * 0.5;
+      }
+      const baseOrbit = Math.max(p.r * 1.20, p.r + 2.8 * Rm);
+      const orbit0 = clamp(baseOrbit, baseOrbit, 420.0 * Rm);
+      const currentOrbitFinal = orbit0 * orbitMul;
+      p.orbitNativeRadius = orbit0;
+      p.orbitCurrentRadius = currentOrbitFinal;
+      p.orbitPx = currentOrbitFinal;
+      const baseGravity = computeGravityFromPlanetRadius(p.r);
+      p.gravityR = Math.max(baseGravity, p.orbitCurrentRadius || 0);
 
       World.planets.push(p);
 

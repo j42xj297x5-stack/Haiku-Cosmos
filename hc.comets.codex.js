@@ -18,9 +18,11 @@
     const buildColorWeightsFromOrbiters = window.buildColorWeightsFromOrbiters;
     const computeRockyParamsFromOrbiters = window.computeRockyParamsFromOrbiters;
     const buildBlobPatchwork = window.buildBlobPatchwork;
+    const computeGravityFromPlanetRadius = window.computeGravityFromPlanetRadius;
     const makeRng = (window.HC.Util && window.HC.Util.makeRng) || window.makeRng;
     const hash32 = (window.HC.Util && window.HC.Util.hash32) || window.hash32;
     const removeOrbitersConsumed = window.removeOrbitersConsumed;
+    const finalizePlanetSpawn = window.finalizePlanetSpawn;
 
     function setBodyOrbitRadius(body, currentRadius) {
       if (!body) return;
@@ -428,10 +430,18 @@
           a.type = "planet";
           a.planetKind = "rocky";
           a.isRocky = true;
-          a.r = params.planetR;
+          a.r = 0;
+          a.mass = 0;
+          a.gravityR = 0;
+          if (typeof finalizePlanetSpawn === "function") {
+            finalizePlanetSpawn(a, a, { kind: "rocky", source: "comet" });
+          } else {
+            const fallbackOrbit = (typeof a.orbitCurrentRadius === "number") ? a.orbitCurrentRadius : a.orbitPx;
+            a.r = (Number.isFinite(fallbackOrbit) ? fallbackOrbit : 0) * 0.5;
+          }
           a.mass = params.planetMass;
-          a.gravityR = params.gravityR;
-          setBodyOrbitRadius(a, params.gravityR);
+          a.gravityR = computeGravityFromPlanetRadius(a.r);
+          setBodyOrbitRadius(a, a.gravityR);
           a.hueA = hueFromName(weights.monoColor || "yellow");
           a.hueB = a.hueA;
           a.orbiters = [];
