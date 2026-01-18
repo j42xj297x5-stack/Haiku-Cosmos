@@ -610,9 +610,9 @@ const CardEngine = (() => {
   }
 
   function rewardSequenceFail(World, colors) {
-    const normalized = canonicalizeColors(colors);
-    if (!World || !normalized.length) return;
-    normalized.forEach((color) => {
+    const seqColors = (Array.isArray(colors) ? colors : []).map(normalizePack01Color).filter(Boolean);
+    if (!World || !seqColors.length) return;
+    seqColors.forEach((color) => {
       onCardCollected({ kind: "R1", tier: "DR", colorA: color });
     });
   }
@@ -685,27 +685,28 @@ const CardEngine = (() => {
   }
 
   function cashOutSequence(level, colors) {
-    const normalized = canonicalizeColors(colors);
+    const seqColors = (Array.isArray(colors) ? colors : []).map(normalizePack01Color).filter(Boolean);
+    const cardColors = canonicalizeColors(seqColors);
     const cappedLevel = Math.max(1, Math.min(4, Number(level || 1)));
-    if (normalized.length < cappedLevel) return false;
+    if (seqColors.length < cappedLevel || cardColors.length < cappedLevel) return false;
     const tier = "DR";
     if (cappedLevel === 1) {
-      onCardCollected({ kind: "R1", tier, colorA: normalized[0] });
+      onCardCollected({ kind: "R1", tier, colorA: cardColors[0] });
     } else if (cappedLevel === 2) {
-      onCardCollected({ kind: "R2", tier, colorA: normalized[0], colorB: normalized[1] });
+      onCardCollected({ kind: "R2", tier, colorA: cardColors[0], colorB: cardColors[1] });
     } else if (cappedLevel === 3) {
-      onCardCollected({ kind: "R3", tier, colorA: normalized[0], colorB: normalized[1], colorC: normalized[2] });
+      onCardCollected({ kind: "R3", tier, colorA: cardColors[0], colorB: cardColors[1], colorC: cardColors[2] });
     } else if (cappedLevel === 4) {
       onCardCollected({
         kind: "R4",
         tier,
-        colorA: normalized[0],
-        colorB: normalized[1],
-        colorC: normalized[2],
-        colorD: normalized[3]
+        colorA: cardColors[0],
+        colorB: cardColors[1],
+        colorC: cardColors[2],
+        colorD: cardColors[3]
       });
     }
-    showSequenceToast(`Kolekcja R${cappedLevel}`, "Sekwencja zamknięta.", normalized[cappedLevel - 1] || normalized[0], 1500);
+    showSequenceToast(`Kolekcja R${cappedLevel}`, "Sekwencja zamknięta.", seqColors[cappedLevel - 1] || seqColors[0], 1500);
     resetSequenceState();
     return true;
   }
@@ -847,7 +848,7 @@ const CardEngine = (() => {
     const t = nowMs();
     const normalizedColor = normalizePack01Color(colorKey);
     const tier = normalizeSubMetaTier(tierKey || "DR");
-    consumePendingCard(World, { kind: "R1", tier, colors: [normalizedColor] }, t);
+    if (!consumePendingCard(World, { kind: "R1", tier, colors: [normalizedColor] }, t)) return false;
     resetSequenceState();
     applyWorldSlotEffectsOnRunActivation(World, t, [normalizedColor], "R1");
     const bonusMs = getFormaTimeBonusMs(World);
