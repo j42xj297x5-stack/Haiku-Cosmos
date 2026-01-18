@@ -641,6 +641,10 @@ const CardEngine = (() => {
     seq.currentColor = null;
     seq.hits = 0;
     seq.opened = false;
+    if (World) {
+      const sequenceColors = seq.colorsClosed.map(normalizePack01Color).filter(Boolean);
+      World.sequencePulseColors = [...new Set(sequenceColors)];
+    }
   }
 
   function rewardSequenceFail(World, colors) {
@@ -695,6 +699,17 @@ const CardEngine = (() => {
       seq.opened = true;
       const nextLevel = seq.colorsClosed.length + 1;
       showSequenceToast(`Sekwencja R${nextLevel} rozpoczęta`, "", seq.currentColor, 1500);
+      if (World) {
+        const sequenceColors = new Set();
+        const closed = Array.isArray(seq.colorsClosed) ? seq.colorsClosed : [];
+        closed.forEach((color) => {
+          const normalizedClosed = normalizePack01Color(color);
+          if (normalizedClosed) sequenceColors.add(normalizedClosed);
+        });
+        const current = normalizePack01Color(seq.currentColor);
+        if (current) sequenceColors.add(current);
+        World.sequencePulseColors = [...sequenceColors];
+      }
       return;
     }
 
@@ -1044,8 +1059,10 @@ const CardEngine = (() => {
           const normalized = normalizePack01Color(color);
           if (normalized) sequenceColors.add(normalized);
         });
-        const current = normalizePack01Color(state.sequence.currentColor);
-        if (current) sequenceColors.add(current);
+        if (state.sequence.opened) {
+          const current = normalizePack01Color(state.sequence.currentColor);
+          if (current) sequenceColors.add(current);
+        }
       }
       World.sequencePulseColors = [...sequenceColors];
     }
@@ -1251,6 +1268,32 @@ const CardEngine = (() => {
     const nowTime = nowMs();
     const runTimers = World.runColorTimers || {};
     const runDurations = World.runColorDurations || {};
+    const sequencePulseColors = Array.isArray(World.sequencePulseColors) ? World.sequencePulseColors : [];
+    const pulseDuration = 2000;
+    const hexToRgb = (hex) => {
+      const value = String(hex || "").replace("#", "");
+      if (value.length === 3) {
+        const r = parseInt(value[0] + value[0], 16);
+        const g = parseInt(value[1] + value[1], 16);
+        const b = parseInt(value[2] + value[2], 16);
+        return { r, g, b };
+      }
+      if (value.length === 6) {
+        const r = parseInt(value.slice(0, 2), 16);
+        const g = parseInt(value.slice(2, 4), 16);
+        const b = parseInt(value.slice(4, 6), 16);
+        return { r, g, b };
+      }
+      return { r: 255, g: 255, b: 255 };
+    };
+    const mixRgb = (a, b, t) => {
+      const r = Math.round(a.r + (b.r - a.r) * t);
+      const g = Math.round(a.g + (b.g - a.g) * t);
+      const bVal = Math.round(a.b + (b.b - a.b) * t);
+      return `rgb(${r},${g},${bVal})`;
+    };
+    const whiteRgb = { r: 255, g: 255, b: 255 };
+    const blackRgb = { r: 0, g: 0, b: 0 };
 
     ctx.save();
     ctx.font = "11px system-ui";
@@ -1259,7 +1302,17 @@ const CardEngine = (() => {
       const key = order[i];
       const count = getCardCount(World, "R1", [key], "DR", { availableOnly: true });
       const y = y0 + i * (rectH + gap);
-      if (count > 0) {
+      const isPulsing = sequencePulseColors.includes(key);
+      if (isPulsing) {
+        const pulsePhase = ((nowTime % pulseDuration) / pulseDuration) * Math.PI * 2;
+        const pulse01 = 0.5 + 0.5 * Math.sin(pulsePhase);
+        const baseRgb = hexToRgb(PACK01_COLOR_HEX[key] || "#FFFFFF");
+        const mixTarget = count > 0 ? whiteRgb : baseRgb;
+        const mixSource = count > 0 ? baseRgb : blackRgb;
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = mixRgb(mixSource, mixTarget, pulse01);
+        ctx.fillRect(x, y, rectW, rectH);
+      } else if (count > 0) {
         ctx.globalAlpha = 0.95;
         ctx.fillStyle = PACK01_COLOR_HEX[key];
         ctx.fillRect(x, y, rectW, rectH);
@@ -1282,9 +1335,7 @@ const CardEngine = (() => {
           ctx.fillRect(barX, barY, barW, barH);
         }
       }
-      const sequencePulseColors = Array.isArray(World.sequencePulseColors) ? World.sequencePulseColors : [];
-      if (sequencePulseColors.includes(key)) {
-        const pulseDuration = 2000;
+      if (isPulsing) {
         const pulsePhase = ((nowTime % pulseDuration) / pulseDuration) * Math.PI * 2;
         const pulseAlpha = 0.15 + 0.35 * (0.5 + 0.5 * Math.sin(pulsePhase));
         ctx.save();
