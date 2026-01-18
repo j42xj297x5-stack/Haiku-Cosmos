@@ -113,6 +113,44 @@ Informacje o sekwencjach i kartach:
 Zasada:
 > UI informuje, ale nie spamuje.
 
+### 2.6. Pamięć sekwencji — pulsowanie prostokątów DR (RUN HUD)
+
+Podczas budowania sekwencji gracz może „zgubić” to, jaki kolor powinien zbierać dalej.
+Zamiast dodatkowych komunikatów tekstowych, RUN HUD używa istniejących prostokątów DR (prawy górny róg)
+jako **wskaźnika pamięci sekwencji**.
+
+Zasada:
+
+- jeśli sekwencja jest aktywna, prostokąty kolorów biorących udział w aktualnym łańcuchu **pulsują** (powoli).
+
+Pulsowanie:
+
+- po zamknięciu kroku A (R1) pulsuje kolor A,
+- po zamknięciu kroku B (R2) pulsują kolory A i B,
+- po zamknięciu kroku C (R3) pulsują kolory A, B, C,
+- po zamknięciu kroku D (R4) pulsują kolory A, B, C, D,
+- w trakcie kroku (gdy jest wybrany `currentColor`) dopuszczalne jest pulsowanie także koloru w trakcie zbierania.
+
+Wizualnie:
+
+- puls jest subtelny i nie “miga agresywnie”,
+
+- preferowane: pulsowanie obwódki (białej) lub lekkie rozjaśnienie wypełnienia,
+- tempo: ok. 2 sekundy na pełny cykl (narastanie + opadanie).
+
+Zasady spójności:
+
+- pulsowanie działa niezależnie od liczników ilości (count może być 0, a kolor nadal pulsuje jako wskaźnik sekwencji),
+- pasek czasu aktywacji (timer) pozostaje bez zmian i nadal pokazuje czas działania efektu aktywacji.
+
+Pulsowanie uruchamia się dopiero w momencie otwarcia kroku sekwencji (po 2. harmonicznym trafieniu), nie przy pierwszym trafieniu.
+
+I dopisz regułę stylu:
+
+count==0 → czarny→kolor
+
+count>0 → kolor→biały
+
 ---
 
 ## 3. SUB-META Overlay (panel konfiguracyjny)
@@ -286,6 +324,7 @@ Mapa kolorów musi być spójna:
 **KANON UI WORLD v1**
 
 Zgodny z:
+
 - CARDS_SYSTEM.md
 - ECONOMY_SYSTEM.md
 - SUB_META_SYSTEM.md
