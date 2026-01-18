@@ -202,9 +202,7 @@ const CardEngine = (() => {
   const SUB_META_R3_COMBOS = buildSubMetaComboList(3);
   const SUB_META_R4_COMBOS = buildSubMetaComboList(4);
   const SUB_META_ASSIGN_COST = 10;
-  const SUB_META_FORGE_COSTS = { sDR: 10, pDR: 20 };
-  const SUB_META_FORGE_CONSUMES = { sDR: 3, pDR: 9 };
-  const SUB_META_FORGE_ENABLED = false;
+  const SUB_META_FORGE_ENABLED = true;
   const SUB_META_SCALE = 1.0;
   const SUB_META_CARD_W = 20;
   const SUB_META_CARD_H = 26;
@@ -238,6 +236,12 @@ const CardEngine = (() => {
       sDR: ["Globalny respawn meteorów -40%."],
       pDR: ["Globalny respawn meteorów -60%."]
     }
+  };
+  const SUB_META_FORGE_RP_COSTS = {
+    R1: { sDR: 30, pDR: 90 },
+    R2: { sDR: 60, pDR: 180 },
+    R3: { sDR: 90, pDR: 270 },
+    R4: { sDR: 120, pDR: 360 }
   };
   const SUB_META_FORMA_REDUCTION = {
     DR: { asteroid: 0.20, planet: 0.10, star: 0.0 },
@@ -1946,17 +1950,61 @@ const CardEngine = (() => {
     return SUB_META_CARD_LIBRARY.find((card) => card.key === cardKey) || null;
   }
 
-  function buildForgeCandidate(kind, colors, tierTarget) {
-    const tierKey = normalizeSubMetaTier(tierTarget);
-    const key = `forge_${kind}_${colors.join("_")}_${tierKey}`;
+  function getForgeCostRp(kind, toTier) {
+    const kindKey = String(kind || "").toUpperCase();
+    const tierKey = normalizeSubMetaTier(toTier);
+    const costs = SUB_META_FORGE_RP_COSTS[kindKey];
+    if (!costs) return 0;
+    return Math.max(0, Math.floor(costs[tierKey] || 0));
+  }
+
+  function getForgeStackKey(card) {
+    if (!card || !card.id) return null;
+    const tierKey = normalizeSubMetaTier(card.tier);
+    return `${card.id}:${tierKey}`;
+  }
+
+  function getForgeAvailableStacks(World) {
+    if (!World) return new Map();
+    ensureCardsPool(World);
+    const stacks = new Map();
+    for (const card of World.cardsPool) {
+      if (!card || card.inSlotKey) continue;
+      const stackKey = getForgeStackKey(card);
+      if (!stackKey) continue;
+      const existing = stacks.get(stackKey);
+      if (existing) {
+        existing.count += 1;
+        continue;
+      }
+      stacks.set(stackKey, {
+        stackKey,
+        baseId: card.id,
+        kind: card.kind,
+        fromTier: normalizeSubMetaTier(card.tier),
+        colors: getEntityColors(card),
+        count: 1
+      });
+    }
+    return stacks;
+  }
+
+  function buildForgeCandidateFromStack(stack) {
+    if (!stack) return null;
+    const fromTier = normalizeSubMetaTier(stack.fromTier);
+    const toTier = fromTier === "DR" ? "sDR" : (fromTier === "sDR" ? "pDR" : null);
+    if (!toTier) return null;
+    if (stack.count < 3) return null;
+    const key = `forge_${stack.baseId}_${fromTier}_${toTier}`;
     return {
       key,
-      kind,
-      colors,
-      tierTarget: tierKey,
-      label: `${tierKey} ${kind}`,
-      costRp: SUB_META_FORGE_COSTS[tierKey] || 0,
-      consumes: SUB_META_FORGE_CONSUMES[tierKey] || 0
+      kind: stack.kind,
+      baseId: stack.baseId,
+      colors: stack.colors,
+      fromTier,
+      toTier,
+      requiredCount: 3,
+      costRp: getForgeCostRp(stack.kind, toTier)
     };
   }
 
@@ -1964,15 +2012,10 @@ const CardEngine = (() => {
     if (!World) return [];
     if (!SUB_META_FORGE_ENABLED) return [];
     const list = [];
-    SUB_META_COLORS.forEach((color) => {
-      const drCount = getCardCount(World, "R1", [color], "DR", { availableOnly: true });
-      if (drCount >= 3) list.push(buildForgeCandidate("R1", [color], "sDR"));
-      if (drCount >= 9) list.push(buildForgeCandidate("R1", [color], "pDR"));
-    });
-    SUB_META_R2_PAIRS.forEach((pair) => {
-      const drCount = getCardCount(World, "R2", pair, "DR", { availableOnly: true });
-      if (drCount >= 3) list.push(buildForgeCandidate("R2", pair, "sDR"));
-      if (drCount >= 9) list.push(buildForgeCandidate("R2", pair, "pDR"));
+    const stacks = getForgeAvailableStacks(World);
+    stacks.forEach((stack) => {
+      const candidate = buildForgeCandidateFromStack(stack);
+      if (candidate) list.push(candidate);
     });
     return list;
   }
@@ -1983,26 +2026,64 @@ const CardEngine = (() => {
     return list.find((forge) => forge.key === forgeKey) || null;
   }
 
+  function getForgeAvailableCount(World, baseId, fromTier) {
+    if (!World || !baseId) return 0;
+    ensureCardsPool(World);
+    const tierKey = normalizeSubMetaTier(fromTier);
+    let count = 0;
+    for (const card of World.cardsPool) {
+      if (!card || card.inSlotKey) continue;
+      if (card.id !== baseId) continue;
+      if (normalizeSubMetaTier(card.tier) !== tierKey) continue;
+      count += 1;
+    }
+    return count;
+  }
+
   function canCraftForge(World, forge) {
     if (!World || !forge) return false;
     const rpValue = Math.max(0, Math.floor(World.score || 0));
-    const drAvailable = getCardCount(World, forge.kind, forge.colors, "DR", { availableOnly: true });
-    return rpValue >= (forge.costRp || 0) && drAvailable >= (forge.consumes || 0);
+    const available = getForgeAvailableCount(World, forge.baseId, forge.fromTier);
+    return rpValue >= (forge.costRp || 0) && available >= (forge.requiredCount || 0);
+  }
+
+  function consumeAvailableCardsByIdAndTier(World, baseId, fromTier, count) {
+    if (!World || !baseId) return 0;
+    ensureCardsPool(World);
+    let remaining = Math.max(0, Math.floor(count || 0));
+    if (!remaining) return 0;
+    const tierKey = normalizeSubMetaTier(fromTier);
+    for (let i = World.cardsPool.length - 1; i >= 0 && remaining > 0; i--) {
+      const card = World.cardsPool[i];
+      if (!card || card.inSlotKey) continue;
+      if (card.id !== baseId) continue;
+      if (normalizeSubMetaTier(card.tier) !== tierKey) continue;
+      World.cardsPool.splice(i, 1);
+      remaining -= 1;
+    }
+    recomputeTotalCards(World);
+    return count - remaining;
   }
 
   function craftSubMetaForge(World, forge) {
     if (!SUB_META_FORGE_ENABLED) return false;
     if (!canCraftForge(World, forge)) return false;
     const cost = Math.max(0, Math.floor(forge.costRp || 0));
-    const consume = Math.max(0, Math.floor(forge.consumes || 0));
-    World.score = Math.max(0, Math.floor((World.score || 0) - cost));
-    const removed = consumeAvailableCards(World, forge.kind, forge.colors, "DR", consume);
+    const consume = Math.max(0, Math.floor(forge.requiredCount || 0));
+    const available = getForgeAvailableCount(World, forge.baseId, forge.fromTier);
+    if (available < consume) return false;
+    if ((World.score || 0) < cost) return false;
+    const removed = consumeAvailableCardsByIdAndTier(World, forge.baseId, forge.fromTier, consume);
     if (removed !== consume) return false;
+    World.score = Math.max(0, Math.floor((World.score || 0) - cost));
     addCardToPool(World, {
       kind: forge.kind,
-      tier: forge.tierTarget,
+      tier: forge.toTier,
       colorA: forge.colors[0],
-      colorB: forge.colors[1] || null
+      colorB: forge.colors[1] || null,
+      colorC: forge.colors[2] || null,
+      colorD: forge.colors[3] || null,
+      id: forge.baseId
     });
     return true;
   }
@@ -2575,7 +2656,7 @@ const CardEngine = (() => {
       const rect = getSubMetaCardRect(pickerForgeRect, forgeGrid, index);
       renderMetaCard(ctx, rect.x, rect.y, {
         type: forge.kind,
-        tier: forge.tierTarget,
+        tier: forge.toTier,
         colors: forge.colors,
         count: 0
       }, {
@@ -2591,14 +2672,15 @@ const CardEngine = (() => {
     ctx.strokeRect(cardInfoRect.x, cardInfoRect.y, cardInfoRect.w, cardInfoRect.h);
 
     if (selectedForge) {
-      const tierLabel = normalizeSubMetaTier(selectedForge.tierTarget);
+      const tierLabel = normalizeSubMetaTier(selectedForge.toTier);
       const typeLabel = selectedForge.kind || "R1";
       const colorLabel = selectedForge.colors.length === 2
         ? `${PACK01_COLOR_LABEL[selectedForge.colors[0]] || selectedForge.colors[0]} + ${PACK01_COLOR_LABEL[selectedForge.colors[1]] || selectedForge.colors[1]}`
         : `${PACK01_COLOR_LABEL[selectedForge.colors[0]] || selectedForge.colors[0]}`;
-      const drNeeded = selectedForge.consumes || 0;
-      const drAvailable = getCardCount(World, selectedForge.kind, selectedForge.colors, "DR", { availableOnly: true });
-      const canCraft = hasEnoughForgeRp && drAvailable >= drNeeded;
+      const fromTierLabel = normalizeSubMetaTier(selectedForge.fromTier);
+      const needed = selectedForge.requiredCount || 0;
+      const available = getForgeAvailableCount(World, selectedForge.baseId, selectedForge.fromTier);
+      const canCraft = hasEnoughForgeRp && available >= needed;
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.font = "15px system-ui";
       ctx.fillText(`Kuźnia: ${tierLabel}`, cardInfoRect.x + 12, cardInfoRect.y + 22);
@@ -2610,11 +2692,11 @@ const CardEngine = (() => {
       ctx.fillStyle = "rgba(255,255,255,0.8)";
       ctx.fillText(`Koszt RP: ${forgeRpCost}`, cardInfoRect.x + 12, cardInfoRect.y + 76);
       ctx.fillStyle = "rgba(255,255,255,0.75)";
-      ctx.fillText(`Składniki: ${drNeeded} × DR`, cardInfoRect.x + 12, cardInfoRect.y + 94);
+      ctx.fillText(`Składniki: ${needed} × ${fromTierLabel}`, cardInfoRect.x + 12, cardInfoRect.y + 94);
       ctx.fillStyle = "rgba(255,255,255,0.6)";
-      ctx.fillText(`Magazyn DR: ${drAvailable}`, cardInfoRect.x + 12, cardInfoRect.y + 110);
+      ctx.fillText(`Magazyn ${fromTierLabel}: ${available}`, cardInfoRect.x + 12, cardInfoRect.y + 110);
       ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.fillText("Zamienia DR w wyższy tier.", cardInfoRect.x + 12, cardInfoRect.y + 128);
+      ctx.fillText(`Zamienia ${fromTierLabel} w wyższy tier.`, cardInfoRect.x + 12, cardInfoRect.y + 128);
       ctx.save();
       ctx.globalAlpha = canCraft ? 1.0 : 0.35;
       ctx.fillStyle = "rgba(255,255,255,0.12)";
