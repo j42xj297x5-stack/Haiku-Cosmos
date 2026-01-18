@@ -858,6 +858,26 @@ const CardEngine = (() => {
     return ordered.slice(0, required);
   }
 
+  function getEntityColors(entity) {
+    if (!entity) return [];
+    const kindKey = String(entity.kind || entity.type || "R1").toUpperCase();
+    let rawColors = Array.isArray(entity.colors) ? entity.colors : [];
+    if (!rawColors.length) {
+      rawColors = [
+        entity.colorA,
+        entity.colorB,
+        entity.colorC,
+        entity.colorD
+      ].filter(Boolean);
+    }
+    if (!rawColors.length && kindKey === "R1" && entity.color) {
+      rawColors = [entity.color];
+    }
+    const normalized = rawColors.map((color) => normalizePack01Color(color)).filter(Boolean);
+    if (!normalized.length) return [];
+    return getCardColorsForKind(kindKey, normalized);
+  }
+
   function showActivationToast(colorKey) {
     showSequenceToast("R1 DR aktywowany", "Sekwencja przerwana.", colorKey, 1500);
   }
@@ -1567,9 +1587,19 @@ const CardEngine = (() => {
     } else {
       entity = createCardEntity(payload);
     }
-    if (!entity || !entity.colorA || (entity.kind === "R2" && !entity.colorB)) return null;
-    if (entity.kind === "R3" && (!entity.colorB || !entity.colorC)) return null;
-    if (entity.kind === "R4" && (!entity.colorB || !entity.colorC || !entity.colorD)) return null;
+    const debugCards = typeof window !== "undefined" && window.HC && window.HC.debugCards;
+    if (!entity || !entity.colorA || (entity.kind === "R2" && !entity.colorB)) {
+      if (debugCards) console.warn("addCardToPool rejected", payload);
+      return null;
+    }
+    if (entity.kind === "R3" && (!entity.colorB || !entity.colorC)) {
+      if (debugCards) console.warn("addCardToPool rejected", payload);
+      return null;
+    }
+    if (entity.kind === "R4" && (!entity.colorB || !entity.colorC || !entity.colorD)) {
+      if (debugCards) console.warn("addCardToPool rejected", payload);
+      return null;
+    }
     World.cardsPool.push(entity);
     recomputeTotalCards(World);
     return entity;
@@ -2065,14 +2095,7 @@ const CardEngine = (() => {
     const isDisabled = !!options.isDisabled;
     const rectW = SUB_META_CARD_W;
     const rectH = SUB_META_CARD_H;
-    const rawColors = Array.isArray(card?.colors) ? card.colors : [];
-    const normalizedColors = rawColors.length
-      ? getCardColorsForKind(typeLabel, rawColors)
-      : [];
-    if (!normalizedColors.length && card?.color) {
-      const fallback = normalizePack01Color(card.color);
-      normalizedColors.push(fallback || card.color);
-    }
+    const normalizedColors = getEntityColors({ ...card, kind: typeLabel });
     const paintColors = normalizedColors.map((color) => PACK01_COLOR_HEX[color] || color || "#FFFFFF");
     ctx.save();
     ctx.globalAlpha = isDisabled ? 0.35 : 1.0;
