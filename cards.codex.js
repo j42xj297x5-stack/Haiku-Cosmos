@@ -1969,7 +1969,7 @@ const CardEngine = (() => {
     ensureCardsPool(World);
     const stacks = new Map();
     for (const card of World.cardsPool) {
-      if (!card || card.inSlotKey) continue;
+      if (!card || card.inSlotKey != null) continue;
       const stackKey = getForgeStackKey(card);
       if (!stackKey) continue;
       const existing = stacks.get(stackKey);
@@ -2032,7 +2032,7 @@ const CardEngine = (() => {
     const tierKey = normalizeSubMetaTier(fromTier);
     let count = 0;
     for (const card of World.cardsPool) {
-      if (!card || card.inSlotKey) continue;
+      if (!card || card.inSlotKey != null) continue;
       if (card.id !== baseId) continue;
       if (normalizeSubMetaTier(card.tier) !== tierKey) continue;
       count += 1;
