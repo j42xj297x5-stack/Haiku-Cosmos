@@ -182,6 +182,13 @@ const CardEngine = (() => {
   ];
 
   const SUB_META_COLORS = ["red", "yellow", "green", "blue"];
+  const CARD_KEY_ORDER = ["red", "yellow", "green", "blue"];
+  const CARD_KEY_LETTER = {
+    red: "A",
+    yellow: "B",
+    green: "C",
+    blue: "D"
+  };
   const SUB_META_TIERS = ["DR", "sDR", "pDR"];
   const SUB_META_R2_PAIRS = [
     ["red", "yellow"],
@@ -789,6 +796,31 @@ const CardEngine = (() => {
     return [b, a];
   }
 
+  function getCanonicalColors(colors) {
+    if (!Array.isArray(colors)) return [];
+    const normalized = colors.map((color) => normalizePack01Color(color));
+    if (normalized.some((color) => !color)) return [];
+    return [...normalized].sort((a, b) => CARD_KEY_ORDER.indexOf(a) - CARD_KEY_ORDER.indexOf(b));
+  }
+
+  function getCardKey(kind, colors) {
+    const kindKey = String(kind || "").toUpperCase();
+    const required = { R1: 1, R2: 2, R3: 3, R4: 4 }[kindKey];
+    if (!required) return null;
+    const ordered = getCanonicalColors(colors);
+    if (ordered.length < required) return null;
+    const letters = ordered.slice(0, required).map((color) => CARD_KEY_LETTER[color]).join("");
+    if (!letters) return null;
+    return `${kindKey}:${letters}`;
+  }
+
+  function getCardColorsForKind(kind, colors) {
+    const kindKey = String(kind || "").toUpperCase();
+    const required = { R1: 1, R2: 2, R3: 3, R4: 4 }[kindKey] || colors.length;
+    const ordered = getCanonicalColors(colors);
+    return ordered.slice(0, required);
+  }
+
   function showActivationToast(colorKey) {
     showSequenceToast("R1 DR aktywowany", "Sekwencja przerwana.", colorKey, 1500);
   }
@@ -1275,8 +1307,6 @@ const CardEngine = (() => {
     return bank;
   }
 
-  let cardIdCounter = 0;
-
   function createCardEntity({ kind, tier, colorA, colorB, colorC, colorD, inSlotKey } = {}) {
     if (!kind) return null;
     const kindKey = String(kind).toUpperCase();
@@ -1290,12 +1320,11 @@ const CardEngine = (() => {
     if (kindKey === "R3" && (!secondary || !tertiary)) return null;
     if (kindKey === "R4" && (!secondary || !tertiary || !quaternary)) return null;
     if (kindKey !== "R1" && kindKey !== "R2" && kindKey !== "R3" && kindKey !== "R4") return null;
-    cardIdCounter += 1;
-    const orderedColors = kindKey === "R2"
-      ? getCanonicalPairColors(primary, secondary)
-      : [primary, secondary, tertiary, quaternary];
+    const orderedColors = getCardColorsForKind(kindKey, [primary, secondary, tertiary, quaternary].filter(Boolean));
+    const cardKey = getCardKey(kindKey, orderedColors);
+    if (!cardKey) return null;
     return {
-      id: `card:${Date.now()}:${cardIdCounter}`,
+      id: cardKey,
       kind: kindKey,
       tier: tierKey,
       colorA: orderedColors[0],
@@ -1392,22 +1421,22 @@ const CardEngine = (() => {
     if (card.kind !== kindKey) return false;
     const tierKey = normalizeSubMetaTier(tier || "DR");
     if (card.tier !== tierKey) return false;
+    const ordered = getCardColorsForKind(kindKey, Array.isArray(colors) ? colors : []);
+    if (!ordered.length) return false;
     if (kindKey === "R1") {
-      return card.colorA === colors?.[0];
+      return card.colorA === ordered[0];
     }
     if (kindKey === "R2") {
-      const key = getCanonicalPairKey(colors?.[0], colors?.[1]);
-      const cardKey = getCanonicalPairKey(card.colorA, card.colorB);
-      return key === cardKey;
+      return card.colorA === ordered[0] && card.colorB === ordered[1];
     }
     if (kindKey === "R3") {
-      return card.colorA === colors?.[0] && card.colorB === colors?.[1] && card.colorC === colors?.[2];
+      return card.colorA === ordered[0] && card.colorB === ordered[1] && card.colorC === ordered[2];
     }
     if (kindKey === "R4") {
-      return card.colorA === colors?.[0]
-        && card.colorB === colors?.[1]
-        && card.colorC === colors?.[2]
-        && card.colorD === colors?.[3];
+      return card.colorA === ordered[0]
+        && card.colorB === ordered[1]
+        && card.colorC === ordered[2]
+        && card.colorD === ordered[3];
     }
     return false;
   }
@@ -1486,11 +1515,10 @@ const CardEngine = (() => {
       const normalizedB = payload.colorB ? normalizePack01Color(payload.colorB) : null;
       const normalizedC = payload.colorC ? normalizePack01Color(payload.colorC) : null;
       const normalizedD = payload.colorD ? normalizePack01Color(payload.colorD) : null;
-      const orderedColors = kindKey === "R2"
-        ? getCanonicalPairColors(normalizedA, normalizedB)
-        : [normalizedA, normalizedB, normalizedC, normalizedD];
+      const orderedColors = getCardColorsForKind(kindKey, [normalizedA, normalizedB, normalizedC, normalizedD].filter(Boolean));
+      const cardKey = getCardKey(kindKey, orderedColors);
       entity = {
-        id: String(payload.id),
+        id: cardKey || String(payload.id),
         kind: kindKey,
         tier: normalizeSubMetaTier(payload.tier),
         colorA: orderedColors[0],
@@ -1995,8 +2023,7 @@ const CardEngine = (() => {
   }
 
   function renderMetaCard(ctx, x, y, card, options = {}) {
-    const color = card?.color || "#FFFFFF";
-    const typeLabel = String(card?.type || "R1");
+    const typeLabel = String(card?.type || card?.kind || "R1");
     const tierLabel = normalizeSubMetaTier(card?.tier);
     const count = Math.max(0, Math.floor(Number(card?.count || 0)));
     const showCount = options.showCount && count > 0;
@@ -2004,10 +2031,46 @@ const CardEngine = (() => {
     const isDisabled = !!options.isDisabled;
     const rectW = SUB_META_CARD_W;
     const rectH = SUB_META_CARD_H;
+    const rawColors = Array.isArray(card?.colors) ? card.colors : [];
+    const normalizedColors = rawColors.length
+      ? getCardColorsForKind(typeLabel, rawColors)
+      : [];
+    if (!normalizedColors.length && card?.color) {
+      const fallback = normalizePack01Color(card.color);
+      normalizedColors.push(fallback || card.color);
+    }
+    const paintColors = normalizedColors.map((color) => PACK01_COLOR_HEX[color] || color || "#FFFFFF");
     ctx.save();
     ctx.globalAlpha = isDisabled ? 0.35 : 1.0;
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, rectW, rectH);
+    if (paintColors.length <= 1 || typeLabel === "R1") {
+      ctx.fillStyle = paintColors[0] || "#FFFFFF";
+      ctx.fillRect(x, y, rectW, rectH);
+    } else if (paintColors.length === 2 || typeLabel === "R2") {
+      const halfH = rectH / 2;
+      ctx.fillStyle = paintColors[0] || "#FFFFFF";
+      ctx.fillRect(x, y, rectW, halfH);
+      ctx.fillStyle = paintColors[1] || "#FFFFFF";
+      ctx.fillRect(x, y + halfH, rectW, rectH - halfH);
+    } else if (paintColors.length === 3 || typeLabel === "R3") {
+      const stripeH = rectH / 3;
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = paintColors[i] || "#FFFFFF";
+        const stripeY = y + i * stripeH;
+        const height = i === 2 ? rectH - stripeH * 2 : stripeH;
+        ctx.fillRect(x, stripeY, rectW, height);
+      }
+    } else {
+      const halfW = rectW / 2;
+      const halfH = rectH / 2;
+      ctx.fillStyle = paintColors[0] || "#FFFFFF";
+      ctx.fillRect(x, y, halfW, halfH);
+      ctx.fillStyle = paintColors[1] || "#FFFFFF";
+      ctx.fillRect(x + halfW, y, rectW - halfW, halfH);
+      ctx.fillStyle = paintColors[2] || "#FFFFFF";
+      ctx.fillRect(x, y + halfH, halfW, rectH - halfH);
+      ctx.fillStyle = paintColors[3] || "#FFFFFF";
+      ctx.fillRect(x + halfW, y + halfH, rectW - halfW, rectH - halfH);
+    }
 
     if (tierLabel === "sDR") {
       ctx.strokeStyle = "rgba(255,255,255,0.75)";
@@ -2271,7 +2334,7 @@ const CardEngine = (() => {
         renderMetaCard(ctx, cardX, cardY, {
           type: "R1",
           tier: assignment.tier,
-          color: PACK01_COLOR_HEX[assignment.color] || "#FFFFFF",
+          colors: [assignment.color],
           count: 0
         }, { showCount: false });
 
@@ -2303,11 +2366,10 @@ const CardEngine = (() => {
       const row = Math.floor(index / inventoryGrid.cols);
       if (row >= inventoryGrid.rows) return;
       const rect = getSubMetaCardRect(inventoryInnerRect, inventoryGrid, index);
-      const colorA = PACK01_COLOR_HEX[entry.colors[0]] || "#FFFFFF";
       renderMetaCard(ctx, rect.x, rect.y, {
         type: entry.kind,
         tier: entry.tier,
-        color: colorA,
+        colors: entry.colors,
         count: entry.count
       }, { showCount: true });
       entry.colors.forEach((colorKey) => {
@@ -2348,7 +2410,7 @@ const CardEngine = (() => {
         renderMetaCard(ctx, rect.x, rect.y, {
           type: "R1",
           tier: card.tier,
-          color: PACK01_COLOR_HEX[card.color] || "#FFFFFF",
+          colors: [card.color],
           count
         }, {
           isSelected: state.subMeta.selectedCardKey === card.key,
@@ -2371,11 +2433,10 @@ const CardEngine = (() => {
       const row = Math.floor(index / forgeGrid.cols);
       if (row >= forgeGrid.rows) return;
       const rect = getSubMetaCardRect(pickerForgeRect, forgeGrid, index);
-      const colorA = PACK01_COLOR_HEX[forge.colors[0]] || "#FFFFFF";
       renderMetaCard(ctx, rect.x, rect.y, {
         type: forge.kind,
         tier: forge.tierTarget,
-        color: colorA,
+        colors: forge.colors,
         count: 0
       }, {
         isSelected: state.subMeta.selectedForge?.key === forge.key,
