@@ -223,16 +223,9 @@
 
     function absorbBodiesIntoRocky(p, bodies) {
       if (!bodies || !bodies.length) return;
-      const Rm = meteorBaseRadius();
       for (const b of bodies) {
         const r = b?.r || 0;
         p.mass = (p.mass || 0) + massFromR(r);
-        if (!p.lockRadius) {
-          p.r = clamp(p.r + r * 0.06, Rm * 2.0, Rm * 220);
-        }
-      }
-      if (!p.lockRadius) {
-        p.gravityR = computeGravityFromPlanetRadius(p.r);
       }
     }
 
@@ -498,11 +491,13 @@
       const direction = Math.random() < 0.5 ? -1 : 1;
       const omega = direction * computeOmega(baseOmega, orbitR, Rm);
 
+      const renderMul = 0.5;
       p.orbiters.push({
         hue: meteor.hue,
         colorName: meteor.colorName,
         r: orbR,
-        renderMul: 0.5,
+        renderMul,
+        orbitContributionR: orbR * renderMul,
         orbitR,
         angle: rand(0, Math.PI * 2),
         omega,
@@ -596,14 +591,15 @@
             }
             meteors.splice(mi, 1);
 
+            const rEff = (typeof m.orbitContributionR === "number") ? m.orbitContributionR : (m.r * 0.5);
             p.captureCount = (p.captureCount || 0) + 1;
-            p.captureSumR = (p.captureSumR || 0) + m.r;
+            p.captureSumR = (p.captureSumR || 0) + rEff;
             p.captureSumMass = (p.captureSumMass || 0) + massFromR(m.r);
             if (!p.captureColorCounts) p.captureColorCounts = Object.create(null);
             p.captureColorCounts[m.colorName] = (p.captureColorCounts[m.colorName] || 0) + 1;
 
             const baseOrbit = Math.max(p.orbitPx || (p.r * 2.4), p.r * 2.4);
-            const nextOrbit = clamp(baseOrbit + m.r * 0.9, baseOrbit, meteorBaseRadius() * 420);
+            const nextOrbit = clamp(baseOrbit + rEff * 0.9, baseOrbit, meteorBaseRadius() * 420);
             setPlanetOrbitRadius(p, nextOrbit);
             const baseGravity = computeGravityFromPlanetRadius(p.r);
             p.gravityR = Math.max((p.gravityR || 0), baseGravity, nextOrbit);

@@ -284,14 +284,14 @@
             const removed = a.orbiters.splice(hit.index, 1)[0];
 
             // shrink asteroid gravity orbit (no rings for asteroids)
-            const rr = removed.r || meteorBaseRadius();
+            const rr = (typeof removed.orbitContributionR === "number") ? removed.orbitContributionR : (removed.r || meteorBaseRadius()) * 0.5;
             const nextOrbit = clamp((a.orbitPx || (a.r * 2.0)) - rr, a.minOrbitPx, a.maxOrbitPx);
             setBodyOrbitRadius(a, nextOrbit);
 
             // reduce live stats (mirrors releaseAllOrbitersFromAsteroid)
             const colorName = removed.colorName || "green";
             a.liveSumR = Math.max(0, (a.liveSumR || 0) - rr);
-            a.liveSumMass = Math.max(0, (a.liveSumMass || 0) - massFromR(rr));
+            a.liveSumMass = Math.max(0, (a.liveSumMass || 0) - massFromR(removed.r || rr));
             if (a.liveColorCounts) a.liveColorCounts[colorName] = Math.max(0, (a.liveColorCounts[colorName] || 0) - 1);
 
             if (window.WorldAPI && window.WorldAPI._clampOrbitersToOrbit) window.WorldAPI._clampOrbitersToOrbit(a);
@@ -364,7 +364,7 @@
 
                 // shrink asteroid gravity/orbit (no rings on asteroids)
                 // (keep it gentle to avoid visual jumps)
-                const shrink = Math.max(0, (removed?.r || 0) * 0.9);
+                const shrink = Math.max(0, ((removed?.orbitContributionR ?? (removed?.r || 0) * 0.5) || 0) * 0.9);
                 if (typeof a.orbitPx === "number") {
                   const nextOrbit = Math.max(a.r * 1.6, a.orbitPx - shrink);
                   setBodyOrbitRadius(a, nextOrbit);
@@ -402,7 +402,7 @@
                 addPlanetRingMark(p, removed, nowMs, "COMET");
 
                 // shrink planet gravity/orbit slightly (since orbiter removed)
-                const shrink = Math.max(0, (removed?.r || 0) * 0.9);
+                const shrink = Math.max(0, ((removed?.orbitContributionR ?? (removed?.r || 0) * 0.5) || 0) * 0.9);
                 if (typeof p.orbitPx === "number") {
                   const nextOrbit = Math.max(p.r * 1.8, p.orbitPx - shrink);
                   setBodyOrbitRadius(p, nextOrbit);
@@ -435,9 +435,19 @@
           a.gravityR = 0;
           if (typeof finalizePlanetSpawn === "function") {
             finalizePlanetSpawn(a, a, { kind: "rocky", source: "comet" });
-          } else {
-            const fallbackOrbit = (typeof a.orbitCurrentRadius === "number") ? a.orbitCurrentRadius : a.orbitPx;
-            a.r = (Number.isFinite(fallbackOrbit) ? fallbackOrbit : 0) * 0.5;
+          }
+          if (!Number.isFinite(a.r) || a.r <= 0) {
+            const orbitR = a.gravOrbitR ?? a.orbitR ?? a.orbitPx ?? a.orbitNativeRadius ?? 80;
+            if (!a.gravOrbitR && !a.orbitR && !a.orbitPx && !a.orbitNativeRadius && typeof console !== "undefined" && console.warn) {
+              console.warn("Missing asteroid orbit radius for planet sizing", a);
+            }
+            a.r = orbitR * 0.5;
+          }
+          if (!a.lockRadius) {
+            a.lockRadius = true;
+          }
+          if (!Number.isFinite(a.fixedR)) {
+            a.fixedR = a.r;
           }
           a.mass = params.planetMass;
           a.gravityR = computeGravityFromPlanetRadius(a.r);
@@ -541,7 +551,9 @@
 
             // comet impact: absorb once WITHOUT resetting planet mass model
             p.cometHits = (p.cometHits || 0) + 1;
-            p.r = clamp(p.r + c.r * 0.22, meteorBaseRadius() * 8, meteorBaseRadius() * 220);
+            if (!p.lockRadius) {
+              p.r = clamp(p.r + c.r * 0.22, meteorBaseRadius() * 8, meteorBaseRadius() * 220);
+            }
 
             // Direct impact in rocky planet: seed life (simple event hook)
             if (p.planetKind === "rocky") {
@@ -631,11 +643,12 @@
         const worldScale = (typeof View !== 'undefined' && View && typeof View.worldScale === 'number' && isFinite(View.worldScale)) ? View.worldScale : 1;
         for (const o of a.orbiters) {
           const r = o.r ?? 4;
+          const rEff = (typeof o.orbitContributionR === "number") ? o.orbitContributionR : r * 0.5;
           const colorName = o.colorName ?? "green";
           const hue = o.hue ?? 120;
 
           // reduce LIVE stats (total captureCount stays as "history marker")
-          a.liveSumR = Math.max(0, (a.liveSumR || 0) - r);
+          a.liveSumR = Math.max(0, (a.liveSumR || 0) - rEff);
           a.liveSumMass = Math.max(0, (a.liveSumMass || 0) - massFromR(r));
           if (a.liveColorCounts) a.liveColorCounts[colorName] = Math.max(0, (a.liveColorCounts[colorName] || 0) - 1);
 
@@ -681,7 +694,8 @@
         for (let i = 0; i < half; i++) {
           const idx = (Math.random() * p.orbiters.length) | 0;
           const o = p.orbiters.splice(idx, 1)[0];
-          releasedR += (o.r ?? 4);
+          const rEff = (typeof o?.orbitContributionR === "number") ? o.orbitContributionR : ((o?.r ?? 4) * 0.5);
+          releasedR += rEff;
 
           const dx = (o.x ?? p.x) - p.x;
           const dy = (o.y ?? p.y) - p.y;
