@@ -20,41 +20,6 @@
       return CE.isColorR1Active(colorName, nowMs);
     }
 
-    function ensureR1State() {
-      if (!World.r1 || typeof World.r1 !== "object") {
-        World.r1 = { color: null, streak: 0 };
-      }
-      return World.r1;
-    }
-
-    function handleR1SameColorCollision(colorName) {
-      const r1 = ensureR1State();
-      if (!r1.color) {
-        r1.color = colorName;
-        r1.streak = 1;
-        return;
-      }
-
-      if (colorName === r1.color) {
-        r1.streak += 1;
-        if (r1.streak === 2) {
-          Events.emit("R1_OPEN", { color: colorName });
-        } else if (r1.streak === 3) {
-          Events.emit("R1_SUCCESS", { color: colorName });
-          r1.color = null;
-          r1.streak = 0;
-        }
-        return;
-      }
-
-      if (r1.streak === 2) {
-        addScore(3);
-        Events.emit("R1_FAIL", { color: r1.color });
-      }
-      r1.color = colorName;
-      r1.streak = 1;
-    }
-
     function resolveMeteorCollisionsSafe() {
       const arr = World.meteors;
       if (arr.length < 2) return;
@@ -90,7 +55,6 @@
               addScore(1);
               Events.emit("METEOR_SAME_COLOR_COLLISION", { color: a.colorName });
               notifyHitColor(a.colorName);
-              handleR1SameColorCollision(a.colorName);
               toRemove.add(i);
               toRemove.add(j);
               break;
