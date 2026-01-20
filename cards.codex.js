@@ -134,7 +134,9 @@ const CardEngine = (() => {
       currentColor: null,
       hits: 0,
       opened: false,
-      colorsClosed: []
+      colorsClosed: [],
+      chainIndex: 0,
+      chainPattern: []
     },
     sequenceOverlay: {
       visible: false,
@@ -570,7 +572,9 @@ const CardEngine = (() => {
       currentColor: null,
       hits: 0,
       opened: false,
-      colorsClosed: []
+      colorsClosed: [],
+      chainIndex: 0,
+      chainPattern: []
     };
     if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
     if (state.world) state.world.sequencePulseColors = [];
@@ -600,15 +604,10 @@ const CardEngine = (() => {
     };
   }
 
-  function getSequenceMultiplier(level) {
+  function getSequenceMultiplier(level, chainIndex) {
     const idx = Math.max(1, Math.min(4, Number(level || 1)));
-    return idx + 1;
-  }
-
-  function grantSequenceCombo(World, level) {
-    const multiplier = getSequenceMultiplier(level);
-    const bonus = Math.max(0, Math.floor((multiplier - 1) * 2));
-    addScoreToWorld(World, bonus);
+    const chain = Number(chainIndex || 0) >= 1 ? 5 : 1;
+    return idx + chain;
   }
 
   function startSequenceWithColor(colorKey) {
@@ -618,6 +617,8 @@ const CardEngine = (() => {
     state.sequence.hits = 1;
     state.sequence.opened = false;
     state.sequence.colorsClosed = [];
+    state.sequence.chainIndex = 0;
+    state.sequence.chainPattern = [];
   }
 
   function handleSequenceStepClosed(World) {
@@ -628,7 +629,6 @@ const CardEngine = (() => {
     }
     const level = seq.colorsClosed.length;
     const colors = seq.colorsClosed.slice(0, level);
-    grantSequenceCombo(World, level);
     showSequenceOverlay(level, colors, colorKey, 3000);
     if (World && colorKey) {
       World.r1HudPulse = {
@@ -636,6 +636,20 @@ const CardEngine = (() => {
         startedAtMs: nowMs(),
         durationMs: 2000
       };
+    }
+    if (level >= 4 && seq.chainPattern.length === 0) {
+      seq.chainPattern = seq.colorsClosed.slice(0, 4);
+    }
+    if (seq.chainPattern.length && seq.chainIndex === 1) {
+      const expected = seq.chainPattern;
+      const mismatch = seq.colorsClosed.some((closedColor, idx) => closedColor !== expected[idx]);
+      if (mismatch) {
+        seq.chainIndex = 0;
+        seq.chainPattern = [];
+      } else if (level >= 4) {
+        seq.chainIndex = 0;
+        seq.chainPattern = [];
+      }
     }
     seq.stepIndex = level;
     seq.currentColor = null;
@@ -668,33 +682,60 @@ const CardEngine = (() => {
     const World = state.world;
     const normalized = normalizePack01Color(colorKey);
     if (!World || !normalized) return;
-    if (state.sequenceOverlay?.visible) return;
 
     const seq = state.sequence;
     if (!seq.active) {
       startSequenceWithColor(normalized);
+      const level = seq.colorsClosed.length + 1;
+      addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
       return;
     }
 
     if (!seq.currentColor) {
+      if (seq.chainPattern.length) {
+        const expectedStart = normalizePack01Color(seq.chainPattern[0]);
+        if (expectedStart && normalized === expectedStart) {
+          seq.chainIndex = 1;
+        } else {
+          seq.chainIndex = 0;
+          seq.chainPattern = [];
+        }
+      }
       seq.currentColor = normalized;
       seq.hits = 1;
       seq.opened = false;
+      const level = seq.colorsClosed.length + 1;
+      addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
       return;
     }
 
     if (normalized !== seq.currentColor) {
       if (seq.hits < 2) {
+        if (seq.chainPattern.length && seq.chainIndex === 1) {
+          const expectedColor = normalizePack01Color(seq.chainPattern[seq.colorsClosed.length]);
+          if (expectedColor && normalized !== expectedColor) {
+            seq.chainIndex = 0;
+            seq.chainPattern = [];
+          }
+        }
         seq.currentColor = normalized;
         seq.hits = 1;
         seq.opened = false;
+        const level = seq.colorsClosed.length + 1;
+        addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
         return;
       }
+      const level = seq.colorsClosed.length + 1;
+      addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
       failSequence(World);
       return;
     }
 
     seq.hits += 1;
+    {
+      const level = seq.colorsClosed.length + 1;
+      addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
+    }
     if (seq.hits === 2) {
       seq.opened = true;
       const nextLevel = seq.colorsClosed.length + 1;
@@ -726,7 +767,12 @@ const CardEngine = (() => {
     const level = Math.max(1, Math.min(4, Number(overlay.level || 1)));
     const colorsClosed = Array.isArray(overlay.colors) ? overlay.colors.slice() : [];
     if (level >= 4) {
-      resetSequenceState();
+      state.sequence.active = true;
+      state.sequence.stepIndex = 0;
+      state.sequence.colorsClosed = [];
+      state.sequence.currentColor = null;
+      state.sequence.hits = 0;
+      state.sequence.opened = false;
       return;
     }
     state.sequence.active = true;
@@ -821,7 +867,9 @@ const CardEngine = (() => {
       currentColor: null,
       hits: 0,
       opened: false,
-      colorsClosed: []
+      colorsClosed: [],
+      chainIndex: 0,
+      chainPattern: []
     };
     state.sequenceOverlay = {
       visible: false,

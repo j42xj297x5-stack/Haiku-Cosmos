@@ -5,7 +5,6 @@
   window.HC.initCollisions = () => {
     const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
     const Events = window.Events;
-    const addScore = window.addScore;
     const spawnAsteroidFromCollision = window.spawnAsteroidFromCollision;
 
     function notifyHitColor(colorName) {
@@ -52,7 +51,6 @@
           if (dist2 <= minDist * minDist) {
 
             if (a.colorName === b.colorName) {
-              addScore(1);
               Events.emit("METEOR_SAME_COLOR_COLLISION", { color: a.colorName });
               notifyHitColor(a.colorName);
               toRemove.add(i);
