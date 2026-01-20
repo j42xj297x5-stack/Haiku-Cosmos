@@ -577,7 +577,11 @@ const CardEngine = (() => {
       chainPattern: []
     };
     if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
-    if (state.world) state.world.sequencePulseColors = [];
+    if (state.world) {
+      state.world.sequencePulseColors = [];
+      state.world.sequenceDirectionColor = null;
+      state.world.sequenceFlashColors = [];
+    }
   }
 
   function showSequenceOverlay(level, colors, colorKey, ttlMs) {
@@ -599,6 +603,20 @@ const CardEngine = (() => {
       title: String(title || ""),
       subtitle: String(subtitle || ""),
       colorKey: colorKey || null,
+      colors: [],
+      shownAtMs: now,
+      ttlMs: Math.max(0, Number(ttlMs || 0))
+    };
+  }
+
+  function showSequenceFailToast(pointsLabel, colors, ttlMs) {
+    const now = nowMs();
+    state.sequenceToast = {
+      visible: true,
+      title: String(pointsLabel || "+RP"),
+      subtitle: "",
+      colorKey: null,
+      colors: Array.isArray(colors) ? colors.slice() : [],
       shownAtMs: now,
       ttlMs: Math.max(0, Number(ttlMs || 0))
     };
@@ -651,11 +669,10 @@ const CardEngine = (() => {
     }
     showSequenceOverlay(level, colors, colorKey, 3000);
     if (World && colorKey) {
-      World.r1HudPulse = {
-        colorKey,
-        startedAtMs: nowMs(),
-        durationMs: 2000
-      };
+      const flashColors = normalizedColors.slice(0, level);
+      flashColors.startedAtMs = nowMs();
+      flashColors.durationMs = 450;
+      World.sequenceFlashColors = flashColors;
     }
     if (level >= 4 && seq.chainPattern.length === 0) {
       seq.chainPattern = seq.colorsClosed.slice(0, 4);
@@ -676,8 +693,7 @@ const CardEngine = (() => {
     seq.hits = 0;
     seq.opened = false;
     if (World) {
-      const sequenceColors = seq.colorsClosed.map(normalizePack01Color).filter(Boolean);
-      World.sequencePulseColors = [...new Set(sequenceColors)];
+      World.sequencePulseColors = [];
     }
   }
 
@@ -694,7 +710,9 @@ const CardEngine = (() => {
     const completedColors = seq.colorsClosed.slice();
     const level = completedColors.length + 1;
     rewardSequenceFail(World, completedColors);
-    showSequenceToast(`Niepowodzenie sekwencji R${level}`, completedColors.length ? "Przyznano karty R1." : "Brak nagrody.", seq.currentColor, 2000);
+    if (completedColors.length) {
+      showSequenceFailToast("+RP", completedColors, 2000);
+    }
     resetSequenceState();
   }
 
@@ -730,6 +748,14 @@ const CardEngine = (() => {
     }
 
     if (normalized !== seq.currentColor) {
+      if (seq.colorsClosed.length === 0 && seq.hits === 1) {
+        seq.currentColor = normalized;
+        seq.hits = 1;
+        seq.opened = false;
+        const level = seq.colorsClosed.length + 1;
+        addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
+        return;
+      }
       failSequence(World);
       return;
     }
@@ -886,6 +912,7 @@ const CardEngine = (() => {
       title: "",
       subtitle: "",
       colorKey: null,
+      colors: [],
       shownAtMs: 0,
       ttlMs: 0
     };
@@ -898,6 +925,8 @@ const CardEngine = (() => {
     if (state.world) {
       state.world.r1HudPulse = null;
       state.world.sequencePulseColors = [];
+      state.world.sequenceDirectionColor = null;
+      state.world.sequenceFlashColors = [];
       resetCardPool(state.world);
       bindWorld(state.world);
     }
@@ -1103,18 +1132,32 @@ const CardEngine = (() => {
       }
 
       const sequenceColors = new Set();
-      if (state.sequence) {
+      if (state.sequence && state.sequence.opened) {
         const closed = Array.isArray(state.sequence.colorsClosed) ? state.sequence.colorsClosed : [];
         closed.forEach((color) => {
           const normalized = normalizePack01Color(color);
           if (normalized) sequenceColors.add(normalized);
         });
-        if (state.sequence.opened) {
-          const current = normalizePack01Color(state.sequence.currentColor);
-          if (current) sequenceColors.add(current);
-        }
+        const current = normalizePack01Color(state.sequence.currentColor);
+        if (current) sequenceColors.add(current);
       }
       World.sequencePulseColors = [...sequenceColors];
+      if (state.sequence
+        && state.sequence.colorsClosed.length === 0
+        && state.sequence.hits === 1
+        && state.sequence.currentColor
+        && !state.sequence.opened) {
+        World.sequenceDirectionColor = state.sequence.currentColor;
+      } else {
+        World.sequenceDirectionColor = null;
+      }
+      if (Array.isArray(World.sequenceFlashColors) && World.sequenceFlashColors.length) {
+        const startedAtMs = Number(World.sequenceFlashColors.startedAtMs || 0);
+        const durationMs = Number(World.sequenceFlashColors.durationMs || 0);
+        if (durationMs > 0 && t - startedAtMs >= durationMs) {
+          World.sequenceFlashColors = [];
+        }
+      }
     }
   }
 
@@ -1275,8 +1318,9 @@ const CardEngine = (() => {
     const elapsed = now - toast.shownAtMs;
     if (toast.ttlMs > 0 && elapsed >= toast.ttlMs) return;
 
+    const colors = Array.isArray(toast.colors) ? toast.colors : [];
     const w = 320;
-    const h = 56;
+    const h = colors.length ? 68 : 56;
     const x = Math.floor(screenW / 2 - w / 2);
     const y = Math.max(12, Math.floor(config.offerYPad - 6));
     const colorKey = normalizePack01Color(toast.colorKey);
@@ -1299,6 +1343,19 @@ const CardEngine = (() => {
     if (toast.subtitle) {
       ctx.fillStyle = "rgba(255,255,255,0.75)";
       ctx.fillText(toast.subtitle, x + 34, y + 42);
+    } else if (colors.length) {
+      const chipW = 14;
+      const chipH = 10;
+      const chipGap = 6;
+      let chipX = x + 34;
+      const chipY = y + 40;
+      colors.forEach((color) => {
+        const normalized = normalizePack01Color(color);
+        const hex = (normalized && PACK01_COLOR_HEX[normalized]) || "rgba(255,255,255,0.85)";
+        ctx.fillStyle = hex;
+        ctx.fillRect(chipX, chipY, chipW, chipH);
+        chipX += chipW + chipGap;
+      });
     }
 
     ctx.restore();
@@ -1319,6 +1376,8 @@ const CardEngine = (() => {
     const runTimers = World.runColorTimers || {};
     const runDurations = World.runColorDurations || {};
     const sequencePulseColors = Array.isArray(World.sequencePulseColors) ? World.sequencePulseColors : [];
+    const directionColor = normalizePack01Color(World.sequenceDirectionColor);
+    const flashColors = Array.isArray(World.sequenceFlashColors) ? World.sequenceFlashColors : [];
     const pulseDuration = 2000;
     const hexToRgb = (hex) => {
       const value = String(hex || "").replace("#", "");
@@ -1394,6 +1453,31 @@ const CardEngine = (() => {
         ctx.lineWidth = 2;
         ctx.strokeRect(x - 2, y - 2, rectW + 4, rectH + 4);
         ctx.restore();
+      }
+      if (directionColor && directionColor === key) {
+        ctx.save();
+        ctx.globalAlpha = 0.95;
+        ctx.strokeStyle = "rgba(255,255,255,0.95)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - 3, y - 3, rectW + 6, rectH + 6);
+        ctx.restore();
+      }
+      if (flashColors.length && flashColors.includes(key)) {
+        const startedAtMs = Number(flashColors.startedAtMs || 0);
+        const durationMs = Number(flashColors.durationMs || 0);
+        const elapsed = nowTime - startedAtMs;
+        const t = durationMs > 0 ? clamp01(elapsed / durationMs) : 1;
+        if (t >= 1) {
+          World.sequenceFlashColors = [];
+        } else {
+          const alpha = 0.6 * (1 - t);
+          ctx.save();
+          ctx.globalAlpha = clamp01(alpha);
+          ctx.strokeStyle = "rgba(255,255,255,0.95)";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x - 5, y - 5, rectW + 10, rectH + 10);
+          ctx.restore();
+        }
       }
       const pulse = World.r1HudPulse;
       if (pulse && normalizePack01Color(pulse.colorKey) === key) {
