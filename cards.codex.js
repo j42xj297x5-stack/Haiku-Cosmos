@@ -136,7 +136,11 @@ const CardEngine = (() => {
       opened: false,
       colorsClosed: [],
       chainIndex: 0,
-      chainPattern: []
+      chainPattern: [],
+      r1LoopActive: false,
+      r1LoopColor: null,
+      r1LoopStage: null,
+      r1LoopHits: 0
     },
     sequenceOverlay: {
       visible: false,
@@ -144,15 +148,18 @@ const CardEngine = (() => {
       colors: [],
       colorKey: null,
       shownAtMs: 0,
-      ttlMs: 0
+      ttlMs: 0,
+      mode: "sequence"
     },
     sequenceToast: {
       visible: false,
       title: "",
       subtitle: "",
       colorKey: null,
+      colors: [],
       shownAtMs: 0,
-      ttlMs: 0
+      ttlMs: 0,
+      mode: "text"
     },
 
     subMeta: {
@@ -574,7 +581,11 @@ const CardEngine = (() => {
       opened: false,
       colorsClosed: [],
       chainIndex: 0,
-      chainPattern: []
+      chainPattern: [],
+      r1LoopActive: false,
+      r1LoopColor: null,
+      r1LoopStage: null,
+      r1LoopHits: 0
     };
     if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
     if (state.world) {
@@ -585,6 +596,7 @@ const CardEngine = (() => {
   }
 
   function showSequenceOverlay(level, colors, colorKey, ttlMs) {
+    const options = arguments.length > 4 ? arguments[4] : null;
     const now = nowMs();
     state.sequenceOverlay = {
       visible: true,
@@ -592,7 +604,8 @@ const CardEngine = (() => {
       colors: Array.isArray(colors) ? colors.slice() : [],
       colorKey: colorKey || null,
       shownAtMs: now,
-      ttlMs: Math.max(0, Number(ttlMs || 0))
+      ttlMs: Math.max(0, Number(ttlMs || 0)),
+      mode: options && options.mode ? String(options.mode) : "sequence"
     };
   }
 
@@ -605,7 +618,8 @@ const CardEngine = (() => {
       colorKey: colorKey || null,
       colors: [],
       shownAtMs: now,
-      ttlMs: Math.max(0, Number(ttlMs || 0))
+      ttlMs: Math.max(0, Number(ttlMs || 0)),
+      mode: "text"
     };
   }
 
@@ -618,7 +632,22 @@ const CardEngine = (() => {
       colorKey: null,
       colors: Array.isArray(colors) ? colors.slice() : [],
       shownAtMs: now,
-      ttlMs: Math.max(0, Number(ttlMs || 0))
+      ttlMs: Math.max(0, Number(ttlMs || 0)),
+      mode: "fail"
+    };
+  }
+
+  function showSequenceDsToast(colorKey, ttlMs) {
+    const now = nowMs();
+    state.sequenceToast = {
+      visible: true,
+      title: "",
+      subtitle: "",
+      colorKey: colorKey || null,
+      colors: [],
+      shownAtMs: now,
+      ttlMs: Math.max(0, Number(ttlMs || 0)),
+      mode: "ds"
     };
   }
 
@@ -667,7 +696,14 @@ const CardEngine = (() => {
         });
       }
     }
-    showSequenceOverlay(level, colors, colorKey, 3000);
+    const loopEntry = level === 1 && normalizePack01Color(colorKey) === "red";
+    if (loopEntry) {
+      seq.r1LoopActive = true;
+      seq.r1LoopColor = "red";
+      seq.r1LoopStage = "AA";
+      seq.r1LoopHits = 0;
+    }
+    showSequenceOverlay(level, colors, colorKey, 3000, { mode: loopEntry ? "r1LoopEntry" : "sequence" });
     if (World && colorKey) {
       const flashColors = normalizedColors.slice(0, level);
       flashColors.startedAtMs = nowMs();
@@ -722,6 +758,48 @@ const CardEngine = (() => {
     if (!World || !normalized) return;
 
     const seq = state.sequence;
+    if (seq.r1LoopActive) {
+      const loopColor = normalizePack01Color(seq.r1LoopColor) || "red";
+      if (normalized !== loopColor) {
+        const rewardCount = seq.r1LoopStage === "AAA" ? 2 : 1;
+        addScoreToWorld(World, getSequenceMultiplier(1, 0));
+        for (let i = 0; i < rewardCount; i++) {
+          onCardCollected({ kind: "R1", tier: "DR", colorA: loopColor });
+        }
+        showSequenceFailToast("+RP", Array.from({ length: rewardCount }, () => loopColor), 2000);
+        resetSequenceState();
+        return;
+      }
+
+      const stage = seq.r1LoopStage || "AA";
+      seq.r1LoopHits = Math.min(3, Math.max(0, Number(seq.r1LoopHits || 0)) + 1);
+      addScoreToWorld(World, getSequenceMultiplier(1, 0));
+      if (seq.r1LoopHits === 2) {
+        return;
+      }
+      if (seq.r1LoopHits === 3) {
+        if (World) {
+          const flashColors = [loopColor];
+          flashColors.startedAtMs = nowMs();
+          flashColors.durationMs = 450;
+          World.sequenceFlashColors = flashColors;
+        }
+        if (stage === "AA") {
+          setPendingChoiceCard(World, { kind: "R1", tier: "DR", colorA: loopColor });
+          showSequenceOverlay(1, [loopColor], loopColor, 3000, { mode: "r1LoopAA" });
+          seq.r1LoopStage = "AAA";
+          seq.r1LoopHits = 0;
+          return;
+        }
+        if (stage === "AAA") {
+          onCardCollected({ kind: "DS", tier: "DR", colorA: loopColor });
+          showSequenceDsToast(loopColor, 900);
+          resetSequenceState();
+          return;
+        }
+      }
+      return;
+    }
     if (!seq.active) {
       startSequenceWithColor(normalized);
       const level = seq.colorsClosed.length + 1;
@@ -793,6 +871,7 @@ const CardEngine = (() => {
     if (!overlay || !overlay.visible || overlay.ttlMs <= 0) return;
     if (t - overlay.shownAtMs < overlay.ttlMs) return;
     overlay.visible = false;
+    if (state.sequence?.r1LoopActive) return;
     const level = Math.max(1, Math.min(4, Number(overlay.level || 1)));
     const colorsClosed = Array.isArray(overlay.colors) ? overlay.colors.slice() : [];
     if (level >= 4) {
@@ -812,13 +891,14 @@ const CardEngine = (() => {
     state.sequence.opened = false;
   }
 
-  function activateSequenceR1(colorKey) {
+  function activateSequenceR1(colorKey, options = {}) {
     const normalized = normalizePack01Color(colorKey);
     if (!normalized) return false;
     return onRunActivateR1({
       baseDurationMs: config.pack01TargetDurationMs,
       colorKey: normalized,
-      tierKey: "DR"
+      tierKey: "DR",
+      keepSequence: Boolean(options.keepSequence)
     });
   }
 
@@ -897,7 +977,11 @@ const CardEngine = (() => {
       opened: false,
       colorsClosed: [],
       chainIndex: 0,
-      chainPattern: []
+      chainPattern: [],
+      r1LoopActive: false,
+      r1LoopColor: null,
+      r1LoopStage: null,
+      r1LoopHits: 0
     };
     state.sequenceOverlay = {
       visible: false,
@@ -905,7 +989,8 @@ const CardEngine = (() => {
       colors: [],
       colorKey: null,
       shownAtMs: 0,
-      ttlMs: 0
+      ttlMs: 0,
+      mode: "sequence"
     };
     state.sequenceToast = {
       visible: false,
@@ -914,7 +999,8 @@ const CardEngine = (() => {
       colorKey: null,
       colors: [],
       shownAtMs: 0,
-      ttlMs: 0
+      ttlMs: 0,
+      mode: "text"
     };
     state.subMeta = {
       selectedSlotKey: null,
@@ -967,7 +1053,7 @@ const CardEngine = (() => {
 
   function getCardKey(kind, colors) {
     const kindKey = String(kind || "").toUpperCase();
-    const required = { R1: 1, R2: 2, R3: 3, R4: 4 }[kindKey];
+    const required = { R1: 1, R2: 2, R3: 3, R4: 4, DS: 1 }[kindKey];
     if (!required) return null;
     const ordered = getCanonicalColors(colors);
     if (ordered.length < required) return null;
@@ -978,7 +1064,7 @@ const CardEngine = (() => {
 
   function getCardColorsForKind(kind, colors) {
     const kindKey = String(kind || "").toUpperCase();
-    const required = { R1: 1, R2: 2, R3: 3, R4: 4 }[kindKey] || colors.length;
+    const required = { R1: 1, R2: 2, R3: 3, R4: 4, DS: 1 }[kindKey] || colors.length;
     const ordered = getCanonicalColors(colors);
     return ordered.slice(0, required);
   }
@@ -1007,14 +1093,18 @@ const CardEngine = (() => {
     showSequenceToast("R1 DR aktywowany", "Sekwencja przerwana.", colorKey, 1500);
   }
 
-  function onRunActivateR1({ baseDurationMs, colorKey, tierKey } = {}) {
+  function onRunActivateR1({ baseDurationMs, colorKey, tierKey, keepSequence } = {}) {
     const World = state.world;
     if (!World) return false;
     const t = nowMs();
     const normalizedColor = normalizePack01Color(colorKey);
     const tier = normalizeSubMetaTier(tierKey || "DR");
     if (!consumePendingCard(World, { kind: "R1", tier, colors: [normalizedColor] }, t)) return false;
-    resetSequenceState();
+    if (keepSequence) {
+      if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
+    } else {
+      resetSequenceState();
+    }
     applyWorldSlotEffectsOnRunActivation(World, t, [normalizedColor], "R1");
     const bonusMs = getFormaTimeBonusMs(World);
     const durationMs = computeActivationDurationMs(baseDurationMs, bonusMs, "R1");
@@ -1132,24 +1222,37 @@ const CardEngine = (() => {
       }
 
       const sequenceColors = new Set();
-      if (state.sequence && state.sequence.opened) {
-        const closed = Array.isArray(state.sequence.colorsClosed) ? state.sequence.colorsClosed : [];
-        closed.forEach((color) => {
-          const normalized = normalizePack01Color(color);
-          if (normalized) sequenceColors.add(normalized);
-        });
-        const current = normalizePack01Color(state.sequence.currentColor);
-        if (current) sequenceColors.add(current);
-      }
-      World.sequencePulseColors = [...sequenceColors];
-      if (state.sequence
-        && state.sequence.colorsClosed.length === 0
-        && state.sequence.hits === 1
-        && state.sequence.currentColor
-        && !state.sequence.opened) {
-        World.sequenceDirectionColor = state.sequence.currentColor;
+      if (state.sequence?.r1LoopActive) {
+        const loopColor = normalizePack01Color(state.sequence.r1LoopColor);
+        if (loopColor && state.sequence.r1LoopHits >= 2) {
+          sequenceColors.add(loopColor);
+        }
+        World.sequencePulseColors = [...sequenceColors];
+        if (loopColor && state.sequence.r1LoopHits === 1) {
+          World.sequenceDirectionColor = loopColor;
+        } else {
+          World.sequenceDirectionColor = null;
+        }
       } else {
-        World.sequenceDirectionColor = null;
+        if (state.sequence && state.sequence.opened) {
+          const closed = Array.isArray(state.sequence.colorsClosed) ? state.sequence.colorsClosed : [];
+          closed.forEach((color) => {
+            const normalized = normalizePack01Color(color);
+            if (normalized) sequenceColors.add(normalized);
+          });
+          const current = normalizePack01Color(state.sequence.currentColor);
+          if (current) sequenceColors.add(current);
+        }
+        World.sequencePulseColors = [...sequenceColors];
+        if (state.sequence
+          && state.sequence.colorsClosed.length === 0
+          && state.sequence.hits === 1
+          && state.sequence.currentColor
+          && !state.sequence.opened) {
+          World.sequenceDirectionColor = state.sequence.currentColor;
+        } else {
+          World.sequenceDirectionColor = null;
+        }
       }
       if (Array.isArray(World.sequenceFlashColors) && World.sequenceFlashColors.length) {
         const startedAtMs = Number(World.sequenceFlashColors.startedAtMs || 0);
@@ -1257,6 +1360,11 @@ const CardEngine = (() => {
     const subtitle = formatSequenceLabel(colors);
     const colorKey = normalizePack01Color(overlay.colorKey);
     const barColor = (colorKey && PACK01_COLOR_HEX[colorKey]) || "rgba(255,255,255,0.8)";
+    const mode = overlay.mode || "sequence";
+    const leftLabel = `Aktywuj R1 ${PACK01_COLOR_LABEL[colorKey] || ""}`.trim();
+    const rightLabel = mode === "r1LoopAA"
+      ? "Kolekcja 2× R1A"
+      : `Kolekcja R${level}`;
 
     ctx.save();
     ctx.globalAlpha = 0.9;
@@ -1290,12 +1398,12 @@ const CardEngine = (() => {
     ctx.fillStyle = "rgba(255,255,255,0.95)";
     ctx.font = "13px system-ui";
     ctx.fillText(
-      `Aktywuj R1 ${PACK01_COLOR_LABEL[colorKey] || ""}`.trim(),
+      leftLabel,
       layout.leftButton.x + layout.leftButton.w / 2,
       layout.leftButton.y + 21
     );
     ctx.fillText(
-      `Kolekcja R${level}`,
+      rightLabel,
       layout.rightButton.x + layout.rightButton.w / 2,
       layout.rightButton.y + 21
     );
@@ -1317,6 +1425,43 @@ const CardEngine = (() => {
     const now = nowMs();
     const elapsed = now - toast.shownAtMs;
     if (toast.ttlMs > 0 && elapsed >= toast.ttlMs) return;
+
+    if (toast.mode === "ds") {
+      const w = 180;
+      const h = 96;
+      const x = Math.floor(screenW / 2 - w / 2);
+      const y = Math.max(12, Math.floor(config.offerYPad - 6));
+      const colorKey = normalizePack01Color(toast.colorKey);
+      const plusColor = (colorKey && PACK01_COLOR_HEX[colorKey]) || "rgba(255,255,255,0.9)";
+      const cardW = 46;
+      const cardH = 62;
+      const cardX = x + w / 2 - cardW / 2;
+      const cardY = y + h / 2 - cardH / 2;
+
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "rgba(18,18,18,0.6)";
+      ctx.fillRect(x, y, w, h);
+
+      ctx.globalAlpha = 1.0;
+      ctx.strokeStyle = "rgba(255,255,255,0.95)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cardX, cardY, cardW, cardH);
+
+      const plusSize = 18;
+      const plusX = cardX + cardW / 2;
+      const plusY = cardY + cardH / 2;
+      ctx.strokeStyle = plusColor;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(plusX - plusSize / 2, plusY);
+      ctx.lineTo(plusX + plusSize / 2, plusY);
+      ctx.moveTo(plusX, plusY - plusSize / 2);
+      ctx.lineTo(plusX, plusY + plusSize / 2);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
 
     const colors = Array.isArray(toast.colors) ? toast.colors : [];
     const w = 320;
@@ -1616,7 +1761,7 @@ const CardEngine = (() => {
     if (!kind) return null;
     const kindKey = String(kind).toUpperCase();
     const tierKey = normalizeSubMetaTier(tier || "DR");
-    const requiredCount = { R1: 1, R2: 2, R3: 3, R4: 4 }[kindKey];
+    const requiredCount = { R1: 1, R2: 2, R3: 3, R4: 4, DS: 1 }[kindKey];
     if (!requiredCount) return null;
     const inputColors = (Array.isArray(colors) && colors.length)
       ? colors
@@ -1761,6 +1906,9 @@ const CardEngine = (() => {
         && card.colorB === ordered[1]
         && card.colorC === ordered[2]
         && card.colorD === ordered[3];
+    }
+    if (kindKey === "DS") {
+      return card.colorA === ordered[0];
     }
     return false;
   }
@@ -3158,7 +3306,22 @@ const CardEngine = (() => {
       if (inLeft || inRight) {
         const level = Math.max(1, Math.min(4, Number(state.sequenceOverlay.level || 1)));
         const colors = Array.isArray(state.sequenceOverlay.colors) ? state.sequenceOverlay.colors : [];
-        if (inLeft) {
+        const overlayMode = state.sequenceOverlay.mode || "sequence";
+        if (overlayMode === "r1LoopEntry" || overlayMode === "r1LoopAA") {
+          const loopColor = normalizePack01Color(state.sequenceOverlay.colorKey);
+          if (inLeft) {
+            const activated = activateSequenceR1(state.sequenceOverlay.colorKey, { keepSequence: true });
+            if (activated) {
+              state.sequenceOverlay.visible = false;
+            }
+          } else if (inRight && loopColor) {
+            const rewardCount = overlayMode === "r1LoopAA" ? 2 : 1;
+            for (let i = 0; i < rewardCount; i++) {
+              onCardCollected({ kind: "R1", tier: "DR", colorA: loopColor });
+            }
+            state.sequenceOverlay.visible = false;
+          }
+        } else if (inLeft) {
           const activated = activateSequenceR1(state.sequenceOverlay.colorKey);
           if (activated) {
             state.sequenceOverlay.visible = false;
