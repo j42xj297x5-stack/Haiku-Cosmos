@@ -629,6 +629,26 @@ const CardEngine = (() => {
     }
     const level = seq.colorsClosed.length;
     const colors = seq.colorsClosed.slice(0, level);
+    const normalizedColors = colors.map((color) => normalizePack01Color(color)).filter(Boolean);
+    const cardColors = canonicalizeColors(normalizedColors);
+    if (World && cardColors.length >= level) {
+      if (level === 1) {
+        setPendingChoiceCard(World, { kind: "R1", tier: "DR", colorA: cardColors[0] });
+      } else if (level === 2) {
+        setPendingChoiceCard(World, { kind: "R2", tier: "DR", colorA: cardColors[0], colorB: cardColors[1] });
+      } else if (level === 3) {
+        setPendingChoiceCard(World, { kind: "R3", tier: "DR", colorA: cardColors[0], colorB: cardColors[1], colorC: cardColors[2] });
+      } else if (level === 4) {
+        setPendingChoiceCard(World, {
+          kind: "R4",
+          tier: "DR",
+          colorA: cardColors[0],
+          colorB: cardColors[1],
+          colorC: cardColors[2],
+          colorD: cardColors[3]
+        });
+      }
+    }
     showSequenceOverlay(level, colors, colorKey, 3000);
     if (World && colorKey) {
       World.r1HudPulse = {
@@ -769,7 +789,6 @@ const CardEngine = (() => {
   function activateSequenceR1(colorKey) {
     const normalized = normalizePack01Color(colorKey);
     if (!normalized) return false;
-    onCardCollected({ kind: "R1", tier: "DR", colorA: normalized });
     return onRunActivateR1({
       baseDurationMs: config.pack01TargetDurationMs,
       colorKey: normalized,
@@ -1769,6 +1788,17 @@ const CardEngine = (() => {
     return entity;
   }
 
+  function setPendingChoiceCard(World, payload) {
+    if (!World) return null;
+    ensureCardsPool(World);
+    const entity = createCardEntity(payload);
+    if (!entity) return null;
+    const now = nowMs();
+    World.pendingCard = entity;
+    World.pendingCardUntilMs = now + 3000;
+    return entity;
+  }
+
   function flushPendingCard(World, nowMs) {
     if (!World || !World.pendingCard) return false;
     const now = Number(nowMs);
@@ -1796,7 +1826,6 @@ const CardEngine = (() => {
     const World = state.world;
     if (!World) return null;
     ensureCardsPool(World);
-    const now = nowMs();
     if (World.pendingCard) {
       World.pendingCard = null;
       World.pendingCardUntilMs = 0;
@@ -1807,8 +1836,6 @@ const CardEngine = (() => {
       if (debugCards) console.warn("[CARD_COLLECT_FAIL]", payload);
       return null;
     }
-    World.pendingCard = entity;
-    World.pendingCardUntilMs = now + 3000;
     return entity;
   }
 
