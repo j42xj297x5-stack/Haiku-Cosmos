@@ -174,6 +174,67 @@ Sekwencja resetuje się do IDLE.
 
 ---
 
+## 5.5. Pętla R1 po ukończeniu R1(A): AA → AAA oraz karta Specjalna DS
+
+Po ukończeniu podstawowej karty **R1(A)** (twarde 3 trafienia tego samego koloru),
+system dopuszcza wejście w krótką pętlę R1 dla tego samego koloru A:
+
+- **AA** (decyzja, nagroda 2×R1A)
+- **AAA** (auto-nagroda DS(A), auto-zamknięcie)
+
+Pętla ta:
+
+- umożliwia **normalne farmienie kart R1** bez przechodzenia do R2,
+- jest kompatybilna z zasadą „twardych trafień” (3–3–3–…),
+- jest niezależna od tierów (tier podnosi wyłącznie KUŹNIA).
+
+### 5.5.1. Zasada twarda
+
+W pętli R1:
+
+- po ustaleniu kierunku (pierwszy hit A) każdy inny kolor przerywa (fail),
+- kroki AA i AAA są liczone jako **3 trafienia koloru A**.
+
+### 5.5.2. AA — krok decyzyjny (2×R1A)
+
+AA jest krokiem 3-hit dla koloru A:
+
+- hit1: ustanowienie kierunku A
+- hit2: start AA
+- hit3: koniec AA
+
+Po zakończeniu AA pojawia się okno decyzji (3s):
+
+- **Aktywuj R1A** (bez dodania karty do magazynu, tylko efekt RUN)
+- **Kolekcja**: dodaje do magazynu **2× R1A DR**
+- brak kliknięcia: kontynuacja do AAA
+
+AA może zostać przerwane innym kolorem:
+
+- nagroda: +RP (combo dla R1) oraz **1× R1A**
+- bez tekstu „niepowodzenie” (komunikacja poprzez punkty i karty)
+
+### 5.5.3. AAA — krok auto-nagrody (DS)
+
+AAA jest krokiem 3-hit dla koloru A:
+
+- hit1: kierunek A
+- hit2: start AAA
+- hit3: koniec AAA
+
+Po ukończeniu AAA:
+
+- gracz otrzymuje automatycznie **kartę Specjalną DS(A)**,
+- pętla kończy się automatycznie i system wraca do IDLE,
+- brak okna decyzji.
+
+AAA może zostać przerwane innym kolorem:
+
+- nagroda: +RP (combo dla R1) oraz **2× R1A**
+- bez tekstu „niepowodzenie” (komunikacja poprzez punkty i karty)
+
+---
+
 ## 6. R2 jako zasób systemowy — wiązania META
 
 1. Karta R2 jest **kluczem do wiązań gałęzi w META** (ŚWIAT i PRG).
@@ -201,6 +262,45 @@ Sekwencja resetuje się do IDLE.
 Szczegółowe efekty wiązań są opisane w dokumentach META.
 
 ---
+
+## 6.2. Karta Specjalna DS (Dodatkowy Slot)
+
+### 6.2.1. Definicja
+
+**DS** to karta Specjalna powiązana z kolorem.
+
+- DS(A) odpowiada kolorowi A (🔴/🟡/🟢/🔵).
+- DS jest zużywana przy rozszerzaniu slotów w META.
+
+### 6.2.2. Pozyskiwanie
+
+Podstawowe źródło DS(A):
+
+- ukończenie sekwencji **AAA** po wcześniejszym R1(A).
+
+W przyszłości DS może pojawiać się także w innych kontekstach (eventy / nagrody), ale kanon bazowy to AAA.
+
+### 6.2.3. Użycie
+
+DS(A) jest wymagana do:
+
+- rozszerzenia slotu danego koloru o dodatkowe miejsce (Dodatkowy Slot),
+- odblokowania miejsc specjalnych w slotach tego koloru (ODB / EKS) — wymagają DS jako koszt wejścia.
+
+Koszt RP użycia DS (tymczasowo):
+
+- **30 RP** za rozszerzenie miejsca.
+
+### 6.2.4. Wygląd (UI)
+
+- biała ramka
+- wewnątrz znak „+” w kolorze A
+
+### 6.2.5. Tier i barwienie (kierunek rozwoju)
+
+DS jest kartą Specjalną niezależną od tierów R1–R4.
+W przyszłości karta Specjalna może być „barwiona” i przekuwana do slotów (np. przez użycie pDR R1 koloru slotu),
+ale nie jest to wymagane dla podstawowego działania DS jako Dodatkowego Slotu.
 
 ## 7. KUŹNIA (META) — wzmocnienia kart
 
