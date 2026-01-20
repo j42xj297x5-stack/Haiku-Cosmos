@@ -710,23 +710,6 @@ const CardEngine = (() => {
     }
 
     if (normalized !== seq.currentColor) {
-      if (seq.hits < 2) {
-        if (seq.chainPattern.length && seq.chainIndex === 1) {
-          const expectedColor = normalizePack01Color(seq.chainPattern[seq.colorsClosed.length]);
-          if (expectedColor && normalized !== expectedColor) {
-            seq.chainIndex = 0;
-            seq.chainPattern = [];
-          }
-        }
-        seq.currentColor = normalized;
-        seq.hits = 1;
-        seq.opened = false;
-        const level = seq.colorsClosed.length + 1;
-        addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
-        return;
-      }
-      const level = seq.colorsClosed.length + 1;
-      addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
       failSequence(World);
       return;
     }
