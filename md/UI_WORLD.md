@@ -151,6 +151,37 @@ count==0 → czarny→kolor
 
 count>0 → kolor→biały
 
+### 2.7. Sekwencje twarde 3–3–3… oraz pętla R1 (AA → AAA)
+
+Sekwencje są komunikowane poprzez sygnały HUD, a nie teksty.
+
+#### 2.7.1. Ustanowienie kierunku (hit1)
+
+- biała ramka wokół prostokąta DR odpowiadającego aktualnemu kolorowi kroku,
+- brak overlay tekstowego.
+
+#### 2.7.2. Rozpoczęcie kroku (hit2)
+
+- uruchamia się pulsowanie prostokąta koloru (zgodnie z zasadą pulsowania sekwencji),
+- brak overlay tekstowego.
+
+#### 2.7.3. Zakończenie kroku (hit3)
+
+- krótki rozbłysk/halo na prostokątach biorących udział,
+- następnie pojawia się okno decyzji (jeśli krok jest decyzyjny).
+
+Pętla R1 po ukończeniu R1(A):
+
+- **AA** kończy się overlayem decyzji (Aktywuj / Kolekcja 2×R1A / brak kliknięcia → AAA),
+- **AAA** kończy się automatycznie przyznaniem DS(A) i krótką wizualną informacją o karcie DS (bez okna decyzji).
+
+#### Przerwanie (fail)
+
+- brak komunikatów tekstowych typu „Niepowodzenie sekwencji”,
+- UI pokazuje jedynie:
+  - przyznane punkty (+RP),
+  - prostokąty kart, które zostały przyznane w wyniku przerwania (jeśli dotyczy).
+
 ---
 
 ## 3. SUB-META Overlay (panel konfiguracyjny)
