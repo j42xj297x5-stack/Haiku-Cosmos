@@ -139,7 +139,8 @@ const CardEngine = (() => {
       chainPattern: [],
       baseColor: null,
       track: null,
-      tempCards: []
+      tempCards: [],
+      rpStart: 0
     },
     sequenceOverlay: {
       visible: false,
@@ -156,6 +157,8 @@ const CardEngine = (() => {
       subtitle: "",
       colorKey: null,
       colors: [],
+      cards: [],
+      rp: null,
       shownAtMs: 0,
       ttlMs: 0,
       mode: "text"
@@ -585,7 +588,8 @@ const CardEngine = (() => {
       chainPattern: [],
       baseColor: null,
       track: null,
-      tempCards: []
+      tempCards: [],
+      rpStart: 0
     };
     if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
     if (state.world) {
@@ -611,6 +615,7 @@ const CardEngine = (() => {
   }
 
   function showSequenceToast(title, subtitle, colorKey, ttlMs) {
+    const options = arguments.length > 4 ? arguments[4] : null;
     const now = nowMs();
     state.sequenceToast = {
       visible: true,
@@ -618,6 +623,8 @@ const CardEngine = (() => {
       subtitle: String(subtitle || ""),
       colorKey: colorKey || null,
       colors: [],
+      cards: Array.isArray(options?.cards) ? options.cards.slice() : [],
+      rp: Number.isFinite(options?.rp) ? options.rp : null,
       shownAtMs: now,
       ttlMs: Math.max(0, Number(ttlMs || 0)),
       mode: "text"
@@ -625,6 +632,7 @@ const CardEngine = (() => {
   }
 
   function showSequenceFailToast(pointsLabel, colors, ttlMs) {
+    const options = arguments.length > 3 ? arguments[3] : null;
     const now = nowMs();
     state.sequenceToast = {
       visible: true,
@@ -632,6 +640,8 @@ const CardEngine = (() => {
       subtitle: "",
       colorKey: null,
       colors: Array.isArray(colors) ? colors.slice() : [],
+      cards: Array.isArray(options?.cards) ? options.cards.slice() : [],
+      rp: Number.isFinite(options?.rp) ? options.rp : null,
       shownAtMs: now,
       ttlMs: Math.max(0, Number(ttlMs || 0)),
       mode: "fail"
@@ -639,6 +649,7 @@ const CardEngine = (() => {
   }
 
   function showSequenceDsToast(colorKey, ttlMs) {
+    const options = arguments.length > 2 ? arguments[2] : null;
     const now = nowMs();
     state.sequenceToast = {
       visible: true,
@@ -646,6 +657,8 @@ const CardEngine = (() => {
       subtitle: "",
       colorKey: colorKey || null,
       colors: [],
+      cards: Array.isArray(options?.cards) ? options.cards.slice() : [],
+      rp: Number.isFinite(options?.rp) ? options.rp : null,
       shownAtMs: now,
       ttlMs: Math.max(0, Number(ttlMs || 0)),
       mode: "ds"
@@ -669,6 +682,7 @@ const CardEngine = (() => {
     state.sequence.chainPattern = [];
     state.sequence.baseColor = null;
     state.sequence.track = null;
+    state.sequence.rpStart = Math.floor(Number(state.world?.score || 0));
     if (!Array.isArray(state.sequence.tempCards)) state.sequence.tempCards = [];
   }
 
@@ -783,9 +797,11 @@ const CardEngine = (() => {
   function failSequence(World) {
     const seq = state.sequence;
     const completedColors = seq.colorsClosed.slice();
+    const awardedCards = Array.isArray(seq.tempCards) ? seq.tempCards.slice() : [];
+    const rpDelta = Math.floor(Number(World?.score || 0)) - Math.floor(Number(seq.rpStart || 0));
     rewardSequenceFail(World);
     if (completedColors.length) {
-      showSequenceFailToast("+RP", completedColors, 2000);
+      showSequenceFailToast(`${rpDelta} RP`, completedColors, 2000, { cards: awardedCards, rp: rpDelta });
     }
     resetSequenceState();
   }
@@ -941,19 +957,41 @@ const CardEngine = (() => {
     const seq = state.sequence;
     if (!World || !Array.isArray(seq.tempCards) || !seq.tempCards.length) return false;
     ensureCardsPool(World);
+    const cappedLevel = Math.max(1, Math.min(4, Number(level || 1)));
+    const isDsSuccess = seq.track === "A" && cappedLevel >= 3;
+    if (isDsSuccess) {
+      const filtered = seq.tempCards.filter((card) => String(card?.kind || card?.type || "").toUpperCase() === "DS");
+      seq.tempCards.length = 0;
+      filtered.forEach((card) => seq.tempCards.push(card));
+      if (World.cardsTemp) {
+        World.cardsTemp.length = 0;
+        seq.tempCards.forEach((card) => World.cardsTemp.push(card));
+      }
+      if (World.pendingCard && String(World.pendingCard?.kind || World.pendingCard?.type || "").toUpperCase() === "R1") {
+        World.pendingCard = null;
+        World.pendingCardUntilMs = 0;
+      }
+    }
+    const cardsAwarded = seq.tempCards.slice();
     seq.tempCards.forEach((card) => {
       if (card) World.cardsPool.push(card);
     });
     recomputeTotalCards(World);
-    const cappedLevel = Math.max(1, Math.min(4, Number(level || 1)));
     const seqColors = (Array.isArray(colors) ? colors : []).map(normalizePack01Color).filter(Boolean);
     const label = seq.track === "A"
       ? (["A", "AA", "AAA"][cappedLevel - 1] || `A${cappedLevel}`)
       : `R${cappedLevel}`;
+    const rpDelta = Math.floor(Number(World?.score || 0)) - Math.floor(Number(seq.rpStart || 0));
     if (seq.track === "A" && cappedLevel >= 3) {
-      showSequenceDsToast(seq.baseColor, 1500);
+      showSequenceDsToast(seq.baseColor, 1500, { cards: cardsAwarded, rp: rpDelta });
     } else {
-      showSequenceToast(`Kolekcja ${label}`, "Sekwencja zamknięta.", seqColors[cappedLevel - 1] || seqColors[0], 1500);
+      showSequenceToast(
+        `Kolekcja ${label}`,
+        `Sekwencja zamknięta. ${rpDelta} RP`,
+        seqColors[cappedLevel - 1] || seqColors[0],
+        1500,
+        { cards: cardsAwarded, rp: rpDelta }
+      );
     }
     seq.tempCards.length = 0;
     if (World.cardsTemp) World.cardsTemp.length = 0;
@@ -1012,7 +1050,8 @@ const CardEngine = (() => {
       chainPattern: [],
       baseColor: null,
       track: null,
-      tempCards: []
+      tempCards: [],
+      rpStart: 0
     };
     state.sequenceOverlay = {
       visible: false,
@@ -1029,6 +1068,8 @@ const CardEngine = (() => {
       subtitle: "",
       colorKey: null,
       colors: [],
+      cards: [],
+      rp: null,
       shownAtMs: 0,
       ttlMs: 0,
       mode: "text"
@@ -1444,50 +1485,23 @@ const CardEngine = (() => {
     const elapsed = now - toast.shownAtMs;
     if (toast.ttlMs > 0 && elapsed >= toast.ttlMs) return;
 
-    if (toast.mode === "ds") {
-      const w = 180;
-      const h = 96;
-      const x = Math.floor(screenW / 2 - w / 2);
-      const y = Math.max(12, Math.floor(config.offerYPad - 6));
-      const colorKey = normalizePack01Color(toast.colorKey);
-      const plusColor = (colorKey && PACK01_COLOR_HEX[colorKey]) || "rgba(255,255,255,0.9)";
-      const cardW = 46;
-      const cardH = 62;
-      const cardX = x + w / 2 - cardW / 2;
-      const cardY = y + h / 2 - cardH / 2;
-
-      ctx.save();
-      ctx.globalAlpha = 0.9;
-      ctx.fillStyle = "rgba(18,18,18,0.6)";
-      ctx.fillRect(x, y, w, h);
-
-      ctx.globalAlpha = 1.0;
-      ctx.strokeStyle = "rgba(255,255,255,0.95)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(cardX, cardY, cardW, cardH);
-
-      const plusSize = 18;
-      const plusX = cardX + cardW / 2;
-      const plusY = cardY + cardH / 2;
-      ctx.strokeStyle = plusColor;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(plusX - plusSize / 2, plusY);
-      ctx.lineTo(plusX + plusSize / 2, plusY);
-      ctx.moveTo(plusX, plusY - plusSize / 2);
-      ctx.lineTo(plusX, plusY + plusSize / 2);
-      ctx.stroke();
-      ctx.restore();
-      return;
-    }
-
     const colors = Array.isArray(toast.colors) ? toast.colors : [];
-    const w = 320;
-    const h = colors.length ? 68 : 56;
+    const cards = Array.isArray(toast.cards) ? toast.cards : [];
+    const showCards = cards.length > 0;
+    const cardW = SUB_META_CARD_W;
+    const cardH = SUB_META_CARD_H;
+    const cardGap = SUB_META_CARD_GAP_X;
+    const cardsRowW = showCards
+      ? (cards.length * cardW + Math.max(0, cards.length - 1) * cardGap)
+      : 0;
+    const w = Math.max(320, cardsRowW + 32);
+    const baseH = colors.length ? 68 : 56;
+    const h = showCards ? baseH + cardH + 16 : baseH;
     const x = Math.floor(screenW / 2 - w / 2);
     const y = Math.max(12, Math.floor(config.offerYPad - 6));
     const colorKey = normalizePack01Color(toast.colorKey);
     const barColor = (colorKey && PACK01_COLOR_HEX[colorKey]) || "rgba(255,255,255,0.9)";
+    const rpLabel = Number.isFinite(toast.rp) ? `${toast.rp} RP` : "";
 
     ctx.save();
     ctx.globalAlpha = 0.9;
@@ -1518,6 +1532,18 @@ const CardEngine = (() => {
         ctx.fillStyle = hex;
         ctx.fillRect(chipX, chipY, chipW, chipH);
         chipX += chipW + chipGap;
+      });
+    } else if (rpLabel) {
+      ctx.fillStyle = "rgba(255,255,255,0.75)";
+      ctx.fillText(rpLabel, x + 34, y + 42);
+    }
+
+    if (showCards) {
+      const cardsY = y + h - cardH - 12;
+      let cardX = x + w / 2 - cardsRowW / 2;
+      cards.forEach((card) => {
+        renderMetaCard(ctx, cardX, cardsY, card);
+        cardX += cardW + cardGap;
       });
     }
 
