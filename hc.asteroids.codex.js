@@ -166,6 +166,7 @@
         const m = meteors[mi];
         if (m.noAsteroidOrbit) continue;
         if (m.age < 0.15) continue;
+        // TODO: pack01ReleaseBlockColor/UntilMs are read here but not set in SOURCE.
         if (World.pack01ReleaseBlockColor
           && nowMs < (World.pack01ReleaseBlockUntilMs || 0)
           && m.colorName === World.pack01ReleaseBlockColor) {

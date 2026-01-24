@@ -279,13 +279,6 @@
   }
 
   window.HC.WorldEvents = window.HC.WorldEvents || {};
-  window.HC.EffectTimers = window.HC.EffectTimers || {};
-  window.HC.EffectTimers.ensure = ensureEffectTimers;
-  window.HC.EffectTimers.reset = resetEffectTimers;
-  window.HC.EffectTimers.pruneExpired = pruneExpiredTimers;
-  window.HC.EffectTimers.startOrRefresh = startOrRefreshColorTimer;
-  window.HC.EffectTimers.getColorActiveUntil = getColorActiveUntil;
-  window.HC.EffectTimers.isColorActive = isColorEffectActive;
   window.HC.RunTimers = window.HC.RunTimers || {};
   window.HC.RunTimers.ensure = ensureRunTimers;
   window.HC.RunTimers.reset = resetRunTimers;
@@ -299,23 +292,6 @@
   window.HC.WorldSlots.getMetaTier = (slotKey) => {
     const World = window.HC.getWorld && window.HC.getWorld();
     return getMetaTier(World, slotKey);
-  };
-  window.HC.WorldEvents.startMeteorShower = ({ durationMs, intensity } = {}) => {
-    const World = window.HC.getWorld && window.HC.getWorld();
-    if (!World) return;
-    const ms = ensureMeteorStreams(World);
-    const nowMs = World.nowMs ?? getNowMs();
-    const intensityMul = (typeof intensity === "number" && Number.isFinite(intensity)) ? intensity : 1;
-
-    ms.spawnRate = ms.baseSpawnRate * Math.max(0.1, intensityMul);
-    ms.streams = ms.baseStreams;
-    ms.enabled = true;
-    ms.untilMs = (typeof durationMs === "number" && durationMs > 0) ? (nowMs + durationMs) : null;
-
-    const Events = window.Events;
-    if (Events && typeof Events.emit === "function") {
-      Events.emit("EVENT_METEOR_SHOWER_START", { durationMs, intensity: intensityMul });
-    }
   };
 
   window.HC.WorldEvents.stopMeteorShower = () => {
@@ -331,6 +307,33 @@
     const Events = window.Events;
     if (Events && typeof Events.emit === "function") {
       Events.emit("EVENT_METEOR_SHOWER_END", {});
+    }
+  };
+
+  // DEAD_CODE_QUARANTINE
+  window.HC.EffectTimers = window.HC.EffectTimers || {};
+  window.HC.EffectTimers.ensure = ensureEffectTimers;
+  window.HC.EffectTimers.reset = resetEffectTimers;
+  window.HC.EffectTimers.pruneExpired = pruneExpiredTimers;
+  window.HC.EffectTimers.startOrRefresh = startOrRefreshColorTimer;
+  window.HC.EffectTimers.getColorActiveUntil = getColorActiveUntil;
+  window.HC.EffectTimers.isColorActive = isColorEffectActive;
+
+  window.HC.WorldEvents.startMeteorShower = ({ durationMs, intensity } = {}) => {
+    const World = window.HC.getWorld && window.HC.getWorld();
+    if (!World) return;
+    const ms = ensureMeteorStreams(World);
+    const nowMs = World.nowMs ?? getNowMs();
+    const intensityMul = (typeof intensity === "number" && Number.isFinite(intensity)) ? intensity : 1;
+
+    ms.spawnRate = ms.baseSpawnRate * Math.max(0.1, intensityMul);
+    ms.streams = ms.baseStreams;
+    ms.enabled = true;
+    ms.untilMs = (typeof durationMs === "number" && durationMs > 0) ? (nowMs + durationMs) : null;
+
+    const Events = window.Events;
+    if (Events && typeof Events.emit === "function") {
+      Events.emit("EVENT_METEOR_SHOWER_START", { durationMs, intensity: intensityMul });
     }
   };
 

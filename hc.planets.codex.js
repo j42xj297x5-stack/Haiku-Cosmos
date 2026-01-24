@@ -539,6 +539,7 @@
 
         // You may later add cards that mark m.noPlanetOrbit
         if (m.noPlanetOrbit) continue;
+        // TODO: pack01ReleaseBlockColor/UntilMs are read here but not set in SOURCE.
         if (World.pack01ReleaseBlockColor
           && nowMs < (World.pack01ReleaseBlockUntilMs || 0)
           && m.colorName === World.pack01ReleaseBlockColor) {
