@@ -8,19 +8,17 @@
   <title>Haiku Cosmos</title>
 
   <style>
-    /* ===== Global / Mobile safety ===== */
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
       background: #000;
-      overflow: hidden;              /* no scrollbars */
-      touch-action: none;            /* prevent browser gestures on canvas */
+      overflow: hidden;
+      touch-action: none;
       -webkit-user-select: none;
       user-select: none;
     }
 
-    /* ===== Layout ===== */
     #app {
       position: fixed;
       inset: 0;
@@ -28,7 +26,6 @@
       grid-template-rows: 1fr;
     }
 
-    /* Canvas fills screen; resolution handled in JS */
     #gameCanvas {
       width: 100vw;
       height: 100vh;
@@ -36,14 +33,12 @@
       background: #000;
     }
 
-    /* ===== UI overlay (cards, debug, buttons) ===== */
     #uiRoot {
       position: fixed;
       inset: 0;
-      pointer-events: none; /* UI elements can re-enable if needed */
+      pointer-events: none;
     }
 
-    /* Small top bar for debug / future buttons */
     #topBar {
       position: fixed;
       left: 12px;
@@ -55,6 +50,7 @@
       pointer-events: none;
       z-index: 9998;
     }
+
     .pill {
       pointer-events: auto;
       padding: 6px 10px;
@@ -65,60 +61,15 @@
       font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       backdrop-filter: blur(8px);
     }
+
     button.pill {
       cursor: pointer;
     }
 
-    /* Optional FPS label */
     #fpsLabel {
       opacity: 0.85;
     }
-
-    /* If you later add haiku card styling, you can drop it here or in styles.css */
   </style>
-    <!-- ============================================================
-       HAIKU COSMOS — KANON DOKUMENTACJI (SOURCE OF TRUTH)
-
-       Ten blok jest „mapą prawdy” dla projektu.
-       Jeśli w repo występują pliki o podobnych nazwach / kopie / old/,
-       to poniższa lista ma pierwszeństwo.
-
-       CANONICAL DOCS (must be consistent):
-       - haiku_cosmos_index.md            (index i nawigacja po dokumentacji)
-       - DEPENDENCY_MAP.md               (mapa zależności systemów)
-       - TARGETS_SYSTEM.md               (targety/stany/eventy — adresy wpływu)
-       - CARDS_SYSTEM.md                 (zasady kart: runtime vs meta-impuls)
-       - BINDINGS_SYSTEM.md              (Wiązania v1: 2 relacje)
-       - EPOCHS_SYSTEM.md                (epoki + zasady skali)
-       - UI_WORLD.md                     (UI/Meta UI/i18n UI)
-       - I18N_SYSTEM.md                  (zasady językowe: UI słownik + karty locales)
-       - STARS_EPOCH_LOD_AND_CONTROL.md  (LOD/priorytet sterowania w epoce gwiazd)
-
-       Konwencja repo:
-       - archive/old_*  -> pliki historyczne (nie-kanoniczne)
-       - exp/*          -> eksperymenty
-       - Kanon ma nazwy bez prefiksów i jest linkowany z indexu.
-     ============================================================ -->
-
-     <script>
-      // Optional: expose canon list for quick debugging in console.
-      // No runtime dependency should rely on this object.
-      window.HC_CANON = {
-        docs: [
-          "haiku_cosmos_index.md",
-          "DEPENDENCY_MAP.md",
-          "TARGETS_SYSTEM.md",
-          "CARDS_SYSTEM.md",
-          "BINDINGS_SYSTEM.md",
-          "EPOCHS_SYSTEM.md",
-          "UI_WORLD.md",
-          "I18N_SYSTEM.md",
-          "STARS_EPOCH_LOD_AND_CONTROL.md"
-        ],
-        note: "This list is the source of truth. Old/archived/experimental docs must not override canon."
-      };
-    </script>
-  
 </head>
 
 <body>
@@ -132,13 +83,12 @@
       <button class="pill" id="btnRestart" type="button">Restart</button>
       <button class="pill" id="btnSubMeta" type="button">META</button>
     </div>
-    <!-- Cards UI will be appended by JS (e.g., CardsUI.ensureRoot()) -->
   </div>
 
-  <!-- 1) System kart (runtime + UI) -->
+  <!-- Source of truth documentation is in /md (see md/README.md). -->
+
   <script src="./cards.codex.js"></script>
 
-  <!-- 2) HC scaffolding -->
   <script src="./hc.core.codex.js"></script>
   <script src="./hc.util.codex.js"></script>
   <script src="./hc.world.codex.js"></script>
@@ -153,7 +103,6 @@
   <script src="./hc.stars_epoch.codex.js"></script>
   <script src="./hc.ui_debug.codex.js"></script>
 
-  <!-- 3) Główna gra -->
   <script src="./game.boot.codex.js"></script>
 
   <noscript>
