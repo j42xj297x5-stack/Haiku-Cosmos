@@ -748,12 +748,35 @@ const CardEngine = (() => {
   function onHitColor(colorKey) {
     const World = state.world;
     const normalized = normalizePack01Color(colorKey);
-    if (!World || !normalized) return;
+    const debugSeq = typeof window !== "undefined" && window.HC && window.HC.debugSeq;
+    const logIgnored = (reason, details) => {
+      if (!debugSeq) return;
+      if (details) {
+        console.log("[SEQ_HIT_IGNORED]", reason, details);
+        return;
+      }
+      console.log("[SEQ_HIT_IGNORED]", reason);
+    };
+    if (!World || !normalized) {
+      logIgnored("invalid-world-or-color", { colorKey, normalized });
+      return;
+    }
+    if (debugSeq) {
+      const overlayVisible = Boolean(state.sequenceOverlay && state.sequenceOverlay.visible);
+      const hasPending = Boolean(World.pendingCard);
+      if (overlayVisible || hasPending) {
+        console.log("[SEQ_HIT_INFO] overlay/pending present; continuing hit processing.", {
+          overlayVisible,
+          hasPending
+        });
+      }
+    }
 
     const seq = state.sequence;
     if (seq.r1LoopActive) {
       const loopColor = normalizePack01Color(seq.r1LoopColor) || "red";
       if (normalized !== loopColor) {
+        logIgnored("r1-loop-color-mismatch", { hit: normalized, expected: loopColor });
         resetSequenceState();
         return;
       }
