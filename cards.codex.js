@@ -1127,10 +1127,6 @@ const CardEngine = (() => {
     return startFormaEffect(World, t, "R1", baseDurationMs);
   }
 
-  function onRunActivateR2(_payload = {}) {
-    return false;
-  }
-
   function applyOp(before, op, value) {
     const b = Number(before);
     const v = Number(value);
@@ -3359,6 +3355,11 @@ const CardEngine = (() => {
       }
     }
 
+    return false;
+  }
+
+  // DEAD_CODE_QUARANTINE
+  function onRunActivateR2(_payload = {}) {
     return false;
   }
 

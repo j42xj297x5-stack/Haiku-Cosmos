@@ -6,18 +6,6 @@
   if (!Util.clamp) {
     Util.clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   }
-  if (!Util.lerp) {
-    Util.lerp = (a, b, t) => a + (b - a) * t;
-  }
-  if (!Util.hypot) {
-    Util.hypot = (x, y) => Math.hypot(x, y);
-  }
-  if (!Util.dist) {
-    Util.dist = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
-  }
-  if (!Util.easeInOutCubic) {
-    Util.easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-  }
   if (!Util.hash32) {
     Util.hash32 = (str) => {
       let h = 2166136261;
@@ -38,6 +26,20 @@
         return (s >>> 0) / 4294967296;
       };
     };
+  }
+
+  // DEAD_CODE_QUARANTINE
+  if (!Util.lerp) {
+    Util.lerp = (a, b, t) => a + (b - a) * t;
+  }
+  if (!Util.hypot) {
+    Util.hypot = (x, y) => Math.hypot(x, y);
+  }
+  if (!Util.dist) {
+    Util.dist = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
+  }
+  if (!Util.easeInOutCubic) {
+    Util.easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   }
 
   window.HC.Util = Util;
