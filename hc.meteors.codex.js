@@ -223,6 +223,7 @@
         m.vx *= (1 - 0.06 * dt);
         m.vy *= (1 - 0.06 * dt);
 
+        // TODO: meteorBounceEnabled is read here but not set in SOURCE.
         if (World.meteorBounceEnabled) {
           const bounceLoss = 0.92;
           const b = getWorldViewBounds();

@@ -1244,6 +1244,7 @@ const CardEngine = (() => {
         }
       }
 
+      // TODO: pack01ReleaseBlockColor/UntilMs are read here but not set in SOURCE.
       if (World.pack01ReleaseBlockColor
         && t >= (World.pack01ReleaseBlockUntilMs || 0)) {
         World.pack01ReleaseBlockColor = null;
@@ -3358,11 +3359,11 @@ const CardEngine = (() => {
   }
 
   // DEAD_CODE_QUARANTINE
+  // ---- HOOKS (Stage 1 placeholders) ----
   function onRunActivateR2(_payload = {}) {
     return false;
   }
 
-  // ---- HOOKS (Stage 1 placeholders) ----
   function onRitualTrigger(_payload) {
     // TODO: hook for ritual triggers (e.g. harmonic collisions)
   }

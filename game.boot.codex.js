@@ -197,11 +197,6 @@ meteorCollisionFudge: 1.12,
     epochTriggered: false,
     epochAt: 0,
     score: 0,
-    colorStreakKey: null,
-    colorStreakCount: 0,
-    trialPack01Active: false,
-    trialPack01Color: null,
-    trialPack01State: "idle",
     collectedCardsByColor: { red: 0, yellow: 0, green: 0, blue: 0 },
     metaSlots: { forma: null, intencja: null, czas: null, cisza: null },
     subMetaOpen: false,
@@ -561,16 +556,9 @@ meteorCollisionFudge: 1.12,
     World.epochAt = 0;
     World.meteorStreams = null;
     World.starThresholdMultiplierThisRun = 1.0;
-    World.colorStreakKey = null;
-    World.colorStreakCount = 0;
-    World.trialPack01Active = false;
-    World.trialPack01Color = null;
-    World.trialPack01State = "idle";
     World.collectedCardsByColor = { red: 0, yellow: 0, green: 0, blue: 0 };
     World.cardBank = buildCardBank();
     World._cardBankMigrated = true;
-    World.r1Seq = { color: null, streak: 0, windowOpen: false };
-    World.r2Seq = { active: false, colorA: null, colorB: null, phase: "", needBdr: 0 };
     World.r1ColorTimers = {};
     World.pack01ReleaseBlockColor = null;
     World.pack01ReleaseBlockUntilMs = 0;
