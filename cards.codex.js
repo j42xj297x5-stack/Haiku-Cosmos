@@ -696,14 +696,7 @@ const CardEngine = (() => {
         });
       }
     }
-    const loopEntry = level === 1 && normalizePack01Color(colorKey) === "red";
-    if (loopEntry) {
-      seq.r1LoopActive = true;
-      seq.r1LoopColor = "red";
-      seq.r1LoopStage = "AA";
-      seq.r1LoopHits = 0;
-    }
-    showSequenceOverlay(level, colors, colorKey, 3000, { mode: loopEntry ? "r1LoopEntry" : "sequence" });
+    showSequenceOverlay(level, colors, colorKey, 3000);
     if (World && colorKey) {
       const flashColors = normalizedColors.slice(0, level);
       flashColors.startedAtMs = nowMs();
@@ -761,17 +754,10 @@ const CardEngine = (() => {
     if (seq.r1LoopActive) {
       const loopColor = normalizePack01Color(seq.r1LoopColor) || "red";
       if (normalized !== loopColor) {
-        const rewardCount = seq.r1LoopStage === "AAA" ? 2 : 1;
-        addScoreToWorld(World, getSequenceMultiplier(1, 0));
-        for (let i = 0; i < rewardCount; i++) {
-          onCardCollected({ kind: "R1", tier: "DR", colorA: loopColor });
-        }
-        showSequenceFailToast("+RP", Array.from({ length: rewardCount }, () => loopColor), 2000);
         resetSequenceState();
         return;
       }
 
-      const stage = seq.r1LoopStage || "AA";
       seq.r1LoopHits = Math.min(3, Math.max(0, Number(seq.r1LoopHits || 0)) + 1);
       addScoreToWorld(World, getSequenceMultiplier(1, 0));
       if (seq.r1LoopHits === 2) {
@@ -784,19 +770,13 @@ const CardEngine = (() => {
           flashColors.durationMs = 450;
           World.sequenceFlashColors = flashColors;
         }
-        if (stage === "AA") {
-          setPendingChoiceCard(World, { kind: "R1", tier: "DR", colorA: loopColor });
-          showSequenceOverlay(1, [loopColor], loopColor, 3000, { mode: "r1LoopAA" });
-          seq.r1LoopStage = "AAA";
-          seq.r1LoopHits = 0;
-          return;
-        }
-        if (stage === "AAA") {
-          onCardCollected({ kind: "DS", tier: "DR", colorA: loopColor });
-          showSequenceDsToast(loopColor, 900);
-          resetSequenceState();
-          return;
-        }
+        setPendingChoiceCard(World, { kind: "R1", tier: "DR", colorA: loopColor });
+        showSequenceOverlay(1, [loopColor], loopColor, 3000, { mode: "r1LoopAA" });
+        seq.r1LoopActive = false;
+        seq.r1LoopColor = null;
+        seq.r1LoopStage = null;
+        seq.r1LoopHits = 0;
+        return;
       }
       return;
     }
@@ -808,6 +788,14 @@ const CardEngine = (() => {
     }
 
     if (!seq.currentColor) {
+      if (seq.colorsClosed.length === 1 && normalized === normalizePack01Color(seq.colorsClosed[0])) {
+        seq.r1LoopActive = true;
+        seq.r1LoopColor = normalized;
+        seq.r1LoopStage = "AA";
+        seq.r1LoopHits = 1;
+        addScoreToWorld(World, getSequenceMultiplier(1, 0));
+        return;
+      }
       if (seq.chainPattern.length) {
         const expectedStart = normalizePack01Color(seq.chainPattern[0]);
         if (expectedStart && normalized === expectedStart) {
