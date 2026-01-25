@@ -205,6 +205,11 @@ const CardEngine = (() => {
     { key: "speed", color: "green" },
     { key: "objects", color: "blue" }
   ];
+  const SUB_META_PRG_BINDINGS = [
+    { from: "radius", to: "speed" },
+    { from: "radius", to: "objects" },
+    { from: "glue", to: "objects" }
+  ];
   const SUB_META_PRG_COLORS = SUB_META_PRG_BRANCHES.reduce((acc, branch) => {
     acc[branch.key] = branch.color;
     return acc;
@@ -243,6 +248,11 @@ const CardEngine = (() => {
     czas: "green",
     cisza: "blue"
   };
+  const SUB_META_WORLD_BINDINGS = [
+    { from: "forma", to: "intencja" },
+    { from: "intencja", to: "czas" },
+    { from: "czas", to: "cisza" }
+  ];
   const SUB_META_META_EFFECTS = {
     forma: {
       DR: ["Planetoidy: orbity -20%.", "Planety: orbity -10%."],
@@ -363,11 +373,12 @@ const CardEngine = (() => {
     }
     if (prg.bindings.length > 3) prg.bindings = prg.bindings.slice(0, 3);
     let activeSeen = false;
-    prg.bindings.forEach((binding) => {
+    prg.bindings.forEach((binding, index) => {
       if (!binding || typeof binding !== "object") return;
       if (!("r2CardId" in binding)) binding.r2CardId = null;
-      if (!("from" in binding)) binding.from = null;
-      if (!("to" in binding)) binding.to = null;
+      const fixedBinding = SUB_META_PRG_BINDINGS[index];
+      binding.from = fixedBinding ? fixedBinding.from : null;
+      binding.to = fixedBinding ? fixedBinding.to : null;
       if (!("active" in binding)) binding.active = false;
       if (binding.active && !activeSeen) {
         activeSeen = true;
@@ -418,11 +429,12 @@ const CardEngine = (() => {
     }
     if (worldState.bindings.length > 3) worldState.bindings = worldState.bindings.slice(0, 3);
     let activeSeen = false;
-    worldState.bindings.forEach((binding) => {
+    worldState.bindings.forEach((binding, index) => {
       if (!binding || typeof binding !== "object") return;
       if (!("r2CardId" in binding)) binding.r2CardId = null;
-      if (!("from" in binding)) binding.from = null;
-      if (!("to" in binding)) binding.to = null;
+      const fixedBinding = SUB_META_WORLD_BINDINGS[index];
+      binding.from = fixedBinding ? fixedBinding.from : null;
+      binding.to = fixedBinding ? fixedBinding.to : null;
       if (!("active" in binding)) binding.active = false;
       if (binding.active && !activeSeen) {
         activeSeen = true;
@@ -1270,6 +1282,32 @@ const CardEngine = (() => {
     return ordered.length ? ordered : normalized;
   }
 
+  function isSameColorPair(colorsA, colorsB) {
+    if (!Array.isArray(colorsA) || !Array.isArray(colorsB)) return false;
+    return colorsA.length === 2
+      && colorsB.length === 2
+      && colorsA[0] === colorsB[0]
+      && colorsA[1] === colorsB[1];
+  }
+
+  function getPrgBindingPair(bindingIndex) {
+    const binding = SUB_META_PRG_BINDINGS[bindingIndex];
+    if (!binding) return null;
+    const colorA = SUB_META_PRG_COLORS[binding.from];
+    const colorB = SUB_META_PRG_COLORS[binding.to];
+    if (!colorA || !colorB) return null;
+    return getCanonicalPairColors(colorA, colorB);
+  }
+
+  function getWorldBindingPair(bindingIndex) {
+    const binding = SUB_META_WORLD_BINDINGS[bindingIndex];
+    if (!binding) return null;
+    const colorA = SUB_META_SLOT_COLORS[binding.from];
+    const colorB = SUB_META_SLOT_COLORS[binding.to];
+    if (!colorA || !colorB) return null;
+    return getCanonicalPairColors(colorA, colorB);
+  }
+
   function getCardKey(kind, colors) {
     const kindKey = String(kind || "").toUpperCase();
     const required = { R1: 1, R2: 2, R3: 3, R4: 4, DS: 1 }[kindKey];
@@ -1914,17 +1952,32 @@ const CardEngine = (() => {
     if (!binding || binding.r2CardId) return false;
     const colors = Array.isArray(prgCard.colors) ? prgCard.colors : [];
     if (colors.length < 2) return false;
+    const fixedPair = getPrgBindingPair(bindingIndex);
+    const cardPair = getCanonicalPairColors(colors[0], colors[1]);
+    if (!fixedPair || !isSameColorPair(cardPair, fixedPair)) return false;
     const tierKey = normalizeSubMetaTier(prgCard.tier);
-    const available = getCardCount(World, "R2", colors, tierKey, { availableOnly: true });
+    const available = getCardCount(World, "R2", fixedPair, tierKey, { availableOnly: true });
     if (available <= 0) return false;
     if ((World.score || 0) < SUB_META_ASSIGN_COST) return false;
-    const card = getFirstAvailableCard(World, "R2", colors, tierKey);
+    const card = getFirstAvailableCard(World, "R2", fixedPair, tierKey);
     if (!card) return false;
     card.inSlotKey = `prg:r2:${bindingIndex}`;
     binding.r2CardId = prgCard.key;
     binding.active = false;
     World.score = Math.max(0, (World.score || 0) - SUB_META_ASSIGN_COST);
     return true;
+  }
+
+  function toggleActiveBinding(bindings, bindingIndex) {
+    if (!Array.isArray(bindings) || !Number.isInteger(bindingIndex)) return;
+    const wasActive = Boolean(bindings[bindingIndex]?.active);
+    bindings.forEach((binding) => {
+      if (!binding) return;
+      binding.active = false;
+    });
+    if (!wasActive && bindings[bindingIndex]) {
+      bindings[bindingIndex].active = true;
+    }
   }
 
   function setActivePrgBinding(prg, bindingIndex) {
@@ -2006,11 +2059,14 @@ const CardEngine = (() => {
     if (!binding || binding.r2CardId) return false;
     const colors = Array.isArray(prgCard.colors) ? prgCard.colors : [];
     if (colors.length < 2) return false;
+    const fixedPair = getWorldBindingPair(bindingIndex);
+    const cardPair = getCanonicalPairColors(colors[0], colors[1]);
+    if (!fixedPair || !isSameColorPair(cardPair, fixedPair)) return false;
     const tierKey = normalizeSubMetaTier(prgCard.tier);
-    const available = getCardCount(World, "R2", colors, tierKey, { availableOnly: true });
+    const available = getCardCount(World, "R2", fixedPair, tierKey, { availableOnly: true });
     if (available <= 0) return false;
     if ((World.score || 0) < SUB_META_ASSIGN_COST) return false;
-    const card = getFirstAvailableCard(World, "R2", colors, tierKey);
+    const card = getFirstAvailableCard(World, "R2", fixedPair, tierKey);
     if (!card) return false;
     card.inSlotKey = `world:r2:${bindingIndex}`;
     binding.r2CardId = prgCard.key;
@@ -2986,24 +3042,45 @@ const CardEngine = (() => {
     }
     if (selection.type === "r2") {
       const list = [];
-      SUB_META_R2_PAIRS.forEach((pair) => {
-        SUB_META_TIERS.forEach((tier) => {
-          const count = getCardCount(World, "R2", pair, tier, { availableOnly: true });
-          if (count <= 0) return;
-          const key = getPrgR2CardKey(tier, pair);
-          if (!key) return;
-          list.push({
-            key,
-            kind: "R2",
-            tier,
-            colors: pair,
-            count
-          });
+      const pair = getPrgBindingPair(selection.bindingIndex);
+      if (!pair) return [];
+      SUB_META_TIERS.forEach((tier) => {
+        const count = getCardCount(World, "R2", pair, tier, { availableOnly: true });
+        if (count <= 0) return;
+        const key = getPrgR2CardKey(tier, pair);
+        if (!key) return;
+        list.push({
+          key,
+          kind: "R2",
+          tier,
+          colors: pair,
+          count
         });
       });
       return list;
     }
     return [];
+  }
+
+  function getWorldBindingAvailableCards(World, bindingIndex) {
+    if (!World || !Number.isInteger(bindingIndex)) return [];
+    const pair = getWorldBindingPair(bindingIndex);
+    if (!pair) return [];
+    const list = [];
+    SUB_META_TIERS.forEach((tier) => {
+      const count = getCardCount(World, "R2", pair, tier, { availableOnly: true });
+      if (count <= 0) return;
+      const key = getPrgR2CardKey(tier, pair);
+      if (!key) return;
+      list.push({
+        key,
+        kind: "R2",
+        tier,
+        colors: pair,
+        count
+      });
+    });
+    return list;
   }
 
   function getSubMetaEffectLines(slotKey, tier) {
@@ -3209,13 +3286,13 @@ const CardEngine = (() => {
     const columnGap = 16;
     const rowGap = 14;
     const contentW = panelW - pad * 2;
-    const leftW = Math.floor(contentW * 0.54);
+    const leftW = Math.floor(contentW * 0.48);
     const rightW = contentW - leftW - columnGap;
     const leftX = panelX + pad;
     const rightX = leftX + leftW + columnGap;
     const columnTop = panelY + pad + headerH;
     const contentH = panelH - pad * 2 - headerH;
-    const prgPanelH = Math.min(140, Math.max(110, Math.floor(contentH * 0.2)));
+    const prgPanelH = Math.min(160, Math.max(130, Math.floor(contentH * 0.26)));
     const prgRect = {
       x: leftX,
       y: columnTop,
@@ -3239,9 +3316,7 @@ const CardEngine = (() => {
       w: prgRect.w - prgInset * 2,
       h: prgRect.h - prgInset * 2
     };
-    const prgRowGap = 8;
-    const prgR2RowH = Math.max(26, Math.floor(prgInner.h * 0.32));
-    const prgBranchRowH = Math.max(56, prgInner.h - prgR2RowH - prgRowGap);
+    const prgBranchRowH = Math.max(56, prgInner.h);
     const prgBranchGap = 10;
     const prgBranchW = Math.floor((prgInner.w - prgBranchGap * (SUB_META_PRG_BRANCHES.length - 1)) / SUB_META_PRG_BRANCHES.length);
     const prgSlotPad = 6;
@@ -3274,34 +3349,38 @@ const CardEngine = (() => {
         odbSlot
       };
     });
-    const prgR2RowY = prgInner.y + prgBranchRowH + prgRowGap;
+    const prgR2RowH = Math.max(prgSlotH + 8, Math.floor(prgSlotH * 1.25));
+    const prgR2Rect = {
+      x: leftX,
+      y: prgRect.y + prgRect.h + rowGap,
+      w: leftW,
+      h: prgR2RowH
+    };
     const prgR2Gap = 12;
-    const prgR2SlotW = Math.min(prgSlotW + 6, Math.floor((prgInner.w - prgR2Gap * 2) / 3));
+    const prgR2SlotW = Math.min(prgSlotW + 6, Math.floor((prgR2Rect.w - prgInset * 2 - prgR2Gap * 2) / 3));
     const prgR2SlotH = prgSlotH;
+    const prgR2StartX = prgR2Rect.x + prgInset;
+    const prgR2RowY = prgR2Rect.y + Math.floor((prgR2Rect.h - prgR2SlotH) / 2);
     const prgR2Slots = [0, 1, 2].map((index) => ({
-      x: prgInner.x + index * (prgR2SlotW + prgR2Gap),
-      y: prgR2RowY + Math.floor((prgR2RowH - prgR2SlotH) / 2),
+      x: prgR2StartX + index * (prgR2SlotW + prgR2Gap),
+      y: prgR2RowY,
       w: prgR2SlotW,
       h: prgR2SlotH,
       index
     }));
     const worldR2Rect = {
       x: leftX,
-      y: prgRect.y + prgRect.h + rowGap,
+      y: prgR2Rect.y + prgR2Rect.h + rowGap,
       w: leftW,
-      h: Math.max(44, prgR2RowH + 12)
+      h: Math.max(prgSlotH + 10, prgR2RowH)
     };
     const worldPad = 10;
     const worldGridGap = 12;
-    const worldCellW = prgBranchW;
-    const worldCellH = prgBranchRowH;
-    const worldGridW = worldCellW * 2 + worldGridGap;
-    const worldGridH = worldCellH * 2 + worldGridGap;
     const worldRect = {
       x: leftX,
       y: worldR2Rect.y + worldR2Rect.h + rowGap,
       w: leftW,
-      h: worldGridH + worldPad * 2
+      h: Math.max(160, panelY + panelH - pad - (worldR2Rect.y + worldR2Rect.h + rowGap))
     };
     const worldInner = {
       x: worldRect.x + worldPad,
@@ -3309,6 +3388,10 @@ const CardEngine = (() => {
       w: worldRect.w - worldPad * 2,
       h: worldRect.h - worldPad * 2
     };
+    const worldCellW = Math.floor((worldInner.w - worldGridGap) / 2);
+    const worldCellH = Math.floor((worldInner.h - worldGridGap) / 2);
+    const worldGridW = worldCellW * 2 + worldGridGap;
+    const worldGridH = worldCellH * 2 + worldGridGap;
     const worldGridX = worldInner.x + Math.floor((worldInner.w - worldGridW) / 2);
     const worldGridY = worldInner.y + Math.floor((worldInner.h - worldGridH) / 2);
     const worldSocketGap = 8;
@@ -3339,22 +3422,51 @@ const CardEngine = (() => {
       };
     });
     const worldR2Gap = 12;
-    const worldR2SlotW = Math.min(prgSlotW + 6, Math.floor((worldR2Rect.w - worldR2Gap * 2) / 3));
+    const worldR2SlotW = Math.min(prgSlotW + 6, Math.floor((worldR2Rect.w - worldPad * 2 - worldR2Gap * 2) / 3));
     const worldR2SlotH = prgSlotH;
+    const worldR2StartX = worldR2Rect.x + worldPad;
+    const worldR2RowY = worldR2Rect.y + Math.floor((worldR2Rect.h - worldR2SlotH) / 2);
     const worldR2Slots = [0, 1, 2].map((index) => ({
-      x: worldR2Rect.x + index * (worldR2SlotW + worldR2Gap),
-      y: worldR2Rect.y + Math.floor((worldR2Rect.h - worldR2SlotH) / 2),
+      x: worldR2StartX + index * (worldR2SlotW + worldR2Gap),
+      y: worldR2RowY,
       w: worldR2SlotW,
       h: worldR2SlotH,
       index
     }));
-    const listTop = worldR2Rect.y;
-    const remainingH = panelY + panelH - pad - listTop;
-    const infoH = Math.max(110, Math.floor(remainingH * 0.36));
-    const listH = Math.max(120, remainingH - infoH - rowGap);
-    const listRect = { x: rightX, y: listTop, w: rightW, h: listH };
-    const inventoryRect = { x: listRect.x, y: listRect.y, w: Math.floor((listRect.w - columnGap) / 2), h: listRect.h };
-    const pickerRect = { x: inventoryRect.x + inventoryRect.w + columnGap, y: listRect.y, w: listRect.w - inventoryRect.w - columnGap, h: listRect.h };
+    const hitRects = [];
+    prgR2Slots.forEach((slot) => {
+      hitRects.push({ type: "prg-r2", index: slot.index, x: slot.x, y: slot.y, w: slot.w, h: slot.h });
+    });
+    prgBranches.forEach((branch) => {
+      hitRects.push({ type: "prg-r1", branchKey: branch.key, x: branch.r1Slot.x, y: branch.r1Slot.y, w: branch.r1Slot.w, h: branch.r1Slot.h });
+    });
+    worldR2Slots.forEach((slot) => {
+      hitRects.push({ type: "world-r2", index: slot.index, x: slot.x, y: slot.y, w: slot.w, h: slot.h });
+    });
+    worldSlots.forEach((slot) => {
+      slot.sockets.forEach((socket) => {
+        hitRects.push({
+          type: "world-r1",
+          slotKey: slot.key,
+          slotIndex: socket.index,
+          x: socket.x,
+          y: socket.y,
+          w: socket.w,
+          h: socket.h
+        });
+      });
+    });
+    let inventoryH = Math.max(170, Math.floor(contentH * 0.38));
+    let infoH = Math.max(150, Math.floor(contentH * 0.3));
+    let pickerH = contentH - inventoryH - infoH - rowGap * 2;
+    if (pickerH < 120) {
+      const shortfall = 120 - pickerH;
+      inventoryH = Math.max(140, inventoryH - Math.floor(shortfall / 2));
+      infoH = Math.max(120, infoH - Math.ceil(shortfall / 2));
+      pickerH = contentH - inventoryH - infoH - rowGap * 2;
+    }
+    const inventoryRect = { x: rightX, y: columnTop, w: rightW, h: inventoryH };
+    const pickerRect = { x: rightX, y: inventoryRect.y + inventoryRect.h + rowGap, w: rightW, h: pickerH };
     const pickerInnerH = pickerRect.h - pickerInset * 2;
     const pickerBandH = Math.floor((pickerInnerH - pickerGap) / 2);
     const pickerAssignRect = {
@@ -3378,7 +3490,7 @@ const CardEngine = (() => {
     };
     const cardInfoRect = {
       x: rightX,
-      y: listRect.y + listRect.h + rowGap,
+      y: pickerRect.y + pickerRect.h + rowGap,
       w: rightW,
       h: infoH
     };
@@ -3417,6 +3529,7 @@ const CardEngine = (() => {
       worldSlots,
       worldR2Rect,
       worldR2Slots,
+      hitRects,
       inventoryRect,
       inventoryInnerRect,
       pickerRect,
@@ -3518,8 +3631,8 @@ const CardEngine = (() => {
     ctx.restore();
 
     const activeBindingIndex = prgState.bindings.findIndex((binding) => binding?.active);
-    const activeBinding = activeBindingIndex >= 0 ? prgState.bindings[activeBindingIndex] : null;
-    const activeBranchKeys = new Set([activeBinding?.from, activeBinding?.to].filter(Boolean));
+    const activeBindingPair = SUB_META_PRG_BINDINGS[activeBindingIndex] || null;
+    const activeBranchKeys = new Set(activeBindingPair ? [activeBindingPair.from, activeBindingPair.to] : []);
     prgBranches.forEach((branch) => {
       const branchState = prgState.branches?.[branch.key];
       const branchColor = PACK01_COLOR_HEX[branch.color] || "#FFFFFF";
@@ -3596,8 +3709,8 @@ const CardEngine = (() => {
     });
 
     const activeWorldBindingIndex = worldState.bindings.findIndex((binding) => binding?.active);
-    const activeWorldBinding = activeWorldBindingIndex >= 0 ? worldState.bindings[activeWorldBindingIndex] : null;
-    const activeWorldKeys = new Set([activeWorldBinding?.from, activeWorldBinding?.to].filter(Boolean));
+    const activeWorldBindingPair = SUB_META_WORLD_BINDINGS[activeWorldBindingIndex] || null;
+    const activeWorldKeys = new Set(activeWorldBindingPair ? [activeWorldBindingPair.from, activeWorldBindingPair.to] : []);
     worldSlots.forEach((slot) => {
       const entry = worldState.slots?.[slot.key];
       const slotColorKey = SUB_META_SLOT_COLORS[slot.key];
@@ -3759,10 +3872,13 @@ const CardEngine = (() => {
     if (hasWorldSlotSelection || hasWorldBindingSelection || selectedPrgSlotType) {
       const available = hasWorldSlotSelection
         ? getWorldAvailableCards(World, selectedSlotKey, selectedSlotIndex, worldState)
-        : getPrgAvailableCards(World, {
-          type: hasWorldBindingSelection ? "r2" : selectedPrgSlotType,
-          branchKey: selectedPrgBranchKey
-        });
+        : (hasWorldBindingSelection
+          ? getWorldBindingAvailableCards(World, selectedWorldBindingIndex)
+          : getPrgAvailableCards(World, {
+            type: selectedPrgSlotType,
+            branchKey: selectedPrgBranchKey,
+            bindingIndex: selectedPrgBindingIndex
+          }));
       const assignGrid = getSubMetaCardGrid(pickerAssignRect);
       available.forEach((card, index) => {
         const row = Math.floor(index / assignGrid.cols);
@@ -3992,12 +4108,7 @@ const CardEngine = (() => {
     const layout = getSubMetaLayout(screenW, screenH);
     const {
       panel,
-      prgRect,
-      prgBranches,
-      prgR2Slots,
-      worldRect,
-      worldSlots,
-      worldR2Slots,
+      hitRects,
       pickerAssignRect,
       pickerForgeRect,
       closeButton,
@@ -4089,137 +4200,84 @@ const CardEngine = (() => {
     }
 
     if (mx >= panel.x && mx <= panel.x + panel.w && my >= panel.y && my <= panel.y + panel.h) {
-      if (mx >= prgRect.x && mx <= prgRect.x + prgRect.w && my >= prgRect.y && my <= prgRect.y + prgRect.h) {
-        for (const slot of prgR2Slots) {
-          if (mx >= slot.x && mx <= slot.x + slot.w && my >= slot.y && my <= slot.y + slot.h) {
-            const binding = prgState.bindings?.[slot.index];
-            state.subMeta.selectedPrgSlotType = "r2";
-            state.subMeta.selectedPrgBindingIndex = slot.index;
-            state.subMeta.selectedPrgBranchKey = null;
-            state.subMeta.selectedSlotKey = null;
-            state.subMeta.selectedSlotIndex = null;
-            state.subMeta.selectedForge = null;
-            state.subMeta.showRemoveForSlotKey = null;
-            state.subMeta.showRemoveForSlotIndex = null;
-            state.subMeta.selectedWorldSlotType = null;
-            state.subMeta.selectedWorldBindingIndex = null;
-            state.subMeta.selectedCardKey = binding?.r2CardId || null;
-            if (binding?.r2CardId) {
-              setActivePrgBinding(prgState, slot.index);
-            }
-            return true;
-          }
-        }
-        for (const branch of prgBranches) {
-          const inColumn = mx >= branch.column.x && mx <= branch.column.x + branch.column.w
-            && my >= branch.column.y && my <= branch.column.y + branch.column.h;
-          if (!inColumn) continue;
-          const bindingIndex = state.subMeta.selectedPrgBindingIndex;
-          const binding = Number.isInteger(bindingIndex) ? prgState.bindings?.[bindingIndex] : null;
-          if (state.subMeta.selectedPrgSlotType === "r2" && binding?.r2CardId) {
-            if (!binding.from) {
-              binding.from = branch.key;
-            } else if (!binding.to && binding.from !== branch.key) {
-              binding.to = branch.key;
-            } else if (binding.from && binding.to) {
-              binding.from = branch.key;
-              binding.to = null;
-            }
-            prgState.activeTab = branch.key;
-            return true;
-          }
-          if (mx >= branch.r1Slot.x && mx <= branch.r1Slot.x + branch.r1Slot.w
-            && my >= branch.r1Slot.y && my <= branch.r1Slot.y + branch.r1Slot.h) {
-            const branchState = prgState.branches?.[branch.key];
-            state.subMeta.selectedPrgSlotType = "r1";
-            state.subMeta.selectedPrgBranchKey = branch.key;
-            state.subMeta.selectedPrgBindingIndex = null;
-            state.subMeta.selectedSlotKey = null;
-            state.subMeta.selectedSlotIndex = null;
-            state.subMeta.selectedForge = null;
-            state.subMeta.showRemoveForSlotKey = null;
-            state.subMeta.showRemoveForSlotIndex = null;
-            state.subMeta.selectedWorldSlotType = null;
-            state.subMeta.selectedWorldBindingIndex = null;
-            state.subMeta.selectedCardKey = branchState?.r1CardId || null;
-            prgState.activeTab = branch.key;
-            return true;
-          }
+      const hit = hitRects.find((rect) => mx >= rect.x && mx <= rect.x + rect.w
+        && my >= rect.y && my <= rect.y + rect.h);
+      if (hit) {
+        if (hit.type === "prg-r2") {
+          const binding = prgState.bindings?.[hit.index];
+          state.subMeta.selectedPrgSlotType = "r2";
+          state.subMeta.selectedPrgBindingIndex = hit.index;
+          state.subMeta.selectedPrgBranchKey = null;
+          state.subMeta.selectedSlotKey = null;
+          state.subMeta.selectedSlotIndex = null;
+          state.subMeta.selectedForge = null;
+          state.subMeta.showRemoveForSlotKey = null;
+          state.subMeta.showRemoveForSlotIndex = null;
+          state.subMeta.selectedWorldSlotType = null;
+          state.subMeta.selectedWorldBindingIndex = null;
+          state.subMeta.selectedCardKey = binding?.r2CardId || null;
+          toggleActiveBinding(prgState.bindings, hit.index);
           return true;
         }
-      }
-      if (mx >= worldR2Rect.x && mx <= worldR2Rect.x + worldR2Rect.w
-        && my >= worldR2Rect.y && my <= worldR2Rect.y + worldR2Rect.h) {
-        for (const slot of worldR2Slots) {
-          if (mx >= slot.x && mx <= slot.x + slot.w && my >= slot.y && my <= slot.y + slot.h) {
-            const binding = worldState.bindings?.[slot.index];
-            state.subMeta.selectedWorldSlotType = "r2";
-            state.subMeta.selectedWorldBindingIndex = slot.index;
-            state.subMeta.selectedSlotKey = null;
-            state.subMeta.selectedSlotIndex = null;
-            state.subMeta.selectedForge = null;
-            state.subMeta.showRemoveForSlotKey = null;
-            state.subMeta.showRemoveForSlotIndex = null;
-            state.subMeta.selectedPrgSlotType = null;
-            state.subMeta.selectedPrgBranchKey = null;
-            state.subMeta.selectedPrgBindingIndex = null;
-            state.subMeta.selectedCardKey = binding?.r2CardId || null;
-            if (binding?.r2CardId) {
-              setActiveWorldBinding(worldState, slot.index);
-            }
-            return true;
-          }
+        if (hit.type === "prg-r1") {
+          const branchState = prgState.branches?.[hit.branchKey];
+          state.subMeta.selectedPrgSlotType = "r1";
+          state.subMeta.selectedPrgBranchKey = hit.branchKey;
+          state.subMeta.selectedPrgBindingIndex = null;
+          state.subMeta.selectedSlotKey = null;
+          state.subMeta.selectedSlotIndex = null;
+          state.subMeta.selectedForge = null;
+          state.subMeta.showRemoveForSlotKey = null;
+          state.subMeta.showRemoveForSlotIndex = null;
+          state.subMeta.selectedWorldSlotType = null;
+          state.subMeta.selectedWorldBindingIndex = null;
+          state.subMeta.selectedCardKey = branchState?.r1CardId || null;
+          prgState.activeTab = hit.branchKey;
+          return true;
         }
-      }
-      if (mx >= worldRect.x && mx <= worldRect.x + worldRect.w && my >= worldRect.y && my <= worldRect.y + worldRect.h) {
-        for (const slot of worldSlots) {
-          const inSlot = mx >= slot.x && mx <= slot.x + slot.w
-            && my >= slot.y && my <= slot.y + slot.h;
-          if (!inSlot) continue;
-          const bindingIndex = state.subMeta.selectedWorldBindingIndex;
-          const binding = Number.isInteger(bindingIndex) ? worldState.bindings?.[bindingIndex] : null;
-          if (state.subMeta.selectedWorldSlotType === "r2" && binding?.r2CardId) {
-            if (!binding.from) {
-              binding.from = slot.key;
-            } else if (!binding.to && binding.from !== slot.key) {
-              binding.to = slot.key;
-            } else if (binding.from && binding.to) {
-              binding.from = slot.key;
-              binding.to = null;
-            }
-            return true;
-          }
-          for (const socket of slot.sockets) {
-            if (mx >= socket.x && mx <= socket.x + socket.w && my >= socket.y && my <= socket.y + socket.h) {
-              const assignment = worldState.slots?.[slot.key]?.cards?.[socket.index] || null;
-              state.subMeta.selectedWorldSlotType = "r1";
-              state.subMeta.selectedSlotKey = slot.key;
-              state.subMeta.selectedSlotIndex = socket.index;
-              state.subMeta.selectedWorldBindingIndex = null;
-              state.subMeta.selectedPrgSlotType = null;
-              state.subMeta.selectedPrgBranchKey = null;
-              state.subMeta.selectedPrgBindingIndex = null;
-              state.subMeta.selectedForge = null;
+        if (hit.type === "world-r2") {
+          const binding = worldState.bindings?.[hit.index];
+          state.subMeta.selectedWorldSlotType = "r2";
+          state.subMeta.selectedWorldBindingIndex = hit.index;
+          state.subMeta.selectedSlotKey = null;
+          state.subMeta.selectedSlotIndex = null;
+          state.subMeta.selectedForge = null;
+          state.subMeta.showRemoveForSlotKey = null;
+          state.subMeta.showRemoveForSlotIndex = null;
+          state.subMeta.selectedPrgSlotType = null;
+          state.subMeta.selectedPrgBranchKey = null;
+          state.subMeta.selectedPrgBindingIndex = null;
+          state.subMeta.selectedCardKey = binding?.r2CardId || null;
+          toggleActiveBinding(worldState.bindings, hit.index);
+          return true;
+        }
+        if (hit.type === "world-r1") {
+          const assignment = worldState.slots?.[hit.slotKey]?.cards?.[hit.slotIndex] || null;
+          state.subMeta.selectedWorldSlotType = "r1";
+          state.subMeta.selectedSlotKey = hit.slotKey;
+          state.subMeta.selectedSlotIndex = hit.slotIndex;
+          state.subMeta.selectedWorldBindingIndex = null;
+          state.subMeta.selectedPrgSlotType = null;
+          state.subMeta.selectedPrgBranchKey = null;
+          state.subMeta.selectedPrgBindingIndex = null;
+          state.subMeta.selectedForge = null;
+          state.subMeta.showRemoveForSlotKey = null;
+          state.subMeta.showRemoveForSlotIndex = null;
+          const assignmentCard = getSubMetaCardFromAssignment(hit.slotKey, assignment);
+          state.subMeta.selectedCardKey = assignmentCard?.key || null;
+          if (assignment) {
+            state.subMeta.showRemoveForSlotKey = hit.slotKey;
+            state.subMeta.showRemoveForSlotIndex = hit.slotIndex;
+            const removeW = 12;
+            const removeH = 12;
+            const removeX = hit.x + hit.w - removeW - 4;
+            const removeY = hit.y + 4;
+            if (mx >= removeX && mx <= removeX + removeW && my >= removeY && my <= removeY + removeH) {
+              if (!hasEnoughAssignRp) return true;
+              removeWorldSlotCard(World, hit.slotKey, hit.slotIndex);
               state.subMeta.showRemoveForSlotKey = null;
               state.subMeta.showRemoveForSlotIndex = null;
-              const assignmentCard = getSubMetaCardFromAssignment(slot.key, assignment);
-              state.subMeta.selectedCardKey = assignmentCard?.key || null;
-              if (assignment) {
-                state.subMeta.showRemoveForSlotKey = slot.key;
-                state.subMeta.showRemoveForSlotIndex = socket.index;
-                const removeW = 12;
-                const removeH = 12;
-                const removeX = socket.x + socket.w - removeW - 4;
-                const removeY = socket.y + 4;
-                if (mx >= removeX && mx <= removeX + removeW && my >= removeY && my <= removeY + removeH) {
-                  if (!hasEnoughAssignRp) return true;
-                  removeWorldSlotCard(World, slot.key, socket.index);
-                  state.subMeta.showRemoveForSlotKey = null;
-                  state.subMeta.showRemoveForSlotIndex = null;
-                  state.subMeta.selectedCardKey = null;
-                }
-              }
-              return true;
+              state.subMeta.selectedCardKey = null;
             }
           }
           return true;
@@ -4234,10 +4292,13 @@ const CardEngine = (() => {
       if (hasWorldSlotSelection || hasWorldBindingSelection || state.subMeta.selectedPrgSlotType) {
         const available = hasWorldSlotSelection
           ? getWorldAvailableCards(World, state.subMeta.selectedSlotKey, state.subMeta.selectedSlotIndex, worldState)
-          : getPrgAvailableCards(World, {
-            type: hasWorldBindingSelection ? "r2" : state.subMeta.selectedPrgSlotType,
-            branchKey: state.subMeta.selectedPrgBranchKey
-          });
+          : (hasWorldBindingSelection
+            ? getWorldBindingAvailableCards(World, state.subMeta.selectedWorldBindingIndex)
+            : getPrgAvailableCards(World, {
+              type: state.subMeta.selectedPrgSlotType,
+              branchKey: state.subMeta.selectedPrgBranchKey,
+              bindingIndex: state.subMeta.selectedPrgBindingIndex
+            }));
         const assignGrid = getSubMetaCardGrid(pickerAssignRect);
         for (let i = 0; i < available.length; i++) {
           const row = Math.floor(i / assignGrid.cols);
