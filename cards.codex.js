@@ -140,6 +140,7 @@ const CardEngine = (() => {
       baseColor: null,
       track: null,
       tempCards: [],
+      commitDuplicateLogged: false,
       rpStart: 0
     },
     sequenceOverlay: {
@@ -740,6 +741,7 @@ const CardEngine = (() => {
       baseColor: null,
       track: null,
       tempCards: [],
+      commitDuplicateLogged: false,
       rpStart: 0
     };
     if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
@@ -835,6 +837,7 @@ const CardEngine = (() => {
     state.sequence.track = null;
     state.sequence.rpStart = Math.floor(Number(state.world?.score || 0));
     if (!Array.isArray(state.sequence.tempCards)) state.sequence.tempCards = [];
+    if (typeof state.sequence.commitDuplicateLogged !== "boolean") state.sequence.commitDuplicateLogged = false;
   }
 
   function handleSequenceStepClosed(World) {
@@ -858,10 +861,12 @@ const CardEngine = (() => {
       const tempCards = Array.isArray(seq.tempCards) ? seq.tempCards : [];
       seq.tempCards = tempCards;
       if (World.cardsTemp !== tempCards) World.cardsTemp = tempCards;
+      const newCards = [];
       const pushTempCard = (payload, { setPending = false } = {}) => {
         const entity = createCardEntity(payload);
         if (!entity) return null;
         tempCards.push(entity);
+        newCards.push(entity);
         if (setPending) {
           const now = nowMs();
           World.pendingCard = entity;
@@ -893,6 +898,10 @@ const CardEngine = (() => {
         } else if (level === 3) {
           pushTempCard({ kind: "DS", tier: "DR", colorA: baseColor });
         }
+      }
+      const shouldCommitNow = level === 1 || seq.track === "R";
+      if (World && newCards.length && shouldCommitNow) {
+        commitSequenceRewards(World, newCards, { enforceUnique: true });
       }
     }
     const overlayMode = seq.track === "A" ? "A" : "R";
@@ -937,10 +946,7 @@ const CardEngine = (() => {
     const seq = state.sequence;
     if (!World || !Array.isArray(seq.tempCards) || !seq.tempCards.length) return;
     ensureCardsPool(World);
-    seq.tempCards.forEach((card) => {
-      if (card) World.cardsPool.push(card);
-    });
-    recomputeTotalCards(World);
+    commitSequenceRewards(World, seq.tempCards, { enforceUnique: seq.track === "R" });
     seq.tempCards.length = 0;
     if (World.cardsTemp) World.cardsTemp.length = 0;
   }
@@ -1123,11 +1129,8 @@ const CardEngine = (() => {
         World.pendingCardUntilMs = 0;
       }
     }
-    const cardsAwarded = seq.tempCards.slice();
-    seq.tempCards.forEach((card) => {
-      if (card) World.cardsPool.push(card);
-    });
-    recomputeTotalCards(World);
+    const cardsAwarded = seq.tempCards.filter((card) => card && !card._committed);
+    commitSequenceRewards(World, cardsAwarded, { enforceUnique: seq.track === "R" });
     const seqColors = (Array.isArray(colors) ? colors : []).map(normalizePack01Color).filter(Boolean);
     const label = seq.track === "A"
       ? (["A", "AA", "AAA"][cappedLevel - 1] || `A${cappedLevel}`)
@@ -1202,6 +1205,7 @@ const CardEngine = (() => {
       baseColor: null,
       track: null,
       tempCards: [],
+      commitDuplicateLogged: false,
       rpStart: 0
     };
     state.sequenceOverlay = {
@@ -2174,6 +2178,45 @@ const CardEngine = (() => {
       colorD: orderedColors[3] || null,
       inSlotKey: inSlotKey || null
     };
+  }
+
+  function getCommitKey(card) {
+    if (!card) return null;
+    if (card.id) return String(card.id);
+    const colors = getEntityColors(card);
+    if (!colors.length) return null;
+    return `${String(card.kind || card.type || "").toUpperCase()}:${colors.join("-")}`;
+  }
+
+  function commitSequenceRewards(World, cards, { enforceUnique = true } = {}) {
+    if (!World || !Array.isArray(cards) || !cards.length) return 0;
+    ensureCardsPool(World);
+    if (typeof state.sequence.commitDuplicateLogged !== "boolean") {
+      state.sequence.commitDuplicateLogged = false;
+    }
+    const localSeen = new Set();
+    let added = 0;
+    for (const card of cards) {
+      if (!card) continue;
+      if (card._committed) continue;
+      const commitKey = getCommitKey(card);
+      if (!commitKey) continue;
+      if (enforceUnique) {
+        if (localSeen.has(commitKey)) {
+          if (!state.sequence.commitDuplicateLogged) {
+            console.warn("[SEQ_COMMIT_DUPLICATE] duplicate reward in same step", commitKey);
+            state.sequence.commitDuplicateLogged = true;
+          }
+          continue;
+        }
+        localSeen.add(commitKey);
+      }
+      World.cardsPool.push(card);
+      card._committed = true;
+      added += 1;
+    }
+    if (added) recomputeTotalCards(World);
+    return added;
   }
 
   function ensureCardsPool(World) {
@@ -4383,7 +4426,9 @@ const CardEngine = (() => {
         const level = Math.max(1, Math.min(4, Number(state.sequenceOverlay.level || 1)));
         const colors = Array.isArray(state.sequenceOverlay.colors) ? state.sequenceOverlay.colors : [];
         if (inLeft) {
-          const activated = activateSequenceR1(state.sequenceOverlay.colorKey);
+          const pendingCard = World?.pendingCard;
+          const pendingColor = pendingCard?.colorA || (Array.isArray(pendingCard?.colors) ? pendingCard.colors[0] : null);
+          const activated = activateSequenceR1(pendingColor || state.sequenceOverlay.colorKey);
           if (activated) {
             state.sequenceOverlay.visible = false;
           }
