@@ -3234,30 +3234,6 @@ const CardEngine = (() => {
       w: closeW,
       h: closeH
     };
-    const assignW = 100;
-    const assignH = 26;
-    const assignButton = {
-      x: cardInfoRect.x + cardInfoRect.w - assignW - 12,
-      y: cardInfoRect.y + cardInfoRect.h - assignH - 10,
-      w: assignW,
-      h: assignH
-    };
-    const activateW = 100;
-    const activateH = 26;
-    const activateButton = {
-      x: cardInfoRect.x + cardInfoRect.w - activateW - 12,
-      y: assignButton.y - activateH - 8,
-      w: activateW,
-      h: activateH
-    };
-    const infoBackW = 70;
-    const infoBackH = 26;
-    const infoBackButton = {
-      x: cardInfoRect.x + 12,
-      y: cardInfoRect.y + cardInfoRect.h - infoBackH - 10,
-      w: infoBackW,
-      h: infoBackH
-    };
     const prgInset = 10;
     const prgInner = {
       x: prgRect.x + prgInset,
@@ -3400,6 +3376,30 @@ const CardEngine = (() => {
       y: listRect.y + listRect.h + rowGap,
       w: panelW - pad * 2,
       h: infoH
+    };
+    const assignW = 100;
+    const assignH = 26;
+    const assignButton = {
+      x: cardInfoRect.x + cardInfoRect.w - assignW - 12,
+      y: cardInfoRect.y + cardInfoRect.h - assignH - 10,
+      w: assignW,
+      h: assignH
+    };
+    const activateW = 100;
+    const activateH = 26;
+    const activateButton = {
+      x: cardInfoRect.x + cardInfoRect.w - activateW - 12,
+      y: assignButton.y - activateH - 8,
+      w: activateW,
+      h: activateH
+    };
+    const infoBackW = 70;
+    const infoBackH = 26;
+    const infoBackButton = {
+      x: cardInfoRect.x + 12,
+      y: cardInfoRect.y + cardInfoRect.h - infoBackH - 10,
+      w: infoBackW,
+      h: infoBackH
     };
     return {
       panel: { x: panelX, y: panelY, w: panelW, h: panelH },
