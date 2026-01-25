@@ -3208,21 +3208,19 @@ const CardEngine = (() => {
     const headerH = 28;
     const columnGap = 16;
     const rowGap = 14;
+    const contentW = panelW - pad * 2;
+    const leftW = Math.floor(contentW * 0.54);
+    const rightW = contentW - leftW - columnGap;
     const leftX = panelX + pad;
+    const rightX = leftX + leftW + columnGap;
     const columnTop = panelY + pad + headerH;
     const contentH = panelH - pad * 2 - headerH;
     const prgPanelH = Math.min(140, Math.max(110, Math.floor(contentH * 0.2)));
     const prgRect = {
-      x: panelX + pad,
-      y: columnTop,
-      w: panelW - pad * 2,
-      h: prgPanelH
-    };
-    const worldRect = {
       x: leftX,
-      y: columnTop + prgPanelH + rowGap,
-      w: panelW - pad * 2,
-      h: 0
+      y: columnTop,
+      w: leftW,
+      h: prgPanelH
     };
     const pickerInset = 8;
     const pickerGap = 10;
@@ -3253,16 +3251,18 @@ const CardEngine = (() => {
     const prgBranches = SUB_META_PRG_BRANCHES.map((branch, index) => {
       const colX = prgInner.x + index * (prgBranchW + prgBranchGap);
       const colY = prgInner.y;
-      const slotX = colX + Math.floor((prgBranchW - prgSlotW) / 2);
+      const slotsW = prgSlotW * 2 + prgSlotGap;
+      const slotsX = colX + Math.floor((prgBranchW - slotsW) / 2);
+      const slotY = colY + Math.floor((prgBranchRowH - prgSlotH) / 2);
       const r1Slot = {
-        x: slotX,
-        y: colY + Math.floor((prgBranchRowH - prgSlotH * 2 - prgSlotGap) / 2),
+        x: slotsX,
+        y: slotY,
         w: prgSlotW,
         h: prgSlotH
       };
       const odbSlot = {
-        x: slotX,
-        y: r1Slot.y + prgSlotH + prgSlotGap,
+        x: slotsX + prgSlotW + prgSlotGap,
+        y: slotY,
         w: prgSlotW,
         h: prgSlotH
       };
@@ -3285,13 +3285,24 @@ const CardEngine = (() => {
       h: prgR2SlotH,
       index
     }));
+    const worldR2Rect = {
+      x: leftX,
+      y: prgRect.y + prgRect.h + rowGap,
+      w: leftW,
+      h: Math.max(44, prgR2RowH + 12)
+    };
     const worldPad = 10;
     const worldGridGap = 12;
     const worldCellW = prgBranchW;
     const worldCellH = prgBranchRowH;
     const worldGridW = worldCellW * 2 + worldGridGap;
     const worldGridH = worldCellH * 2 + worldGridGap;
-    worldRect.h = worldGridH + worldPad * 2;
+    const worldRect = {
+      x: leftX,
+      y: worldR2Rect.y + worldR2Rect.h + rowGap,
+      w: leftW,
+      h: worldGridH + worldPad * 2
+    };
     const worldInner = {
       x: worldRect.x + worldPad,
       y: worldRect.y + worldPad,
@@ -3327,12 +3338,6 @@ const CardEngine = (() => {
         sockets
       };
     });
-    const worldR2Rect = {
-      x: leftX,
-      y: worldRect.y + worldRect.h + rowGap,
-      w: panelW - pad * 2,
-      h: Math.max(44, prgR2RowH + 12)
-    };
     const worldR2Gap = 12;
     const worldR2SlotW = Math.min(prgSlotW + 6, Math.floor((worldR2Rect.w - worldR2Gap * 2) / 3));
     const worldR2SlotH = prgSlotH;
@@ -3343,11 +3348,11 @@ const CardEngine = (() => {
       h: worldR2SlotH,
       index
     }));
-    const listTop = worldR2Rect.y + worldR2Rect.h + rowGap;
+    const listTop = worldR2Rect.y;
     const remainingH = panelY + panelH - pad - listTop;
     const infoH = Math.max(110, Math.floor(remainingH * 0.36));
     const listH = Math.max(120, remainingH - infoH - rowGap);
-    const listRect = { x: leftX, y: listTop, w: panelW - pad * 2, h: listH };
+    const listRect = { x: rightX, y: listTop, w: rightW, h: listH };
     const inventoryRect = { x: listRect.x, y: listRect.y, w: Math.floor((listRect.w - columnGap) / 2), h: listRect.h };
     const pickerRect = { x: inventoryRect.x + inventoryRect.w + columnGap, y: listRect.y, w: listRect.w - inventoryRect.w - columnGap, h: listRect.h };
     const pickerInnerH = pickerRect.h - pickerInset * 2;
@@ -3372,9 +3377,9 @@ const CardEngine = (() => {
       h: inventoryRect.h - inventoryInset * 2
     };
     const cardInfoRect = {
-      x: leftX,
+      x: rightX,
       y: listRect.y + listRect.h + rowGap,
-      w: panelW - pad * 2,
+      w: rightW,
       h: infoH
     };
     const assignW = 100;
