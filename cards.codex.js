@@ -3456,30 +3456,40 @@ const CardEngine = (() => {
         });
       });
     });
-    let inventoryH = Math.max(170, Math.floor(contentH * 0.38));
-    let infoH = Math.max(150, Math.floor(contentH * 0.3));
-    let pickerH = contentH - inventoryH - infoH - rowGap * 2;
-    if (pickerH < 120) {
-      const shortfall = 120 - pickerH;
-      inventoryH = Math.max(140, inventoryH - Math.floor(shortfall / 2));
-      infoH = Math.max(120, infoH - Math.ceil(shortfall / 2));
-      pickerH = contentH - inventoryH - infoH - rowGap * 2;
+    const inventoryRect = { x: rightX, y: columnTop, w: rightW, h: prgRect.h };
+    const pickerBandY = prgR2Rect.y;
+    const pickerBandH = worldR2Rect.y + worldR2Rect.h - prgR2Rect.y;
+    const pickerSplitGap = 12;
+    const minAssignW = 4 * (SUB_META_CARD_W + SUB_META_CARD_GAP_X) - SUB_META_CARD_GAP_X;
+    const minForgeW = 7 * (SUB_META_CARD_W + SUB_META_CARD_GAP_X) - SUB_META_CARD_GAP_X;
+    let assignPanelW = Math.max(minAssignW, Math.floor(rightW * 0.35));
+    let forgePanelW = rightW - assignPanelW - pickerSplitGap;
+    if (forgePanelW < minForgeW) {
+      forgePanelW = minForgeW;
+      assignPanelW = rightW - forgePanelW - pickerSplitGap;
     }
-    const inventoryRect = { x: rightX, y: columnTop, w: rightW, h: inventoryH };
-    const pickerRect = { x: rightX, y: inventoryRect.y + inventoryRect.h + rowGap, w: rightW, h: pickerH };
-    const pickerInnerH = pickerRect.h - pickerInset * 2;
-    const pickerBandH = Math.floor((pickerInnerH - pickerGap) / 2);
+    if (assignPanelW < minAssignW) {
+      assignPanelW = minAssignW;
+      forgePanelW = rightW - assignPanelW - pickerSplitGap;
+    }
+    const pickerRect = { x: rightX, y: pickerBandY, w: assignPanelW, h: pickerBandH };
     const pickerAssignRect = {
       x: pickerRect.x + pickerInset,
       y: pickerRect.y + pickerInset,
       w: pickerRect.w - pickerInset * 2,
+      h: pickerRect.h - pickerInset * 2
+    };
+    const pickerForgeFrameRect = {
+      x: pickerRect.x + pickerRect.w + pickerSplitGap,
+      y: pickerBandY,
+      w: forgePanelW,
       h: pickerBandH
     };
     const pickerForgeRect = {
-      x: pickerRect.x + pickerInset,
-      y: pickerRect.y + pickerInset + pickerBandH + pickerGap,
-      w: pickerRect.w - pickerInset * 2,
-      h: pickerBandH
+      x: pickerForgeFrameRect.x + pickerInset,
+      y: pickerForgeFrameRect.y + pickerInset,
+      w: pickerForgeFrameRect.w - pickerInset * 2,
+      h: pickerForgeFrameRect.h - pickerInset * 2
     };
     const inventoryInset = 8;
     const inventoryInnerRect = {
@@ -3490,9 +3500,9 @@ const CardEngine = (() => {
     };
     const cardInfoRect = {
       x: rightX,
-      y: pickerRect.y + pickerRect.h + rowGap,
+      y: worldRect.y,
       w: rightW,
-      h: infoH
+      h: worldRect.h
     };
     const assignW = 100;
     const assignH = 26;
@@ -3518,13 +3528,27 @@ const CardEngine = (() => {
       w: infoBackW,
       h: infoBackH
     };
+    const prgGroupRect = {
+      x: prgRect.x,
+      y: prgRect.y,
+      w: prgRect.w,
+      h: prgR2Rect.y + prgR2Rect.h - prgRect.y
+    };
+    const worldGroupRect = {
+      x: worldR2Rect.x,
+      y: worldR2Rect.y,
+      w: worldR2Rect.w,
+      h: worldRect.y + worldRect.h - worldR2Rect.y
+    };
     return {
       panel: { x: panelX, y: panelY, w: panelW, h: panelH },
       pad,
       headerY: panelY + pad + 12,
+      prgGroupRect,
       prgRect,
       prgBranches,
       prgR2Slots,
+      worldGroupRect,
       worldRect,
       worldSlots,
       worldR2Rect,
@@ -3534,6 +3558,7 @@ const CardEngine = (() => {
       inventoryInnerRect,
       pickerRect,
       pickerAssignRect,
+      pickerForgeFrameRect,
       pickerForgeRect,
       cardInfoRect,
       assignButton,
@@ -3552,9 +3577,11 @@ const CardEngine = (() => {
       panel,
       pad,
       headerY,
+      prgGroupRect,
       prgRect,
       prgBranches,
       prgR2Slots,
+      worldGroupRect,
       worldRect,
       worldSlots,
       worldR2Rect,
@@ -3563,6 +3590,7 @@ const CardEngine = (() => {
       inventoryInnerRect,
       pickerRect,
       pickerAssignRect,
+      pickerForgeFrameRect,
       pickerForgeRect,
       cardInfoRect,
       assignButton,
@@ -3617,17 +3645,15 @@ const CardEngine = (() => {
 
     ctx.save();
     ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.strokeRect(prgGroupRect.x, prgGroupRect.y, prgGroupRect.w, prgGroupRect.h);
+    ctx.strokeRect(worldGroupRect.x, worldGroupRect.y, worldGroupRect.w, worldGroupRect.h);
     ctx.strokeRect(prgRect.x, prgRect.y, prgRect.w, prgRect.h);
     ctx.strokeRect(worldRect.x, worldRect.y, worldRect.w, worldRect.h);
     ctx.strokeRect(worldR2Rect.x, worldR2Rect.y, worldR2Rect.w, worldR2Rect.h);
     ctx.strokeRect(inventoryRect.x, inventoryRect.y, inventoryRect.w, inventoryRect.h);
     ctx.strokeRect(pickerRect.x, pickerRect.y, pickerRect.w, pickerRect.h);
+    ctx.strokeRect(pickerForgeFrameRect.x, pickerForgeFrameRect.y, pickerForgeFrameRect.w, pickerForgeFrameRect.h);
     ctx.strokeRect(cardInfoRect.x, cardInfoRect.y, cardInfoRect.w, cardInfoRect.h);
-    ctx.strokeStyle = "rgba(255,255,255,0.12)";
-    ctx.beginPath();
-    ctx.moveTo(pickerRect.x + 4, pickerForgeRect.y - 5);
-    ctx.lineTo(pickerRect.x + pickerRect.w - 4, pickerForgeRect.y - 5);
-    ctx.stroke();
     ctx.restore();
 
     const activeBindingIndex = prgState.bindings.findIndex((binding) => binding?.active);
