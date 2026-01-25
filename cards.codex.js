@@ -865,6 +865,18 @@ const CardEngine = (() => {
       const pushTempCard = (payload, { setPending = false } = {}) => {
         const entity = createCardEntity(payload);
         if (!entity) return null;
+        const dedupeKey = getRewardDedupeKey(entity);
+        if (dedupeKey) {
+          const existing = tempCards.find((card) => getRewardDedupeKey(card) === dedupeKey);
+          if (existing) {
+            if (setPending) {
+              const now = nowMs();
+              World.pendingCard = existing;
+              World.pendingCardUntilMs = now + 3000;
+            }
+            return existing;
+          }
+        }
         tempCards.push(entity);
         newCards.push(entity);
         if (setPending) {
@@ -2188,6 +2200,19 @@ const CardEngine = (() => {
     return `${String(card.kind || card.type || "").toUpperCase()}:${colors.join("-")}`;
   }
 
+  function getRewardDedupeKey(card) {
+    if (!card) return null;
+    const kindKey = String(card.kind || card.type || "").toUpperCase();
+    if (!kindKey) return null;
+    const colorA = normalizePack01Color(
+      card.colorA || (Array.isArray(card.colors) ? card.colors[0] : null) || card.color
+    );
+    const colorB = normalizePack01Color(
+      card.colorB || (Array.isArray(card.colors) ? card.colors[1] : null)
+    );
+    return `${kindKey}|${colorA || ""}|${colorB || ""}`;
+  }
+
   function commitSequenceRewards(World, cards, { enforceUnique = true } = {}) {
     if (!World || !Array.isArray(cards) || !cards.length) return 0;
     ensureCardsPool(World);
@@ -2195,10 +2220,29 @@ const CardEngine = (() => {
       state.sequence.commitDuplicateLogged = false;
     }
     const localSeen = new Set();
+    const localRewardSeen = new Set();
+    const poolRewardSeen = new Set();
+    if (Array.isArray(World.cardsPool)) {
+      for (const entry of World.cardsPool) {
+        const key = getRewardDedupeKey(entry);
+        if (key) poolRewardSeen.add(key);
+      }
+    }
     let added = 0;
     for (const card of cards) {
       if (!card) continue;
       if (card._committed) continue;
+      const rewardKey = getRewardDedupeKey(card);
+      if (rewardKey) {
+        if (localRewardSeen.has(rewardKey) || poolRewardSeen.has(rewardKey)) {
+          if (!state.sequence.commitDuplicateLogged) {
+            console.warn("[SEQ_COMMIT_DUPLICATE] duplicate reward commit skipped", rewardKey);
+            state.sequence.commitDuplicateLogged = true;
+          }
+          continue;
+        }
+        localRewardSeen.add(rewardKey);
+      }
       const commitKey = getCommitKey(card);
       if (!commitKey) continue;
       if (enforceUnique) {
