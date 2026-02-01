@@ -751,6 +751,43 @@ const CardEngine = (() => {
       state.world.sequenceDirectionColor = null;
       state.world.sequenceFlashColors = [];
     }
+    traceSeqHit("reset", null, { reason: "resetSequenceState" });
+  }
+
+  function shouldTraceSeq() {
+    return typeof window !== "undefined" && window.HC && window.HC.debugSeq;
+  }
+
+  function pushSeqTrace(entry) {
+    if (!shouldTraceSeq()) return;
+    if (!window.HC) window.HC = {};
+    if (!Array.isArray(window.HC.seqTrace)) window.HC.seqTrace = [];
+    window.HC.seqTrace.push(entry);
+  }
+
+  function getSeqTraceSnapshot(seq) {
+    return {
+      active: Boolean(seq.active),
+      currentColor: seq.currentColor,
+      hits: Number(seq.hits || 0),
+      colorsClosed: Array.isArray(seq.colorsClosed) ? seq.colorsClosed.slice() : [],
+      track: seq.track,
+      baseColor: seq.baseColor
+    };
+  }
+
+  function traceSeqHit(action, normalizedColor, details) {
+    if (!shouldTraceSeq()) return;
+    const seq = state.sequence;
+    const entry = {
+      t: nowMs(),
+      action,
+      color: normalizedColor,
+      ...getSeqTraceSnapshot(seq),
+      ...(details && typeof details === "object" ? details : {})
+    };
+    pushSeqTrace(entry);
+    console.log("[SEQ_TRACE]", entry);
   }
 
   function showSequenceOverlay(level, colors, colorKey, ttlMs) {
@@ -989,6 +1026,7 @@ const CardEngine = (() => {
     };
     if (!World || !normalized) {
       logIgnored("invalid-world-or-color", { colorKey, normalized });
+      traceSeqHit("ignored", normalized, { reason: "invalid-world-or-color" });
       return;
     }
     if (debugSeq) {
@@ -1007,6 +1045,7 @@ const CardEngine = (() => {
       startSequenceWithColor(normalized);
       const level = seq.colorsClosed.length + 1;
       addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
+      traceSeqHit("start", normalized);
       return;
     }
 
@@ -1014,10 +1053,12 @@ const CardEngine = (() => {
       if (seq.track === "A") {
         const baseColor = normalizePack01Color(seq.baseColor);
         if (baseColor && normalized !== baseColor) {
+          traceSeqHit("fail", normalized, { reason: "a-track-mismatch" });
           failSequence(World);
           return;
         }
       } else if (seq.track === "R" && seq.colorsClosed.includes(normalized)) {
+        traceSeqHit("fail", normalized, { reason: "r-track-repeat" });
         failSequence(World);
         return;
       }
@@ -1035,6 +1076,7 @@ const CardEngine = (() => {
       seq.opened = false;
       const level = seq.colorsClosed.length + 1;
       addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
+      traceSeqHit("inc", normalized, { step: "start" });
       return;
     }
 
@@ -1045,8 +1087,10 @@ const CardEngine = (() => {
         seq.opened = false;
         const level = seq.colorsClosed.length + 1;
         addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
+        traceSeqHit("inc", normalized, { step: "retarget" });
         return;
       }
+      traceSeqHit("fail", normalized, { reason: "color-mismatch" });
       failSequence(World);
       return;
     }
@@ -1078,12 +1122,38 @@ const CardEngine = (() => {
         if (current) sequenceColors.add(current);
         World.sequencePulseColors = [...sequenceColors];
       }
+      traceSeqHit("inc", normalized, { step: "opened" });
       return;
     }
 
     if (seq.hits === 3) {
+      traceSeqHit("stepClosed", normalized);
       handleSequenceStepClosed(World);
     }
+  }
+
+  function seqSim(hitsArray) {
+    if (typeof window === "undefined") return null;
+    const hc = window.HC || (window.HC = {});
+    const previousDebug = hc.debugSeq;
+    const previousTrace = hc.seqTrace;
+    const trace = [];
+    hc.seqTrace = trace;
+    hc.debugSeq = true;
+    resetSequenceState();
+    if (state.world) {
+      state.world.pendingCard = null;
+      state.world.pendingCardUntilMs = 0;
+    }
+    const inputs = Array.isArray(hitsArray) ? hitsArray : [];
+    inputs.forEach((hit) => onHitColor(hit));
+    const poolKeys = Array.isArray(state.world?.cardsPool)
+      ? state.world.cardsPool.map((card) => card?.id || getCommitKey(card)).filter(Boolean)
+      : [];
+    const result = { cardsPool: poolKeys, trace: trace.slice() };
+    hc.debugSeq = previousDebug;
+    hc.seqTrace = previousTrace;
+    return result;
   }
 
   function handleSequenceOverlayTimeout(World, t) {
@@ -2216,6 +2286,13 @@ const CardEngine = (() => {
   function commitSequenceRewards(World, cards, { enforceUnique = true } = {}) {
     if (!World || !Array.isArray(cards) || !cards.length) return 0;
     ensureCardsPool(World);
+    if (shouldTraceSeq()) {
+      const rewardKeys = cards.map((card) => getRewardDedupeKey(card)).filter(Boolean);
+      console.log("[SEQ_COMMIT_TRACE]", {
+        enforceUnique,
+        rewardKeys
+      });
+    }
     if (typeof state.sequence.commitDuplicateLogged !== "boolean") {
       state.sequence.commitDuplicateLogged = false;
     }
@@ -4532,6 +4609,7 @@ const CardEngine = (() => {
     onRunActivateR1,
     onRunActivateR2,
     onHitColor,
+    seqSim,
     getTotalCardCount,
     recomputeTotalCards,
     resetCardPool,
@@ -4546,4 +4624,6 @@ const CardEngine = (() => {
 if (typeof window !== "undefined") {
   // expose globally for boot + modules
   window.CardEngine = window.CardEngine || CardEngine;
+  window.HC = window.HC || {};
+  if (!window.HC.seqSim) window.HC.seqSim = CardEngine.seqSim || null;
 }
