@@ -47,6 +47,299 @@ const Events = (() => {
 })();
 
 /* =========================
+   1.5) SEQUENCE ENGINE
+   ========================= */
+function createSequenceEngine({ emit } = {}) {
+  const emitEvent = typeof emit === "function" ? emit : () => {};
+  const state = {
+    mode: "IDLE",
+    track: null,
+    stepIndex: 0,
+    A: null,
+    B: null,
+    C: null,
+    D: null,
+    currentColor: null,
+    hits: 0,
+    phase: null,
+    committedKeys: new Set(),
+    earned: []
+  };
+
+  function resetSequenceState() {
+    state.mode = "IDLE";
+    state.track = null;
+    state.stepIndex = 0;
+    state.A = null;
+    state.B = null;
+    state.C = null;
+    state.D = null;
+    state.currentColor = null;
+    state.hits = 0;
+    state.phase = null;
+  }
+
+  function commitReward(key) {
+    if (!key) return;
+    if (state.committedKeys.has(key)) return;
+    state.committedKeys.add(key);
+    state.earned.push(key);
+  }
+
+  function fail(reason) {
+    emitEvent("SEQ_FAIL", { reason, state });
+    resetSequenceState();
+    return { action: "FAIL" };
+  }
+
+  function stepRewardKey(stepNum) {
+    if (state.track === "A" && stepNum === 3) return "DS";
+    if (state.track === "R" && stepNum === 4) return "R4";
+    return `STEP_${stepNum}_${state.currentColor}`;
+  }
+
+  function closeStep() {
+    const stepNum = state.stepIndex + 1;
+
+    if (state.stepIndex === 0) {
+      state.A = state.currentColor;
+    }
+
+    const rewardKey = stepRewardKey(stepNum);
+    commitReward(rewardKey);
+
+    emitEvent("SEQ_CLOSE", {
+      color: state.currentColor,
+      stepIndex: state.stepIndex,
+      track: state.track,
+      rewardKey
+    });
+
+    if (rewardKey === "DS") {
+      resetSequenceState();
+      return { action: "SUCCESS_DS" };
+    }
+
+    if (rewardKey === "R4") {
+      resetSequenceState();
+      return { action: "SUCCESS_R4" };
+    }
+
+    state.stepIndex += 1;
+    state.mode = "IDLE";
+    state.currentColor = null;
+    state.hits = 0;
+    state.phase = null;
+    return { action: "CLOSE" };
+  }
+
+  function startStep(color) {
+    if (state.track === "A" && state.A && color !== state.A) {
+      return fail("A_TRACK_ONLY");
+    }
+
+    if (state.track === "R" && state.stepIndex === 2) {
+      if (color === state.A || color === state.B) {
+        return fail("R_TRACK_INVALID_C");
+      }
+    }
+
+    if (state.track === "R" && state.stepIndex === 3) {
+      if (color === state.A || color === state.B || color === state.C) {
+        return fail("R_TRACK_INVALID_D");
+      }
+    }
+
+    if (state.stepIndex === 1 && state.track === null) {
+      if (color === state.A) {
+        state.track = "A";
+      } else {
+        state.track = "R";
+        state.B = color;
+      }
+    }
+
+    if (state.track === "R") {
+      if (state.stepIndex === 1 && !state.B) state.B = color;
+      if (state.stepIndex === 2) state.C = color;
+      if (state.stepIndex === 3) state.D = color;
+    }
+
+    state.mode = "IN_STEP";
+    state.currentColor = color;
+    state.hits = 1;
+    state.phase = "DIR";
+    return { action: "DIR" };
+  }
+
+  function handleHit(color) {
+    if (state.mode === "IDLE") {
+      return startStep(color);
+    }
+
+    if (color !== state.currentColor) {
+      return fail("COLOR_MISMATCH");
+    }
+
+    if (state.hits === 1) {
+      state.hits = 2;
+      state.phase = "OPEN";
+      emitEvent("SEQ_OPEN", { color: state.currentColor, track: state.track, stepIndex: state.stepIndex });
+      return { action: "OPEN" };
+    }
+
+    if (state.hits === 2) {
+      state.hits = 3;
+      state.phase = "CLOSE";
+      return closeStep();
+    }
+
+    return fail("INVALID_HIT_STATE");
+  }
+
+  return { state, handleHit, resetSequenceState };
+}
+
+const SequenceEngine = createSequenceEngine({ emit: Events.emit });
+
+function seqSim(colorsArray = []) {
+  const engine = createSequenceEngine();
+  const trace = [];
+  const colors = Array.isArray(colorsArray) ? colorsArray : [];
+
+  for (let i = 0; i < colors.length; i++) {
+    const color = colors[i];
+    const result = engine.handleHit(color);
+    const s = engine.state;
+    trace.push({
+      i,
+      color,
+      phase: s.phase,
+      hits: s.hits,
+      currentColor: s.currentColor,
+      track: s.track,
+      stepIndex: s.stepIndex,
+      action: result?.action || null
+    });
+  }
+
+  return {
+    trace,
+    committedKeys: Array.from(engine.state.committedKeys),
+    earned: [...engine.state.earned]
+  };
+}
+
+function runSeqSimTests() {
+  const colors = {
+    A: "yellow",
+    B: "blue",
+    C: "red",
+    D: "green"
+  };
+
+  const tests = [
+    {
+      name: "A-track DS success",
+      seq: [colors.A, colors.A, colors.A, colors.A, colors.A, colors.A, colors.A, colors.A, colors.A],
+      expectAction: "SUCCESS_DS",
+      expectIndex: 8
+    },
+    {
+      name: "A-track fail immediately",
+      seq: [colors.A, colors.A, colors.A, colors.A, colors.B],
+      expectAction: "FAIL",
+      expectIndex: 4
+    },
+    {
+      name: "R-track R4 success",
+      seq: [
+        colors.A, colors.A, colors.A,
+        colors.B, colors.B, colors.B,
+        colors.C, colors.C, colors.C,
+        colors.D, colors.D, colors.D
+      ],
+      expectAction: "SUCCESS_R4",
+      expectIndex: 11
+    },
+    {
+      name: "R-track fail on invalid direction after 3B close (A)",
+      seq: [colors.A, colors.A, colors.A, colors.B, colors.B, colors.B, colors.A],
+      expectAction: "FAIL",
+      expectIndex: 6
+    },
+    {
+      name: "R-track fail on invalid direction after 3B close (B)",
+      seq: [colors.A, colors.A, colors.A, colors.B, colors.B, colors.B, colors.B],
+      expectAction: "FAIL",
+      expectIndex: 6
+    },
+    {
+      name: "R-track fail on invalid direction after 3C close (A)",
+      seq: [
+        colors.A, colors.A, colors.A,
+        colors.B, colors.B, colors.B,
+        colors.C, colors.C, colors.C,
+        colors.A
+      ],
+      expectAction: "FAIL",
+      expectIndex: 9
+    },
+    {
+      name: "R-track fail on invalid direction after 3C close (B)",
+      seq: [
+        colors.A, colors.A, colors.A,
+        colors.B, colors.B, colors.B,
+        colors.C, colors.C, colors.C,
+        colors.B
+      ],
+      expectAction: "FAIL",
+      expectIndex: 9
+    },
+    {
+      name: "R-track fail on invalid direction after 3C close (C)",
+      seq: [
+        colors.A, colors.A, colors.A,
+        colors.B, colors.B, colors.B,
+        colors.C, colors.C, colors.C,
+        colors.C
+      ],
+      expectAction: "FAIL",
+      expectIndex: 9
+    }
+  ];
+
+  const results = tests.map((t) => {
+    const result = seqSim(t.seq);
+    const trace = result.trace;
+    const idx = trace.findIndex((entry) => entry.action === t.expectAction);
+    const passed = idx === t.expectIndex;
+    return { name: t.name, passed, expected: t.expectIndex, got: idx };
+  });
+
+  const failures = results.filter((r) => !r.passed);
+  if (failures.length) {
+    console.warn("[seqSim tests] FAILED", failures);
+  } else {
+    console.log("[seqSim tests] passed", results.length);
+  }
+
+  return { passed: failures.length === 0, results };
+}
+
+if (typeof window !== "undefined") {
+  window.HC = window.HC || {};
+  window.HC.SequenceEngine = SequenceEngine;
+  window.HC.seqSim = seqSim;
+  window.HC.runSeqSimTests = runSeqSimTests;
+  runSeqSimTests();
+}
+
+Events.on("METEOR_SAME_COLOR_COLLISION", ({ color }) => {
+  SequenceEngine.handleHit(color);
+});
+
+/* =========================
    2) MINIMAL CARD ENGINE HOOKS
    ========================= */
 const CardEngine = (() => {
