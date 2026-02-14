@@ -126,13 +126,13 @@ Mechanicznie system operuje na oznaczeniach R1–R4.
 
 1. Każda sekwencja **zawsze zaczyna się od R1**.
 2. Sekwencja kolorów: **A → B → C → D**.
-3. Każdy krok wymaga **2 harmonicznych trafień** tego samego koloru.
+3. Każdy krok wymaga **3 harmonicznych trafień** tego samego koloru.
 
 ---
 
 ### 5.2. Okno decyzyjne (ryzyko) — 3 sekundy
 
-Po zamknięciu kroku (drugie trafienie koloru):
+Po zamknięciu kroku (trzecie trafienie koloru):
 
 - **Lewa połowa:** Aktywuj `R1{kolor}`
 - **Prawa połowa:** Kolekcja (cash-out)
