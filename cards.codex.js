@@ -1161,11 +1161,20 @@ const CardEngine = (() => {
     const rpDelta = Math.floor(Number(World?.score || 0)) - Math.floor(Number(seq.rpStart || 0));
     const awardedCards = rewardCard ? [rewardCard] : [];
     if (seq.track === "A" && cappedLevel >= 3) {
-      showSequenceDsToast(seq.baseColor || seq.A, 1500, { cards: awardedCards, rp: rpDelta });
-      if (World.pendingCard && String(World.pendingCard?.kind || World.pendingCard?.type || "").toUpperCase() === "R1") {
-        World.pendingCard = null;
-        World.pendingCardUntilMs = 0;
+      if (Array.isArray(seq.earned) && seq.earned.length) {
+        for (let i = World.cardsPool.length - 1; i >= 0; i--) {
+          const poolCard = World.cardsPool[i];
+          const shouldRemove = seq.earned.some((earnedCard) => earnedCard === poolCard
+            && String(poolCard?.kind || poolCard?.type || "").toUpperCase() !== "DS");
+          if (shouldRemove) World.cardsPool.splice(i, 1);
+        }
       }
+      recomputeTotalCards(World);
+      showSequenceDsToast(seq.baseColor || seq.A, 1500, { cards: awardedCards, rp: rpDelta });
+      World.pendingCard = null;
+      World.pendingCardUntilMs = 0;
+      if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
+      if (Array.isArray(seq.earned)) seq.earned.length = 0;
     } else {
       showSequenceToast(
         `Kolekcja ${label}`,
@@ -1295,6 +1304,20 @@ const CardEngine = (() => {
       return { action: "close", snapshot };
     }
     return { action: "noop", snapshot: getHitSnapshot(seq) };
+  }
+
+  function seqProbeSimAAA(colorKey) {
+    const normalized = normalizePack01Color(colorKey) || "yellow";
+    const hits = [normalized, normalized, normalized, normalized, normalized, normalized, normalized, normalized, normalized];
+    const sim = seqSim(hits) || {};
+    const poolKeys = Array.isArray(state.world?.cardsPool)
+      ? state.world.cardsPool.map((card) => getRewardDedupeKey(card)).filter(Boolean)
+      : [];
+    return {
+      ...sim,
+      poolKeys,
+      pending: state.world?.pendingCard ? getRewardDedupeKey(state.world.pendingCard) : null
+    };
   }
 
   function seqSim(hitsArray) {
@@ -4887,6 +4910,7 @@ const CardEngine = (() => {
     onHitColor,
     seqSim,
     seqSimTests,
+    seqProbeSimAAA,
     getTotalCardCount,
     recomputeTotalCards,
     resetCardPool,
@@ -4904,4 +4928,6 @@ if (typeof window !== "undefined") {
   window.HC = window.HC || {};
   if (!window.HC.seqSim) window.HC.seqSim = CardEngine.seqSim || null;
   if (!window.HC.seqSimTests) window.HC.seqSimTests = CardEngine.seqSimTests || null;
+  window.HC_SEQ_PROBE = window.HC_SEQ_PROBE || {};
+  window.HC_SEQ_PROBE.simAAA = CardEngine.seqProbeSimAAA || null;
 }
