@@ -189,19 +189,6 @@ const CardEngine = (() => {
     }
   };
 
-  const PACK01_COLOR_HEX = {
-    red: "#FF5E5E",
-    yellow: "#FFD66B",
-    green: "#7DFF9A",
-    blue: "#7BCBFF"
-  };
-
-  const PACK01_COLOR_LABEL = {
-    red: "Czerwony",
-    yellow: "Żółty",
-    green: "Zielony",
-    blue: "Niebieski"
-  };
 
   const SUB_META_SLOTS = [
     { key: "forma", label: "Forma" },
@@ -225,23 +212,6 @@ const CardEngine = (() => {
     return acc;
   }, {});
 
-  const SUB_META_COLORS = ["red", "yellow", "green", "blue"];
-  const CARD_KEY_ORDER = ["red", "yellow", "green", "blue"];
-  const CARD_KEY_LETTER = {
-    red: "A",
-    yellow: "B",
-    green: "C",
-    blue: "D"
-  };
-  const SUB_META_TIERS = ["DR", "sDR", "pDR"];
-  const SUB_META_R2_PAIRS = [
-    ["red", "yellow"],
-    ["red", "green"],
-    ["red", "blue"],
-    ["yellow", "green"],
-    ["yellow", "blue"],
-    ["green", "blue"]
-  ];
   const SUB_META_R3_COMBOS = buildSubMetaComboList(3);
   const SUB_META_R4_COMBOS = buildSubMetaComboList(4);
   const SUB_META_ASSIGN_COST = 10;
@@ -307,7 +277,7 @@ const CardEngine = (() => {
 
   function buildSubMetaComboList(size) {
     const combos = [];
-    const colors = SUB_META_COLORS;
+    const colors = CardRegistry.SUB_META_COLORS;
     const total = colors.length;
     if (!Number.isFinite(size) || size < 1 || size > total) return combos;
     if (size === total) {
@@ -957,7 +927,7 @@ const CardEngine = (() => {
         if (setPending) {
           const now = nowMs();
           World.pendingCard = existing;
-          World.pendingCardUntilMs = now + 3000;
+          World.pendingCardUntilMs = now + CardRegistry.TIMINGS.pendingCardTtlMs;
         }
         return existing;
       }
@@ -966,7 +936,7 @@ const CardEngine = (() => {
     if (setPending) {
       const now = nowMs();
       World.pendingCard = entity;
-      World.pendingCardUntilMs = now + 3000;
+      World.pendingCardUntilMs = now + CardRegistry.TIMINGS.pendingCardTtlMs;
     }
     return entity;
   }
@@ -1091,7 +1061,7 @@ const CardEngine = (() => {
     const maxLevel = seq.track === "A" ? 3 : 4;
     const isTerminal = seq.track && level >= maxLevel;
     if (!isTerminal) {
-      showSequenceOverlay(level, colors, colorKey, 3000, { mode: overlayMode });
+      showSequenceOverlay(level, colors, colorKey, CardRegistry.TIMINGS.sequenceOverlayTtlMs, { mode: overlayMode });
     }
     if (World && colorKey) {
       const flashColors = normalizedColors.slice(0, level);
@@ -1142,7 +1112,7 @@ const CardEngine = (() => {
     const rpDelta = Math.floor(Number(World?.score || 0)) - Math.floor(Number(seq.rpStart || 0));
     rewardSequenceFail(World);
     if (completedColors.length) {
-      showSequenceFailToast(`${rpDelta} RP`, completedColors, 2000, { cards: awardedCards, rp: rpDelta });
+      showSequenceFailToast(`${rpDelta} RP`, completedColors, CardRegistry.TIMINGS.sequenceFailToastTtlMs, { cards: awardedCards, rp: rpDelta });
     }
     resetSequenceState();
   }
@@ -1170,7 +1140,7 @@ const CardEngine = (() => {
         }
       }
       recomputeTotalCards(World);
-      showSequenceDsToast(seq.baseColor || seq.A, 1500, { cards: awardedCards, rp: rpDelta });
+      showSequenceDsToast(seq.baseColor || seq.A, CardRegistry.TIMINGS.sequenceToastTtlMs, { cards: awardedCards, rp: rpDelta });
       World.pendingCard = null;
       World.pendingCardUntilMs = 0;
       if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
@@ -1180,7 +1150,7 @@ const CardEngine = (() => {
         `Kolekcja ${label}`,
         `Sekwencja zamknięta. ${rpDelta} RP`,
         seqColors[cappedLevel - 1] || seqColors[0],
-        1500,
+        CardRegistry.TIMINGS.sequenceToastTtlMs,
         { cards: awardedCards, rp: rpDelta }
       );
     }
@@ -1277,7 +1247,7 @@ const CardEngine = (() => {
       const label = isATrackStep
         ? (["A", "AA", "AAA"][nextLevel - 1] || `A${nextLevel}`)
         : `R${nextLevel}`;
-      showSequenceToast(`Sekwencja ${label} rozpoczęta`, "", seq.currentColor, 1500);
+      showSequenceToast(`Sekwencja ${label} rozpoczęta`, "", seq.currentColor, CardRegistry.TIMINGS.sequenceToastTtlMs);
       if (World) {
         const sequenceColors = new Set();
         const closed = Array.isArray(seq.colorsClosed) ? seq.colorsClosed : [];
@@ -1505,7 +1475,7 @@ const CardEngine = (() => {
     const rpDelta = Math.floor(Number(World?.score || 0)) - Math.floor(Number(seq.rpStart || 0));
     if (seq.track === "A" && cappedLevel >= 3) {
       const dsCards = seq.tempCards.filter((card) => String(card?.kind || card?.type || "").toUpperCase() === "DS");
-      showSequenceDsToast(seq.baseColor || seq.A, 1500, { cards: dsCards, rp: rpDelta });
+      showSequenceDsToast(seq.baseColor || seq.A, CardRegistry.TIMINGS.sequenceToastTtlMs, { cards: dsCards, rp: rpDelta });
       if (World.pendingCard && String(World.pendingCard?.kind || World.pendingCard?.type || "").toUpperCase() === "R1") {
         World.pendingCard = null;
         World.pendingCardUntilMs = 0;
@@ -1515,7 +1485,7 @@ const CardEngine = (() => {
         `Kolekcja ${label}`,
         `Sekwencja zamknięta. ${rpDelta} RP`,
         seqColors[cappedLevel - 1] || seqColors[0],
-        1500,
+        CardRegistry.TIMINGS.sequenceToastTtlMs,
         { cards: cardsAwarded, rp: rpDelta }
       );
     }
@@ -1637,7 +1607,7 @@ const CardEngine = (() => {
   function normalizePack01Color(color) {
     if (!color) return null;
     const key = String(color).toLowerCase();
-    if (PACK01_COLOR_HEX[key]) return key;
+    if (CardRegistry.PACK01_COLOR_HEX[key]) return key;
     return null;
   }
 
@@ -1645,8 +1615,8 @@ const CardEngine = (() => {
     const a = normalizePack01Color(colorA);
     const b = normalizePack01Color(colorB);
     if (!a || !b) return [a, b];
-    const idxA = SUB_META_COLORS.indexOf(a);
-    const idxB = SUB_META_COLORS.indexOf(b);
+    const idxA = CardRegistry.SUB_META_COLORS.indexOf(a);
+    const idxB = CardRegistry.SUB_META_COLORS.indexOf(b);
     if (idxA === -1 || idxB === -1) return [a, b];
     if (idxA <= idxB) return [a, b];
     return [b, a];
@@ -1656,7 +1626,7 @@ const CardEngine = (() => {
     if (!Array.isArray(colors)) return [];
     const normalized = colors.map((color) => normalizePack01Color(color));
     if (normalized.some((color) => !color)) return [];
-    return [...normalized].sort((a, b) => CARD_KEY_ORDER.indexOf(a) - CARD_KEY_ORDER.indexOf(b));
+    return [...normalized].sort((a, b) => CardRegistry.CARD_KEY_ORDER.indexOf(a) - CardRegistry.CARD_KEY_ORDER.indexOf(b));
   }
 
   function canonicalizeColors(colors) {
@@ -1699,7 +1669,7 @@ const CardEngine = (() => {
     if (!required) return null;
     const ordered = getCanonicalColors(colors);
     if (ordered.length < required) return null;
-    const letters = ordered.slice(0, required).map((color) => CARD_KEY_LETTER[color]).join("");
+    const letters = ordered.slice(0, required).map((color) => CardRegistry.CARD_KEY_LETTER[color]).join("");
     if (!letters) return null;
     return `${kindKey}:${letters}`;
   }
@@ -1732,7 +1702,7 @@ const CardEngine = (() => {
   }
 
   function showActivationToast(colorKey) {
-    showSequenceToast("R1 DR aktywowany", "Sekwencja przerwana.", colorKey, 1500);
+    showSequenceToast("R1 DR aktywowany", "Sekwencja przerwana.", colorKey, CardRegistry.TIMINGS.sequenceToastTtlMs);
   }
 
   function onRunActivateR1({ baseDurationMs, colorKey, tierKey, keepSequence } = {}) {
@@ -1966,7 +1936,7 @@ const CardEngine = (() => {
 
   function formatSequenceLabel(colors) {
     const labels = (Array.isArray(colors) ? colors : [])
-      .map((color) => PACK01_COLOR_LABEL[color] || color)
+      .map((color) => CardRegistry.PACK01_COLOR_LABEL[color] || color)
       .filter(Boolean);
     return labels.join(" → ");
   }
@@ -1987,9 +1957,9 @@ const CardEngine = (() => {
       : `Sekwencja R${level}`;
     const subtitle = formatSequenceLabel(colors);
     const colorKey = normalizePack01Color(overlay.colorKey);
-    const barColor = (colorKey && PACK01_COLOR_HEX[colorKey]) || "rgba(255,255,255,0.8)";
+    const barColor = (colorKey && CardRegistry.PACK01_COLOR_HEX[colorKey]) || "rgba(255,255,255,0.8)";
     const mode = overlay.mode || "sequence";
-    const leftLabel = `Aktywuj R1 ${PACK01_COLOR_LABEL[colorKey] || ""}`.trim();
+    const leftLabel = `Aktywuj R1 ${CardRegistry.PACK01_COLOR_LABEL[colorKey] || ""}`.trim();
     const rightLabel = mode === "A"
       ? `Kolekcja ${["A", "AA", "AAA"][level - 1] || `A${level}`}`
       : `Kolekcja R${level}`;
@@ -2013,7 +1983,7 @@ const CardEngine = (() => {
     const chipGap = 6;
     let chipX = layout.x + layout.w / 2 - ((chipW + chipGap) * colors.length - chipGap) / 2;
     colors.forEach((color) => {
-      const hex = PACK01_COLOR_HEX[color] || "rgba(255,255,255,0.8)";
+      const hex = CardRegistry.PACK01_COLOR_HEX[color] || "rgba(255,255,255,0.8)";
       ctx.fillStyle = hex;
       ctx.fillRect(chipX, chipY, chipW, chipH);
       chipX += chipW + chipGap;
@@ -2069,7 +2039,7 @@ const CardEngine = (() => {
     const x = Math.floor(screenW / 2 - w / 2);
     const y = Math.max(12, Math.floor(config.offerYPad - 6));
     const colorKey = normalizePack01Color(toast.colorKey);
-    const barColor = (colorKey && PACK01_COLOR_HEX[colorKey]) || "rgba(255,255,255,0.9)";
+    const barColor = (colorKey && CardRegistry.PACK01_COLOR_HEX[colorKey]) || "rgba(255,255,255,0.9)";
     const rpLabel = Number.isFinite(toast.rp) ? `${toast.rp} RP` : "";
 
     ctx.save();
@@ -2097,7 +2067,7 @@ const CardEngine = (() => {
       const chipY = y + 40;
       colors.forEach((color) => {
         const normalized = normalizePack01Color(color);
-        const hex = (normalized && PACK01_COLOR_HEX[normalized]) || "rgba(255,255,255,0.85)";
+        const hex = (normalized && CardRegistry.PACK01_COLOR_HEX[normalized]) || "rgba(255,255,255,0.85)";
         ctx.fillStyle = hex;
         ctx.fillRect(chipX, chipY, chipW, chipH);
         chipX += chipW + chipGap;
@@ -2173,7 +2143,7 @@ const CardEngine = (() => {
       if (isPulsing) {
         const pulsePhase = ((nowTime % pulseDuration) / pulseDuration) * Math.PI * 2;
         const pulse01 = 0.5 + 0.5 * Math.sin(pulsePhase);
-        const baseRgb = hexToRgb(PACK01_COLOR_HEX[key] || "#FFFFFF");
+        const baseRgb = hexToRgb(CardRegistry.PACK01_COLOR_HEX[key] || "#FFFFFF");
         const mixTarget = count > 0 ? whiteRgb : baseRgb;
         const mixSource = count > 0 ? baseRgb : blackRgb;
         ctx.globalAlpha = 0.95;
@@ -2181,7 +2151,7 @@ const CardEngine = (() => {
         ctx.fillRect(x, y, rectW, rectH);
       } else if (count > 0) {
         ctx.globalAlpha = 0.95;
-        ctx.fillStyle = PACK01_COLOR_HEX[key];
+        ctx.fillStyle = CardRegistry.PACK01_COLOR_HEX[key];
         ctx.fillRect(x, y, rectW, rectH);
       } else {
         ctx.globalAlpha = 0.2;
@@ -2198,7 +2168,7 @@ const CardEngine = (() => {
           const barX = x - 6;
           const barY = y + rectH - barH;
           ctx.globalAlpha = 0.95;
-          ctx.fillStyle = PACK01_COLOR_HEX[key] || "#FFFFFF";
+          ctx.fillStyle = CardRegistry.PACK01_COLOR_HEX[key] || "#FFFFFF";
           ctx.fillRect(barX, barY, barW, barH);
         }
       }
@@ -2484,9 +2454,9 @@ const CardEngine = (() => {
       blue: ["cisza"]
     };
     const library = [];
-    SUB_META_COLORS.forEach((color) => {
+    CardRegistry.SUB_META_COLORS.forEach((color) => {
       const allowedSlots = slotMap[color] || [];
-      SUB_META_TIERS.forEach((tier) => {
+      CardRegistry.SUB_META_TIERS.forEach((tier) => {
         library.push({
           key: `R1_${tier}_${color}`,
           title: "R1",
@@ -2503,8 +2473,8 @@ const CardEngine = (() => {
   function getCanonicalPairKey(colorA, colorB) {
     const a = String(colorA || "");
     const b = String(colorB || "");
-    const idxA = SUB_META_COLORS.indexOf(a);
-    const idxB = SUB_META_COLORS.indexOf(b);
+    const idxA = CardRegistry.SUB_META_COLORS.indexOf(a);
+    const idxB = CardRegistry.SUB_META_COLORS.indexOf(b);
     if (idxA === -1 || idxB === -1) return `${a}-${b}`;
     if (idxA <= idxB) return `${a}-${b}`;
     return `${b}-${a}`;
@@ -2516,10 +2486,10 @@ const CardEngine = (() => {
 
   function buildCardBank() {
     const bank = { R1: {}, R2: {}, R3: {}, R4: {} };
-    SUB_META_COLORS.forEach((color) => {
+    CardRegistry.SUB_META_COLORS.forEach((color) => {
       bank.R1[color] = createTierBucket();
     });
-    SUB_META_R2_PAIRS.forEach((pair) => {
+    CardRegistry.SUB_META_R2_PAIRS.forEach((pair) => {
       const key = getCanonicalPairKey(pair[0], pair[1]);
       bank.R2[key] = createTierBucket();
     });
@@ -2674,9 +2644,9 @@ const CardEngine = (() => {
 
     const bank = World.cardBank || World.cardStock;
     if (bank) {
-      SUB_META_COLORS.forEach((color) => {
+      CardRegistry.SUB_META_COLORS.forEach((color) => {
         const bucket = bank.R1?.[color];
-        SUB_META_TIERS.forEach((tier) => {
+        CardRegistry.SUB_META_TIERS.forEach((tier) => {
           const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
           if (count > 0) pushCards("R1", [color], tier, count);
         });
@@ -2685,7 +2655,7 @@ const CardEngine = (() => {
         const colors = pairKey.split("-");
         if (colors.length < 2) return;
         const bucket = bank.R2?.[pairKey];
-        SUB_META_TIERS.forEach((tier) => {
+        CardRegistry.SUB_META_TIERS.forEach((tier) => {
           const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
           if (count > 0) pushCards("R2", colors, tier, count);
         });
@@ -2694,7 +2664,7 @@ const CardEngine = (() => {
         const combo = SUB_META_R3_COMBOS.find((entry) => entry.key === cardKey);
         if (!combo) return;
         const bucket = bank.R3?.[cardKey];
-        SUB_META_TIERS.forEach((tier) => {
+        CardRegistry.SUB_META_TIERS.forEach((tier) => {
           const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
           if (count > 0) pushCards("R3", combo.colors, tier, count);
         });
@@ -2703,7 +2673,7 @@ const CardEngine = (() => {
         const combo = SUB_META_R4_COMBOS.find((entry) => entry.key === cardKey);
         if (!combo) return;
         const bucket = bank.R4?.[cardKey];
-        SUB_META_TIERS.forEach((tier) => {
+        CardRegistry.SUB_META_TIERS.forEach((tier) => {
           const count = Math.max(0, Math.floor(bucket?.[tier] || 0));
           if (count > 0) pushCards("R4", combo.colors, tier, count);
         });
@@ -2711,7 +2681,7 @@ const CardEngine = (() => {
     }
 
     if (!World.cardsPool.length && World.collectedCardsByColor) {
-      SUB_META_COLORS.forEach((color) => {
+      CardRegistry.SUB_META_COLORS.forEach((color) => {
         const count = Math.max(0, Math.floor(World.collectedCardsByColor[color] || 0));
         if (count > 0) pushCards("R1", [color], "DR", count);
       });
@@ -2719,7 +2689,7 @@ const CardEngine = (() => {
     if (!World.cardsPool.length) {
       const comboCounts = World.collectedCardsByCombo || World.collectedCardsByPair;
       if (comboCounts) {
-        SUB_META_R2_PAIRS.forEach((pair) => {
+        CardRegistry.SUB_META_R2_PAIRS.forEach((pair) => {
           const count = getSubMetaComboCount(comboCounts, pair[0], pair[1]);
           if (count > 0) pushCards("R2", pair, "DR", count);
         });
@@ -2882,7 +2852,7 @@ const CardEngine = (() => {
     if (!entity) return null;
     const now = nowMs();
     World.pendingCard = entity;
-    World.pendingCardUntilMs = now + 3000;
+    World.pendingCardUntilMs = now + CardRegistry.TIMINGS.pendingCardTtlMs;
     return entity;
   }
 
@@ -3383,8 +3353,8 @@ const CardEngine = (() => {
   function getSubMetaInventoryEntries(World) {
     if (!World) return [];
     const entries = [];
-    SUB_META_COLORS.forEach((color) => {
-      SUB_META_TIERS.forEach((tier) => {
+    CardRegistry.SUB_META_COLORS.forEach((color) => {
+      CardRegistry.SUB_META_TIERS.forEach((tier) => {
         const count = getCardCount(World, "R1", [color], tier, { availableOnly: true });
         if (count > 0) {
           entries.push({
@@ -3397,8 +3367,8 @@ const CardEngine = (() => {
         }
       });
     });
-    SUB_META_COLORS.forEach((color) => {
-      SUB_META_TIERS.forEach((tier) => {
+    CardRegistry.SUB_META_COLORS.forEach((color) => {
+      CardRegistry.SUB_META_TIERS.forEach((tier) => {
         const count = getCardCount(World, "DS", [color], tier, { availableOnly: true });
         if (count > 0) {
           entries.push({
@@ -3411,8 +3381,8 @@ const CardEngine = (() => {
         }
       });
     });
-    SUB_META_R2_PAIRS.forEach((pair) => {
-      SUB_META_TIERS.forEach((tier) => {
+    CardRegistry.SUB_META_R2_PAIRS.forEach((pair) => {
+      CardRegistry.SUB_META_TIERS.forEach((tier) => {
         const count = getCardCount(World, "R2", pair, tier, { availableOnly: true });
         if (count > 0) {
           entries.push({
@@ -3426,7 +3396,7 @@ const CardEngine = (() => {
       });
     });
     SUB_META_R3_COMBOS.forEach((combo) => {
-      SUB_META_TIERS.forEach((tier) => {
+      CardRegistry.SUB_META_TIERS.forEach((tier) => {
         const count = getCardCount(World, "R3", combo.colors, tier, { availableOnly: true });
         if (count > 0) {
           entries.push({
@@ -3440,7 +3410,7 @@ const CardEngine = (() => {
       });
     });
     SUB_META_R4_COMBOS.forEach((combo) => {
-      SUB_META_TIERS.forEach((tier) => {
+      CardRegistry.SUB_META_TIERS.forEach((tier) => {
         const count = getCardCount(World, "R4", combo.colors, tier, { availableOnly: true });
         if (count > 0) {
           entries.push({
@@ -3473,7 +3443,7 @@ const CardEngine = (() => {
     if (!slotColor || !entry) return [];
     if (slotIndex === 2 && !entry.dsUnlocked) {
       const list = [];
-      SUB_META_TIERS.forEach((tier) => {
+      CardRegistry.SUB_META_TIERS.forEach((tier) => {
         const count = getCardCount(World, "DS", [slotColor], tier, { availableOnly: true });
         if (count <= 0) return;
         list.push({
@@ -3507,7 +3477,7 @@ const CardEngine = (() => {
       const list = [];
       const pair = getPrgBindingPair(selection.bindingIndex);
       if (!pair) return [];
-      SUB_META_TIERS.forEach((tier) => {
+      CardRegistry.SUB_META_TIERS.forEach((tier) => {
         const count = getCardCount(World, "R2", pair, tier, { availableOnly: true });
         if (count <= 0) return;
         const key = getPrgR2CardKey(tier, pair);
@@ -3530,7 +3500,7 @@ const CardEngine = (() => {
     const pair = getWorldBindingPair(bindingIndex);
     if (!pair) return [];
     const list = [];
-    SUB_META_TIERS.forEach((tier) => {
+    CardRegistry.SUB_META_TIERS.forEach((tier) => {
       const count = getCardCount(World, "R2", pair, tier, { availableOnly: true });
       if (count <= 0) return;
       const key = getPrgR2CardKey(tier, pair);
@@ -3561,7 +3531,7 @@ const CardEngine = (() => {
   function getSubMetaCardTitle(card) {
     if (card && card.title) return card.title;
     const tierLabel = normalizeSubMetaTier(card?.tier);
-    const colorLabel = PACK01_COLOR_LABEL[card?.color] || card?.color || "KOLOR";
+    const colorLabel = CardRegistry.PACK01_COLOR_LABEL[card?.color] || card?.color || "KOLOR";
     return `KARTA ${colorLabel.toUpperCase()} / ${tierLabel}`;
   }
 
@@ -3638,7 +3608,7 @@ const CardEngine = (() => {
     const rectW = SUB_META_CARD_W;
     const rectH = SUB_META_CARD_H;
     const normalizedColors = getEntityColors({ ...card, kind: typeLabel });
-    const paintColors = normalizedColors.map((color) => PACK01_COLOR_HEX[color] || color || "#FFFFFF");
+    const paintColors = normalizedColors.map((color) => CardRegistry.PACK01_COLOR_HEX[color] || color || "#FFFFFF");
     ctx.save();
     ctx.globalAlpha = isDisabled ? 0.35 : 1.0;
     if (paintColors.length <= 1 || typeLabel === "R1") {
@@ -4124,7 +4094,7 @@ const CardEngine = (() => {
     const activeBranchKeys = new Set(activeBindingPair ? [activeBindingPair.from, activeBindingPair.to] : []);
     prgBranches.forEach((branch) => {
       const branchState = prgState.branches?.[branch.key];
-      const branchColor = PACK01_COLOR_HEX[branch.color] || "#FFFFFF";
+      const branchColor = CardRegistry.PACK01_COLOR_HEX[branch.color] || "#FFFFFF";
       const isActiveBranch = activeBranchKeys.has(branch.key);
       const isSelectedBranch = selectedPrgSlotType === "r1" && selectedPrgBranchKey === branch.key;
       const isTabActive = prgState.activeTab === branch.key;
@@ -4203,7 +4173,7 @@ const CardEngine = (() => {
     worldSlots.forEach((slot) => {
       const entry = worldState.slots?.[slot.key];
       const slotColorKey = SUB_META_SLOT_COLORS[slot.key];
-      const slotColorHex = PACK01_COLOR_HEX[slotColorKey] || "#FFFFFF";
+      const slotColorHex = CardRegistry.PACK01_COLOR_HEX[slotColorKey] || "#FFFFFF";
       const isSelectedCategory = selectedWorldSlotType === "r1" && selectedSlotKey === slot.key;
       const isActiveCategory = activeWorldKeys.has(slot.key);
       if (isActiveCategory) {
@@ -4348,7 +4318,7 @@ const CardEngine = (() => {
       const barX = rect.x + rect.w + 3;
       const barY = rect.y + fullH - barH;
       ctx.save();
-      ctx.fillStyle = PACK01_COLOR_HEX[colorKey] || "#FFFFFF";
+      ctx.fillStyle = CardRegistry.PACK01_COLOR_HEX[colorKey] || "#FFFFFF";
       ctx.fillRect(barX, barY, barW, barH);
       ctx.restore();
     });
@@ -4425,8 +4395,8 @@ const CardEngine = (() => {
       const tierLabel = normalizeSubMetaTier(selectedForge.toTier);
       const typeLabel = selectedForge.kind || "R1";
       const colorLabel = selectedForge.colors.length === 2
-        ? `${PACK01_COLOR_LABEL[selectedForge.colors[0]] || selectedForge.colors[0]} + ${PACK01_COLOR_LABEL[selectedForge.colors[1]] || selectedForge.colors[1]}`
-        : `${PACK01_COLOR_LABEL[selectedForge.colors[0]] || selectedForge.colors[0]}`;
+        ? `${CardRegistry.PACK01_COLOR_LABEL[selectedForge.colors[0]] || selectedForge.colors[0]} + ${CardRegistry.PACK01_COLOR_LABEL[selectedForge.colors[1]] || selectedForge.colors[1]}`
+        : `${CardRegistry.PACK01_COLOR_LABEL[selectedForge.colors[0]] || selectedForge.colors[0]}`;
       const fromTierLabel = normalizeSubMetaTier(selectedForge.fromTier);
       const needed = selectedForge.requiredCount || 0;
       const available = getForgeAvailableCount(World, selectedForge.baseId, selectedForge.fromTier);
