@@ -1,4 +1,4 @@
-console.log("[HC] game.boot.codex.js loaded");
+console.log("[HC] game.boot.js loaded");
 /* =========================================================
    Haiku Cosmos — game.js (MONOLITH SAFE v4.1)
    Part 1/3
@@ -35,7 +35,7 @@ console.log("[HC] game.boot.codex.js loaded");
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d", { alpha: false });
   window.HC = window.HC || {};
-  // UI/DEBUG moved to hc.ui_debug.codex.js
+  // UI/DEBUG moved to hc.ui_debug.js
 
   const CardEngine = window.CardEngine;
   const bootState = {
@@ -211,7 +211,7 @@ meteorCollisionFudge: 1.12,
 
 
 
-  // COMETS moved to hc.comets.codex.js
+  // COMETS moved to hc.comets.js
 
   // ---------- API (future cards) ----------
   function setAsteroidOrbitRadius(asteroid, currentRadius) {
@@ -326,9 +326,9 @@ meteorCollisionFudge: 1.12,
     const c = MeteorColors.find(x => x.name === name);
     return c ? c.hue : 0;
   }
-  // METEORS moved to hc.meteors.codex.js
+  // METEORS moved to hc.meteors.js
 
-  // STARS+EPOCH moved to hc.stars_epoch.codex.js
+  // STARS+EPOCH moved to hc.stars_epoch.js
 
   // ---------- Asteroid mapping ----------
   function pairKey(a, b) { return [a, b].sort().join("+"); }
@@ -400,13 +400,13 @@ meteorCollisionFudge: 1.12,
     }
   }
 
-  // STARS+EPOCH moved to hc.stars_epoch.codex.js
+  // STARS+EPOCH moved to hc.stars_epoch.js
 
-  // ASTEROIDS moved to hc.asteroids.codex.js
+  // ASTEROIDS moved to hc.asteroids.js
 
-  // RENDER moved to hc.render.codex.js
+  // RENDER moved to hc.render.js
 
-  // PLANETS moved to hc.planets.codex.js
+  // PLANETS moved to hc.planets.js
 
 
    /* =========================================================
@@ -417,7 +417,7 @@ meteorCollisionFudge: 1.12,
      - Update/render loop + restart + FPS
      ========================================================= */
 
-  // COLLISIONS moved to hc.collisions.codex.js
+  // COLLISIONS moved to hc.collisions.js
 
   // omega ~ 1/sqrt(r)
   function computeOmega(baseOmega, orbitRpx, Rm) {
@@ -425,13 +425,13 @@ meteorCollisionFudge: 1.12,
     return baseOmega / Math.sqrt(rNorm);
   }
 
-  // ASTEROIDS moved to hc.asteroids.codex.js
+  // ASTEROIDS moved to hc.asteroids.js
 
-  // PLANETS moved to hc.planets.codex.js
+  // PLANETS moved to hc.planets.js
 
-  // STARS+EPOCH moved to hc.stars_epoch.codex.js
+  // STARS+EPOCH moved to hc.stars_epoch.js
 
-  // METEORS moved to hc.meteors.codex.js
+  // METEORS moved to hc.meteors.js
 
   if (window.HC && window.HC.Camera && !window.HC.Camera.update) {
     window.HC.Camera.update = (dt, view) => {
@@ -484,7 +484,7 @@ meteorCollisionFudge: 1.12,
     }
   }
 
-  // RENDER moved to hc.render.codex.js
+  // RENDER moved to hc.render.js
 
   window.World = World;
   window.View = View;
