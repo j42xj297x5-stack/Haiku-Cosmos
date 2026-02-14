@@ -1,6 +1,6 @@
-console.log("[HC] cards.codex.js loaded");
+console.log("[HC] cards.js loaded");
 /* =========================================================
-   Haiku Cosmos — cards.codex.js
+   Haiku Cosmos — cards.js
    Stage 1: single source of truth for CardEngine + Card UI
    - No random dealing
    - No preset packs
@@ -8,7 +8,7 @@ console.log("[HC] cards.codex.js loaded");
    ========================================================= */
 
 /* =========================
-   1) EVENT BUS (shared with game.codex.js)
+   1) EVENT BUS (shared with game.js)
    ========================= */
 var Events = (typeof window !== "undefined" && window.Events)
   ? window.Events

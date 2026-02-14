@@ -1,7 +1,7 @@
-// Codex patch template — loaded AFTER game.monolith.codex.js
+// Codex patch template — loaded AFTER game.monolith.js
 (function(){
   if (!window.HC || !window.HC.get) {
-    console.warn("HC API not found. Did you load game.monolith.codex.js?");
+    console.warn("HC API not found. Did you load game.monolith.js?");
     return;
   }
   const { World, state, config, CardEngine, nowMs } = window.HC.get();
