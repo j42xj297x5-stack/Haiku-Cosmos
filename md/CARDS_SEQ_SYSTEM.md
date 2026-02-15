@@ -341,22 +341,204 @@ Tier nie zwiększa bezpośrednio RP.
 ---
 
 ### 7.5. Cztery archetypy R3
-
+ 
 #### 7.5.1. R3 RED_YELLOW_GREEN  
-(brak 🔵)
+(brak 🔵 — brak zmiany typu obiektów)
 
-Styl: Rezonator Materii
+**Styl: Rezonator Materii (STABILIZATOR STRUKTUR)**
 
-PRG override:
-- 🔴 Radius ↑
-- 🟡 Glue zmienny
-- 🟢 Prędkość modulowana
+Ten archetyp nie służy do zagęszczania materii ani przyspieszania epok.  
+Jego rolą jest **stabilizacja istniejących struktur** oraz umożliwienie budowania i utrzymywania **specjalnych formacji** w ograniczonym czasie eonu.
 
-Świat:
-- puls wszystkich obiektów w aktualnym zakresie PRG,
-- meteory mogą łączyć się niezależnie od koloru,
-- planetoidy szybciej rosną.
+Brak 🔵 oznacza:
+- R3 nie rozszerza klasy obiektów objętych wpływem.
+- Rozprysk działa wyłącznie na obiekty, które **już** są w aktualnym zakresie/obszarze oddziaływania PRG (nie „przeskakuje” ontologii).
 
+---
+
+##### A) Definicje i parametry (matematycznie)
+
+Rozprysk powstaje w punkcie harmonicznego trafienia `P0` w czasie `t0`.
+
+**Parametry podstawowe:**
+- `R_prg` — aktualny zasięg PRG (promień wpływu PRG, wynik konfiguracji slotów).
+- `R_splash` — promień rozprysku.
+- `T_splash` — czas trwania rozprysku.
+- `T_pulse` — czas trwania stanu pulsacji (rezonansu) obiektów.
+- `S_tier` — współczynnik tieru:  
+  - DR → `S_tier = 1`  
+  - sDR → `S_tier = 2`  
+  - pDR → `S_tier = 3`
+
+**Promień rozprysku:**
+- `R_splash = clamp(R_min, R_max, R_base * (1 + kR[S_tier]))`
+
+gdzie przykładowo (do strojenia):
+- `kR[1]=0.15` (DR)
+- `kR[2]=0.25` (sDR)
+- `kR[3]=0.40` (pDR)
+
+**Czas trwania:**
+- `T_splash = T_base * (1 + kT[S_tier])`  
+- `T_pulse  = P_base * (1 + kP[S_tier])`
+
+Propozycja startowa (do strojenia):
+- `T_base = 4s`, `P_base = 12s`
+- `kT = {0, 0.25, 0.50}`
+- `kP = {0, 0.50, 1.00}`
+
+**Warunek objęcia obiektu wpływem rozprysku:**
+Obiekt `o` (z pozycją `pos(o,t)`) jest objęty rozpryskiem, jeśli:
+- `dist(pos(o,t0), P0) <= R_splash`
+oraz (brak 🔵):
+- `o ∈ PRG_ActiveObjectSet(t0)`  
+(tj. obiekt należy do zbioru obiektów, na które aktualnie działa PRG w danym momencie)
+
+---
+
+##### B) PRG override (lokalny, tylko w strefie rozprysku)
+
+Rozprysk nie modyfikuje na stałe PRG.  
+Wprowadza **chwilowy lokalny override** tylko dla obiektów spełniających warunek z pkt. A.
+
+###### 1) 🔴 Radius ↑
+Interpretacja: większy zasięg samego rozprysku, nie globalny PRG.
+
+- `R_splash` rośnie zgodnie z definicją powyżej.
+- `R_prg` (globalny) pozostaje bez zmian.
+
+###### 2) 🟡 Glue zmienny → „wygaszanie ekstremów”
+Nie jest to naprzemienne przyciąganie/odpychanie.
+To stabilizator, który redukuje ekstremalne siły (zarówno attraction jak i repulsion),
+aby układ dążył do stabilniejszego stanu.
+
+Dla każdego obiektu w rozprysku:
+- `F_glue_eff = F_glue * (1 - kG[S_tier])`
+
+Propozycja startowa:
+- `kG[1]=0.20`
+- `kG[2]=0.35`
+- `kG[3]=0.50`
+
+Efekt:
+- mniejsze „wciąganie do środka” (mniej kolapsu),
+- mniejsze „wyrzucanie na zewnątrz” (mniej chaotycznych ucieczek),
+- większa szansa utrzymania formacji.
+
+###### 3) 🟢 Prędkość modulowana → „damping energii kinetycznej”
+W strefie rozprysku obniżamy energię kinetyczną obiektów (spowolnienie lokalne),
+żeby nie dochodziło do gwałtownych zderzeń i lawinowego wzrostu.
+
+Dla obiektu w rozprysku:
+- `v_eff = v * (1 - kV[S_tier])`
+
+Propozycja startowa:
+- `kV[1]=0.15`
+- `kV[2]=0.25`
+- `kV[3]=0.35`
+
+---
+
+##### C) Stan obiektu: „Rezonans Stabilny” (pulsacja)
+
+Obiekty objęte rozpryskiem przechodzą w stan:
+
+- `state(o) = STABLE_RESONANCE` przez `T_pulse`.
+
+W tym stanie:
+
+1. **Wygaszanie ekstremów (Glue damping)** aktywne przez cały `T_pulse`  
+   (kontynuacja efektu z pkt. B2 w słabszej wersji):
+   - `F_glue_eff = F_glue * (1 - kG2[S_tier])`
+   - np. `kG2 = {0.10, 0.20, 0.30}`
+
+2. **Redukcja prędkości (Velocity damping)** aktywna przez cały `T_pulse`  
+   (kontynuacja efektu z pkt. B3 w słabszej wersji):
+   - `v_eff = v * (1 - kV2[S_tier])`
+   - np. `kV2 = {0.08, 0.15, 0.22}`
+
+3. **Blokada „eskalacji formy” (Anti-Accelerate)**
+   Ten archetyp nie przyspiesza epok.
+   W stanie `STABLE_RESONANCE` obiekt:
+   - nie otrzymuje żadnego dodatkowego bonusu przechwytywania,
+   - nie zwiększa tempa ewolucji,
+   - (opcjonalnie) ma ograniczoną możliwość wejścia w dalszy etap rozwoju:
+     - `growth_rate_eff = growth_rate * (1 - kGR[S_tier])`
+     - np. `kGR = {0.10, 0.25, 0.40}`
+
+Celem jest **wydłużenie czasu stabilnego istnienia układu**.
+
+---
+
+##### D) Interakcja z kartą „Intencja” (odbicie meteorów)
+
+Jeżeli aktywna konfiguracja ŚWIAT/PRG powoduje odbijanie meteorów:
+
+- Rezonator Materii **nie nadpisuje** logiki odbicia.
+- Działa wyłącznie jako stabilizator po odbiciu:
+  - obniża energię kinetyczną,
+  - zmniejsza ekstremalne siły,
+  - zwiększa szanse utrzymania orbit / formacji.
+
+---
+
+##### E) Karty specjalne i formacje (propozycje nazewnicze)
+
+Ten archetyp premiuje **utrzymanie formacji** w czasie, a nie produkcję masy.
+
+Poniższe nazwy są „pustymi hakami” do CARD_SPEC_SYSTEM.md —  
+jeśli warunek nie jest jeszcze zdefiniowany, pozostaje jako nazwa.
+
+**1) Rezonans**  
+Karta specjalna powiązana z utrzymaniem stanu `STABLE_RESONANCE` przez czas.
+
+**2) Fala**  
+Karta związana z udanym utrzymaniem stabilności po serii rozprysków (np. 3 rozpryski w krótkim oknie).
+
+**3) Echo**  
+Karta powiązana z „powtórzeniem” stanu rezonansu w tym samym obszarze (np. dwa rozpryski w promieniu X w czasie Y).
+
+**4) Konstelacja** *(nazwa do wykorzystania)*  
+Formacja: ≥ 3 obiekty (np. planetoidy/planety) w stanie `STABLE_RESONANCE` jednocześnie przez czas `T_form`.
+
+**5) Układ** *(nazwa do wykorzystania)*  
+Formacja: planeta + ≥ 2 planetoidy w `STABLE_RESONANCE` jednocześnie.
+
+**6) Akretacja Harmoniczna** *(nazwa do wykorzystania)*  
+Nazwa pozostaje (może zostać użyta w innym archetypie lub w pDR),
+ale w Rezonatorze Materii nie przyspiesza wzrostu — ewentualnie może oznaczać
+„stabilne utrzymanie energii” zamiast jej pozyskiwania.
+
+---
+
+##### F) Slot modyfikacyjny (Spec Slot) — przykłady dla tego archetypu
+
+Modyfikator nie zwiększa promienia ani nie daje % do RP.
+Odblokowuje właściwość stabilizacji/formacji.
+
+Przykładowe nazwy (do CARD_SPEC_SYSTEM.md):
+
+- **Rdzeń** — wydłuża `T_pulse` (np. +50%)  
+- **Cień** — obiekt w `STABLE_RESONANCE` ma zmniejszoną kolizyjność (łatwiej utrzymać formację bez przypadkowego zderzenia)  
+- **Echo** — drugi rozprysk w krótkim oknie wzmacnia stabilizację zamiast resetować timer  
+- **Spokój** *(nazwa do wykorzystania)* — zmniejsza `growth_rate_eff` mocniej, kosztem słabszego damping prędkości
+
+---
+
+##### G) Podsumowanie efektu
+
+R3 RED_YELLOW_GREEN jest narzędziem:
+
+- lokalnej stabilizacji układu,
+- wygaszania gwałtownych zderzeń,
+- redukcji ekstremalnych sił,
+- budowania i utrzymania formacji specjalnych,
+- wydłużania czasu spędzanego w danej epoce/eonie.
+
+Nie służy do:
+- przyspieszania ewolucji obiektów,
+- zagęszczania świata,
+- szybszego domykania eonu.
 ---
 
 #### 7.5.2. R3 RED_YELLOW_BLUE  
