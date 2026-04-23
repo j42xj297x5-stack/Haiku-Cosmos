@@ -101,10 +101,101 @@
     R1_PDR_BLUE: { kind: "R1", tier: "pDR", colorA: "blue" },
   });
 
+  const SCENARIO_PRESETS = Object.freeze({
+    r1_success: Object.freeze({
+      id: "r1_success",
+      label: "R1 success",
+      scenarioLabel: "r1_success",
+      config: {
+        initialRP: 0,
+        initialCards: { R1_DR_RED: 1, R1_DR_GREEN: 1, R1_DR_BLUE: 1, R1_DR_YELLOW: 1 },
+        initialWorldState: { asteroidCount: 2, rockyPlanetCount: 0, gasPlanetCount: 0, starCount: 0 },
+      },
+    }),
+    sequence_fail: Object.freeze({
+      id: "sequence_fail",
+      label: "Sequence fail",
+      scenarioLabel: "sequence_fail",
+      config: {
+        initialRP: 0,
+        initialCards: { R1_DR_RED: 2, R1_DR_GREEN: 2, R1_DR_BLUE: 2, R1_DR_YELLOW: 2 },
+        initialWorldState: { asteroidCount: 1, rockyPlanetCount: 0, gasPlanetCount: 0, starCount: 0 },
+      },
+    }),
+    cashout_r2: Object.freeze({
+      id: "cashout_r2",
+      label: "Cash-out R2",
+      scenarioLabel: "cashout_r2",
+      config: {
+        initialRP: 24,
+        initialCards: { R1_DR_RED: 4, R1_DR_GREEN: 4, R1_DR_BLUE: 4, R1_DR_YELLOW: 4 },
+        initialWorldState: { asteroidCount: 4, rockyPlanetCount: 1, gasPlanetCount: 0, starCount: 0 },
+      },
+    }),
+    aa_aaa_ds: Object.freeze({
+      id: "aa_aaa_ds",
+      label: "AA / AAA / DS",
+      scenarioLabel: "aa_aaa_ds",
+      config: {
+        initialRP: 10,
+        initialCards: { R1_DR_RED: 6, DS_DR_RED: 2, R1_SDR_RED: 1, R1_PDR_RED: 1 },
+        initialWorldState: { asteroidCount: 2, rockyPlanetCount: 0, gasPlanetCount: 0, starCount: 0 },
+      },
+    }),
+    asteroid_to_planet: Object.freeze({
+      id: "asteroid_to_planet",
+      label: "Asteroid -> Planet",
+      scenarioLabel: "asteroid_to_planet",
+      config: {
+        initialRP: 6,
+        initialCards: { R1_DR_RED: 2, R1_DR_BLUE: 2 },
+        initialWorldState: { asteroidCount: 5, rockyPlanetCount: 0, gasPlanetCount: 0, starCount: 0 },
+        thresholdOverrides: { asteroidToPlanet: 3, planetToStar: null },
+      },
+    }),
+    planet_to_star: Object.freeze({
+      id: "planet_to_star",
+      label: "Planet -> Star",
+      scenarioLabel: "planet_to_star",
+      config: {
+        initialRP: 12,
+        initialCards: { R1_DR_RED: 3, R1_DR_BLUE: 3, R1_DR_GREEN: 3, R1_DR_YELLOW: 3 },
+        initialWorldState: { asteroidCount: 0, rockyPlanetCount: 2, gasPlanetCount: 2, starCount: 0 },
+        thresholdOverrides: { asteroidToPlanet: null, planetToStar: 4 },
+      },
+    }),
+    normal_regression: Object.freeze({
+      id: "normal_regression",
+      label: "Normal regression",
+      scenarioLabel: "normal_regression",
+      config: createDebugConfig("normal"),
+    }),
+  });
+
   function clampInt(value, fallback = 0) {
     const n = Math.floor(Number(value));
     if (!Number.isFinite(n) || n < 0) return fallback;
     return n;
+  }
+
+  function cloneJson(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function safeParseJsonl(raw) {
+    if (!raw) return [];
+    return String(raw)
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch (_e) {
+          return null;
+        }
+      })
+      .filter(Boolean);
   }
 
   function createDebugConfig(mode, partial = {}) {
@@ -674,6 +765,7 @@
     logger: null,
     sessionInputConfig: null,
     baseThresholds: null,
+codex/implement-physical-logging-to-disk
     issueLedger: [],
     finalizeState: {
       status: "idle",
@@ -682,6 +774,13 @@
       mainLog: null,
       summary: null,
     },
+
+    startedAtIso: null,
+    endedAtIso: null,
+    scenarioLabel: "unspecified",
+    scenarioPresetId: "custom",
+    evidenceNote: "",
+ CODEX-STARTING_POINT
 
     ensureBaseThresholds(World) {
       if (this.baseThresholds || !World) return;
@@ -821,16 +920,197 @@
       }, { source: "Session.applyDebugBootstrap", snapshot: true });
     },
 
+    getScenarioPresets() {
+      return Object.values(SCENARIO_PRESETS).map((preset) => ({
+        id: preset.id,
+        label: preset.label,
+        scenarioLabel: preset.scenarioLabel,
+        config: cloneJson(preset.config || {}),
+      }));
+    },
+
+    getPresetById(presetId) {
+      return SCENARIO_PRESETS[presetId] || null;
+    },
+
+    getSessionLogKey() {
+      return this.logger?.backend?.key || (this.sessionId ? `hc_debug_session_${this.sessionId}.jsonl` : null);
+    },
+
+    getSessionEvents() {
+      const key = this.getSessionLogKey();
+      if (!key) return [];
+      let raw = "";
+      try {
+        raw = localStorage.getItem(key) || "";
+      } catch (_e) {}
+      return safeParseJsonl(raw).filter((entry) => entry && entry.type !== EVENT_TYPES.DEBUG_FLUSH);
+    },
+
+    getSessionDurationMs() {
+      if (!this.startedAtIso) return 0;
+      const started = Date.parse(this.startedAtIso);
+      const ended = this.endedAtIso ? Date.parse(this.endedAtIso) : Date.now();
+      if (!Number.isFinite(started) || !Number.isFinite(ended)) return 0;
+      return Math.max(0, ended - started);
+    },
+
+    buildSessionSummary(events, finalSnapshot) {
+      const summary = {
+        sequenceStarted: 0,
+        stepCompleted: 0,
+        failDetected: 0,
+        failResolved: 0,
+        cashoutCompleted: 0,
+        dsGranted: 0,
+        transformationStarted: 0,
+        transformationCompleted: 0,
+        transformationBlocked: 0,
+        rpGained: 0,
+        rpSpent: 0,
+        rpSetInitial: 0,
+        cardCollected: 0,
+        cardCreated: 0,
+        warningEvents: 0,
+        errorEvents: 0,
+        eventsByCategory: {},
+        eventsByType: {},
+        finalSequenceState: finalSnapshot?.sequence || null,
+        finalWorldCounts: finalSnapshot?.worldCounts || null,
+        finalRp: finalSnapshot?.economy?.rp ?? 0,
+        finalCardCounts: finalSnapshot?.economy?.cards || {},
+      };
+      const bump = (field) => {
+        summary[field] = (summary[field] || 0) + 1;
+      };
+      for (const event of events) {
+        if (!event) continue;
+        const category = event.category || "unknown";
+        const type = event.type || "unknown";
+        summary.eventsByCategory[category] = (summary.eventsByCategory[category] || 0) + 1;
+        summary.eventsByType[type] = (summary.eventsByType[type] || 0) + 1;
+        if (event.severity === "warn" || event.severity === "warning") summary.warningEvents += 1;
+        if (event.severity === "error" || event.severity === "critical") summary.errorEvents += 1;
+        if (type === EVENT_TYPES.SEQUENCE_STARTED) bump("sequenceStarted");
+        if (type === EVENT_TYPES.SEQUENCE_STEP_COMPLETED) bump("stepCompleted");
+        if (type === EVENT_TYPES.SEQUENCE_FAIL_DETECTED) bump("failDetected");
+        if (type === EVENT_TYPES.SEQUENCE_FAIL_RESOLVED) bump("failResolved");
+        if (type === EVENT_TYPES.SEQUENCE_CASHOUT_COMPLETED) bump("cashoutCompleted");
+        if (type === EVENT_TYPES.SEQUENCE_DS_GRANTED) bump("dsGranted");
+        if (type === EVENT_TYPES.WORLD_TRANSFORMATION_STARTED) bump("transformationStarted");
+        if (type === EVENT_TYPES.WORLD_TRANSFORMATION_COMPLETED) bump("transformationCompleted");
+        if (type === EVENT_TYPES.WORLD_TRANSFORMATION_BLOCKED) bump("transformationBlocked");
+        if (type === EVENT_TYPES.RP_GAINED) bump("rpGained");
+        if (type === EVENT_TYPES.RP_SPENT) bump("rpSpent");
+        if (type === EVENT_TYPES.RP_SET_INITIAL) bump("rpSetInitial");
+        if (type === EVENT_TYPES.CARD_COLLECTED) bump("cardCollected");
+        if (type === EVENT_TYPES.CARD_CREATED) bump("cardCreated");
+      }
+      return summary;
+    },
+
+    buildEvidencePack(note = "") {
+      this.flush("evidence_pack");
+      const finalSnapshot = this.getRuntimeSnapshot();
+      const events = this.getSessionEvents();
+      const sessionMeta = {
+        sessionId: this.sessionId,
+        mode: this.mode,
+        scenarioLabel: this.scenarioLabel,
+        scenarioPresetId: this.scenarioPresetId,
+        startedAt: this.startedAtIso,
+        endedAt: this.endedAtIso || new Date().toISOString(),
+        durationMs: this.getSessionDurationMs(),
+        build: window.HC_BUILD_VERSION || null,
+        debugConfig: this.debugConfig,
+        logKey: this.getSessionLogKey(),
+      };
+      const summary = this.buildSessionSummary(events, finalSnapshot);
+      return {
+        session_meta: sessionMeta,
+        final_snapshot: finalSnapshot,
+        summary,
+        notes: String(note || this.evidenceNote || "").trim(),
+        events_jsonl: events.map((event) => JSON.stringify(event)).join("\n"),
+        issues: this.issues.filter((issue) => issue.sessionId === this.sessionId),
+      };
+    },
+
+    downloadTextFile(filename, text, mime = "application/json") {
+      const blob = new Blob([text], { type: `${mime};charset=utf-8` });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    },
+
+    exportEvidence(note = "") {
+      if (!this.sessionId) return null;
+      const pack = this.buildEvidencePack(note);
+      const safeId = String(this.sessionId).replace(/[^a-zA-Z0-9._-]+/g, "_");
+      this.downloadTextFile(`hc_evidence_${safeId}.json`, JSON.stringify(pack, null, 2));
+      this.downloadTextFile(`hc_evidence_${safeId}.events.jsonl`, pack.events_jsonl || "", "text/plain");
+      try {
+        localStorage.setItem(`hc_evidence_pack_${this.sessionId}`, JSON.stringify(pack));
+      } catch (_e) {}
+      return pack;
+    },
+
+    markIssue(partial = {}) {
+      if (!this.sessionId) return null;
+      const now = new Date().toISOString();
+      const issue = {
+        issueId: `issue_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
+        sessionId: this.sessionId,
+        scenarioLabel: this.scenarioLabel,
+        title: partial.title || "Untitled issue",
+        category: partial.category || "regression",
+        severity: partial.severity || "medium",
+        expected: partial.expected || "",
+        observed: partial.observed || "",
+        reproSteps: partial.reproSteps || "",
+        timestamp: now,
+        relatedEventIds: Array.isArray(partial.relatedEventIds) ? partial.relatedEventIds : [],
+        relatedSnapshot: partial.relatedSnapshot || "runtime_snapshot",
+      };
+      this.issues.push(issue);
+      try {
+        const prev = JSON.parse(localStorage.getItem("hc_issue_ledger_v1") || "[]");
+        const next = Array.isArray(prev) ? prev.concat(issue) : [issue];
+        localStorage.setItem("hc_issue_ledger_v1", JSON.stringify(next, null, 2));
+      } catch (_e) {}
+      return issue;
+    },
+
     start(mode, uiConfig = null) {
       this.mode = mode === "debug" ? "debug" : "normal";
-      this.sessionInputConfig = uiConfig;
+      const rawInput = uiConfig && typeof uiConfig === "object" ? uiConfig : {};
+      const scenarioLabelRaw = String(rawInput.scenarioLabel || "").trim();
+      this.scenarioLabel = scenarioLabelRaw || (this.mode === "debug" ? "debug_custom" : "normal_regression");
+      this.scenarioPresetId = String(rawInput.scenarioPresetId || "custom");
+      this.evidenceNote = String(rawInput.note || "").trim();
+      const runtimeConfig = { ...rawInput };
+      delete runtimeConfig.scenarioLabel;
+      delete runtimeConfig.scenarioPresetId;
+      delete runtimeConfig.note;
+      this.sessionInputConfig = rawInput;
       this.sessionId = `s_${new Date().toISOString().replace(/[:.]/g, "-")}`;
+codex/implement-physical-logging-to-disk
       this.debugConfig = createDebugConfig(this.mode, this.mode === "debug" ? (uiConfig || {}) : {});
       const ts = formatSessionTimestamp(new Date());
       const shortId = this.sessionId.slice(-6);
       const scenario = slugifyLabel(this.debugConfig.scenarioLabel || "manual_session");
       this.debugConfig.filePrefix = `${ts}__sess_${shortId}__${this.mode}__${scenario}`;
       this.debugConfig.sessionFolderName = `${ts}__sess_${shortId}__${this.mode}__${scenario}`;
+
+      this.startedAtIso = new Date().toISOString();
+      this.endedAtIso = null;
+      this.debugConfig = createDebugConfig(this.mode, this.mode === "debug" ? runtimeConfig : {});
+CODEX-STARTING_POINT
       this.logger = new RuntimeEventLogger(this.debugConfig, this.sessionId);
       this.logger.start();
       this.started = true;
@@ -863,6 +1143,8 @@
       this.emit("session", EVENT_TYPES.SESSION_STARTED, {
         mode: this.mode,
         sessionId: this.sessionId,
+        scenarioLabel: this.scenarioLabel,
+        scenarioPresetId: this.scenarioPresetId,
       }, { source: "Session", snapshot: true });
 
       if (World) World.paused = false;
@@ -917,12 +1199,26 @@
 
     end(reason = "ended") {
       if (!this.started) return;
+ codex/implement-physical-logging-to-disk
       this.finalize(reason, false);
+
+      this.endedAtIso = new Date().toISOString();
+      this.emit("session", EVENT_TYPES.SESSION_ENDED, { reason }, { source: "Session", snapshot: true });
+      this.logger?.shutdown(reason);
+      this.started = false;
+ CODEX-STARTING_POINT
     },
 
     abort(reason = "aborted") {
       if (!this.started) return;
+ codex/implement-physical-logging-to-disk
       this.finalize(reason, true);
+
+      this.endedAtIso = new Date().toISOString();
+      this.emit("session", EVENT_TYPES.SESSION_ABORTED, { reason }, { source: "Session", snapshot: true, severity: "warn" });
+      this.logger?.shutdown(reason);
+      this.started = false;
+ CODEX-STARTING_POINT
     },
 
     emit(category, type, payload = {}, opts = {}) {
@@ -984,6 +1280,8 @@
         mode: this.mode,
         started: this.started,
         sessionId: this.sessionId,
+        scenarioLabel: this.scenarioLabel,
+        scenarioPresetId: this.scenarioPresetId,
         sessionTimeMs: logger ? Math.max(0, Math.floor(performance.now() - logger.sessionStartedAt)) : 0,
         frame: logger?.frame || 0,
         loggingEnabled: Boolean(this.debugConfig?.loggingEnabled),

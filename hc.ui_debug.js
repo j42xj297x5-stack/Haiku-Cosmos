@@ -18,15 +18,59 @@
   let runtimeDebugOverlay = null;
   let runtimeDebugOverlayBody = null;
   let btnDebugOverlayToggle = null;
+codex/implement-physical-logging-to-disk
   let btnDebugSelectFolder = null;
   let btnDebugFinalizeSession = null;
   let btnDebugCopyPath = null;
+
+  let btnExportEvidence = null;
+  let btnMarkIssue = null;
+  let debugSessionNote = null;
+  let cfgScenarioPreset = null;
+  let cfgScenarioLabel = null;
+ CODEX-STARTING_POINT
   let runtimeOverlayCompact = true;
   let runtimeOverlayLastRenderMs = 0;
   let fpsAcc = 0;
   let fpsFrames = 0;
   let initialized = false;
   let lastScore = null;
+
+  const DEBUG_UI_TEXT = Object.freeze({
+    "common.back": "Back",
+    "common.resetDefaults": "Reset to defaults",
+    "start.startDebugSession": "Start Debug Session",
+    "start.chooseMode": "Choose mode for this session.",
+    "start.normalGame": "Normal Game",
+    "start.debugMode": "Debug Mode",
+    "cfg.scenario": "Scenario",
+    "cfg.scenarioPreset": "Preset",
+    "cfg.customScenarioLabel": "Custom label",
+    "overlay.runtimeDebug": "Runtime Debug",
+    "overlay.expand": "Expand",
+    "overlay.compact": "Compact",
+    "overlay.exportEvidence": "Export evidence",
+    "overlay.markIssue": "Mark issue",
+    "overlay.notePlaceholder": "Session note (optional)",
+    "overlay.section.session": "Session",
+    "overlay.section.sequence": "Sequence",
+    "overlay.section.worldThresholds": "World / Thresholds",
+    "overlay.section.lastEvents": "Last events",
+    "overlay.section.economy": "Economy / Cards",
+    "overlay.section.tail": "Mini tail",
+    "overlay.loggingOn": "on",
+    "overlay.loggingOff": "off",
+    "overlay.na": "—",
+  });
+
+  function t(key) {
+    return DEBUG_UI_TEXT[key] || key;
+  }
+
+  window.HC.DebugI18n = {
+    t,
+    keys: DEBUG_UI_TEXT,
+  };
 
   function updateScoreLabel(World, force) {
     if (!scoreLabel || !World) return;
@@ -90,6 +134,21 @@
     };
   }
 
+  function getScenarioPresetOptions() {
+    if (window.HC?.Session?.getScenarioPresets) return window.HC.Session.getScenarioPresets();
+    return [];
+  }
+
+  function populateScenarioPresetSelect() {
+    if (!cfgScenarioPreset) return;
+    const presets = getScenarioPresetOptions();
+    const options = [{ id: "custom", label: "Custom", scenarioLabel: "debug_custom" }, ...presets];
+    cfgScenarioPreset.innerHTML = options
+      .map((preset) => `<option value="${preset.id}">${preset.label}</option>`)
+      .join("");
+    cfgScenarioPreset.value = "custom";
+  }
+
   function applyDebugDefaultsToUi() {
     const defaults = getDebugDefaults();
     const setValue = (id, v) => {
@@ -123,6 +182,48 @@
     const thresholds = defaults.thresholdOverrides || {};
     setValue("cfgThresholdAsteroidToPlanet", thresholds.asteroidToPlanet ?? "");
     setValue("cfgThresholdPlanetToStar", thresholds.planetToStar ?? "");
+    if (cfgScenarioPreset) cfgScenarioPreset.value = "custom";
+    if (cfgScenarioLabel) cfgScenarioLabel.value = "";
+  }
+
+  function applyPresetToUi(presetId) {
+    if (!presetId || presetId === "custom") return applyDebugDefaultsToUi();
+    const preset = window.HC?.Session?.getPresetById ? window.HC.Session.getPresetById(presetId) : null;
+    if (!preset || !preset.config) return;
+    const merged = window.HC?.createDebugConfig
+      ? window.HC.createDebugConfig("debug", preset.config)
+      : preset.config;
+    const setValue = (id, v) => {
+      const el = document.getElementById(id);
+      if (el) el.value = String(v ?? "");
+    };
+    setValue("cfgInitialRP", merged.initialRP || 0);
+    const cards = merged.initialCards || {};
+    setValue("cfgCardR1RedDR", sanitizeNonNegativeInt(cards.R1_DR_RED || 0));
+    setValue("cfgCardR1YellowDR", sanitizeNonNegativeInt(cards.R1_DR_YELLOW || 0));
+    setValue("cfgCardR1GreenDR", sanitizeNonNegativeInt(cards.R1_DR_GREEN || 0));
+    setValue("cfgCardR1BlueDR", sanitizeNonNegativeInt(cards.R1_DR_BLUE || 0));
+    setValue("cfgCardDSRedDR", sanitizeNonNegativeInt(cards.DS_DR_RED || 0));
+    setValue("cfgCardDSYellowDR", sanitizeNonNegativeInt(cards.DS_DR_YELLOW || 0));
+    setValue("cfgCardDSGreenDR", sanitizeNonNegativeInt(cards.DS_DR_GREEN || 0));
+    setValue("cfgCardDSBlueDR", sanitizeNonNegativeInt(cards.DS_DR_BLUE || 0));
+    setValue("cfgCardR1RedSDR", sanitizeNonNegativeInt(cards.R1_SDR_RED || 0));
+    setValue("cfgCardR1RedPDR", sanitizeNonNegativeInt(cards.R1_PDR_RED || 0));
+    setValue("cfgCardR1YellowSDR", sanitizeNonNegativeInt(cards.R1_SDR_YELLOW || 0));
+    setValue("cfgCardR1YellowPDR", sanitizeNonNegativeInt(cards.R1_PDR_YELLOW || 0));
+    setValue("cfgCardR1GreenSDR", sanitizeNonNegativeInt(cards.R1_SDR_GREEN || 0));
+    setValue("cfgCardR1GreenPDR", sanitizeNonNegativeInt(cards.R1_PDR_GREEN || 0));
+    setValue("cfgCardR1BlueSDR", sanitizeNonNegativeInt(cards.R1_SDR_BLUE || 0));
+    setValue("cfgCardR1BluePDR", sanitizeNonNegativeInt(cards.R1_PDR_BLUE || 0));
+    const world = merged.initialWorldState || {};
+    setValue("cfgAsteroidCount", sanitizeNonNegativeInt(world.asteroidCount || 0));
+    setValue("cfgRockyPlanetCount", sanitizeNonNegativeInt(world.rockyPlanetCount || 0));
+    setValue("cfgGasPlanetCount", sanitizeNonNegativeInt(world.gasPlanetCount || 0));
+    setValue("cfgStarCount", sanitizeNonNegativeInt(world.starCount || 0));
+    const thresholds = merged.thresholdOverrides || {};
+    setValue("cfgThresholdAsteroidToPlanet", thresholds.asteroidToPlanet ?? "");
+    setValue("cfgThresholdPlanetToStar", thresholds.planetToStar ?? "");
+    if (cfgScenarioLabel && !cfgScenarioLabel.value.trim()) cfgScenarioLabel.value = preset.scenarioLabel || preset.id;
   }
 
   function buildDebugConfigFromUi() {
@@ -145,6 +246,9 @@
       R1_SDR_BLUE: getInt("cfgCardR1BlueSDR"),
       R1_PDR_BLUE: getInt("cfgCardR1BluePDR"),
     };
+    const presetId = cfgScenarioPreset?.value || "custom";
+    const preset = window.HC?.Session?.getPresetById ? window.HC.Session.getPresetById(presetId) : null;
+    const scenarioLabel = String(cfgScenarioLabel?.value || "").trim() || preset?.scenarioLabel || presetId || "debug_custom";
     return {
       initialRP: getInt("cfgInitialRP"),
       scenarioLabel: String(document.getElementById("cfgScenarioLabel")?.value || "manual_session").trim() || "manual_session",
@@ -159,7 +263,25 @@
         asteroidToPlanet: readOptionalThreshold(document.getElementById("cfgThresholdAsteroidToPlanet")?.value),
         planetToStar: readOptionalThreshold(document.getElementById("cfgThresholdPlanetToStar")?.value),
       },
+      scenarioPresetId: presetId,
+      scenarioLabel,
+      note: String(debugSessionNote?.value || "").trim(),
     };
+  }
+
+  function applyStaticI18nText() {
+    const nodes = document.querySelectorAll("[data-debug-i18n]");
+    nodes.forEach((node) => {
+      const key = node.getAttribute("data-debug-i18n");
+      if (!key) return;
+      node.textContent = t(key);
+    });
+    const placeholderNodes = document.querySelectorAll("[data-debug-i18n-placeholder]");
+    placeholderNodes.forEach((node) => {
+      const key = node.getAttribute("data-debug-i18n-placeholder");
+      if (!key) return;
+      node.setAttribute("placeholder", t(key));
+    });
   }
 
   window.HC.UI = {
@@ -183,17 +305,29 @@
       runtimeDebugOverlay = document.getElementById("runtimeDebugOverlay");
       runtimeDebugOverlayBody = document.getElementById("runtimeDebugOverlayBody");
       btnDebugOverlayToggle = document.getElementById("btnDebugOverlayToggle");
+ codex/implement-physical-logging-to-disk
       btnDebugSelectFolder = document.getElementById("btnDebugSelectFolder");
       btnDebugFinalizeSession = document.getElementById("btnDebugFinalizeSession");
       btnDebugCopyPath = document.getElementById("btnDebugCopyPath");
+
+      btnExportEvidence = document.getElementById("btnExportEvidence");
+      btnMarkIssue = document.getElementById("btnMarkIssue");
+      debugSessionNote = document.getElementById("debugSessionNote");
+      cfgScenarioPreset = document.getElementById("cfgScenarioPreset");
+      cfgScenarioLabel = document.getElementById("cfgScenarioLabel");
+
+      applyStaticI18nText();
+      populateScenarioPresetSelect();
+ CODEX-STARTING_POINT
 
       if (btnDebugOverlayToggle) {
         btnDebugOverlayToggle.addEventListener("click", () => {
           runtimeOverlayCompact = !runtimeOverlayCompact;
           if (runtimeDebugOverlay) runtimeDebugOverlay.classList.toggle("compact", runtimeOverlayCompact);
-          btnDebugOverlayToggle.textContent = runtimeOverlayCompact ? "Expand" : "Compact";
+          btnDebugOverlayToggle.textContent = runtimeOverlayCompact ? t("overlay.expand") : t("overlay.compact");
         });
       }
+ codex/implement-physical-logging-to-disk
       if (btnDebugSelectFolder) {
         btnDebugSelectFolder.addEventListener("click", async () => {
           if (!window.HC?.selectDebugLogFolder) return;
@@ -225,6 +359,36 @@
             await navigator.clipboard.writeText(path);
           }
         });
+
+      if (btnExportEvidence) {
+        btnExportEvidence.addEventListener("click", () => {
+          const note = String(debugSessionNote?.value || "").trim();
+          window.HC?.Session?.exportEvidence?.(note);
+        });
+      }
+      if (btnMarkIssue) {
+        btnMarkIssue.addEventListener("click", () => {
+          const title = window.prompt("Issue title?");
+          if (!title) return;
+          const category = window.prompt("Category (sequence|reward|transform|ui|logging|regression)?", "regression") || "regression";
+          const severity = window.prompt("Severity (low|medium|high|critical)?", "medium") || "medium";
+          const expected = window.prompt("Expected behavior?", "");
+          const observed = window.prompt("Observed behavior?", "");
+          const reproSteps = window.prompt("Repro steps?", "");
+          const issue = window.HC?.Session?.markIssue?.({
+            title,
+            category,
+            severity,
+            expected,
+            observed,
+            reproSteps,
+          });
+          if (issue) window.alert(`Issue saved: ${issue.issueId}`);
+        });
+      }
+      if (cfgScenarioPreset) {
+        cfgScenarioPreset.addEventListener("change", () => applyPresetToUi(cfgScenarioPreset.value));
+ CODEX-STARTING_POINT
       }
 
       scoreLabel = ensureScoreLabel();
@@ -324,7 +488,7 @@
   }
 
   function summarizeEvent(event) {
-    if (!event) return "—";
+    if (!event) return t("overlay.na");
     const payload = event.payload || {};
     const core = payload.sourceId || payload.reason || payload.thresholdType || payload.current || "";
     return `${event.type}${core ? ` · ${core}` : ""}`;
@@ -343,15 +507,23 @@
 
     sections.push(`
       <section class="overlay-section">
-        <h4>Session</h4>
+        <h4>${t("overlay.section.session")}</h4>
         <div class="overlay-grid">${renderRows([
           ["mode", snap.mode || "-"],
+ codex/implement-physical-logging-to-disk
           ["sessionId", snap.sessionId || "-"],
           ["time", fmtMs(snap.sessionTimeMs)],
           ["frame", snap.frame ?? 0],
           ["logging", snap.loggingEnabled ? "on" : "off"],
           ["log status", fs.status || "idle"],
           ["backend", ls.mode || "-"],
+
+          ["scenario", snap.scenarioLabel || "-"],
+          ["sessionId", snap.sessionId || "-"],
+          ["time", fmtMs(snap.sessionTimeMs)],
+          ["frame", snap.frame ?? 0],
+          ["logging", snap.loggingEnabled ? t("overlay.loggingOn") : t("overlay.loggingOff")],
+CODEX-STARTING_POINT
           ["buffer", snap.pendingLogBufferSize ?? 0],
         ])}</div>
       </section>
@@ -359,6 +531,7 @@
 
     sections.push(`
       <section class="overlay-section">
+codex/implement-physical-logging-to-disk
         <h4>Log files</h4>
         <div class="overlay-grid">${renderRows([
           ["folder", ls.filesSavedTo || fs.filesSavedTo || "-"],
@@ -372,6 +545,9 @@
     sections.push(`
       <section class="overlay-section">
         <h4>Sequence</h4>
+
+        <h4>${t("overlay.section.sequence")}</h4>
+ CODEX-STARTING_POINT
         <div class="overlay-grid">${renderRows([
           ["active", seq.active ? "yes" : "no"],
           ["stage", seq.stage || "IDLE"],
@@ -387,7 +563,7 @@
 
     sections.push(`
       <section class="overlay-section overlay-expanded-only">
-        <h4>Economy / Cards</h4>
+        <h4>${t("overlay.section.economy")}</h4>
         <div class="overlay-grid">${renderRows([
           ["RP", snap.economy?.rp ?? 0],
           ["R1 DR", `${cards.R1_DR_RED || 0}/${cards.R1_DR_YELLOW || 0}/${cards.R1_DR_GREEN || 0}/${cards.R1_DR_BLUE || 0}`],
@@ -400,7 +576,7 @@
 
     sections.push(`
       <section class="overlay-section">
-        <h4>World / Thresholds</h4>
+        <h4>${t("overlay.section.worldThresholds")}</h4>
         <div class="overlay-grid">${renderRows([
           ["asteroids", wc.asteroids ?? 0],
           ["rocky", wc.rockyPlanets ?? 0],
@@ -414,7 +590,7 @@
 
     sections.push(`
       <section class="overlay-section">
-        <h4>Last events</h4>
+        <h4>${t("overlay.section.lastEvents")}</h4>
         <div class="overlay-grid">${renderRows([
           ["sequence", summarizeEvent(snap.lastByCategory?.sequence)],
           ["world", summarizeEvent(snap.lastByCategory?.world)],
@@ -426,7 +602,7 @@
     if (!compact) {
       sections.push(`
         <section class="overlay-section overlay-expanded-only">
-          <h4>Mini tail</h4>
+          <h4>${t("overlay.section.tail")}</h4>
           <ul class="overlay-tail">
             ${recent.reverse().map((e) => `<li>[${fmtMs(e.sessionTimeMs)}] ${e.type}</li>`).join("") || "<li>—</li>"}
           </ul>

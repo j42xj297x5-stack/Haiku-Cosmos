@@ -175,6 +175,7 @@
     .overlay-header { display: flex; gap: 8px; justify-content: space-between; align-items: center; }
     .overlay-header-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
     .overlay-header .overlay-title { font-weight: 700; letter-spacing: 0.02em; }
+    .overlay-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
     .overlay-btn {
       border-radius: 7px;
       border: 1px solid rgba(255,255,255,0.24);
@@ -212,6 +213,18 @@
       overflow: auto;
     }
     .overlay-tail li { opacity: 0.82; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .overlay-note {
+      width: 100%;
+      min-height: 54px;
+      box-sizing: border-box;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(0,0,0,0.25);
+      color: #fff;
+      padding: 6px;
+      font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      resize: vertical;
+    }
   </style>
 </head>
 
@@ -229,14 +242,23 @@
     </div>
     <aside id="runtimeDebugOverlay" hidden class="compact" aria-live="polite">
       <div class="overlay-header">
+ codex/implement-physical-logging-to-disk
         <span class="overlay-title">Runtime Debug</span>
         <div class="overlay-header-actions">
           <button id="btnDebugSelectFolder" class="overlay-btn" type="button">Select Log Folder</button>
           <button id="btnDebugFinalizeSession" class="overlay-btn" type="button">End Debug Session</button>
           <button id="btnDebugCopyPath" class="overlay-btn" type="button">Copy Path</button>
           <button id="btnDebugOverlayToggle" class="overlay-btn" type="button">Expand</button>
+
+        <span class="overlay-title" data-debug-i18n="overlay.runtimeDebug">Runtime Debug</span>
+        <div class="overlay-actions">
+          <button id="btnExportEvidence" class="overlay-btn" type="button" data-debug-i18n="overlay.exportEvidence">Export evidence</button>
+          <button id="btnMarkIssue" class="overlay-btn" type="button" data-debug-i18n="overlay.markIssue">Mark issue</button>
+          <button id="btnDebugOverlayToggle" class="overlay-btn" type="button" data-debug-i18n="overlay.expand">Expand</button>
+ CODEX-STARTING_POINT
         </div>
       </div>
+      <textarea id="debugSessionNote" class="overlay-note" data-debug-i18n-placeholder="overlay.notePlaceholder" placeholder="Session note (optional)"></textarea>
       <div id="runtimeDebugOverlayBody" class="overlay-grid"></div>
     </aside>
   </div>
@@ -244,13 +266,18 @@
   <div id="startOverlay">
     <div class="start-panel">
       <h2 style="margin:0; font-size:20px;">Haiku Cosmos</h2>
-      <div>Choose mode for this session.</div>
+      <div data-debug-i18n="start.chooseMode">Choose mode for this session.</div>
       <div class="start-actions">
-        <button id="btnStartNormal" type="button">Normal Game</button>
-        <button id="btnStartDebug" type="button">Debug Mode</button>
+        <button id="btnStartNormal" type="button" data-debug-i18n="start.normalGame">Normal Game</button>
+        <button id="btnStartDebug" type="button" data-debug-i18n="start.debugMode">Debug Mode</button>
       </div>
       <div id="debugConfigPanel" class="debug-config-panel" hidden>
         <div class="debug-config-grid">
+          <section class="cfg-section">
+            <h3 data-debug-i18n="cfg.scenario">Scenario</h3>
+            <label class="cfg-row"><span data-debug-i18n="cfg.scenarioPreset">Preset</span><select id="cfgScenarioPreset"></select></label>
+            <label class="cfg-row"><span data-debug-i18n="cfg.customScenarioLabel">Custom label</span><input id="cfgScenarioLabel" type="text" maxlength="80" placeholder="optional custom label"></label>
+          </section>
           <section class="cfg-section">
             <h3>A. Startowe RP</h3>
             <label class="cfg-row"><span>Startowe RP</span><input id="cfgInitialRP" type="number" min="0" step="1" value="0"></label>
@@ -289,10 +316,10 @@
           </section>
         </div>
         <div class="secondary-actions">
-          <button id="btnDebugBack" type="button">Back</button>
-          <button id="btnDebugResetDefaults" type="button">Reset to defaults</button>
+          <button id="btnDebugBack" type="button" data-debug-i18n="common.back">Back</button>
+          <button id="btnDebugResetDefaults" type="button" data-debug-i18n="common.resetDefaults">Reset to defaults</button>
         </div>
-        <button id="btnStartDebugSession" type="button">Start Debug Session</button>
+        <button id="btnStartDebugSession" type="button" data-debug-i18n="start.startDebugSession">Start Debug Session</button>
       </div>
     </div>
   </div>
