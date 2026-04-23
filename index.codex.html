@@ -150,6 +150,67 @@
       gap: 8px;
     }
     .debug-badge { opacity: 0.7; }
+
+    #runtimeDebugOverlay {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      width: min(360px, 42vw);
+      max-height: 62vh;
+      overflow: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(8, 10, 18, 0.74);
+      color: rgba(245,247,255,0.95);
+      font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      z-index: 9999;
+      pointer-events: auto;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+      padding: 8px;
+      display: grid;
+      gap: 8px;
+    }
+    #runtimeDebugOverlay[hidden] { display: none; }
+    .overlay-header { display: flex; gap: 8px; justify-content: space-between; align-items: center; }
+    .overlay-header .overlay-title { font-weight: 700; letter-spacing: 0.02em; }
+    .overlay-btn {
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,0.24);
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      padding: 3px 7px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .overlay-grid { display: grid; gap: 6px; }
+    .overlay-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .overlay-row .k { opacity: 0.75; }
+    .overlay-row .v { text-align: right; }
+    .overlay-section {
+      border-top: 1px solid rgba(255,255,255,0.14);
+      padding-top: 6px;
+      display: grid;
+      gap: 4px;
+    }
+    .overlay-section h4 {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0.85;
+      letter-spacing: 0.02em;
+    }
+    #runtimeDebugOverlay.compact .overlay-expanded-only { display: none; }
+    .overlay-tail {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 3px;
+      max-height: 110px;
+      overflow: auto;
+    }
+    .overlay-tail li { opacity: 0.82; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   </style>
 </head>
 
@@ -165,6 +226,13 @@
       <button class="pill" id="btnRestart" type="button">Restart</button>
       <button class="pill" id="btnSubMeta" type="button">META</button>
     </div>
+    <aside id="runtimeDebugOverlay" hidden class="compact" aria-live="polite">
+      <div class="overlay-header">
+        <span class="overlay-title">Runtime Debug</span>
+        <button id="btnDebugOverlayToggle" class="overlay-btn" type="button">Expand</button>
+      </div>
+      <div id="runtimeDebugOverlayBody" class="overlay-grid"></div>
+    </aside>
   </div>
 
   <div id="startOverlay">
