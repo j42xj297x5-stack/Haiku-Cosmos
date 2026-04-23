@@ -101,6 +101,54 @@
       color: #fff;
       cursor: pointer;
     }
+    .debug-config-panel {
+      border-top: 1px solid rgba(255,255,255,0.16);
+      padding-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .debug-config-panel[hidden] { display: none; }
+    .debug-config-grid {
+      display: grid;
+      gap: 8px;
+      max-height: 44vh;
+      overflow: auto;
+      padding-right: 6px;
+    }
+    .cfg-section {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      padding: 8px;
+      display: grid;
+      gap: 6px;
+      background: rgba(255,255,255,0.03);
+    }
+    .cfg-section h3 {
+      margin: 0;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+    .cfg-row {
+      display: grid;
+      grid-template-columns: 1fr 90px;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+    }
+    .cfg-row input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 5px 6px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,0.24);
+      background: rgba(0,0,0,0.35);
+      color: #fff;
+    }
+    .secondary-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
     .debug-badge { opacity: 0.7; }
   </style>
 </head>
@@ -126,6 +174,50 @@
       <div class="start-actions">
         <button id="btnStartNormal" type="button">Normal Game</button>
         <button id="btnStartDebug" type="button">Debug Mode</button>
+      </div>
+      <div id="debugConfigPanel" class="debug-config-panel" hidden>
+        <div class="debug-config-grid">
+          <section class="cfg-section">
+            <h3>A. Startowe RP</h3>
+            <label class="cfg-row"><span>Startowe RP</span><input id="cfgInitialRP" type="number" min="0" step="1" value="0"></label>
+          </section>
+          <section class="cfg-section">
+            <h3>B. Startowe karty</h3>
+            <label class="cfg-row"><span>R1 Red (DR)</span><input id="cfgCardR1RedDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Yellow (DR)</span><input id="cfgCardR1YellowDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Green (DR)</span><input id="cfgCardR1GreenDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Blue (DR)</span><input id="cfgCardR1BlueDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>DS Red (DR)</span><input id="cfgCardDSRedDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>DS Yellow (DR)</span><input id="cfgCardDSYellowDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>DS Green (DR)</span><input id="cfgCardDSGreenDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>DS Blue (DR)</span><input id="cfgCardDSBlueDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Red (sDR)</span><input id="cfgCardR1RedSDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Red (pDR)</span><input id="cfgCardR1RedPDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Yellow (sDR)</span><input id="cfgCardR1YellowSDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Yellow (pDR)</span><input id="cfgCardR1YellowPDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Green (sDR)</span><input id="cfgCardR1GreenSDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Green (pDR)</span><input id="cfgCardR1GreenPDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Blue (sDR)</span><input id="cfgCardR1BlueSDR" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>R1 Blue (pDR)</span><input id="cfgCardR1BluePDR" type="number" min="0" step="1" value="0"></label>
+          </section>
+          <section class="cfg-section">
+            <h3>C. Startowy stan świata</h3>
+            <label class="cfg-row"><span>Asteroids</span><input id="cfgAsteroidCount" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>Rocky Planets</span><input id="cfgRockyPlanetCount" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>Gas Planets</span><input id="cfgGasPlanetCount" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>Stars</span><input id="cfgStarCount" type="number" min="0" step="1" value="0"></label>
+          </section>
+          <section class="cfg-section">
+            <h3>D. Override progów</h3>
+            <label class="cfg-row"><span>Asteroid → Planet</span><input id="cfgThresholdAsteroidToPlanet" type="number" min="0" step="1" placeholder="default"></label>
+            <label class="cfg-row"><span>Planet → Star</span><input id="cfgThresholdPlanetToStar" type="number" min="0" step="1" placeholder="default"></label>
+          </section>
+        </div>
+        <div class="secondary-actions">
+          <button id="btnDebugBack" type="button">Back</button>
+          <button id="btnDebugResetDefaults" type="button">Reset to defaults</button>
+        </div>
+        <button id="btnStartDebugSession" type="button">Start Debug Session</button>
       </div>
     </div>
   </div>
