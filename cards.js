@@ -102,6 +102,43 @@ const CardEngine = (() => {
     pack01TargetDurationMs: 180000,
   };
 
+  function createSequenceState(overrides = {}) {
+    return {
+      active: false,
+      chainColors: [],
+      stage: "IDLE",
+      expectedColor: null,
+      hitCount: 0,
+      loopMode: null,
+      lastResolution: null,
+      resolutionLock: false,
+      resolutionId: 0,
+      lastHitSignature: null,
+      mode: "IDLE",
+      track: null,
+      stepIndex: 0,
+      A: null,
+      B: null,
+      C: null,
+      D: null,
+      currentColor: null,
+      hits: 0,
+      phase: null,
+      committedKeys: new Set(),
+      earned: [],
+      lastHitSnapshot: null,
+      opened: false,
+      colorsClosed: [],
+      chainIndex: 0,
+      chainPattern: [],
+      baseColor: null,
+      tempCards: [],
+      commitDuplicateLogged: false,
+      rpStart: 0,
+      ...overrides
+    };
+  }
+
   const state = {
     hand: [],
     queue: [],
@@ -128,30 +165,7 @@ const CardEngine = (() => {
 
     ui: { enabled: true },
 
-    sequence: {
-      mode: "IDLE",
-      track: null,
-      stepIndex: 0,
-      A: null,
-      B: null,
-      C: null,
-      D: null,
-      currentColor: null,
-      hits: 0,
-      phase: null,
-      committedKeys: new Set(),
-      earned: [],
-      lastHitSnapshot: null,
-      active: false,
-      opened: false,
-      colorsClosed: [],
-      chainIndex: 0,
-      chainPattern: [],
-      baseColor: null,
-      tempCards: [],
-      commitDuplicateLogged: false,
-      rpStart: 0
-    },
+    sequence: createSequenceState(),
     sequenceOverlay: {
       visible: false,
       level: 0,
@@ -743,30 +757,11 @@ const CardEngine = (() => {
   }
 
   function resetSequenceState() {
-    state.sequence = {
-      mode: "IDLE",
-      track: null,
-      stepIndex: 0,
-      A: null,
-      B: null,
-      C: null,
-      D: null,
-      currentColor: null,
-      hits: 0,
-      phase: null,
-      committedKeys: new Set(),
-      earned: [],
-      lastHitSnapshot: null,
-      active: false,
-      opened: false,
-      colorsClosed: [],
-      chainIndex: 0,
-      chainPattern: [],
-      baseColor: null,
-      tempCards: [],
-      commitDuplicateLogged: false,
-      rpStart: 0
-    };
+    const previous = state.sequence || createSequenceState();
+    state.sequence = createSequenceState({
+      resolutionId: Number(previous.resolutionId || 0) + 1,
+      lastResolution: previous.lastResolution || null,
+    });
     if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
     if (state.world) {
       state.world.cardsTemp = state.sequence.tempCards;
@@ -774,6 +769,10 @@ const CardEngine = (() => {
       state.world.sequenceDirectionColor = null;
       state.world.sequenceFlashColors = [];
     }
+    emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_RESET, {
+      reason: "resetSequenceState",
+      previousResolution: previous.lastResolution || null,
+    }, { source: "CardEngine.resetSequenceState", snapshot: true });
     traceSeqHit("reset", null, { reason: "resetSequenceState" });
   }
 
@@ -807,8 +806,58 @@ const CardEngine = (() => {
       hits: Number(seq.hits || 0),
       currentColor: seq.currentColor,
       track: seq.track,
-      stepIndex: Number(seq.stepIndex || 0)
+      stepIndex: Number(seq.stepIndex || 0),
+      expectedColor: seq.expectedColor || null,
+      stage: seq.stage || "IDLE",
+      chainColors: Array.isArray(seq.chainColors) ? seq.chainColors.slice() : [],
     };
+  }
+
+  function getSequenceStage(seq) {
+    if (!seq.track) return "R1";
+    if (seq.track === "A") {
+      if (seq.stepIndex <= 0) return "R1";
+      if (seq.stepIndex === 1) return "AA";
+      return "AAA";
+    }
+    if (seq.stepIndex <= 0) return "R1";
+    if (seq.stepIndex === 1) return "R2";
+    if (seq.stepIndex === 2) return "R3";
+    return "R4";
+  }
+
+  function emitSequenceEvent(type, payload = {}, opts = {}) {
+    logRuntimeEvent("sequence", type, payload, opts);
+  }
+
+  function syncSequenceDerivedState(seq, reason, opts = {}) {
+    const prevExpected = seq.expectedColor || null;
+    const prevStage = seq.stage || "IDLE";
+    const expectedColor = seq.mode === "IN_STEP" ? normalizePack01Color(seq.currentColor) : null;
+    seq.expectedColor = expectedColor;
+    seq.hitCount = Number(seq.hits || 0);
+    seq.chainColors = Array.isArray(seq.colorsClosed) ? seq.colorsClosed.slice() : [];
+    seq.stage = seq.active ? getSequenceStage(seq) : "IDLE";
+    seq.loopMode = seq.track === "A" ? (seq.stepIndex >= 2 ? "AAA" : (seq.stepIndex >= 1 ? "AA" : "AA")) : null;
+    if (prevExpected !== seq.expectedColor) {
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_EXPECTED_COLOR_CHANGED, {
+        reason: reason || "sync",
+        previous: prevExpected,
+        current: seq.expectedColor,
+        stage: seq.stage,
+        hitCount: seq.hitCount,
+        chainColors: seq.chainColors.slice(),
+      }, { source: "CardEngine.syncSequenceDerivedState", snapshot: Boolean(opts.snapshot) });
+    }
+    if (prevStage !== seq.stage && opts.emitStageEvent) {
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_STEP_STARTED, {
+        reason: reason || "sync",
+        previousStage: prevStage,
+        stage: seq.stage,
+        expectedColor: seq.expectedColor,
+        chainColors: seq.chainColors.slice(),
+      }, { source: "CardEngine.syncSequenceDerivedState" });
+    }
   }
 
   function traceSeqHit(action, normalizedColor, details) {
@@ -898,32 +947,15 @@ const CardEngine = (() => {
 
   function startSequenceSession() {
     const seq = state.sequence;
-    seq.active = true;
-    seq.mode = "IDLE";
-    seq.track = null;
-    seq.stepIndex = 0;
-    seq.A = null;
-    seq.B = null;
-    seq.C = null;
-    seq.D = null;
-    seq.currentColor = null;
-    seq.hits = 0;
-    seq.phase = null;
-    seq.opened = false;
-    seq.colorsClosed = [];
-    seq.chainIndex = 0;
-    seq.chainPattern = [];
-    seq.baseColor = null;
-    seq.rpStart = Math.floor(Number(state.world?.score || 0));
-    seq.committedKeys = new Set();
-    seq.earned = [];
-    seq.lastHitSnapshot = null;
-    if (!Array.isArray(seq.tempCards)) seq.tempCards = [];
-    seq.tempCards.length = 0;
-    seq.commitDuplicateLogged = false;
+    Object.assign(seq, createSequenceState({
+      active: true,
+      rpStart: Math.floor(Number(state.world?.score || 0)),
+      resolutionId: Number(seq.resolutionId || 0) + 1,
+    }));
     if (state.world) {
       state.world.cardsTemp = seq.tempCards;
     }
+    syncSequenceDerivedState(seq, "start-session", { emitStageEvent: true });
     logRuntimeEvent("sequence", window.HC?.DebugEventTypes?.SEQUENCE_STARTED, {
       rpStart: seq.rpStart,
     }, { source: "CardEngine.startSequenceSession", snapshot: true });
@@ -934,10 +966,14 @@ const CardEngine = (() => {
     if (phase === "OPEN") {
       seq.opened = true;
     }
+    syncSequenceDerivedState(seq, `phase-${phase}`);
     logRuntimeEvent("sequence", window.HC?.DebugEventTypes?.SEQUENCE_STEP_PROGRESS, {
       phase,
       stepIndex: seq.stepIndex,
       track: seq.track || null,
+      expectedColor: seq.expectedColor || null,
+      stage: seq.stage || null,
+      chainColors: seq.chainColors || [],
     }, { source: "CardEngine.setSequencePhase" });
   }
 
@@ -1042,12 +1078,15 @@ const CardEngine = (() => {
       if (!seq.baseColor) seq.baseColor = colorKey;
     }
     const rewardCard = awardSequenceStep(World, seq);
+    syncSequenceDerivedState(seq, "step-completed");
     logRuntimeEvent("sequence", window.HC?.DebugEventTypes?.SEQUENCE_STEP_COMPLETED, {
       stepIndex: seq.stepIndex,
       track: seq.track || null,
       color: colorKey || null,
       rewardCardId: rewardCard?.id || null,
-    }, { source: "CardEngine.closeSequenceStep" });
+      stage: seq.stage || null,
+      chainColors: seq.chainColors || [],
+    }, { source: "CardEngine.closeSequenceStep", snapshot: true });
     handleSequenceStepClosed(World, rewardCard);
   }
 
@@ -1103,12 +1142,25 @@ const CardEngine = (() => {
     if (!seq.baseColor && colorKey) {
       seq.baseColor = colorKey;
     }
+    syncSequenceDerivedState(seq, "step-closed");
     const level = seq.stepIndex;
     const colors = seq.colorsClosed.slice(0, level);
     const normalizedColors = colors.map((color) => normalizePack01Color(color)).filter(Boolean);
     const overlayMode = seq.track === "A" ? "A" : "R";
     const maxLevel = seq.track === "A" ? 3 : 4;
     const isTerminal = seq.track && level >= maxLevel;
+    if (seq.track === "A" && level === 2) {
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_LOOP_AA_COMPLETED, {
+        stage: "AA",
+        chainColors: seq.chainColors || [],
+        color: seq.baseColor || seq.A || colorKey || null,
+      }, { source: "CardEngine.handleSequenceStepClosed" });
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_LOOP_AAA_STARTED, {
+        stage: "AAA",
+        chainColors: seq.chainColors || [],
+        color: seq.baseColor || seq.A || colorKey || null,
+      }, { source: "CardEngine.handleSequenceStepClosed" });
+    }
     if (!isTerminal) {
       showSequenceOverlay(level, colors, colorKey, 3000, { mode: overlayMode });
     }
@@ -1137,6 +1189,7 @@ const CardEngine = (() => {
     seq.opened = false;
     seq.phase = null;
     seq.mode = "IDLE";
+    syncSequenceDerivedState(seq, "post-step-reset", { snapshot: true });
     if (World) {
       World.sequencePulseColors = [];
     }
@@ -1156,9 +1209,17 @@ const CardEngine = (() => {
 
   function failSequence(World) {
     const seq = state.sequence;
+    if (seq.resolutionLock) return;
+    seq.resolutionLock = true;
     const completedColors = seq.colorsClosed.slice();
     const awardedCards = Array.isArray(seq.tempCards) ? seq.tempCards.slice() : [];
     const rpDelta = Math.floor(Number(World?.score || 0)) - Math.floor(Number(seq.rpStart || 0));
+    emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_FAIL_DETECTED, {
+      expectedColor: seq.expectedColor || null,
+      stage: seq.stage || null,
+      completedColors,
+      reason: "color-mismatch-or-invalid-start",
+    }, { source: "CardEngine.failSequence", severity: "warn" });
     rewardSequenceFail(World);
     if (completedColors.length) {
       showSequenceFailToast(`${rpDelta} RP`, completedColors, 2000, { cards: awardedCards, rp: rpDelta });
@@ -1168,11 +1229,19 @@ const CardEngine = (() => {
       rpDelta,
       awardedCards: awardedCards.map((card) => card?.id).filter(Boolean),
     }, { source: "CardEngine.failSequence", snapshot: true, severity: "warn" });
+    emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_FAIL_RESOLVED, {
+      completedColors,
+      rpDelta,
+      awardedCards: awardedCards.map((card) => card?.id).filter(Boolean),
+    }, { source: "CardEngine.failSequence", snapshot: true, severity: "warn" });
+    seq.lastResolution = "failed";
     resetSequenceState();
   }
 
   function finalizeSequence(World, level, colors, rewardCard) {
     const seq = state.sequence;
+    if (seq.resolutionLock) return;
+    seq.resolutionLock = true;
     if (!World) {
       resetSequenceState();
       return;
@@ -1195,6 +1264,10 @@ const CardEngine = (() => {
       }
       recomputeTotalCards(World);
       showSequenceDsToast(seq.baseColor || seq.A, 1500, { cards: awardedCards, rp: rpDelta });
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_DS_GRANTED, {
+        color: seq.baseColor || seq.A || null,
+        stage: "AAA",
+      }, { source: "CardEngine.finalizeSequence", snapshot: true });
       World.pendingCard = null;
       World.pendingCardUntilMs = 0;
       if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
@@ -1210,10 +1283,11 @@ const CardEngine = (() => {
     }
     if (seq.tempCards) seq.tempCards.length = 0;
     if (World.cardsTemp) World.cardsTemp.length = 0;
+    seq.lastResolution = "completed";
     resetSequenceState();
   }
 
-  function onHitColor(colorKey) {
+  function onHitColor(colorKey, collisionContext = null) {
     const World = state.world;
     const normalized = normalizePack01Color(colorKey);
     const debugSeq = typeof window !== "undefined" && window.HC && window.HC.debugSeq;
@@ -1230,6 +1304,18 @@ const CardEngine = (() => {
       traceSeqHit("ignored", normalized, { reason: "invalid-world-or-color" });
       return { action: "ignored", snapshot: null };
     }
+    const frame = Number(window.HC?.Session?.logger?.frame ?? -1);
+    const hitSignature = `${normalized}:${frame}`;
+    if (state.sequence.lastHitSignature === hitSignature) {
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_HIT_REJECTED, {
+        color: normalized,
+        reason: "duplicate-hit-signature",
+        sourceObject: collisionContext?.sourceObject || null,
+        context: collisionContext || null,
+      }, { source: "CardEngine.onHitColor" });
+      return { action: "ignored", snapshot: getHitSnapshot(state.sequence) };
+    }
+    state.sequence.lastHitSignature = hitSignature;
     if (debugSeq) {
       const overlayVisible = Boolean(state.sequenceOverlay && state.sequenceOverlay.visible);
       const hasPending = Boolean(World.pendingCard);
@@ -1245,10 +1331,26 @@ const CardEngine = (() => {
     if (!seq.active) {
       startSequenceSession();
     }
+    emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_HIT_REGISTERED, {
+      color: normalized,
+      expectedColor: seq.expectedColor || null,
+      hitCount: seq.hitCount || seq.hits || 0,
+      stage: seq.stage || null,
+      chainColors: seq.chainColors || [],
+      sourceObject: collisionContext?.sourceObject || null,
+      context: collisionContext || null,
+    }, { source: "CardEngine.onHitColor" });
 
     if (seq.mode === "IDLE") {
       const gate = canStartStepWithColor(seq, normalized);
       if (!gate.ok) {
+        emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_HIT_REJECTED, {
+          color: normalized,
+          expectedColor: seq.expectedColor || null,
+          stage: seq.stage || null,
+          reason: gate.reason,
+          chainColors: seq.chainColors || [],
+        }, { source: "CardEngine.onHitColor", severity: "warn" });
         traceSeqHit("fail", normalized, { reason: gate.reason });
         const snapshot = getHitSnapshot(seq);
         seq.lastHitSnapshot = snapshot;
@@ -1270,6 +1372,27 @@ const CardEngine = (() => {
       seq.opened = false;
       seq.mode = "IN_STEP";
       setSequencePhase(seq, "DIR");
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_DIRECTION_LOCKED, {
+        currentColor: normalized,
+        expectedColor: seq.expectedColor || normalized,
+        hitCount: seq.hitCount || seq.hits,
+        stage: seq.stage || null,
+        chainColors: seq.chainColors || [],
+        sourceObject: collisionContext?.sourceObject || null,
+      }, { source: "CardEngine.onHitColor", snapshot: true });
+      if (seq.track === "A" && seq.stepIndex >= 1) {
+        emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_LOOP_AA_STARTED, {
+          stage: "AA",
+          color: seq.baseColor || seq.A || normalized,
+          chainColors: seq.chainColors || [],
+        }, { source: "CardEngine.onHitColor" });
+      }
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_STEP_STARTED, {
+        currentColor: normalized,
+        expectedColor: seq.expectedColor || normalized,
+        stage: seq.stage || null,
+        track: seq.track || null,
+      }, { source: "CardEngine.onHitColor" });
       const level = seq.stepIndex + 1;
       addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
       traceSeqHit("dir", normalized);
@@ -1279,6 +1402,13 @@ const CardEngine = (() => {
     }
 
     if (normalized !== seq.currentColor) {
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_HIT_REJECTED, {
+        color: normalized,
+        expectedColor: seq.currentColor || seq.expectedColor || null,
+        stage: seq.stage || null,
+        reason: "color-mismatch",
+        chainColors: seq.chainColors || [],
+      }, { source: "CardEngine.onHitColor", severity: "warn" });
       traceSeqHit("fail", normalized, { reason: "color-mismatch" });
       const snapshot = getHitSnapshot(seq);
       seq.lastHitSnapshot = snapshot;
@@ -1287,12 +1417,20 @@ const CardEngine = (() => {
     }
 
     seq.hits += 1;
+    syncSequenceDerivedState(seq, "hit-registered");
     {
       const level = seq.stepIndex + 1;
       addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
     }
     if (seq.hits === 2) {
       setSequencePhase(seq, "OPEN");
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_STEP_PROGRESS, {
+        currentColor: normalized,
+        expectedColor: seq.expectedColor || null,
+        hitCount: seq.hitCount || seq.hits,
+        stage: seq.stage || null,
+        chainColors: seq.chainColors || [],
+      }, { source: "CardEngine.onHitColor" });
       const nextLevel = seq.stepIndex + 1;
       const isATrackStep = seq.track === "A"
         || (seq.track === null
@@ -1522,7 +1660,9 @@ const CardEngine = (() => {
   function cashOutSequence(level, colors) {
     const World = state.world;
     const seq = state.sequence;
+    if (seq.resolutionLock) return false;
     if (!World || !Array.isArray(seq.tempCards) || !seq.tempCards.length) return false;
+    seq.resolutionLock = true;
     ensureCardsPool(World);
     const cappedLevel = Math.max(1, Math.min(4, Number(level || 1)));
     const isDsSuccess = seq.track === "A" && cappedLevel >= 3;
@@ -1533,6 +1673,12 @@ const CardEngine = (() => {
       ? (["A", "AA", "AAA"][cappedLevel - 1] || `A${cappedLevel}`)
       : `R${cappedLevel}`;
     const rpDelta = Math.floor(Number(World?.score || 0)) - Math.floor(Number(seq.rpStart || 0));
+    emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_CASHOUT_STARTED, {
+      level: cappedLevel,
+      colors: seqColors,
+      stage: seq.stage || null,
+      expectedColor: seq.expectedColor || null,
+    }, { source: "CardEngine.cashOutSequence" });
     logRuntimeEvent("sequence", window.HC?.DebugEventTypes?.SEQUENCE_CASHOUT, {
       level: cappedLevel,
       colors: seqColors,
@@ -1557,6 +1703,13 @@ const CardEngine = (() => {
     }
     seq.tempCards.length = 0;
     if (World.cardsTemp) World.cardsTemp.length = 0;
+    emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_CASHOUT_COMPLETED, {
+      level: cappedLevel,
+      colors: seqColors,
+      rpDelta,
+      isDsSuccess,
+    }, { source: "CardEngine.cashOutSequence", snapshot: true });
+    seq.lastResolution = "cashout";
     resetSequenceState();
     return true;
   }
@@ -1601,30 +1754,7 @@ const CardEngine = (() => {
       pointer_radius_mul: 1.0,
       pointer_strength_mul: 1.0,
     };
-    state.sequence = {
-      mode: "IDLE",
-      track: null,
-      stepIndex: 0,
-      A: null,
-      B: null,
-      C: null,
-      D: null,
-      currentColor: null,
-      hits: 0,
-      phase: null,
-      committedKeys: new Set(),
-      earned: [],
-      lastHitSnapshot: null,
-      active: false,
-      opened: false,
-      colorsClosed: [],
-      chainIndex: 0,
-      chainPattern: [],
-      baseColor: null,
-      tempCards: [],
-      commitDuplicateLogged: false,
-      rpStart: 0
-    };
+    state.sequence = createSequenceState();
     state.sequenceOverlay = {
       visible: false,
       level: 0,

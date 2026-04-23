@@ -7,10 +7,10 @@
     const Events = window.Events;
     const spawnAsteroidFromCollision = window.spawnAsteroidFromCollision;
 
-    function notifyHitColor(colorName) {
+    function notifyHitColor(colorName, collisionContext = null) {
       const CE = window.CardEngine;
       if (!CE || typeof CE.onHitColor !== "function") return;
-      CE.onHitColor(colorName);
+      CE.onHitColor(colorName, collisionContext);
     }
 
     function isR1ColorActive(colorName, nowMs) {
@@ -52,7 +52,12 @@
 
             if (a.colorName === b.colorName) {
               Events.emit("METEOR_SAME_COLOR_COLLISION", { color: a.colorName });
-              notifyHitColor(a.colorName);
+              notifyHitColor(a.colorName, {
+                sourceObject: "meteor_collision",
+                meteorAColor: a.colorName,
+                meteorBColor: b.colorName,
+                nowMs,
+              });
               toRemove.add(i);
               toRemove.add(j);
               break;

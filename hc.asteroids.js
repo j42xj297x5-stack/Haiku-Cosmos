@@ -217,8 +217,24 @@
             addOrbiterToAsteroid(a, m);
 
             a.captureCooldown = 0.045;
+            window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, {
+              sourceType: "asteroid",
+              sourceId: a._id || a.id || null,
+              thresholdType: "asteroid_to_planet",
+              current: a.captureCount,
+              target: Number(World.planetCaptureTarget || 0),
+              thresholdSource: World.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "debug_override",
+            }, { source: "Asteroids.captureMeteorsByAsteroids" });
 
             if (a.captureCount >= World.planetCaptureTarget) {
+              window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_REACHED, {
+                sourceType: "asteroid",
+                sourceId: a._id || a.id || null,
+                thresholdType: "asteroid_to_planet",
+                current: a.captureCount,
+                target: Number(World.planetCaptureTarget || 0),
+                thresholdSource: World.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "debug_override",
+              }, { source: "Asteroids.captureMeteorsByAsteroids", snapshot: true });
               startAsteroidCollapse(a);
             }
             break;
@@ -227,10 +243,17 @@
       }
     }
 
-    function startAsteroidCollapse(a) {
+  function startAsteroidCollapse(a) {
+      if (a.__transformationInProgress) return;
+      a.__transformationInProgress = true;
       a.isCollapsing = true;
       a.collapseT = 0;
       a.captureCooldown = 0.25;
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_TRANSFORMATION_STARTED, {
+        sourceType: "asteroid",
+        sourceId: a._id || a.id || null,
+        targetType: "planet",
+      }, { source: "Asteroids.startAsteroidCollapse", snapshot: true });
       Events.emit("ASTEROID_COLLAPSE_START", { sides: a.sides });
     }
 
@@ -306,13 +329,30 @@
       p.gravityR = Math.max(baseGravity, p.orbitCurrentRadius || 0);
 
       World.planets.push(p);
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_CLEANUP_STARTED, {
+        sourceType: "asteroid",
+        sourceId: a._id || a.id || null,
+        targetType: "planet",
+        targetId: p._id || p.id || null,
+      }, { source: "Asteroids.finishCollapseToPlanet" });
       window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_TRANSFORMED, {
         fromType: "asteroid",
         toType: "planet",
         asteroidId: a._id || null,
       }, { snapshot: true, source: "Asteroids.finishCollapseToPlanet" });
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_TRANSFORMATION_COMPLETED, {
+        sourceType: "asteroid",
+        sourceId: a._id || a.id || null,
+        targetType: "planet",
+        targetId: p._id || p.id || null,
+      }, { source: "Asteroids.finishCollapseToPlanet", snapshot: true });
 
       a.orbiters = [];
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_CLEANUP_COMPLETED, {
+        sourceType: "asteroid",
+        sourceId: a._id || a.id || null,
+        removed: true,
+      }, { source: "Asteroids.finishCollapseToPlanet" });
       Events.emit("PLANET_CREATED", { hueA, hueB, top1, top2 });
     }
 

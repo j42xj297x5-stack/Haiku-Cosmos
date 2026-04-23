@@ -380,6 +380,21 @@
     }
 
     function transformGasPlanetIntoStar(p, info, kind) {
+      if (p.__starTransformationInProgress) {
+        window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_TRANSFORMATION_BLOCKED, {
+          sourceType: "planet",
+          sourceId: p.id || p._id || null,
+          reason: "transformation_in_progress",
+        }, { source: "Planets.transformGasPlanetIntoStar", severity: "warn" });
+        return;
+      }
+      p.__starTransformationInProgress = true;
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_TRANSFORMATION_STARTED, {
+        sourceType: "planet",
+        sourceId: p.id || p._id || null,
+        targetType: "star",
+        thresholdSource: World.__debugThresholdOverrides?.planetToStar == null ? "default" : "debug_override",
+      }, { source: "Planets.transformGasPlanetIntoStar", snapshot: true });
       const oldGravityR = p.gravityR || computeGravityFromPlanetRadius(p.r);
       clearSystemOrbitersForStar(p);
 
@@ -419,12 +434,25 @@
       star.orbitCurrentRadius = updatedBaseGravity * starOrbitMul;
       star.gravityR = star.orbitCurrentRadius;
       World.stars.push(star);
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_CLEANUP_STARTED, {
+        sourceType: "planet",
+        sourceId: p.id || p._id || null,
+        targetType: "star",
+        targetId: star.id || star._id || null,
+      }, { source: "Planets.transformGasPlanetIntoStar" });
       window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_TRANSFORMED, {
         fromType: "planet",
         toType: "star",
         planetId: p.id || p._id || null,
         starKind: kind || null,
       }, { snapshot: true, source: "Planets.transformGasPlanetIntoStar" });
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_TRANSFORMATION_COMPLETED, {
+        sourceType: "planet",
+        sourceId: p.id || p._id || null,
+        targetType: "star",
+        targetId: star.id || star._id || null,
+        starKind: kind || null,
+      }, { source: "Planets.transformGasPlanetIntoStar", snapshot: true });
       if (reconcileStarOwnershipOnBirth) reconcileStarOwnershipOnBirth(p, star);
       if (startStarEpochZoomOut) startStarEpochZoomOut(star, View.w, View.h);
 
@@ -774,6 +802,11 @@
             p.preStar.timeAbs = (p.preStar.timeAbs || 0) + dt;
             if (p.preStar.t >= p.preStar.duration) {
               transformGasPlanetIntoStar(p, p.preStar.info, p.preStar.kind);
+              window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_CLEANUP_COMPLETED, {
+                sourceType: "planet",
+                sourceId: p.id || p._id || null,
+                removed: true,
+              }, { source: "Planets.updatePlanets", snapshot: true });
               World.planets.splice(pi, 1);
               pi -= 1;
               continue;
@@ -781,7 +814,28 @@
           } else {
             const meteors = getSystemMeteorsForPlanet(p);
             const info = analyzeSystemMeteors(meteors);
+            const dominantKey = info?.dominantKey || null;
+            const dominantCount = dominantKey ? Number(info?.counts?.[dominantKey] || 0) : 0;
+            const thresholdTarget = dominantKey ? Number(getStarThresholdForColor(dominantKey) || 0) : 0;
+            window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, {
+              sourceType: "planet",
+              sourceId: p.id || p._id || null,
+              thresholdType: "planet_to_star",
+              dominantKey,
+              current: dominantCount,
+              target: thresholdTarget,
+              thresholdSource: World.__debugThresholdOverrides?.planetToStar == null ? "default" : "debug_override",
+            }, { source: "Planets.updatePlanets" });
             if (qualifiesForPreStar(info)) {
+              window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_REACHED, {
+                sourceType: "planet",
+                sourceId: p.id || p._id || null,
+                thresholdType: "planet_to_star",
+                dominantKey,
+                current: dominantCount,
+                target: thresholdTarget,
+                thresholdSource: World.__debugThresholdOverrides?.planetToStar == null ? "default" : "debug_override",
+              }, { source: "Planets.updatePlanets", snapshot: true });
               const isRare = info.total >= World.STAR_RARE_MONO_MIN && info.monoOk && info.monoColorKey;
               const infoForStar = isRare ? { ...info, dominantKey: info.monoColorKey } : info;
               const kind = isRare ? "rare" : "normal";
@@ -799,6 +853,15 @@
               if (Events && typeof Events.emit === "function") {
                 Events.emit("PRESTAR_STARTED", { planetId: p.id || p._id });
               }
+            } else if (dominantKey) {
+              window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_TRANSFORMATION_BLOCKED, {
+                sourceType: "planet",
+                sourceId: p.id || p._id || null,
+                reason: "threshold_not_met",
+                dominantKey,
+                current: dominantCount,
+                target: thresholdTarget,
+              }, { source: "Planets.updatePlanets" });
             }
           }
         }
