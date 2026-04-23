@@ -306,6 +306,11 @@
       p.gravityR = Math.max(baseGravity, p.orbitCurrentRadius || 0);
 
       World.planets.push(p);
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_TRANSFORMED, {
+        fromType: "asteroid",
+        toType: "planet",
+        asteroidId: a._id || null,
+      }, { snapshot: true, source: "Asteroids.finishCollapseToPlanet" });
 
       a.orbiters = [];
       Events.emit("PLANET_CREATED", { hueA, hueB, top1, top2 });

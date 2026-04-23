@@ -67,6 +67,11 @@
           });
 
       Events.emit("METEOR_SPAWNED", {});
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_SPAWNED, {
+        objectType: "meteor",
+        source: "spawnMeteor",
+        color: c.name,
+      });
     }
 
     function spawnStreamMeteor(angle, streamIndex, nowMs) {
@@ -102,6 +107,12 @@
         trail: [{ x: sx, y: sy, t: 0 }],
         isStream: true,
         streamIndex,
+      });
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_SPAWNED, {
+        objectType: "meteor",
+        source: "spawnStreamMeteor",
+        streamIndex,
+        color: c.name,
       });
     }
 
@@ -241,6 +252,10 @@
           const worldHalfH = (View.h * 0.5) / s;
           const spawnR = Math.max(worldHalfW, worldHalfH) * 1.6;
           if (Math.hypot(m.x - cx, m.y - cy) > spawnR) {
+            window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_DESPAWNED, {
+              objectType: "meteor",
+              reason: "stream_out_of_bounds",
+            });
             World.meteors.splice(i, 1);
             continue;
           }
@@ -253,6 +268,10 @@
             const rr = s.r + m.r;
             if (dx * dx + dy * dy <= rr * rr) {
               s.mass = (s.mass || 0) + massFromR(m.r);
+              window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_DESPAWNED, {
+                objectType: "meteor",
+                reason: "absorbed_by_star",
+              });
               World.meteors.splice(i, 1);
               break;
             }
@@ -261,7 +280,13 @@
         }
 
         m.life -= dt;
-        if (m.life <= 0) World.meteors.splice(i, 1);
+        if (m.life <= 0) {
+          window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_DESPAWNED, {
+            objectType: "meteor",
+            reason: "expired_life",
+          });
+          World.meteors.splice(i, 1);
+        }
       }
     }
 

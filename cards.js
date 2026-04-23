@@ -189,6 +189,11 @@ const CardEngine = (() => {
     }
   };
 
+  function logRuntimeEvent(category, type, payload, opts) {
+    if (typeof window === "undefined" || !window.HC || typeof window.HC.logEvent !== "function" || !type) return;
+    window.HC.logEvent(category, type, payload || {}, opts || {});
+  }
+
   const PACK01_COLOR_HEX = {
     red: "#FF5E5E",
     yellow: "#FFD66B",
@@ -919,6 +924,9 @@ const CardEngine = (() => {
     if (state.world) {
       state.world.cardsTemp = seq.tempCards;
     }
+    logRuntimeEvent("sequence", window.HC?.DebugEventTypes?.SEQUENCE_STARTED, {
+      rpStart: seq.rpStart,
+    }, { source: "CardEngine.startSequenceSession", snapshot: true });
   }
 
   function setSequencePhase(seq, phase) {
@@ -926,6 +934,11 @@ const CardEngine = (() => {
     if (phase === "OPEN") {
       seq.opened = true;
     }
+    logRuntimeEvent("sequence", window.HC?.DebugEventTypes?.SEQUENCE_STEP_PROGRESS, {
+      phase,
+      stepIndex: seq.stepIndex,
+      track: seq.track || null,
+    }, { source: "CardEngine.setSequencePhase" });
   }
 
   function commitSequenceNewRewards(World, seq, cards) {
@@ -1029,6 +1042,12 @@ const CardEngine = (() => {
       if (!seq.baseColor) seq.baseColor = colorKey;
     }
     const rewardCard = awardSequenceStep(World, seq);
+    logRuntimeEvent("sequence", window.HC?.DebugEventTypes?.SEQUENCE_STEP_COMPLETED, {
+      stepIndex: seq.stepIndex,
+      track: seq.track || null,
+      color: colorKey || null,
+      rewardCardId: rewardCard?.id || null,
+    }, { source: "CardEngine.closeSequenceStep" });
     handleSequenceStepClosed(World, rewardCard);
   }
 
@@ -1144,6 +1163,11 @@ const CardEngine = (() => {
     if (completedColors.length) {
       showSequenceFailToast(`${rpDelta} RP`, completedColors, 2000, { cards: awardedCards, rp: rpDelta });
     }
+    logRuntimeEvent("sequence", window.HC?.DebugEventTypes?.SEQUENCE_FAILED, {
+      completedColors,
+      rpDelta,
+      awardedCards: awardedCards.map((card) => card?.id).filter(Boolean),
+    }, { source: "CardEngine.failSequence", snapshot: true, severity: "warn" });
     resetSequenceState();
   }
 
@@ -1481,12 +1505,18 @@ const CardEngine = (() => {
   function activateSequenceR1(colorKey, options = {}) {
     const normalized = normalizePack01Color(colorKey);
     if (!normalized) return false;
-    return onRunActivateR1({
+    const activated = onRunActivateR1({
       baseDurationMs: config.pack01TargetDurationMs,
       colorKey: normalized,
       tierKey: "DR",
       keepSequence: Boolean(options.keepSequence)
     });
+    if (activated) {
+      logRuntimeEvent("sequence", window.HC?.DebugEventTypes?.SEQUENCE_R1_ACTIVATED, {
+        color: normalized,
+      }, { source: "CardEngine.activateSequenceR1" });
+    }
+    return activated;
   }
 
   function cashOutSequence(level, colors) {
@@ -1503,6 +1533,12 @@ const CardEngine = (() => {
       ? (["A", "AA", "AAA"][cappedLevel - 1] || `A${cappedLevel}`)
       : `R${cappedLevel}`;
     const rpDelta = Math.floor(Number(World?.score || 0)) - Math.floor(Number(seq.rpStart || 0));
+    logRuntimeEvent("sequence", window.HC?.DebugEventTypes?.SEQUENCE_CASHOUT, {
+      level: cappedLevel,
+      colors: seqColors,
+      rpDelta,
+      isDsSuccess,
+    }, { source: "CardEngine.cashOutSequence", snapshot: true });
     if (seq.track === "A" && cappedLevel >= 3) {
       const dsCards = seq.tempCards.filter((card) => String(card?.kind || card?.type || "").toUpperCase() === "DS");
       showSequenceDsToast(seq.baseColor || seq.A, 1500, { cards: dsCards, rp: rpDelta });
@@ -1803,13 +1839,24 @@ const CardEngine = (() => {
 
     if (card.type === "RITUAL" && card.ritual) {
       startRitual(card);
+      logRuntimeEvent("cards", window.HC?.DebugEventTypes?.CARD_ACTIVATED, {
+        cardId: card.id,
+        kind: card.kind || card.type,
+        mode: "ritual",
+      }, { source: "CardEngine.useCard" });
       return;
     }
     applyEffects(card.effects || []);
+    logRuntimeEvent("cards", window.HC?.DebugEventTypes?.CARD_ACTIVATED, {
+      cardId: card.id,
+      kind: card.kind || card.type,
+      mode: "direct",
+    }, { source: "CardEngine.useCard" });
   }
 
   function update(_dt, now) {
     const t = (typeof now === "number") ? now : nowMs();
+    const scoreBefore = Math.floor(Number(state.world?.score || 0));
 
     if (state.activeOffer && t >= state.activeOffer.expiresAt) {
       const c = state.activeOffer.card;
@@ -1887,6 +1934,13 @@ const CardEngine = (() => {
           World.sequenceFlashColors = [];
         }
       }
+    }
+    const scoreAfter = Math.floor(Number(state.world?.score || 0));
+    const delta = scoreAfter - scoreBefore;
+    if (delta > 0) {
+      logRuntimeEvent("rp", window.HC?.DebugEventTypes?.RP_GAINED, { amount: delta, after: scoreAfter }, { source: "CardEngine.update" });
+    } else if (delta < 0) {
+      logRuntimeEvent("rp", window.HC?.DebugEventTypes?.RP_SPENT, { amount: Math.abs(delta), after: scoreAfter }, { source: "CardEngine.update" });
     }
   }
 
@@ -2872,6 +2926,12 @@ const CardEngine = (() => {
     }
     World.cardsPool.push(entity);
     recomputeTotalCards(World);
+    logRuntimeEvent("cards", window.HC?.DebugEventTypes?.CARD_CREATED, {
+      cardId: entity.id,
+      kind: entity.kind,
+      tier: entity.tier,
+      colors: [entity.colorA, entity.colorB, entity.colorC, entity.colorD].filter(Boolean),
+    }, { source: "CardEngine.addCardToPool" });
     return entity;
   }
 
@@ -2927,6 +2987,10 @@ const CardEngine = (() => {
       if (debugCards) console.warn("[CARD_COLLECT_FAIL]", payload);
       return null;
     }
+    logRuntimeEvent("cards", window.HC?.DebugEventTypes?.CARD_COLLECTED, {
+      cardId: entity.id,
+      kind: entity.kind,
+    }, { source: "CardEngine.onCardCollected" });
     return entity;
   }
 
