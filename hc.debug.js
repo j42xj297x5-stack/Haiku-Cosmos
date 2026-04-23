@@ -114,6 +114,7 @@
     return {
       enabled: isDebug,
       mode: isDebug ? "debug" : "normal",
+      scenarioLabel: String(partial.scenarioLabel || "manual_session"),
       loggingEnabled: isDebug,
       batchSizeEvents: clampInt(partial.batchSizeEvents, 20),
       flushIntervalMs: clampInt(partial.flushIntervalMs, 1000),
@@ -134,24 +135,200 @@
     };
   }
 
-  class LocalStorageJsonlBackend {
-    constructor(sessionId) {
-      this.key = `hc_debug_session_${sessionId}.jsonl`;
+  function slugifyLabel(value, fallback = "scenario") {
+    const base = String(value || "").trim().toLowerCase();
+    const normalized = base
+      .replace(/[^a-z0-9]+/gi, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 42);
+    return normalized || fallback;
+  }
+
+  function formatSessionTimestamp(date = new Date()) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}_${pad(date.getUTCHours())}-${pad(date.getUTCMinutes())}-${pad(date.getUTCSeconds())}`;
+  }
+
+  const DebugFileBridge = {
+    rootDirHandle: null,
+    rootDirLabel: "debug-sessions",
+
+    supportsPhysicalFiles() {
+      return typeof window !== "undefined" && typeof window.showDirectoryPicker === "function";
+    },
+
+    async pickRootDirectory() {
+      if (!this.supportsPhysicalFiles()) {
+        return { ok: false, reason: "api_unavailable", message: "Physical file backend unavailable, fallback to browser download mode." };
+      }
+      try {
+        const handle = await window.showDirectoryPicker({ id: "haiku-cosmos-debug-sessions", mode: "readwrite" });
+        this.rootDirHandle = handle;
+        this.rootDirLabel = handle?.name ? `${handle.name}/debug-sessions` : "debug-sessions";
+        return { ok: true, label: this.rootDirLabel };
+      } catch (err) {
+        if (err && err.name === "AbortError") {
+          return { ok: false, reason: "aborted", message: "Directory selection canceled. Using fallback backend." };
+        }
+        return { ok: false, reason: "picker_failed", message: String(err?.message || err || "Failed to pick directory") };
+      }
+    },
+
+    async ensureSessionDirectory(sessionFolderName) {
+      if (!this.rootDirHandle) return null;
+      const debugRoot = await this.rootDirHandle.getDirectoryHandle("debug-sessions", { create: true });
+      const sessionDir = await debugRoot.getDirectoryHandle(sessionFolderName, { create: true });
+      return { debugRoot, sessionDir };
+    },
+  };
+
+  class SessionArtifactBackend {
+    constructor(sessionInfo) {
+      this.sessionInfo = sessionInfo;
+      this.key = `hc_debug_session_${sessionInfo.sessionId}.jsonl`;
       this.metaKey = "hc_debug_latest_session_key";
       this.inMemoryFallback = "";
+      this.eventsBuffer = "";
+      this.sessionDir = null;
+      this.debugRootDir = null;
+      this.mode = "initializing";
+      this.message = "Initializing log backend...";
+      this.queue = Promise.resolve();
+      this.wrotePhysicalData = false;
+      this.artifactPaths = {};
       try {
         localStorage.setItem(this.metaKey, this.key);
       } catch (_e) {}
+      this.readyPromise = this.init();
     }
-    appendLines(lines) {
-      if (!lines.length) return;
-      const chunk = `${lines.join("\n")}\n`;
-      try {
-        const prev = localStorage.getItem(this.key) || "";
-        localStorage.setItem(this.key, prev + chunk);
-      } catch (_e) {
-        this.inMemoryFallback += chunk;
+
+    getStatus() {
+      const mainLog = this.artifactPaths.events || `${this.key} (localStorage fallback)`;
+      return {
+        mode: this.mode,
+        message: this.message,
+        sessionFolder: this.artifactPaths.sessionFolder || null,
+        filesSavedTo: this.artifactPaths.sessionFolder || (this.mode === "fallback" ? "browser localStorage/download" : null),
+        mainLog,
+        summary: this.artifactPaths.summary || null,
+      };
+    }
+
+    async init() {
+      const bridge = window.HC?.DebugFileBridge;
+      if (!bridge || !bridge.supportsPhysicalFiles()) {
+        this.mode = "fallback";
+        this.message = "Physical file backend unavailable, fallback to browser download mode.";
+        return;
       }
+      if (!bridge.rootDirHandle) {
+        this.mode = "fallback";
+        this.message = "No directory selected. Use Select Log Folder to enable physical files.";
+        return;
+      }
+      try {
+        const dirs = await bridge.ensureSessionDirectory(this.sessionInfo.sessionFolderName);
+        if (!dirs || !dirs.sessionDir) {
+          this.mode = "fallback";
+          this.message = "Unable to prepare debug-sessions directory. Using fallback.";
+          return;
+        }
+        this.debugRootDir = dirs.debugRoot;
+        this.sessionDir = dirs.sessionDir;
+        this.mode = "physical";
+        this.message = `Writing to ${bridge.rootDirLabel}/${this.sessionInfo.sessionFolderName}`;
+        this.artifactPaths.sessionFolder = `${bridge.rootDirLabel}/${this.sessionInfo.sessionFolderName}`;
+        this.artifactPaths.events = `${this.artifactPaths.sessionFolder}/events.jsonl`;
+      } catch (err) {
+        this.mode = "fallback";
+        this.message = `Physical backend failed: ${String(err?.message || err)}`;
+      }
+    }
+
+    enqueue(task) {
+      this.queue = this.queue.then(task).catch((err) => {
+        this.mode = "fallback";
+        this.message = `Write failed, switched to fallback: ${String(err?.message || err)}`;
+      });
+      return this.queue;
+    }
+
+    appendLines(lines) {
+      if (!Array.isArray(lines) || !lines.length) return;
+      const chunk = `${lines.join("\n")}\n`;
+      this.eventsBuffer += chunk;
+      this.enqueue(async () => {
+        await this.readyPromise;
+        if (this.mode === "physical" && this.sessionDir) {
+          const file = await this.sessionDir.getFileHandle("events.jsonl", { create: true });
+          const prev = await file.getFile();
+          const writable = await file.createWritable({ keepExistingData: true });
+          await writable.seek(prev.size);
+          await writable.write(chunk);
+          await writable.close();
+          this.wrotePhysicalData = true;
+        } else {
+          try {
+            const prev = localStorage.getItem(this.key) || "";
+            localStorage.setItem(this.key, prev + chunk);
+          } catch (_e) {
+            this.inMemoryFallback += chunk;
+          }
+        }
+      });
+    }
+
+    async writeJsonFile(name, payload) {
+      await this.readyPromise;
+      if (this.mode === "physical" && this.sessionDir) {
+        const file = await this.sessionDir.getFileHandle(name, { create: true });
+        const writable = await file.createWritable();
+        await writable.write(`${JSON.stringify(payload, null, 2)}\n`);
+        await writable.close();
+        this.artifactPaths[name.replace(/\.json$/,'')] = `${this.artifactPaths.sessionFolder}/${name}`;
+        return;
+      }
+      const key = `hc_debug_${this.sessionInfo.sessionId}_${name}`;
+      try {
+        localStorage.setItem(key, JSON.stringify(payload));
+      } catch (_e) {}
+    }
+
+    async finalize(artifacts) {
+      await this.queue;
+      const sessionMeta = {
+        sessionId: this.sessionInfo.sessionId,
+        mode: this.sessionInfo.mode,
+        scenarioLabel: this.sessionInfo.scenarioLabel,
+        timestamp: this.sessionInfo.timestamp,
+        folderName: this.sessionInfo.sessionFolderName,
+        backendMode: this.mode,
+        backendMessage: this.message,
+        mainLogFile: this.mode === "physical" ? "events.jsonl" : this.key,
+      };
+      await this.writeJsonFile("session_meta.json", { ...sessionMeta, config: artifacts.config || {} });
+      await this.writeJsonFile("final_snapshot.json", artifacts.finalSnapshot || {});
+      await this.writeJsonFile("summary.json", artifacts.summary || {});
+      await this.writeJsonFile("issues.json", { issues: Array.isArray(artifacts.issues) ? artifacts.issues : [] });
+
+      if (this.mode !== "physical") {
+        const blob = new Blob([
+          JSON.stringify({
+            session_meta: { ...sessionMeta, note: "Fallback bundle generated because physical backend is unavailable." },
+            summary: artifacts.summary || {},
+            final_snapshot: artifacts.finalSnapshot || {},
+            issues: Array.isArray(artifacts.issues) ? artifacts.issues : [],
+            events_jsonl: this.eventsBuffer || this.inMemoryFallback,
+          }, null, 2)
+        ], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${this.sessionInfo.filePrefix}__fallback_evidence_pack.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }
+
+      return this.getStatus();
     }
   }
 
@@ -162,7 +339,14 @@
       this.buffer = [];
       this.frame = 0;
       this.sessionStartedAt = performance.now();
-      this.backend = new LocalStorageJsonlBackend(sessionId);
+      this.backend = new SessionArtifactBackend({
+        sessionId,
+        mode: config.mode || "debug",
+        scenarioLabel: config.scenarioLabel || "scenario",
+        timestamp: formatSessionTimestamp(new Date()),
+        sessionFolderName: config.sessionFolderName || `${formatSessionTimestamp(new Date())}__sess_${sessionId.slice(-6)}__${config.mode || "debug"}__${slugifyLabel(config.scenarioLabel || "scenario")}` ,
+        filePrefix: config.filePrefix || `${formatSessionTimestamp(new Date())}__sess_${sessionId.slice(-6)}__${config.mode || "debug"}__${slugifyLabel(config.scenarioLabel || "scenario")}`
+      });
       this.flushTimer = null;
       this.active = false;
       this.lastEventByThrottleKey = new Map();
@@ -353,13 +537,17 @@
       }
     }
 
-    shutdown(reason = "shutdown") {
+    async shutdown(reason = "shutdown", artifacts = null) {
       if (this.flushTimer) {
         clearInterval(this.flushTimer);
         this.flushTimer = null;
       }
       this.flush(reason);
       this.active = false;
+      if (artifacts && this.backend && typeof this.backend.finalize === "function") {
+        return this.backend.finalize(artifacts);
+      }
+      return this.backend?.getStatus ? this.backend.getStatus() : null;
     }
   }
 
@@ -486,6 +674,14 @@
     logger: null,
     sessionInputConfig: null,
     baseThresholds: null,
+    issueLedger: [],
+    finalizeState: {
+      status: "idle",
+      message: "",
+      filesSavedTo: null,
+      mainLog: null,
+      summary: null,
+    },
 
     ensureBaseThresholds(World) {
       if (this.baseThresholds || !World) return;
@@ -630,9 +826,22 @@
       this.sessionInputConfig = uiConfig;
       this.sessionId = `s_${new Date().toISOString().replace(/[:.]/g, "-")}`;
       this.debugConfig = createDebugConfig(this.mode, this.mode === "debug" ? (uiConfig || {}) : {});
+      const ts = formatSessionTimestamp(new Date());
+      const shortId = this.sessionId.slice(-6);
+      const scenario = slugifyLabel(this.debugConfig.scenarioLabel || "manual_session");
+      this.debugConfig.filePrefix = `${ts}__sess_${shortId}__${this.mode}__${scenario}`;
+      this.debugConfig.sessionFolderName = `${ts}__sess_${shortId}__${this.mode}__${scenario}`;
       this.logger = new RuntimeEventLogger(this.debugConfig, this.sessionId);
       this.logger.start();
       this.started = true;
+      this.issueLedger = [];
+      this.finalizeState = {
+        status: "active",
+        message: "Session active",
+        filesSavedTo: null,
+        mainLog: null,
+        summary: null,
+      };
 
       this.emit("session", EVENT_TYPES.SESSION_CONFIG_APPLIED, {
         config: this.debugConfig,
@@ -669,18 +878,51 @@
       this.start(this.mode, this.sessionInputConfig);
     },
 
+    async finalize(reason = "ended", aborted = false) {
+      if (!this.started) return this.finalizeState;
+      this.finalizeState.status = "flushing";
+      this.finalizeState.message = "Flushing and finalizing session files...";
+      const endingType = aborted ? EVENT_TYPES.SESSION_ABORTED : EVENT_TYPES.SESSION_ENDED;
+      this.emit("session", endingType, { reason }, { source: "Session", snapshot: true, severity: aborted ? "warn" : "info" });
+      const finalSnapshot = this.getRuntimeSnapshot();
+      const summary = {
+        sessionId: this.sessionId,
+        mode: this.mode,
+        endedAt: new Date().toISOString(),
+        reason,
+        mainLogFile: "events.jsonl",
+        scenarioLabel: this.debugConfig?.scenarioLabel || "manual_session",
+        counts: {
+          recentEventsTracked: Array.isArray(this.logger?.recentEvents) ? this.logger.recentEvents.length : 0,
+          pendingBuffer: this.logger?.buffer?.length || 0,
+          issues: this.issueLedger.length,
+        },
+      };
+      const status = await this.logger?.shutdown(reason, {
+        config: this.debugConfig,
+        finalSnapshot,
+        summary,
+        issues: this.issueLedger.slice(),
+      });
+      this.started = false;
+      this.finalizeState = {
+        status: "finalized",
+        message: "Session saved",
+        filesSavedTo: status?.filesSavedTo || null,
+        mainLog: status?.mainLog || "events.jsonl",
+        summary: status?.summary || "summary.json",
+      };
+      return this.finalizeState;
+    },
+
     end(reason = "ended") {
       if (!this.started) return;
-      this.emit("session", EVENT_TYPES.SESSION_ENDED, { reason }, { source: "Session", snapshot: true });
-      this.logger?.shutdown(reason);
-      this.started = false;
+      this.finalize(reason, false);
     },
 
     abort(reason = "aborted") {
       if (!this.started) return;
-      this.emit("session", EVENT_TYPES.SESSION_ABORTED, { reason }, { source: "Session", snapshot: true, severity: "warn" });
-      this.logger?.shutdown(reason);
-      this.started = false;
+      this.finalize(reason, true);
     },
 
     emit(category, type, payload = {}, opts = {}) {
@@ -694,6 +936,20 @@
 
     flush(reason) {
       this.logger?.flush(reason || "manual");
+    },
+
+    reportIssue(issuePayload = {}) {
+      if (!this.started) return;
+      const issue = {
+        id: `issue_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
+        ts: new Date().toISOString(),
+        ...issuePayload,
+      };
+      this.issueLedger.push(issue);
+      this.emit("debug", EVENT_TYPES.DEBUG_ERROR, {
+        reason: "issue_reported",
+        issue,
+      }, { source: "Session.reportIssue", severity: "warn" });
     },
 
     getRuntimeSnapshot() {
@@ -731,7 +987,9 @@
         sessionTimeMs: logger ? Math.max(0, Math.floor(performance.now() - logger.sessionStartedAt)) : 0,
         frame: logger?.frame || 0,
         loggingEnabled: Boolean(this.debugConfig?.loggingEnabled),
+        loggingStatus: this.logger?.backend?.getStatus ? this.logger.backend.getStatus() : null,
         pendingLogBufferSize: logger?.buffer?.length || 0,
+        finalizeState: this.finalizeState,
         sequence: seq ? {
           active: Boolean(seq.active),
           stage: seq.stage || "IDLE",
@@ -770,8 +1028,12 @@
 
   window.HC.DebugEventTypes = EVENT_TYPES;
   window.HC.createDebugConfig = createDebugConfig;
+  window.HC.DebugFileBridge = DebugFileBridge;
   window.HC.Session = Session;
   window.HC.logEvent = (category, type, payload, opts) => Session.emit(category, type, payload, opts);
+  window.HC.reportDebugIssue = (issuePayload) => Session.reportIssue(issuePayload);
+  window.HC.selectDebugLogFolder = async () => DebugFileBridge.pickRootDirectory();
+  window.HC.finalizeDebugSession = async () => Session.finalize("user_finalize", false);
 
   window.addEventListener("beforeunload", () => Session.abort("beforeunload"));
   window.addEventListener("pagehide", () => Session.flush("pagehide"));

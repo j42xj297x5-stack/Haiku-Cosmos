@@ -173,6 +173,7 @@
     }
     #runtimeDebugOverlay[hidden] { display: none; }
     .overlay-header { display: flex; gap: 8px; justify-content: space-between; align-items: center; }
+    .overlay-header-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
     .overlay-header .overlay-title { font-weight: 700; letter-spacing: 0.02em; }
     .overlay-btn {
       border-radius: 7px;
@@ -229,7 +230,12 @@
     <aside id="runtimeDebugOverlay" hidden class="compact" aria-live="polite">
       <div class="overlay-header">
         <span class="overlay-title">Runtime Debug</span>
-        <button id="btnDebugOverlayToggle" class="overlay-btn" type="button">Expand</button>
+        <div class="overlay-header-actions">
+          <button id="btnDebugSelectFolder" class="overlay-btn" type="button">Select Log Folder</button>
+          <button id="btnDebugFinalizeSession" class="overlay-btn" type="button">End Debug Session</button>
+          <button id="btnDebugCopyPath" class="overlay-btn" type="button">Copy Path</button>
+          <button id="btnDebugOverlayToggle" class="overlay-btn" type="button">Expand</button>
+        </div>
       </div>
       <div id="runtimeDebugOverlayBody" class="overlay-grid"></div>
     </aside>
@@ -248,6 +254,7 @@
           <section class="cfg-section">
             <h3>A. Startowe RP</h3>
             <label class="cfg-row"><span>Startowe RP</span><input id="cfgInitialRP" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>Scenario Label</span><input id="cfgScenarioLabel" type="text" value="manual_session"></label>
           </section>
           <section class="cfg-section">
             <h3>B. Startowe karty</h3>

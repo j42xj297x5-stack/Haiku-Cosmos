@@ -18,6 +18,9 @@
   let runtimeDebugOverlay = null;
   let runtimeDebugOverlayBody = null;
   let btnDebugOverlayToggle = null;
+  let btnDebugSelectFolder = null;
+  let btnDebugFinalizeSession = null;
+  let btnDebugCopyPath = null;
   let runtimeOverlayCompact = true;
   let runtimeOverlayLastRenderMs = 0;
   let fpsAcc = 0;
@@ -94,6 +97,7 @@
       if (el) el.value = String(v ?? "");
     };
     setValue("cfgInitialRP", defaults.initialRP || 0);
+    setValue("cfgScenarioLabel", defaults.scenarioLabel || "manual_session");
     const cards = defaults.initialCards || {};
     setValue("cfgCardR1RedDR", sanitizeNonNegativeInt(cards.R1_DR_RED || 0));
     setValue("cfgCardR1YellowDR", sanitizeNonNegativeInt(cards.R1_DR_YELLOW || 0));
@@ -143,6 +147,7 @@
     };
     return {
       initialRP: getInt("cfgInitialRP"),
+      scenarioLabel: String(document.getElementById("cfgScenarioLabel")?.value || "manual_session").trim() || "manual_session",
       initialCards: cards,
       initialWorldState: {
         asteroidCount: getInt("cfgAsteroidCount"),
@@ -178,12 +183,47 @@
       runtimeDebugOverlay = document.getElementById("runtimeDebugOverlay");
       runtimeDebugOverlayBody = document.getElementById("runtimeDebugOverlayBody");
       btnDebugOverlayToggle = document.getElementById("btnDebugOverlayToggle");
+      btnDebugSelectFolder = document.getElementById("btnDebugSelectFolder");
+      btnDebugFinalizeSession = document.getElementById("btnDebugFinalizeSession");
+      btnDebugCopyPath = document.getElementById("btnDebugCopyPath");
 
       if (btnDebugOverlayToggle) {
         btnDebugOverlayToggle.addEventListener("click", () => {
           runtimeOverlayCompact = !runtimeOverlayCompact;
           if (runtimeDebugOverlay) runtimeDebugOverlay.classList.toggle("compact", runtimeOverlayCompact);
           btnDebugOverlayToggle.textContent = runtimeOverlayCompact ? "Expand" : "Compact";
+        });
+      }
+      if (btnDebugSelectFolder) {
+        btnDebugSelectFolder.addEventListener("click", async () => {
+          if (!window.HC?.selectDebugLogFolder) return;
+          await window.HC.selectDebugLogFolder();
+        });
+      }
+      if (btnDebugFinalizeSession) {
+        btnDebugFinalizeSession.addEventListener("click", async () => {
+          if (!window.HC?.finalizeDebugSession) return;
+          const info = await window.HC.finalizeDebugSession();
+          if (info) {
+            const msg = [
+              "Session saved",
+              `sessionId: ${window.HC?.Session?.sessionId || "n/a"}`,
+              `files saved to: ${info.filesSavedTo || "fallback storage"}`,
+              `main log: ${info.mainLog || "events.jsonl"}`,
+              `summary: ${info.summary || "summary.json"}`,
+            ].join("\\n");
+            window.alert(msg);
+          }
+        });
+      }
+      if (btnDebugCopyPath) {
+        btnDebugCopyPath.addEventListener("click", async () => {
+          const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+          const path = snap?.loggingStatus?.filesSavedTo || "";
+          if (!path) return;
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(path);
+          }
         });
       }
 
@@ -296,6 +336,8 @@
     const cards = snap.economy?.cards || {};
     const wc = snap.worldCounts || {};
     const thr = snap.thresholds || {};
+    const ls = snap.loggingStatus || {};
+    const fs = snap.finalizeState || {};
     const recent = Array.isArray(snap.recentEvents) ? snap.recentEvents.slice(-5) : [];
     const sections = [];
 
@@ -304,10 +346,25 @@
         <h4>Session</h4>
         <div class="overlay-grid">${renderRows([
           ["mode", snap.mode || "-"],
+          ["sessionId", snap.sessionId || "-"],
           ["time", fmtMs(snap.sessionTimeMs)],
           ["frame", snap.frame ?? 0],
           ["logging", snap.loggingEnabled ? "on" : "off"],
+          ["log status", fs.status || "idle"],
+          ["backend", ls.mode || "-"],
           ["buffer", snap.pendingLogBufferSize ?? 0],
+        ])}</div>
+      </section>
+    `);
+
+    sections.push(`
+      <section class="overlay-section">
+        <h4>Log files</h4>
+        <div class="overlay-grid">${renderRows([
+          ["folder", ls.filesSavedTo || fs.filesSavedTo || "-"],
+          ["main", ls.mainLog || fs.mainLog || "events.jsonl"],
+          ["summary", ls.summary || fs.summary || "summary.json"],
+          ["hint", "send events.jsonl for analysis"],
         ])}</div>
       </section>
     `);
