@@ -419,6 +419,12 @@
       star.orbitCurrentRadius = updatedBaseGravity * starOrbitMul;
       star.gravityR = star.orbitCurrentRadius;
       World.stars.push(star);
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_TRANSFORMED, {
+        fromType: "planet",
+        toType: "star",
+        planetId: p.id || p._id || null,
+        starKind: kind || null,
+      }, { snapshot: true, source: "Planets.transformGasPlanetIntoStar" });
       if (reconcileStarOwnershipOnBirth) reconcileStarOwnershipOnBirth(p, star);
       if (startStarEpochZoomOut) startStarEpochZoomOut(star, View.w, View.h);
 

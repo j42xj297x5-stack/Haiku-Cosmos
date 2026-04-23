@@ -69,6 +69,39 @@
     #fpsLabel {
       opacity: 0.85;
     }
+
+    #startOverlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.82);
+      z-index: 10000;
+      pointer-events: auto;
+    }
+    #startOverlay[hidden] { display: none; }
+    .start-panel {
+      width: min(420px, 92vw);
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(20,20,24,0.92);
+      color: #fff;
+      font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      display: grid;
+      gap: 12px;
+    }
+    .start-actions { display: grid; gap: 10px; }
+    .start-actions button {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      cursor: pointer;
+    }
+    .debug-badge { opacity: 0.7; }
   </style>
 </head>
 
@@ -79,14 +112,27 @@
 
   <div id="uiRoot">
     <div id="topBar">
+      <div class="pill debug-badge" id="debugBadge" hidden>DEBUG</div>
       <div class="pill" id="fpsLabel">FPS: --</div>
       <button class="pill" id="btnRestart" type="button">Restart</button>
       <button class="pill" id="btnSubMeta" type="button">META</button>
     </div>
   </div>
 
+  <div id="startOverlay">
+    <div class="start-panel">
+      <h2 style="margin:0; font-size:20px;">Haiku Cosmos</h2>
+      <div>Choose mode for this session.</div>
+      <div class="start-actions">
+        <button id="btnStartNormal" type="button">Normal Game</button>
+        <button id="btnStartDebug" type="button">Debug Mode</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Source of truth documentation is in /md (see md/README.md). -->
 
+  <script src="./hc.debug.js"></script>
   <script src="./cards.js"></script>
 
   <script src="./hc.core.js"></script>

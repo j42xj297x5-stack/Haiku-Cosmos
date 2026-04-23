@@ -201,7 +201,7 @@ meteorCollisionFudge: 1.12,
     metaSlots: { forma: null, intencja: null, czas: null, cisza: null },
     subMetaOpen: false,
     subMetaShownThisRun: false,
-    paused: false,
+    paused: true,
     pack01ReleaseBlockColor: null,
     pack01ReleaseBlockUntilMs: 0,
     meteorBounceEnabled: false,
@@ -595,18 +595,16 @@ meteorCollisionFudge: 1.12,
   if (window.HC && window.HC.UI && window.HC.UI.init) {
     window.HC.UI.init();
   }
-  if (window.HC && window.HC.resetWorld) {
-    window.HC.resetWorld();
-  } else if (window.resetWorld) {
-    window.resetWorld();
-  }
   bootState.cardBound = tryBindCardEngine();
 
   let last = performance.now();
+  let frameIndex = 0;
 
   function frame(now) {
+    frameIndex += 1;
     const dt = Math.min(0.033, Math.max(0.001, (now - last) / 1000));
     last = now;
+    if (window.HC?.Session?.setFrame) window.HC.Session.setFrame(frameIndex);
 
     const dtWorld = World.paused ? 0 : dt;
     update(dtWorld, now);

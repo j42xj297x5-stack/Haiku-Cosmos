@@ -7,6 +7,10 @@
   let btnSubMeta = null;
   let scoreLabel = null;
   let topBar = null;
+  let debugBadge = null;
+  let startOverlay = null;
+  let btnStartNormal = null;
+  let btnStartDebug = null;
   let fpsAcc = 0;
   let fpsFrames = 0;
   let initialized = false;
@@ -58,6 +62,10 @@
       btnRestart = document.getElementById("btnRestart");
       btnSubMeta = document.getElementById("btnSubMeta");
       topBar = document.getElementById("topBar");
+      debugBadge = document.getElementById("debugBadge");
+      startOverlay = document.getElementById("startOverlay");
+      btnStartNormal = document.getElementById("btnStartNormal");
+      btnStartDebug = document.getElementById("btnStartDebug");
 
       scoreLabel = ensureScoreLabel();
 
@@ -67,7 +75,11 @@
 
       if (btnRestart && window.resetWorld) {
         btnRestart.addEventListener("click", () => {
-          window.resetWorld();
+          if (window.HC?.Session?.restart) {
+            window.HC.Session.restart();
+          } else {
+            window.resetWorld();
+          }
           const refreshedWorld = (window.HC.getWorld && window.HC.getWorld()) || window.World;
           updateScoreLabel(refreshedWorld, true);
         });
@@ -80,8 +92,22 @@
           currentWorld.paused = true;
         });
       }
-      if (window.resetWorld) window.resetWorld();
+      if (btnStartNormal) {
+        btnStartNormal.addEventListener("click", () => {
+          if (window.HC?.Session?.start) window.HC.Session.start("normal");
+          if (startOverlay) startOverlay.hidden = true;
+        });
+      }
+      if (btnStartDebug) {
+        btnStartDebug.addEventListener("click", () => {
+          if (window.HC?.Session?.start) window.HC.Session.start("debug");
+          if (startOverlay) startOverlay.hidden = true;
+        });
+      }
       updateScoreLabel(World, true);
+    },
+    applySessionMode(mode) {
+      if (debugBadge) debugBadge.hidden = mode !== "debug";
     },
     update(dt, nowMs) {
       fpsAcc += dt;
