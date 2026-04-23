@@ -173,6 +173,7 @@
     }
     #runtimeDebugOverlay[hidden] { display: none; }
     .overlay-header { display: flex; gap: 8px; justify-content: space-between; align-items: center; }
+    .overlay-header-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
     .overlay-header .overlay-title { font-weight: 700; letter-spacing: 0.02em; }
     .overlay-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
     .overlay-btn {
@@ -241,11 +242,20 @@
     </div>
     <aside id="runtimeDebugOverlay" hidden class="compact" aria-live="polite">
       <div class="overlay-header">
+ codex/implement-physical-logging-to-disk
+        <span class="overlay-title">Runtime Debug</span>
+        <div class="overlay-header-actions">
+          <button id="btnDebugSelectFolder" class="overlay-btn" type="button">Select Log Folder</button>
+          <button id="btnDebugFinalizeSession" class="overlay-btn" type="button">End Debug Session</button>
+          <button id="btnDebugCopyPath" class="overlay-btn" type="button">Copy Path</button>
+          <button id="btnDebugOverlayToggle" class="overlay-btn" type="button">Expand</button>
+
         <span class="overlay-title" data-debug-i18n="overlay.runtimeDebug">Runtime Debug</span>
         <div class="overlay-actions">
           <button id="btnExportEvidence" class="overlay-btn" type="button" data-debug-i18n="overlay.exportEvidence">Export evidence</button>
           <button id="btnMarkIssue" class="overlay-btn" type="button" data-debug-i18n="overlay.markIssue">Mark issue</button>
           <button id="btnDebugOverlayToggle" class="overlay-btn" type="button" data-debug-i18n="overlay.expand">Expand</button>
+ CODEX-STARTING_POINT
         </div>
       </div>
       <textarea id="debugSessionNote" class="overlay-note" data-debug-i18n-placeholder="overlay.notePlaceholder" placeholder="Session note (optional)"></textarea>
@@ -271,6 +281,7 @@
           <section class="cfg-section">
             <h3>A. Startowe RP</h3>
             <label class="cfg-row"><span>Startowe RP</span><input id="cfgInitialRP" type="number" min="0" step="1" value="0"></label>
+            <label class="cfg-row"><span>Scenario Label</span><input id="cfgScenarioLabel" type="text" value="manual_session"></label>
           </section>
           <section class="cfg-section">
             <h3>B. Startowe karty</h3>
