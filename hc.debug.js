@@ -165,6 +165,11 @@
       this.backend = new LocalStorageJsonlBackend(sessionId);
       this.flushTimer = null;
       this.active = false;
+      this.lastEventByThrottleKey = new Map();
+      this.lastWorldProgressBySource = new Map();
+      this.lastExpectedColorEvent = null;
+      this.recentEvents = [];
+      this.maxRecentEvents = 10;
     }
 
     start() {
@@ -214,13 +219,80 @@
       };
     }
 
+    buildThrottleKey(type, payload = {}) {
+      if (type === EVENT_TYPES.WORLD_TRANSFORMATION_BLOCKED) {
+        return [
+          type,
+          payload.sourceType || "unknown",
+          payload.sourceId || "none",
+          payload.reason || "none",
+          payload.thresholdType || "none",
+        ].join("|");
+      }
+      return null;
+    }
+
+    shouldEmitEvent(type, payload = {}, eventFrame = this.frame) {
+      if (type === EVENT_TYPES.WORLD_THRESHOLD_PROGRESS) {
+        const sourceKey = [
+          payload.sourceType || "unknown",
+          payload.sourceId || "none",
+          payload.thresholdType || "none",
+        ].join("|");
+        const current = Number.isFinite(Number(payload.current)) ? Number(payload.current) : null;
+        const target = Number.isFinite(Number(payload.target)) ? Number(payload.target) : null;
+        const dominantKey = payload.dominantKey || null;
+        const signature = `${current}|${target}|${dominantKey}`;
+        const previous = this.lastWorldProgressBySource.get(sourceKey);
+        if (previous && previous.signature === signature) {
+          const frameDelta = Math.max(0, eventFrame - previous.frame);
+          if (frameDelta < 30) return false;
+        }
+        this.lastWorldProgressBySource.set(sourceKey, { signature, frame: eventFrame });
+        return true;
+      }
+
+      if (type === EVENT_TYPES.WORLD_TRANSFORMATION_BLOCKED) {
+        const key = this.buildThrottleKey(type, payload);
+        const previous = key ? this.lastEventByThrottleKey.get(key) : null;
+        if (previous && (eventFrame - previous.frame) < 45) return false;
+        if (key) this.lastEventByThrottleKey.set(key, { frame: eventFrame });
+        return true;
+      }
+
+      if (type === EVENT_TYPES.SEQUENCE_EXPECTED_COLOR_CHANGED) {
+        const signature = `${payload.previous || "null"}|${payload.current || "null"}|${payload.stage || "IDLE"}|${payload.hitCount || 0}`;
+        if (this.lastExpectedColorEvent === signature) return false;
+        this.lastExpectedColorEvent = signature;
+        return true;
+      }
+
+      return true;
+    }
+
+    rememberRecentEvent(event) {
+      this.recentEvents.push({
+        ts: event.ts,
+        sessionTimeMs: event.sessionTimeMs,
+        frame: event.frame,
+        category: event.category,
+        type: event.type,
+        payload: event.payload,
+      });
+      if (this.recentEvents.length > this.maxRecentEvents) {
+        this.recentEvents.splice(0, this.recentEvents.length - this.maxRecentEvents);
+      }
+    }
+
     emit(category, type, payload = {}, opts = {}) {
       if (!this.config.loggingEnabled) return;
+      const eventFrame = Number.isFinite(opts.frame) ? opts.frame : this.frame;
+      if (!this.shouldEmitEvent(type, payload, eventFrame)) return;
       const event = {
         id: `${this.sessionId}:${Date.now()}:${Math.random().toString(16).slice(2, 8)}`,
         ts: new Date().toISOString(),
         sessionTimeMs: Math.max(0, Math.floor(performance.now() - this.sessionStartedAt)),
-        frame: Number.isFinite(opts.frame) ? opts.frame : this.frame,
+        frame: eventFrame,
         category,
         type,
         severity: opts.severity || "info",
@@ -242,6 +314,7 @@
         });
       }
       this.buffer.push(event);
+      this.rememberRecentEvent(event);
       if (this.buffer.length >= this.config.batchSizeEvents) {
         this.flush("batch");
       }
@@ -621,6 +694,77 @@
 
     flush(reason) {
       this.logger?.flush(reason || "manual");
+    },
+
+    getRuntimeSnapshot() {
+      const World = window.HC.getWorld ? window.HC.getWorld() : window.World;
+      const seq = window.CardEngine?.state?.sequence || null;
+      const logger = this.logger;
+      const cardPool = Array.isArray(World?.cardsPool) ? World.cardsPool : [];
+      const cardKeys = [
+        "R1_DR_RED", "R1_DR_YELLOW", "R1_DR_GREEN", "R1_DR_BLUE",
+        "DS_DR_RED", "DS_DR_YELLOW", "DS_DR_GREEN", "DS_DR_BLUE",
+        "R1_SDR_RED", "R1_SDR_YELLOW", "R1_SDR_GREEN", "R1_SDR_BLUE",
+        "R1_PDR_RED", "R1_PDR_YELLOW", "R1_PDR_GREEN", "R1_PDR_BLUE",
+      ];
+      const cardBreakdown = {};
+      for (const key of cardKeys) cardBreakdown[key] = 0;
+      for (const c of cardPool) {
+        if (!c || !c.kind || !c.tier || !c.colorA) continue;
+        const key = `${String(c.kind).toUpperCase()}_${String(c.tier)}_${String(c.colorA).toUpperCase()}`;
+        if (Object.prototype.hasOwnProperty.call(cardBreakdown, key)) {
+          cardBreakdown[key] += 1;
+        }
+      }
+      const lastByCategory = { sequence: null, world: null, rp: null };
+      const recent = Array.isArray(logger?.recentEvents) ? logger.recentEvents : [];
+      for (let i = recent.length - 1; i >= 0; i -= 1) {
+        const entry = recent[i];
+        if (!lastByCategory.sequence && entry.category === "sequence") lastByCategory.sequence = entry;
+        if (!lastByCategory.world && entry.category === "world") lastByCategory.world = entry;
+        if (!lastByCategory.rp && entry.category === "rp") lastByCategory.rp = entry;
+      }
+      return {
+        mode: this.mode,
+        started: this.started,
+        sessionId: this.sessionId,
+        sessionTimeMs: logger ? Math.max(0, Math.floor(performance.now() - logger.sessionStartedAt)) : 0,
+        frame: logger?.frame || 0,
+        loggingEnabled: Boolean(this.debugConfig?.loggingEnabled),
+        pendingLogBufferSize: logger?.buffer?.length || 0,
+        sequence: seq ? {
+          active: Boolean(seq.active),
+          stage: seq.stage || "IDLE",
+          expectedColor: seq.expectedColor || null,
+          hitCount: Number(seq.hitCount || seq.hits || 0),
+          chainColors: Array.isArray(seq.chainColors) ? seq.chainColors.slice() : [],
+          loopMode: seq.loopMode || null,
+          lastResolution: seq.lastResolution || null,
+          resolutionLock: Boolean(seq.resolutionLock),
+        } : null,
+        economy: {
+          rp: Math.max(0, Math.floor(Number(World?.score || 0))),
+          cards: cardBreakdown,
+        },
+        worldCounts: {
+          asteroids: Array.isArray(World?.asteroids) ? World.asteroids.length : 0,
+          rockyPlanets: Array.isArray(World?.planets) ? World.planets.filter((p) => p && p.isRocky).length : 0,
+          gasPlanets: Array.isArray(World?.planets) ? World.planets.filter((p) => p && !p.isRocky).length : 0,
+          stars: Array.isArray(World?.stars) ? World.stars.length : 0,
+        },
+        thresholds: {
+          asteroidToPlanet: {
+            current: Number(World?.planetCaptureTarget || 0),
+            source: World?.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "override",
+          },
+          planetToStar: {
+            current: Number(World?.STAR_REQ_BLUE || 0),
+            source: World?.__debugThresholdOverrides?.planetToStar == null ? "default" : "override",
+          },
+        },
+        lastByCategory,
+        recentEvents: recent.slice(-10),
+      };
     }
   };
 

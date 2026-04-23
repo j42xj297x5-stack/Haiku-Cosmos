@@ -15,6 +15,11 @@
   let btnDebugBack = null;
   let btnDebugResetDefaults = null;
   let debugConfigPanel = null;
+  let runtimeDebugOverlay = null;
+  let runtimeDebugOverlayBody = null;
+  let btnDebugOverlayToggle = null;
+  let runtimeOverlayCompact = true;
+  let runtimeOverlayLastRenderMs = 0;
   let fpsAcc = 0;
   let fpsFrames = 0;
   let initialized = false;
@@ -170,6 +175,17 @@
       btnDebugBack = document.getElementById("btnDebugBack");
       btnDebugResetDefaults = document.getElementById("btnDebugResetDefaults");
       debugConfigPanel = document.getElementById("debugConfigPanel");
+      runtimeDebugOverlay = document.getElementById("runtimeDebugOverlay");
+      runtimeDebugOverlayBody = document.getElementById("runtimeDebugOverlayBody");
+      btnDebugOverlayToggle = document.getElementById("btnDebugOverlayToggle");
+
+      if (btnDebugOverlayToggle) {
+        btnDebugOverlayToggle.addEventListener("click", () => {
+          runtimeOverlayCompact = !runtimeOverlayCompact;
+          if (runtimeDebugOverlay) runtimeDebugOverlay.classList.toggle("compact", runtimeOverlayCompact);
+          btnDebugOverlayToggle.textContent = runtimeOverlayCompact ? "Expand" : "Compact";
+        });
+      }
 
       scoreLabel = ensureScoreLabel();
 
@@ -227,6 +243,9 @@
     },
     applySessionMode(mode) {
       if (debugBadge) debugBadge.hidden = mode !== "debug";
+      if (runtimeDebugOverlay) {
+        runtimeDebugOverlay.hidden = mode !== "debug";
+      }
     },
     update(dt, nowMs) {
       fpsAcc += dt;
@@ -244,6 +263,119 @@
       if (CE && typeof CE.render === "function" && view && window.ctx) {
         CE.render(window.ctx, view.w, view.h);
       }
+
+      if (runtimeDebugOverlay && !runtimeDebugOverlay.hidden && nowMs - runtimeOverlayLastRenderMs > 120) {
+        runtimeOverlayLastRenderMs = nowMs;
+        const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+        if (runtimeDebugOverlayBody) runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+      }
     },
   };
+
+  function fmtMs(ms) {
+    const total = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function renderRows(rows) {
+    return rows.map((row) => `<div class="overlay-row"><span class="k">${row[0]}</span><span class="v">${row[1]}</span></div>`).join("");
+  }
+
+  function summarizeEvent(event) {
+    if (!event) return "—";
+    const payload = event.payload || {};
+    const core = payload.sourceId || payload.reason || payload.thresholdType || payload.current || "";
+    return `${event.type}${core ? ` · ${core}` : ""}`;
+  }
+
+  function renderRuntimeOverlayHtml(snap, compact) {
+    if (!snap) return `<div class="overlay-row"><span class="k">status</span><span class="v">no snapshot</span></div>`;
+    const seq = snap.sequence || {};
+    const cards = snap.economy?.cards || {};
+    const wc = snap.worldCounts || {};
+    const thr = snap.thresholds || {};
+    const recent = Array.isArray(snap.recentEvents) ? snap.recentEvents.slice(-5) : [];
+    const sections = [];
+
+    sections.push(`
+      <section class="overlay-section">
+        <h4>Session</h4>
+        <div class="overlay-grid">${renderRows([
+          ["mode", snap.mode || "-"],
+          ["time", fmtMs(snap.sessionTimeMs)],
+          ["frame", snap.frame ?? 0],
+          ["logging", snap.loggingEnabled ? "on" : "off"],
+          ["buffer", snap.pendingLogBufferSize ?? 0],
+        ])}</div>
+      </section>
+    `);
+
+    sections.push(`
+      <section class="overlay-section">
+        <h4>Sequence</h4>
+        <div class="overlay-grid">${renderRows([
+          ["active", seq.active ? "yes" : "no"],
+          ["stage", seq.stage || "IDLE"],
+          ["expected", seq.expectedColor || "null"],
+          ["hitCount", seq.hitCount ?? 0],
+          ["chain", Array.isArray(seq.chainColors) ? seq.chainColors.join(",") || "-" : "-"],
+          ["loop", seq.loopMode || "null"],
+          ["lastRes", seq.lastResolution || "null"],
+          ["resLock", seq.resolutionLock ? "on" : "off"],
+        ])}</div>
+      </section>
+    `);
+
+    sections.push(`
+      <section class="overlay-section overlay-expanded-only">
+        <h4>Economy / Cards</h4>
+        <div class="overlay-grid">${renderRows([
+          ["RP", snap.economy?.rp ?? 0],
+          ["R1 DR", `${cards.R1_DR_RED || 0}/${cards.R1_DR_YELLOW || 0}/${cards.R1_DR_GREEN || 0}/${cards.R1_DR_BLUE || 0}`],
+          ["DS DR", `${cards.DS_DR_RED || 0}/${cards.DS_DR_YELLOW || 0}/${cards.DS_DR_GREEN || 0}/${cards.DS_DR_BLUE || 0}`],
+          ["R1 sDR", `${cards.R1_SDR_RED || 0}/${cards.R1_SDR_YELLOW || 0}/${cards.R1_SDR_GREEN || 0}/${cards.R1_SDR_BLUE || 0}`],
+          ["R1 pDR", `${cards.R1_PDR_RED || 0}/${cards.R1_PDR_YELLOW || 0}/${cards.R1_PDR_GREEN || 0}/${cards.R1_PDR_BLUE || 0}`],
+        ])}</div>
+      </section>
+    `);
+
+    sections.push(`
+      <section class="overlay-section">
+        <h4>World / Thresholds</h4>
+        <div class="overlay-grid">${renderRows([
+          ["asteroids", wc.asteroids ?? 0],
+          ["rocky", wc.rockyPlanets ?? 0],
+          ["gas", wc.gasPlanets ?? 0],
+          ["stars", wc.stars ?? 0],
+          ["A→P", `${thr.asteroidToPlanet?.current ?? 0} (${thr.asteroidToPlanet?.source || "-"})`],
+          ["P→S", `${thr.planetToStar?.current ?? 0} (${thr.planetToStar?.source || "-"})`],
+        ])}</div>
+      </section>
+    `);
+
+    sections.push(`
+      <section class="overlay-section">
+        <h4>Last events</h4>
+        <div class="overlay-grid">${renderRows([
+          ["sequence", summarizeEvent(snap.lastByCategory?.sequence)],
+          ["world", summarizeEvent(snap.lastByCategory?.world)],
+          ["reward/rp", summarizeEvent(snap.lastByCategory?.rp)],
+        ])}</div>
+      </section>
+    `);
+
+    if (!compact) {
+      sections.push(`
+        <section class="overlay-section overlay-expanded-only">
+          <h4>Mini tail</h4>
+          <ul class="overlay-tail">
+            ${recent.reverse().map((e) => `<li>[${fmtMs(e.sessionTimeMs)}] ${e.type}</li>`).join("") || "<li>—</li>"}
+          </ul>
+        </section>
+      `);
+    }
+    return sections.join("");
+  }
 })();
