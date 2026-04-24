@@ -9,3 +9,9 @@ Minimalna kolejność czytania dla Codexa:
 Dokumenty kanoniczne znajdują się w `docs/current/`.
 
 `docs/legacy/` nie jest źródłem prawdy i należy je czytać tylko na wyraźne polecenie.
+
+Przy pracach dotyczących oprawy wizualnej, kart, PRG, HUD, SUB-META, META, materiałów, kolorów lub agentów graficznych:
+- zacznij od `docs/current/visual/README.md`,
+- potem przeczytaj właściwy dokument wskazany przez README,
+- nie projektuj wizualiów w oderwaniu od aktualnego kierunku wizualnego.
+
