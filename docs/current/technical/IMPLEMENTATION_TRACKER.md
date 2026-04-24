@@ -1,3 +1,9 @@
+> Status: DO AKTUALIZACJI
+> Obszar: techniczne / tracker wdrożenia
+> Źródło prawdy: NIE
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: WORLD_FUNCTION_MAP.md, ../maps/DEPENDENCY_MAP.md, ../../audits/chronological/2026-04-24_remaining_docs_cleanup.md
+
 # Haiku Cosmos — Tracker wdrożeń (Mapa Funkcji vs Kod)
 
 Stan na: aktualny build po META + R1  

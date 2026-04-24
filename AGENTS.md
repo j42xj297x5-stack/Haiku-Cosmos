@@ -17,3 +17,7 @@ Przy pracach dotyczących oprawy wizualnej, kart, PRG, HUD, SUB-META, META, mate
 
 Przy zadaniach systemowych, mechanicznych, UI lub takich, które dotykają kilku obszarów naraz, Codex powinien po `docs/current/README.md` i `docs/current/maps/PROJECT_INDEX.md` przeczytać także:
 - `docs/current/maps/DEPENDENCY_MAP.md`.
+
+
+Dodatkowa zasada po migracji 2026-04-24:
+- Dokumenty robocze/historyczne z migracji znajdują się w `docs/legacy/` i `docs/audits/`; katalog `md/` nie jest już używany.
