@@ -1,10 +1,13 @@
 # Haiku Cosmos — ART DIRECTION v0.1
 ## Kierunek oprawy graficznej i zasady wizualne projektu
 
-Status: DRAFT ROBOCZY
-Cel: ustalenie wspólnego kierunku wizualnego dla świata gry, kart, SUB-META, META oraz warstwy technicznej renderingu.
+> Status: KIERUNEK
+> Obszar: oprawa wizualna
+> Źródło prawdy: TAK, dla aktualnego kierunku wizualnego w swoim zakresie
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: `docs/current/visual/README.md`, `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`, `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`
 
----
+Dokument znajduje się w `docs/current/visual/` i definiuje główny kierunek artystyczny dla świata gry, kart, PRG, SUB-META i META.
 
 ## 1. CEL DOKUMENTU
 

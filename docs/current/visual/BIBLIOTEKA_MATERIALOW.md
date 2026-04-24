@@ -1,11 +1,13 @@
 # Haiku Cosmos — BIBLIOTEKA MATERIAŁÓW I KOLORÓW v0.1
-## Dokument roboczy dla spójnego użycia koloru i materiału w całym projekcie
+## Dokument kierunkowy dla spójnego użycia koloru i materiału w całym projekcie
 
-Status: DRAFT ROBOCZY
-Rola dokumentu: wspólny punkt odniesienia dla projektanta, Codexa i agentów graficznych
-Zakres: kolory bazowe, piąty stan, materiały, światło, użycie w RUN, kartach, PRG, SUB-META i META
+> Status: KIERUNEK
+> Obszar: materiały i kolory
+> Źródło prawdy: TAK, dla aktualnego kierunku wizualnego w swoim zakresie
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: `docs/current/visual/README.md`, `docs/current/visual/ART_DIRECTION.md`, `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`
 
----
+Dokument znajduje się w `docs/current/visual/` i stanowi praktyczną mapę koloru, materiału oraz światła dla RUN, kart, PRG, SUB-META i META.
 
 ## 1. CEL DOKUMENTU
 

@@ -1,11 +1,13 @@
 # Haiku Cosmos — KOSMOLOGIA WIZUALNA v0.1
-## Dokument roboczy dla projektowania grafiki, interfejsu i kierunku plastycznego
+## Dokument kierunkowy dla projektowania grafiki, interfejsu i porządku plastycznego
 
-Status: DRAFT ROBOCZY
-Rola dokumentu: wspólny punkt odniesienia dla projektanta, Codexa i agentów graficznych
-Zakres: świat gry, karty, PRG, SUB-META, META, materiały, symbole, priorytety projektowe
+> Status: KIERUNEK
+> Obszar: kosmologia wizualna
+> Źródło prawdy: TAK, dla aktualnego kierunku wizualnego w swoim zakresie
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: `docs/current/visual/README.md`, `docs/current/visual/ART_DIRECTION.md`, `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`
 
----
+Dokument znajduje się w `docs/current/visual/` i rozwija porządek sensu, symboliki, materiału oraz pięciu stanów dla oprawy Haiku Cosmos.
 
 ## 1. CEL DOKUMENTU
 
@@ -1030,7 +1032,7 @@ Każdy obiekt powinien być opisany przez:
 ## 26. DOKUMENTY NASTĘPNEGO POZIOMU
 
 Na bazie tego dokumentu można później przygotować:
-- BIBLIOTEKA_MATERIALOW_I_KOLOROW.md
+- BIBLIOTEKA_MATERIALOW.md
 - SYSTEM_WIZUALNY_KART.md
 - JEZYK_WIZUALNY_PRG.md
 - ZASADY_WIZUALNE_SUB_META.md

@@ -20,12 +20,12 @@ Ten katalog zawiera aktualną dokumentację projektu.
 
 - `ui/UI_WORLD.md` — KANON
 
-## Dokumenty poza zakresem tej migracji
+## Oprawa wizualna
 
-W kolejnym kroku do migracji pozostają głównie dokumenty wizualne (`visual/`), m.in.:
-- ART DIRECTION,
-- KOSMOLOGIA WIZUALNA,
-- BIBLIOTEKA MATERIAŁÓW.
+- `visual/README.md` — mapa dokumentów wizualnych
+- `visual/ART_DIRECTION.md` — KIERUNEK
+- `visual/KOSMOLOGIA_WIZUALNA.md` — KIERUNEK
+- `visual/BIBLIOTEKA_MATERIALOW.md` — KIERUNEK
 
 ## Zasady
 
