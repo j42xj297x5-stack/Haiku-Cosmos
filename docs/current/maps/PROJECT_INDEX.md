@@ -21,7 +21,7 @@ Nie jest już „jedynym miejscem definiującym kanon” — kanon jest mapowany
 ### Mapy
 
 - `docs/current/maps/PROJECT_INDEX.md` — główny indeks bieżącego kanonu.
-- `docs/current/maps/DEPENDENCY_MAP.md` — **brak / do utworzenia** (zaplanować w kolejnym kroku).
+- `docs/current/maps/DEPENDENCY_MAP.md` — mapa relacji między systemami, dokumentami i orientacyjnymi obszarami kodu; czytać przy zadaniach systemowych.
 
 ### Systemy gry
 
@@ -49,3 +49,4 @@ Poniższe dokumenty pozostają poza tym krokiem (do kolejnych etapów):
 - Przy konflikcie między kodem a dokumentacją kanoniczną, dokumentacja w `docs/current/` ma pierwszeństwo projektowe.
 - Przy konflikcie między dokumentami kanonicznymi i roboczymi, konflikt wpisujemy do audytu (bez agresywnego rozstrzygania w tym kroku).
 - `docs/legacy/` nie jest źródłem prawdy i czytamy je wyłącznie na wyraźne polecenie.
+- Przy zadaniach systemowych po `PROJECT_INDEX.md` czytaj `DEPENDENCY_MAP.md`, żeby dobrać komplet zależnych dokumentów i obszarów runtime.

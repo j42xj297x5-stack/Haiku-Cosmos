@@ -13,6 +13,7 @@ Haiku Cosmos to kontemplacyjna gra-system, w której decyzje gracza wpływają n
 
 - Źródłem prawdy jest dokumentacja w [`docs/current/`](docs/current/README.md).
 - Indeks kanonu dla bieżącej struktury znajduje się w [`docs/current/maps/PROJECT_INDEX.md`](docs/current/maps/PROJECT_INDEX.md).
+- Mapa zależności systemów/dokumentów/kodu znajduje się w [`docs/current/maps/DEPENDENCY_MAP.md`](docs/current/maps/DEPENDENCY_MAP.md).
 - Dokumentacja kierunku wizualnego znajduje się w [`docs/current/visual/README.md`](docs/current/visual/README.md).
 - `docs/legacy/` nie jest źródłem prawdy i służy wyłącznie dokumentom nieaktualnym/zastąpionym.
 
