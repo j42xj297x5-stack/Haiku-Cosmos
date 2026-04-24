@@ -47,7 +47,7 @@ Kanon jest mapowany warstwowo przez:
 ### Techniczne (aktywnie utrzymywane, ale niekanoniczne)
 
 - `docs/current/technical/README.md` (ROBOCZY; mapa warstwy technicznej)
-- `docs/current/technical/WORLD_FUNCTION_MAP.md` (DO AKTUALIZACJI; mapa aktywna, ale niepełne źródło prawdy runtime)
+- `docs/current/technical/WORLD_FUNCTION_MAP.md` (ROBOCZY; mapa orientacyjna runtime, nie kanon techniczny funkcja-po-funkcji)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md` (ROBOCZY)
 - `docs/current/technical/LIVE_VALIDATION_PACK.md` (ROBOCZY)
 

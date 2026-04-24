@@ -1,40 +1,40 @@
-> Status: DO AKTUALIZACJI
+> Status: ROBOCZY
 > Obszar: mapa funkcji świata / runtime
-> Źródło prawdy: NIE / CZĘŚCIOWO
+> Źródło prawdy: CZĘŚCIOWO — robocza mapa orientacyjna; NIE zastępuje audytu kodu
 > Ostatnia aktualizacja: 2026-04-24
-> Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md, ../systems/CARDS_SYSTEM.md, ../ui/UI_WORLD.md
+> Powiązane dokumenty: ../maps/DEPENDENCY_MAP.md, IMPLEMENTATION_TRACKER.md, LIVE_VALIDATION_PACK.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../ui/UI_WORLD.md
 
 # Haiku Cosmos — MAP_FUNCTIONS_WORLD_vNEXT
 
-> Ten dokument jest aktywną mapą techniczną do przyszłej synchronizacji, ale nie jest jeszcze pełnym źródłem prawdy runtime.
-> Wymaga osobnego audytu względem aktualnego kodu.
-> W tym kroku utrzymano mapę merytoryczną bez pełnego przepisywania.
+> Ten dokument jest roboczą mapą orientacyjną runtime i służy do szybkiego mapowania obszarów kodu.
+> Nie jest kanonem technicznym funkcja-po-funkcji i nie zastępuje pełnego audytu runtime.
+> Przy zmianach runtime należy aktualizować tę mapę albo `IMPLEMENTATION_TRACKER.md` oraz oznaczać sekcje niepewne jako `DO WERYFIKACJI`.
 
 ---
 
 ## 1. Globalny model RUN (init → update → render → reset)
 
 ### 1.1 Inicjalizacja świata (RUN start)
-**Źródła:** `index.codex.html`, `game.boot.codex.js`
+**Źródła:** `index.codex.html`, `game.boot.js`
 
 1) Ładowanie skryptów (kolejność w `index.codex.html`):
-- `cards.codex.js` → `hc.core` → `hc.util` → `hc.world` → `hc.view_input` → `hc.camera` → `hc.comets` → `hc.meteors` → `hc.render` → `hc.collisions` → `hc.asteroids` → `hc.planets` → `hc.stars_epoch` → `hc.ui_debug` → `game.boot`.
+- `cards.js` → `hc.core.js` → `hc.util.js` → `hc.world.js` → `hc.view_input.js` → `hc.camera.js` → `hc.comets.js` → `hc.meteors.js` → `hc.render.js` → `hc.collisions.js` → `hc.asteroids.js` → `hc.planets.js` → `hc.stars_epoch.js` → `hc.ui_debug.js` → `game.boot.js`.
 
-2) Boot (IIFE w `game.boot.codex.js`):
+2) Boot (IIFE w `game.boot.js`):
 - Tworzy `canvas/ctx`, `View`, `Input`, `Camera` oraz helpery globalne (`rand`, `clamp`, `screenToWorld`, `getWorldViewBounds`, itp.).
 - Tworzy obiekt `World` (listy obiektów + parametry) i eksportuje go globalnie.
 - Próbuje `CardEngine.bindWorld(World)` (gdy `CardEngine` już istnieje).
 - Uruchamia moduły świata przez `HC.init*` (jeśli nie zainicjalizowane): `Stars`, `Planets`, `Comets`, `Meteors`, `Render`, `Asteroids`, `Collisions`.
 - Inicjuje UI (`HC.UI.init()`), a następnie wywołuje `resetWorld()`.
 
-3) Wrap reset w `hc.world.codex.js` (po `load`):
+3) Wrap reset w `hc.world.js` (po `load`):
 - Nadpisuje `resetWorld` tak, aby po bazowym resecie ustawić:
   - multiplikatory orbit (`metaOrbitMul*`),
   - stan slotów/forma (`resetFormaEffectState`),
-  - wyczyścić `cardsPool/pending` i przeliczyć `totalCards`.
+  - wyczyścić `cardsPool`/`pending` i przeliczyć `totalCards`.
 
 ### 1.2 Pętla update (kolejność wywołań)
-**Źródło:** `game.boot.codex.js::update(dt, nowMs)`
+**Źródło:** `game.boot.js::update(dt, nowMs)`
 
 1) `Camera.update(dt)`.
 2) `Input` → współrzędne świata (`screenToWorld`).
@@ -51,7 +51,7 @@
 5) `CardEngine.update(dt, nowMs)` (oferty, timery, pending, forma, rytuały).
 
 ### 1.3 Render + UI
-**Źródło:** `game.boot.codex.js::frame(now)`
+**Źródło:** `game.boot.js::frame(now)`
 
 - `HC.Render.frame(now, dt)` rysuje świat.
 - `HC.UI.update(dt, now)`:
@@ -59,13 +59,13 @@
   - `CardEngine.render(ctx, view.w, view.h)` (HUD kart + SUB-META).
 
 ### 1.4 Reset RUN (HARD RESET)
-**Źródło:** `game.boot.codex.js::resetWorld()` + wrapper w `hc.world.codex.js`
+**Źródło:** `game.boot.js::resetWorld()` + wrapper w `hc.world.js`
 
 - Czyści listy obiektów (meteory/asteroidy/planety/gwiazdy/komety).
 - Resetuje parametry runu (`epoch*`, `score`, `spawnTimer`, `color streak`, `flags`, `metaSlots`, `paused`, itd.).
 - Resetuje R1/R2 stany oraz bank kart (`cardBank` → zera).
 - Czyści timery runu i efekty slotów (`RunTimers.reset`, `resetFormaEffectState`).
-- Resetuje `CardEngine` (`resetForNewRun`) i czyści `cardsPool/pending`.
+- Resetuje `CardEngine` (`resetForNewRun`) i czyści `cardsPool`/`pending`.
 
 ---
 
@@ -82,7 +82,7 @@
 - `World.paused` (zamyka update przez `dtWorld = 0`).
 
 **R1/R2 sekwencje (różne źródła):**
-- Aktualnie używane: `World.r1 = { color, streak }` (w `hc.collisions.codex.js`).
+- Aktualnie używane: `World.r1 = { color, streak }` (w `hc.collisions.js`).
 - Zainicjalizowane w resecie, ale bez użycia: `World.r1Seq`, `World.r2Seq`.
 
 **Karty / META:**
@@ -108,7 +108,7 @@
 ### 2.2 CardEngine (stan UI/offerów/overlay)
 - `state.hand`, `state.queue`, `state.activeOffer`, `state.cooldowns`.
 - `state.timed[]` (efekty czasowe targetów), `state.ritual` (karty rytuałów).
-- `state.engineStats` (mnożniki PRG/pointer) → używane w `hc.meteors`.
+- `state.engineStats` (mnożniki PRG/pointer) → używane w `hc.meteors.js`.
 - `state.targets` + `state.targetLibrary` (system targetów parametrów świata).
 - `state.r1Overlay` (OPEN/FAIL/SUCCESS/ACTIVATED + TTL).
 - `state.subMeta.*` (nawigacja overlay SUB-META).
@@ -131,7 +131,7 @@
 
 ## 3. Moduły świata (każdy osobno)
 
-### 3.1 `hc.world.codex.js` — WorldEvents + Timery + Sloty
+### 3.1 `hc.world.js` — WorldEvents + Timery + Sloty
 **STATE:**
 - `World.meteorStreams`, `World.runColorTimers`, `World.effectTimersByColor`.
 - `World.fx*` (slot effects), `World.metaOrbitMul*`, `World.forma*`.
@@ -152,7 +152,7 @@
 
 ---
 
-### 3.2 `hc.meteors.codex.js` — Meteory
+### 3.2 `hc.meteors.js` — Meteory
 **STATE:**
 - `World.meteors[]`.
 
@@ -173,7 +173,7 @@
 
 ---
 
-### 3.3 `hc.collisions.codex.js` — Kolizje meteorów + R1
+### 3.3 `hc.collisions.js` — Kolizje meteorów + R1
 **STATE:**
 - `World.r1 = { color, streak }` (runtime sekwencji R1).
 
@@ -191,7 +191,7 @@
 
 ---
 
-### 3.4 `hc.asteroids.codex.js` — Asteroidy
+### 3.4 `hc.asteroids.js` — Asteroidy
 **STATE:**
 - `World.asteroids[]` + per-asteroid `orbiters`, `capture*`, `live*`, `isCollapsing`.
 
@@ -208,7 +208,7 @@
 
 ---
 
-### 3.5 `hc.planets.codex.js` — Planety
+### 3.5 `hc.planets.js` — Planety
 **STATE:**
 - `World.planets[]`, per-planet `orbiters`, `rings`, `preStar`, `rocky*`.
 
@@ -225,7 +225,7 @@
 
 ---
 
-### 3.6 `hc.comets.codex.js` — Komety
+### 3.6 `hc.comets.js` — Komety
 **STATE:**
 - `World.comets[]`, `Comets.CONFIG`, `spawnState`, `event`.
 
@@ -238,7 +238,7 @@
 
 ---
 
-### 3.7 `hc.stars_epoch.codex.js` — Gwiazdy + epoka
+### 3.7 `hc.stars_epoch.js` — Gwiazdy + epoka
 **STATE:**
 - `World.stars[]`, `World.epoch`, `World.epochTriggered`, `World.epochAt`.
 - `star.birth`, `star.sizeClass`, `star.gradientOuterColor`.
@@ -255,7 +255,7 @@
 
 ---
 
-### 3.8 `hc.render.codex.js` — Render
+### 3.8 `hc.render.js` — Render
 **STATE:**
 - Brak stanu świata (odczyt `World/Camera/View`).
 
@@ -267,7 +267,7 @@
 
 ---
 
-### 3.9 `hc.ui_debug.codex.js` — HUD RP + UI
+### 3.9 `hc.ui_debug.js` — HUD RP + UI
 **STATE:**
 - `scoreLabel`, `mpsUI` (slider), `btnRestart`, `btnSubMeta`.
 
@@ -281,7 +281,7 @@
 
 ---
 
-### 3.10 `cards.codex.js` — CardEngine + SUB-META
+### 3.10 `cards.js` — CardEngine + SUB-META
 **STATE:**
 - `state.activeOffer/queue/hand`, `state.cooldowns`, `state.timed`, `state.ritual`.
 - `state.targets` + `engineStats`.
@@ -304,17 +304,17 @@
 ## 4. Punkty ingerencji kart (CRITICAL)
 
 ### 4.1 Gdzie powstaje karta R1 DR
-- `hc.collisions.codex.js::handleR1SameColorCollision` emituje `R1_SUCCESS` po 3 kolizjach tego samego koloru.
-- `cards.codex.js` nasłuchuje `R1_SUCCESS` i wywołuje `onCardCollected({ kind: "R1", tier: "DR", colorA })`.
+- `hc.collisions.js::handleR1SameColorCollision` emituje `R1_SUCCESS` po 3 kolizjach tego samego koloru.
+- `cards.js` nasłuchuje `R1_SUCCESS` i wywołuje `onCardCollected({ kind: "R1", tier: "DR", colorA })`.
 
 ### 4.2 Gdzie powstaje pending 3s
-- `cards.codex.js::onCardCollected` ustawia:
+- `cards.js::onCardCollected` ustawia:
   - `World.pendingCard = <R1 entity>`,
   - `World.pendingCardUntilMs = now + 3000`.
 - Jeśli inna karta wpada w trakcie, poprzednia pending jest natychmiast dodawana do `cardsPool`.
 
 ### 4.3 Aktywacja (klik) i skutki
-- `cards.codex.js::handlePointerDown`:
+- `cards.js::handlePointerDown`:
   - gdy `r1Overlay.mode === "SUCCESS"` i klik w overlay,
   - wywołuje `onRunActivateR1({ baseDurationMs: 180000, colorKey, tierKey: "DR" })`.
 - `onRunActivateR1`:
@@ -330,13 +330,13 @@
   - karta staje się „zebrana”, dostępna dla HUD/SUB-META.
 
 ### 4.5 RP (Punkty Rezonansu)
-- `hc.ui_debug.codex.js::addScore` modyfikuje `World.score`.
+- `hc.ui_debug.js::addScore` modyfikuje `World.score`.
 - Wywołania:
-  - `hc.collisions.codex.js`: +1 za kolizję tego samego koloru.
-  - `hc.collisions.codex.js`: +3 za „fail” R1 (zmiana koloru po streak==2).
+  - `hc.collisions.js`: +1 za kolizję tego samego koloru.
+  - `hc.collisions.js`: +3 za „fail” R1 (zmiana koloru po streak==2).
 
 ### 4.6 HUD kart (DR + timery)
-- `cards.codex.js::renderPack01Collection`:
+- `cards.js::renderPack01Collection`:
   - pobiera ilość DR z `World.cardsPool` (`getCardCount(..., { availableOnly: true })`),
   - rysuje pionowe paski czasu z `World.runColorTimers/runColorDurations`.
 - Puls obwódki HUD: `World.r1HudPulse` ustawiane po `R1_OPEN`.
@@ -366,8 +366,8 @@
 - Panel info (prawa dół): opis slotu/karty lub kuźni (koszty, dostępność).
 
 ### 5.4 Trigger otwarcia
-- `hc.planets.codex.js`: `Events.on("PLANET_CREATED")` → `World.subMetaOpen = true`, `World.paused = true`.
-- UI: `btnSubMeta` w `hc.ui_debug.codex.js` otwiera overlay ręcznie.
+- `hc.planets.js`: `Events.on("PLANET_CREATED")` → `World.subMetaOpen = true`, `World.paused = true`.
+- UI: `btnSubMeta` w `hc.ui_debug.js` otwiera overlay ręcznie.
 
 ---
 
@@ -384,14 +384,14 @@
 
 ---
 
-## 7. Open Gaps / Rozjazdy / TODO
+## 7. Open Gaps / Rozjazdy / TODO (DO WERYFIKACJI)
 
 1) **`World.r1Seq` / `World.r2Seq`**
    - Pola resetowane w `resetWorld`, ale nieużywane w logice.
-   - Aktualny stan R1 jest w `World.r1` (moduł `hc.collisions`).
+   - Aktualny stan R1 jest w `World.r1` (moduł `hc.collisions.js`).
 
 2) **`pack01ReleaseBlockColor`**
-   - Używane w `hc.asteroids` i `hc.planets` do blokowania przechwytu meteorów,
+   - Używane w `hc.asteroids.js` i `hc.planets.js` do blokowania przechwytu meteorów,
    - brak miejsca w kodzie, które ustawia `pack01ReleaseBlockColor`/`UntilMs`.
 
 3) **RunTimers vs spawn kolorów**
@@ -402,7 +402,7 @@
    - Istnieje `onRunActivateR2`, ale brak mechanizmu generowania kart R2 i overlay aktywacji R2 (brak eventów/sekwencji).
 
 5) **EffectTimers**
-   - System `EffectTimers` istnieje w `hc.world`, ale nie jest używany w runtime.
+   - System `EffectTimers` istnieje w `hc.world.js`, ale nie jest używany w runtime.
 
 6) **SUB-META aktywacja**
    - Layout zawiera `activateButton`, ale brak render/click logic dla aktywacji z SUB-META.

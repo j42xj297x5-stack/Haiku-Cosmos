@@ -35,8 +35,8 @@ Służy do szybkiego rozróżnienia: co działa, co jest historyczne, co wymaga 
 
 ## 4. Do aktualizacji (otwarte obszary)
 
-- Rozszerzenia PRG i i18n (dokumenty systemowe mają status DO AKTUALIZACJI).
-- Dalsza synchronizacja mapy funkcji świata (`WORLD_FUNCTION_MAP.md`) z kodem po osobnym audycie runtime.
+- Rozszerzenia PRG i i18n (systemy mają status kanonu strukturalnego i wymagają kolejnych kroków wdrożenia/strojenia).
+- `WORLD_FUNCTION_MAP.md` została zsynchronizowana orientacyjnie do statusu ROBOCZY; pełny audyt runtime funkcja-po-funkcji pozostaje osobnym zadaniem.
 - Uporządkowanie starszych bloków „plan/propozycja” tam, gdzie zostały już zastąpione audytami z 2026-04-24.
 
 ## 5. Uwagi operacyjne
