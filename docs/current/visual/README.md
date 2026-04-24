@@ -1,5 +1,11 @@
 # docs/current/visual — mapa kierunku wizualnego
 
+> Status: KIERUNEK
+> Obszar: mapa kierunku wizualnego
+> Źródło prawdy: TAK, dla kolejności czytania i ról dokumentów wizualnych
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
+
 ## 1. Cel katalogu
 
 Katalog `docs/current/visual/` zawiera aktualny kierunek wizualny Haiku Cosmos i jest źródłem prawdy dla decyzji dotyczących oprawy graficznej.

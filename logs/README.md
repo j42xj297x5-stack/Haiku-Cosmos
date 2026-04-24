@@ -18,3 +18,4 @@ Minimalny kontrakt plików runu:
 
 - Surowe logi runtime nie są dokumentacją projektową.
 - Katalog `logs/runs/` nie powinien być commitowany do repozytorium.
+- Kontrakt użycia logów i evidence jest opisany w `docs/current/technical/LIVE_VALIDATION_PACK.md` (status: ROBOCZY).

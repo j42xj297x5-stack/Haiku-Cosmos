@@ -20,6 +20,7 @@ Kanon jest mapowany warstwowo przez:
 
 ### Mapy
 
+- `docs/current/README.md` — mapa warstwy `docs/current/` (KANON)
 - `docs/current/maps/PROJECT_INDEX.md` — główny indeks bieżącego kanonu.
 - `docs/current/maps/DEPENDENCY_MAP.md` — mapa relacji między systemami, dokumentami i orientacyjnymi obszarami kodu.
 
@@ -45,6 +46,7 @@ Kanon jest mapowany warstwowo przez:
 
 ### Techniczne (aktywnie utrzymywane, ale niekanoniczne)
 
+- `docs/current/technical/README.md` (ROBOCZY; mapa warstwy technicznej)
 - `docs/current/technical/WORLD_FUNCTION_MAP.md` (DO AKTUALIZACJI; mapa aktywna, ale niepełne źródło prawdy runtime)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md` (ROBOCZY)
 - `docs/current/technical/LIVE_VALIDATION_PACK.md` (ROBOCZY)
