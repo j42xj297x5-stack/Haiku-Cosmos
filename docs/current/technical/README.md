@@ -11,7 +11,7 @@ audytów i synchronizacji dokumentacji z runtime.
 
 ## Status dokumentów
 
-- `WORLD_FUNCTION_MAP.md` — **DO AKTUALIZACJI** (aktywna mapa techniczna, wymaga osobnego audytu runtime)
+- `WORLD_FUNCTION_MAP.md` — **ROBOCZY** (aktywna mapa techniczna orientacyjna; nie zastępuje pełnego audytu runtime)
 - `IMPLEMENTATION_TRACKER.md` — **ROBOCZY** (tracker wdrożeń i obszarów do weryfikacji)
 - `LIVE_VALIDATION_PACK.md` — **ROBOCZY** (roboczy kontrakt walidacji runów i evidence)
 

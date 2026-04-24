@@ -36,7 +36,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 ## Dokumentacja techniczna
 
 - `technical/README.md` — ROBOCZY (mapa warstwy technicznej)
-- `technical/WORLD_FUNCTION_MAP.md` — DO AKTUALIZACJI (mapa aktywna, nadal wymaga osobnego audytu runtime)
+- `technical/WORLD_FUNCTION_MAP.md` — ROBOCZY (mapa orientacyjna runtime; nie jest kanonem technicznym funkcja-po-funkcji)
 - `technical/IMPLEMENTATION_TRACKER.md` — ROBOCZY
 - `technical/LIVE_VALIDATION_PACK.md` — ROBOCZY
 
