@@ -534,6 +534,10 @@
         <div class="overlay-grid">${renderRows([
           ["active", seq.active ? "yes" : "no"],
           ["stage", seq.stage || "IDLE"],
+          ["phase", seq.phase || "null"],
+          ["track", seq.track || "null"],
+          ["stepIndex", Number.isFinite(seq.stepIndex) ? seq.stepIndex : 0],
+          ["current", seq.currentColor || "null"],
           ["expected", seq.expectedColor || "null"],
           ["hitCount", seq.hitCount ?? 0],
           ["chain", Array.isArray(seq.chainColors) ? seq.chainColors.join(",") || "-" : "-"],

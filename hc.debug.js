@@ -1280,6 +1280,10 @@
         sequence: seq ? {
           active: Boolean(seq.active),
           stage: seq.stage || "IDLE",
+          phase: seq.phase || null,
+          track: seq.track || null,
+          stepIndex: Number(seq.stepIndex || 0),
+          currentColor: seq.currentColor || null,
           expectedColor: seq.expectedColor || null,
           hitCount: Number(seq.hitCount || seq.hits || 0),
           chainColors: Array.isArray(seq.chainColors) ? seq.chainColors.slice() : [],

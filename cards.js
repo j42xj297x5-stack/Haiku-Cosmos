@@ -1214,9 +1214,14 @@ const CardEngine = (() => {
     const completedColors = seq.colorsClosed.slice();
     const awardedCards = Array.isArray(seq.tempCards) ? seq.tempCards.slice() : [];
     const rpDelta = Math.floor(Number(World?.score || 0)) - Math.floor(Number(seq.rpStart || 0));
+    const interruptedColor = normalizePack01Color(seq.currentColor);
+    const interruptedStage = seq.stage || getSequenceStage(seq) || null;
+    const interruptedStepIndex = Number(seq.stepIndex || 0);
     emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_FAIL_DETECTED, {
       expectedColor: seq.expectedColor || null,
-      stage: seq.stage || null,
+      stage: interruptedStage,
+      interruptedColor: interruptedColor || null,
+      interruptedStepIndex,
       completedColors,
       reason: "color-mismatch-or-invalid-start",
     }, { source: "CardEngine.failSequence", severity: "warn" });
@@ -1233,6 +1238,10 @@ const CardEngine = (() => {
       completedColors,
       rpDelta,
       awardedCards: awardedCards.map((card) => card?.id).filter(Boolean),
+      stage: interruptedStage,
+      interruptedColor: interruptedColor || null,
+      interruptedStepIndex,
+      autoResolved: true,
     }, { source: "CardEngine.failSequence", snapshot: true, severity: "warn" });
     seq.lastResolution = "failed";
     resetSequenceState();
@@ -1452,6 +1461,9 @@ const CardEngine = (() => {
         previousColor: seq.currentColor || null,
         hitCount: 1,
         stage: restarted.stage || null,
+        takeoverFromStage: seq.stage || null,
+        takeoverFromStepIndex: Number(seq.stepIndex || 0),
+        takeoverAfterFail: true,
         reason: "post-fail-direction-takeover",
         sourceObject: collisionContext?.sourceObject || null,
       }, { source: "CardEngine.onHitColor", snapshot: true });
