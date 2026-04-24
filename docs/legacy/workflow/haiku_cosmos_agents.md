@@ -1,3 +1,8 @@
+> Status: LEGACY / HISTORYCZNY
+> Źródło prawdy: NIE
+> Powód przeniesienia: dokument historyczny po migracji do docs/current/.
+> Aktualne źródło prawdy: docs/current/README.md oraz docs/current/maps/PROJECT_INDEX.md
+
 # AGENTS.md — Haiku Cosmos (instrukcje dla Codex)
 
 > Ten plik to **project-specific guidance** dla Codex.

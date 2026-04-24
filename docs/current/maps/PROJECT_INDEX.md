@@ -4,24 +4,24 @@
 > Obszar: Mapa projektu / indeks dokumentacji aktualnej
 > Źródło prawdy: TAK
 > Ostatnia aktualizacja: 2026-04-24
-> Powiązane dokumenty: ../../README.md, ../README.md, ../systems/CARDS_SYSTEM.md, ../systems/ECONOMY_SYSTEM.md, ../systems/SUB_META_SYSTEM.md, ../ui/UI_WORLD.md
+> Powiązane dokumenty: ../../README.md, ../README.md, DEPENDENCY_MAP.md
 
 ## Rola dokumentu
 
 `PROJECT_INDEX.md` jest indeksem aktualnego kanonu w ramach struktury `docs/current/`.
-Nie jest już „jedynym miejscem definiującym kanon” — kanon jest mapowany warstwowo przez:
+Kanon jest mapowany warstwowo przez:
 
-1. `README.md` (root) — mapa całego repozytorium,
-2. `docs/README.md` — mapa dokumentacji,
-3. `docs/current/README.md` — mapa aktualnej dokumentacji kanonicznej,
-4. `docs/current/maps/PROJECT_INDEX.md` (ten plik) — indeks dokumentów kanonicznych i roboczych w `docs/current/`.
+1. `README.md` (root),
+2. `docs/README.md`,
+3. `docs/current/README.md`,
+4. `docs/current/maps/PROJECT_INDEX.md` (ten plik).
 
-## Indeks aktualnych dokumentów (krok 2 migracji)
+## Indeks aktualnych dokumentów
 
 ### Mapy
 
 - `docs/current/maps/PROJECT_INDEX.md` — główny indeks bieżącego kanonu.
-- `docs/current/maps/DEPENDENCY_MAP.md` — mapa relacji między systemami, dokumentami i orientacyjnymi obszarami kodu; czytać przy zadaniach systemowych.
+- `docs/current/maps/DEPENDENCY_MAP.md` — mapa relacji między systemami, dokumentami i orientacyjnymi obszarami kodu.
 
 ### Systemy gry
 
@@ -36,17 +36,21 @@ Nie jest już „jedynym miejscem definiującym kanon” — kanon jest mapowany
 
 - `docs/current/ui/UI_WORLD.md` (KANON)
 
-## Poza bieżącą paczką migracji
+### Visual
 
-Poniższe dokumenty pozostają poza tym krokiem (do kolejnych etapów):
+- `docs/current/visual/README.md` (KIERUNEK)
+- `docs/current/visual/ART_DIRECTION.md` (KIERUNEK)
+- `docs/current/visual/KOSMOLOGIA_WIZUALNA.md` (KIERUNEK)
+- `docs/current/visual/BIBLIOTEKA_MATERIALOW.md` (KIERUNEK)
 
-- dokumentacja wizualna (np. art direction, kosmologia wizualna, biblioteka materiałów),
-- techniczne mapy implementacyjne i workflow z `md/`,
-- historyczne/robocze audyty poza zakresem map + systems + UI/I18N.
+### Techniczne (aktywnie utrzymywane, ale niekanoniczne)
+
+- `docs/current/technical/WORLD_FUNCTION_MAP.md` (DO AKTUALIZACJI)
+- `docs/current/technical/IMPLEMENTATION_TRACKER.md` (DO AKTUALIZACJI)
+- `docs/current/technical/LIVE_VALIDATION_PACK.md` (DO AKTUALIZACJI)
 
 ## Zasady użycia indeksu
 
-- Przy konflikcie między kodem a dokumentacją kanoniczną, dokumentacja w `docs/current/` ma pierwszeństwo projektowe.
-- Przy konflikcie między dokumentami kanonicznymi i roboczymi, konflikt wpisujemy do audytu (bez agresywnego rozstrzygania w tym kroku).
-- `docs/legacy/` nie jest źródłem prawdy i czytamy je wyłącznie na wyraźne polecenie.
-- Przy zadaniach systemowych po `PROJECT_INDEX.md` czytaj `DEPENDENCY_MAP.md`, żeby dobrać komplet zależnych dokumentów i obszarów runtime.
+- `docs/current/` ma pierwszeństwo projektowe względem dokumentów historycznych.
+- `docs/legacy/` i audyty historyczne są evidence, nie kanonem.
+- `targets_system`, `HAIKU_EDITOR`, `CODEX_START`, `CODEX_PATCHPOINTS`, `haiku_cosmos_agents` są dokumentami legacy i nie są aktywną specyfikacją.

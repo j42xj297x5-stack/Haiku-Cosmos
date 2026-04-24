@@ -1,3 +1,9 @@
+> Status: DO AKTUALIZACJI
+> Obszar: techniczne / mapa funkcji
+> Źródło prawdy: CZĘŚCIOWO
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md, ../systems/CARDS_SYSTEM.md
+
 # Haiku Cosmos — MAP_FUNCTIONS_WORLD_vNEXT
 
 > Aktualna mapa funkcji świata (stan kodu + dokumentacja kanoniczna).

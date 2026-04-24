@@ -1,3 +1,8 @@
+> Status: HISTORYCZNY / SUPERSEDED (evidence)
+> Źródło prawdy: NIE
+> Powód przeniesienia: stary audyt runtime zachowany jako materiał dowodowy.
+> Aktualne źródło prawdy: docs/current/ + bieżące audyty w docs/audits/chronological/.
+
 # AUDIT — Sequence Engine (cards.codex.js)
 
 ## Scope + canon

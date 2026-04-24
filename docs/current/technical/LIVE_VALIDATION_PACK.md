@@ -1,3 +1,9 @@
+> Status: DO AKTUALIZACJI
+> Obszar: techniczne / walidacja
+> Źródło prawdy: CZĘŚCIOWO
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: ../../../logs/README.md, ../maps/DEPENDENCY_MAP.md
+
 # Live Validation Pack (Krok 5)
 
 ## Cel

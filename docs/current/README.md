@@ -27,8 +27,14 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `visual/KOSMOLOGIA_WIZUALNA.md` — KIERUNEK
 - `visual/BIBLIOTEKA_MATERIALOW.md` — KIERUNEK
 
+## Dokumentacja techniczna
+
+- `technical/WORLD_FUNCTION_MAP.md` — DO AKTUALIZACJI
+- `technical/IMPLEMENTATION_TRACKER.md` — DO AKTUALIZACJI
+- `technical/LIVE_VALIDATION_PACK.md` — DO AKTUALIZACJI
+
 ## Zasady
 
 1. `docs/current/` jest źródłem prawdy dla aktualnego kanonu.
-2. Dokumenty z `docs/legacy/` nie są źródłem prawdy (użycie wyłącznie na wyraźne polecenie).
+2. `docs/legacy/` nie jest źródłem prawdy (użycie wyłącznie na wyraźne polecenie).
 3. Po każdej paczce migracji aktualizuj: `README.md` (root), `docs/README.md`, `docs/current/README.md`, `docs/current/maps/PROJECT_INDEX.md`.

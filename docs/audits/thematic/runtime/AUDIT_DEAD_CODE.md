@@ -1,3 +1,8 @@
+> Status: HISTORYCZNY / SUPERSEDED (evidence)
+> Źródło prawdy: NIE
+> Powód przeniesienia: stary audyt runtime zachowany jako materiał dowodowy.
+> Aktualne źródło prawdy: docs/current/ + bieżące audyty w docs/audits/chronological/.
+
 # Haiku Cosmos — Dead-Code Audit (Phase 1, analysis only)
 
 > Scope: `*.codex.js`, `*.codex.html`, `md/*.md` (no generated JS).  

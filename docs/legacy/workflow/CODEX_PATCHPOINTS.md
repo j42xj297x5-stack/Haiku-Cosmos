@@ -1,3 +1,8 @@
+> Status: LEGACY / HISTORYCZNY
+> Źródło prawdy: NIE
+> Powód przeniesienia: dokument historyczny po migracji do docs/current/.
+> Aktualne źródło prawdy: docs/current/README.md oraz docs/current/maps/PROJECT_INDEX.md
+
 # Haiku Cosmos — Codex patchpoints
 
 Poniższe kotwice (anchors) są miejscami, do których “doklejamy” nowe mechaniki bez demolki monolitu.
