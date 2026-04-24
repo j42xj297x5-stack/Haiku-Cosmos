@@ -1,3 +1,9 @@
+> Status: DO AKTUALIZACJI
+> Obszar: System językowy i18n
+> Źródło prawdy: NIE
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: ../maps/PROJECT_INDEX.md, ../ui/UI_WORLD.md
+
 # Haiku Cosmos — System Językowy (i18n)
 ## Założenia, cele i zasady wdrożenia
 

@@ -1,13 +1,16 @@
-# Haiku Cosmos — Documentation Index
+# Haiku Cosmos — Documentation Index (katalog md/)
 
-## Reading order (canonical)
-1) [CARDS_SYSTEM.md](CARDS_SYSTEM.md)
-2) [ECONOMY_SYSTEM.md](ECONOMY%20SYSTEM.md)
-3) [SUB_META_SYSTEM.md](SUB%20META%20SYSTEM.md)
-4) [UI_WORLD.md](UI_WORLD.md)
-5) Optional deep dives:
-   - [targets_system.md](targets_system.md)
-   - [Player Reaction Field](Player%20Reaction%20Field%20PRG.md)
-   - [map functions](haiku_cosmos_map_functions_world_v2.md)
+Ten katalog nie jest już głównym miejscem dokumentacji kanonicznej.
 
-> If code conflicts with docs, docs are canonical.
+## Aktualny punkt wejścia
+
+1) `README.md` (root)
+2) `docs/README.md`
+3) `docs/current/README.md`
+4) `docs/current/maps/PROJECT_INDEX.md`
+
+## Status katalogu `md/`
+
+- Katalog zawiera dokumenty robocze, techniczne i historyczne, które nie zostały jeszcze przeniesione.
+- Dokumenty migrowane do `docs/current/` zostały fizycznie przeniesione (bez aktywnych duplikatów).
+- Jeśli szukasz aktualnego kanonu systemów gry i UI, użyj `docs/current/`.
