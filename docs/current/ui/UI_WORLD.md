@@ -188,6 +188,11 @@ Pętla R1 po ukończeniu R1(A):
   - przyznane punkty (+RP),
   - prostokąty kart, które zostały przyznane w wyniku przerwania (jeśli dotyczy).
 
+Przy atomowym zbieraniu koloru:
+
+- trafienie obcym kolorem przerywa poprzedni kierunek,
+- to samo trafienie ustanawia nowy kierunek jako **hit1/3** (bez „martwego resetu”).
+
 ---
 
 ## 3. SUB-META Overlay (panel konfiguracyjny)

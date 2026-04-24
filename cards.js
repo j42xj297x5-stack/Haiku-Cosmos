@@ -1402,6 +1402,31 @@ const CardEngine = (() => {
     }
 
     if (normalized !== seq.currentColor) {
+      if (seq.stepIndex === 0) {
+        emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_DIRECTION_LOCKED, {
+          currentColor: normalized,
+          expectedColor: normalized,
+          previousColor: seq.currentColor || null,
+          hitCount: 1,
+          stage: seq.stage || null,
+          reason: "first-step-direction-switch",
+          chainColors: seq.chainColors || [],
+          sourceObject: collisionContext?.sourceObject || null,
+        }, { source: "CardEngine.onHitColor", snapshot: true });
+        seq.currentColor = normalized;
+        seq.hits = 1;
+        seq.opened = false;
+        seq.mode = "IN_STEP";
+        setSequencePhase(seq, "DIR");
+        {
+          const level = seq.stepIndex + 1;
+          addScoreToWorld(World, getSequenceMultiplier(level, seq.chainIndex));
+        }
+        traceSeqHit("dir", normalized, { reason: "first-step-direction-switch" });
+        const snapshot = getHitSnapshot(seq);
+        seq.lastHitSnapshot = snapshot;
+        return { action: "dir", snapshot };
+      }
       emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_HIT_REJECTED, {
         color: normalized,
         expectedColor: seq.currentColor || seq.expectedColor || null,

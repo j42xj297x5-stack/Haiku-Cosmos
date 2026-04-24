@@ -132,13 +132,25 @@ Mechanicznie system operuje na oznaczeniach R1–R4.
 
 1. Każda sekwencja **zawsze zaczyna się od R1**.
 2. Sekwencja kolorów: **A → B → C → D**.
-3. Każdy krok wymaga **2 harmonicznych trafień** tego samego koloru.
+3. Każdy krok atomowy wymaga **3 harmonicznych trafień** tego samego koloru.
+
+Kontrakt atomowego kroku (3 trafienia):
+
+- **hit1/3** — ustanowienie kierunku koloru (bez zamknięcia kroku),
+- **hit2/3** — otwarcie kroku sekwencji,
+- **hit3/3** — zamknięcie kroku sukcesem.
+
+Jeżeli w trakcie zbierania kroku (przed hit3) pojawi się inny kolor:
+
+- poprzedni kierunek zostaje przerwany,
+- licznik poprzedniego koloru nie jest kontynuowany,
+- trafienie nowego koloru **nie przepada** i staje się natychmiast **hit1/3** nowego kierunku.
 
 ---
 
 ### 5.2. Okno decyzyjne (ryzyko) — 3 sekundy
 
-Po zamknięciu kroku (drugie trafienie koloru):
+Po zamknięciu kroku (trzecie trafienie koloru):
 
 - **Lewa połowa:** Aktywuj `R1{kolor}`
 - **Prawa połowa:** Kolekcja (cash-out)
@@ -168,7 +180,12 @@ Po zamknięciu kroku (drugie trafienie koloru):
 
 Sekwencja przerywa się natychmiast, gdy:
 
-- w trakcie zbierania aktualnego kroku pojawi się inny kolor.
+- pojawi się kolor niedozwolony dla aktualnego etapu ścieżki (np. złamanie reguł po zamknięciu wcześniejszych kroków),
+- albo gracz złamie warunek aktywnej ścieżki A-track / R-track.
+
+Uwaga: dla atomowego kroku zbierania koloru (hit1→hit2→hit3) obowiązuje zasada:
+obcy kolor przerywa poprzedni kierunek i jednocześnie staje się hit1 nowego kierunku
+(nie jest to „martwy reset” z utratą trafienia).
 
 Nagrody przy FAIL:
 
