@@ -138,6 +138,12 @@ Po przerwaniu:
 - mnożnik RP wraca do poziomu bazowego (pierwszy ciąg),
 - kolejna sekwencja traktowana jest jako nowa.
 
+Uwaga operacyjna:
+
+- przerwanie atomowego kroku przez inny kolor nie oznacza utraty tego nowego trafienia,
+- nowe trafienie ustanawia nowy kierunek jako hit1/3,
+- naliczanie RP powinno być spójne z aktualnym stanem sekwencji po tej zmianie kierunku.
+
 ---
 
 ## 8. Relacja ECONOMY ↔ CARDS SYSTEM
