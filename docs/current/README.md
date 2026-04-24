@@ -29,9 +29,9 @@ Ten katalog zawiera aktualną dokumentację projektu.
 
 ## Dokumentacja techniczna
 
-- `technical/WORLD_FUNCTION_MAP.md` — DO AKTUALIZACJI
-- `technical/IMPLEMENTATION_TRACKER.md` — DO AKTUALIZACJI
-- `technical/LIVE_VALIDATION_PACK.md` — DO AKTUALIZACJI
+- `technical/WORLD_FUNCTION_MAP.md` — DO AKTUALIZACJI (mapa aktywna, nadal wymaga osobnego audytu runtime)
+- `technical/IMPLEMENTATION_TRACKER.md` — ROBOCZY
+- `technical/LIVE_VALIDATION_PACK.md` — ROBOCZY
 
 ## Zasady
 

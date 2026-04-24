@@ -36,13 +36,13 @@
 
 ### ROBOCZY
 - `docs/current/systems/ROADMAP.md`
+- `docs/current/technical/IMPLEMENTATION_TRACKER.md`
+- `docs/current/technical/LIVE_VALIDATION_PACK.md`
 
 ### DO AKTUALIZACJI
 - `docs/current/systems/PRG_SYSTEM.md`
 - `docs/current/systems/I18N_SYSTEM.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
-- `docs/current/technical/IMPLEMENTATION_TRACKER.md`
-- `docs/current/technical/LIVE_VALIDATION_PACK.md`
 
 ### LEGACY / HISTORYCZNE (nie kanon)
 - `docs/legacy/systems/TARGETS_SYSTEM.md`
@@ -60,6 +60,7 @@
 
 ## 5. Ostrzeżenia
 
-- Dokumenty w `docs/current/technical/` mają status DO AKTUALIZACJI i wymagają późniejszego audytu merytorycznego.
+- `docs/current/technical/WORLD_FUNCTION_MAP.md` ma status DO AKTUALIZACJI i wymaga osobnego audytu merytorycznego względem runtime.
+- `docs/current/technical/IMPLEMENTATION_TRACKER.md` i `docs/current/technical/LIVE_VALIDATION_PACK.md` mają status ROBOCZY (operacyjny, niekanoniczny).
 - Audyty w `docs/audits/thematic/runtime/` zawierają stare założenia (m.in. ścieżki `.codex.js` i `md/`).
 - `docs/legacy/` nie jest źródłem prawdy.
