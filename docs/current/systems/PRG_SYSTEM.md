@@ -1,3 +1,9 @@
+> Status: DO AKTUALIZACJI
+> Obszar: PRG / reakcja świata na gracza
+> Źródło prawdy: NIE
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: ../maps/PROJECT_INDEX.md, SUB_META_SYSTEM.md, ../ui/UI_WORLD.md
+
 # Haiku Cosmos — Player Reaction Field (PRG)
 
 Dokument opisuje system **Pola Reakcji Gracza (PRG)** —

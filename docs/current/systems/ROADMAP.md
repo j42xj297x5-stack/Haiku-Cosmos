@@ -1,3 +1,9 @@
+> Status: ROBOCZY
+> Obszar: Roadmapa / planowanie
+> Źródło prawdy: NIE
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: ../maps/PROJECT_INDEX.md, CARDS_SYSTEM.md, ECONOMY_SYSTEM.md, SUB_META_SYSTEM.md, ../ui/UI_WORLD.md
+
 # Haiku Cosmos — TODO / ROADMAP
 ## Eventy, systemy specjalne, progresja (WIP)
 

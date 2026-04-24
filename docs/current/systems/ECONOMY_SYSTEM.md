@@ -1,3 +1,9 @@
+> Status: KANON
+> Obszar: Ekonomia RP
+> Źródło prawdy: TAK
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: ../maps/PROJECT_INDEX.md, CARDS_SYSTEM.md, SUB_META_SYSTEM.md, ../ui/UI_WORLD.md
+
 # Haiku Cosmos — ECONOMY SYSTEM (KANON)
 
 Ten dokument definiuje **kanoniczny system ekonomii RP (Resonance Points)** w Haiku Cosmos.

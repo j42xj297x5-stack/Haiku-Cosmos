@@ -1,3 +1,9 @@
+> Status: KANON
+> Obszar: UI / flow świata i overlaye
+> Źródło prawdy: TAK
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: ../maps/PROJECT_INDEX.md, ../systems/CARDS_SYSTEM.md, ../systems/ECONOMY_SYSTEM.md, ../systems/SUB_META_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../systems/I18N_SYSTEM.md
+
 # Haiku Cosmos — UI WORLD (KANON)
 
 Dokument definiuje **strukturę interfejsu użytkownika oraz flow UI**
