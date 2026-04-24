@@ -15,3 +15,5 @@ Przy pracach dotyczących oprawy wizualnej, kart, PRG, HUD, SUB-META, META, mate
 - potem przeczytaj właściwy dokument wskazany przez README,
 - nie projektuj wizualiów w oderwaniu od aktualnego kierunku wizualnego.
 
+Przy zadaniach systemowych, mechanicznych, UI lub takich, które dotykają kilku obszarów naraz, Codex powinien po `docs/current/README.md` i `docs/current/maps/PROJECT_INDEX.md` przeczytać także:
+- `docs/current/maps/DEPENDENCY_MAP.md`.

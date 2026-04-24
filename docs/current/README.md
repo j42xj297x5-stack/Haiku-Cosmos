@@ -5,7 +5,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 ## Mapy i indeksy
 
 - `maps/PROJECT_INDEX.md` — główny indeks aktualnego kanonu.
-- `maps/DEPENDENCY_MAP.md` — brak / do utworzenia w kolejnym kroku migracji.
+- `maps/DEPENDENCY_MAP.md` — mapa zależności systemów, dokumentów i orientacyjnych plików kodu.
 
 ## Systemy gry
 
