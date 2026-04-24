@@ -765,7 +765,7 @@
     logger: null,
     sessionInputConfig: null,
     baseThresholds: null,
-codex/implement-physical-logging-to-disk
+    issues: [],
     issueLedger: [],
     finalizeState: {
       status: "idle",
@@ -780,7 +780,6 @@ codex/implement-physical-logging-to-disk
     scenarioLabel: "unspecified",
     scenarioPresetId: "custom",
     evidenceNote: "",
- CODEX-STARTING_POINT
 
     ensureBaseThresholds(World) {
       if (this.baseThresholds || !World) return;
@@ -944,6 +943,9 @@ codex/implement-physical-logging-to-disk
       try {
         raw = localStorage.getItem(key) || "";
       } catch (_e) {}
+      if (!raw && this.logger?.backend) {
+        raw = this.logger.backend.eventsBuffer || this.logger.backend.inMemoryFallback || "";
+      }
       return safeParseJsonl(raw).filter((entry) => entry && entry.type !== EVENT_TYPES.DEBUG_FLUSH);
     },
 
@@ -1032,7 +1034,7 @@ codex/implement-physical-logging-to-disk
         summary,
         notes: String(note || this.evidenceNote || "").trim(),
         events_jsonl: events.map((event) => JSON.stringify(event)).join("\n"),
-        issues: this.issues.filter((issue) => issue.sessionId === this.sessionId),
+        issues: this.issueLedger.filter((issue) => issue.sessionId === this.sessionId),
       };
     },
 
@@ -1077,6 +1079,7 @@ codex/implement-physical-logging-to-disk
         relatedEventIds: Array.isArray(partial.relatedEventIds) ? partial.relatedEventIds : [],
         relatedSnapshot: partial.relatedSnapshot || "runtime_snapshot",
       };
+      this.issueLedger.push(issue);
       this.issues.push(issue);
       try {
         const prev = JSON.parse(localStorage.getItem("hc_issue_ledger_v1") || "[]");
@@ -1099,8 +1102,8 @@ codex/implement-physical-logging-to-disk
       delete runtimeConfig.note;
       this.sessionInputConfig = rawInput;
       this.sessionId = `s_${new Date().toISOString().replace(/[:.]/g, "-")}`;
-codex/implement-physical-logging-to-disk
-      this.debugConfig = createDebugConfig(this.mode, this.mode === "debug" ? (uiConfig || {}) : {});
+      this.debugConfig = createDebugConfig(this.mode, this.mode === "debug" ? runtimeConfig : {});
+      this.debugConfig.scenarioLabel = this.scenarioLabel;
       const ts = formatSessionTimestamp(new Date());
       const shortId = this.sessionId.slice(-6);
       const scenario = slugifyLabel(this.debugConfig.scenarioLabel || "manual_session");
@@ -1109,11 +1112,10 @@ codex/implement-physical-logging-to-disk
 
       this.startedAtIso = new Date().toISOString();
       this.endedAtIso = null;
-      this.debugConfig = createDebugConfig(this.mode, this.mode === "debug" ? runtimeConfig : {});
-CODEX-STARTING_POINT
       this.logger = new RuntimeEventLogger(this.debugConfig, this.sessionId);
       this.logger.start();
       this.started = true;
+      this.issues = [];
       this.issueLedger = [];
       this.finalizeState = {
         status: "active",
@@ -1164,16 +1166,17 @@ CODEX-STARTING_POINT
       if (!this.started) return this.finalizeState;
       this.finalizeState.status = "flushing";
       this.finalizeState.message = "Flushing and finalizing session files...";
+      this.endedAtIso = new Date().toISOString();
       const endingType = aborted ? EVENT_TYPES.SESSION_ABORTED : EVENT_TYPES.SESSION_ENDED;
       this.emit("session", endingType, { reason }, { source: "Session", snapshot: true, severity: aborted ? "warn" : "info" });
       const finalSnapshot = this.getRuntimeSnapshot();
       const summary = {
         sessionId: this.sessionId,
         mode: this.mode,
-        endedAt: new Date().toISOString(),
+        endedAt: this.endedAtIso,
         reason,
         mainLogFile: "events.jsonl",
-        scenarioLabel: this.debugConfig?.scenarioLabel || "manual_session",
+        scenarioLabel: this.scenarioLabel || "manual_session",
         counts: {
           recentEventsTracked: Array.isArray(this.logger?.recentEvents) ? this.logger.recentEvents.length : 0,
           pendingBuffer: this.logger?.buffer?.length || 0,
@@ -1199,26 +1202,12 @@ CODEX-STARTING_POINT
 
     end(reason = "ended") {
       if (!this.started) return;
- codex/implement-physical-logging-to-disk
-      this.finalize(reason, false);
-
-      this.endedAtIso = new Date().toISOString();
-      this.emit("session", EVENT_TYPES.SESSION_ENDED, { reason }, { source: "Session", snapshot: true });
-      this.logger?.shutdown(reason);
-      this.started = false;
- CODEX-STARTING_POINT
+      void this.finalize(reason, false);
     },
 
     abort(reason = "aborted") {
       if (!this.started) return;
- codex/implement-physical-logging-to-disk
-      this.finalize(reason, true);
-
-      this.endedAtIso = new Date().toISOString();
-      this.emit("session", EVENT_TYPES.SESSION_ABORTED, { reason }, { source: "Session", snapshot: true, severity: "warn" });
-      this.logger?.shutdown(reason);
-      this.started = false;
- CODEX-STARTING_POINT
+      void this.finalize(reason, true);
     },
 
     emit(category, type, payload = {}, opts = {}) {
