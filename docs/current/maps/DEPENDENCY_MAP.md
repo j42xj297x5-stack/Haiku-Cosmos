@@ -21,6 +21,7 @@
 ## 3. Dokumenty wg statusu
 
 ### KANON
+- `docs/current/README.md`
 - `docs/current/maps/PROJECT_INDEX.md`
 - `docs/current/maps/DEPENDENCY_MAP.md`
 - `docs/current/systems/CARDS_SYSTEM.md`
@@ -36,6 +37,7 @@
 
 ### ROBOCZY
 - `docs/current/systems/ROADMAP.md`
+- `docs/current/technical/README.md`
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md`
 - `docs/current/technical/LIVE_VALIDATION_PACK.md`
 

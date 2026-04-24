@@ -11,3 +11,7 @@ Zasady:
 
 - `cards_sequence_three_hit_manual_checklist.md` — manualna checklista scenariuszy R-track/AA/AAA.
 - `cards_sequence_rtrack_takeover_smoke.test.js` — lekki test smoke (Node) dla przejęcia kierunku po failu na R1/R2/R3/R4.
+
+## Powiązanie z dokumentacją current
+
+- Zasady evidence i minimalny kontrakt walidacyjny opisuje `docs/current/technical/LIVE_VALIDATION_PACK.md` (status: ROBOCZY).

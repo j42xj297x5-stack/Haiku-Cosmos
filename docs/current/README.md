@@ -1,5 +1,11 @@
 # docs/current — mapa aktualnej dokumentacji
 
+> Status: KANON
+> Obszar: mapa aktualnej dokumentacji
+> Źródło prawdy: TAK, dla struktury i statusów dokumentów w `docs/current/`
+> Ostatnia aktualizacja: 2026-04-24
+> Powiązane dokumenty: maps/PROJECT_INDEX.md, maps/DEPENDENCY_MAP.md, ../README.md, ../../README.md
+
 Ten katalog zawiera aktualną dokumentację projektu.
 
 ## Mapy i indeksy
@@ -29,6 +35,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 
 ## Dokumentacja techniczna
 
+- `technical/README.md` — ROBOCZY (mapa warstwy technicznej)
 - `technical/WORLD_FUNCTION_MAP.md` — DO AKTUALIZACJI (mapa aktywna, nadal wymaga osobnego audytu runtime)
 - `technical/IMPLEMENTATION_TRACKER.md` — ROBOCZY
 - `technical/LIVE_VALIDATION_PACK.md` — ROBOCZY
