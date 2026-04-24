@@ -1434,11 +1434,35 @@ const CardEngine = (() => {
         reason: "color-mismatch",
         chainColors: seq.chainColors || [],
       }, { source: "CardEngine.onHitColor", severity: "warn" });
-      traceSeqHit("fail", normalized, { reason: "color-mismatch" });
-      const snapshot = getHitSnapshot(seq);
-      seq.lastHitSnapshot = snapshot;
+      traceSeqHit("fail", normalized, { reason: "color-mismatch", continueAsNewDirection: true });
       failSequence(World);
-      return { action: "fail", snapshot };
+      if (!state.sequence.active) {
+        startSequenceSession();
+      }
+      const restarted = state.sequence;
+      applyDirectionSelection(restarted, normalized);
+      restarted.currentColor = normalized;
+      restarted.hits = 1;
+      restarted.opened = false;
+      restarted.mode = "IN_STEP";
+      setSequencePhase(restarted, "DIR");
+      emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_DIRECTION_LOCKED, {
+        currentColor: normalized,
+        expectedColor: normalized,
+        previousColor: seq.currentColor || null,
+        hitCount: 1,
+        stage: restarted.stage || null,
+        reason: "post-fail-direction-takeover",
+        sourceObject: collisionContext?.sourceObject || null,
+      }, { source: "CardEngine.onHitColor", snapshot: true });
+      {
+        const level = restarted.stepIndex + 1;
+        addScoreToWorld(World, getSequenceMultiplier(level, restarted.chainIndex));
+      }
+      traceSeqHit("dir", normalized, { reason: "post-fail-direction-takeover" });
+      const snapshot = getHitSnapshot(restarted);
+      restarted.lastHitSnapshot = snapshot;
+      return { action: "dir", snapshot };
     }
 
     seq.hits += 1;

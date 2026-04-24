@@ -142,6 +142,8 @@ Uwaga operacyjna:
 
 - przerwanie atomowego kroku przez inny kolor nie oznacza utraty tego nowego trafienia,
 - nowe trafienie ustanawia nowy kierunek jako hit1/3,
+- jeżeli przerwanie dotyczy głębszego etapu R-track, fail rozlicza się automatycznie (z nagrodami częściowymi zgodnymi z CARDS),
+- po tym rozliczeniu system jest już w nowym kierunku hit1/3 (bez dodatkowego „pustego” trafienia),
 - naliczanie RP powinno być spójne z aktualnym stanem sekwencji po tej zmianie kierunku.
 
 ---
