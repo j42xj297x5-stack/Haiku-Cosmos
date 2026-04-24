@@ -1,140 +1,45 @@
-> Status: DO AKTUALIZACJI
+> Status: ROBOCZY
 > Obszar: techniczne / tracker wdrożenia
-> Źródło prawdy: NIE
+> Źródło prawdy: NIE (tracker operacyjny)
 > Ostatnia aktualizacja: 2026-04-24
-> Powiązane dokumenty: WORLD_FUNCTION_MAP.md, ../maps/DEPENDENCY_MAP.md, ../../audits/chronological/2026-04-24_remaining_docs_cleanup.md
+> Powiązane dokumenty: WORLD_FUNCTION_MAP.md, LIVE_VALIDATION_PACK.md, ../maps/DEPENDENCY_MAP.md, ../../audits/chronological/2026-04-24_technical_docs_semantic_sync.md
 
-# Haiku Cosmos — Tracker wdrożeń (Mapa Funkcji vs Kod)
+# Haiku Cosmos — IMPLEMENTATION TRACKER
 
-Stan na: aktualny build po META + R1  
-Źródła: pełny audyt `*.codex.js` (obie paczki)
+Ten dokument jest **trackerem roboczym** i nie udaje pełnego kanonu runtime.
+Służy do szybkiego rozróżnienia: co działa, co jest historyczne, co wymaga weryfikacji i co wymaga aktualizacji.
 
----
+## 1. Wykonane (potwierdzone roboczo)
 
-## Legenda statusów
+- RUN loop: init → update → render → reset.
+- Pauza świata przez `World.paused`.
+- R1 (3-hit), kolekcja i aktywacja karty R1.
+- Podstawowe działanie SUB-META overlay.
+- PRG bazowe przez `World.pointer*` + modyfikatory kart.
+- Meteory: spawn i kolizje.
+- Asteroidy: powstawanie i kolaps do planety.
+- Planety: rocky/gas + etap pre-star.
+- Epoka gwiazd (STAR).
 
-- [x] WDROŻONE — działa w kodzie
-- [ ] DO WDROŻENIA — decyzja projektowa, brak w kodzie
-- [~] CZĘŚCIOWO — działa, ale niekompletnie
-- [!] BLOKER — uniemożliwia dalsze etapy
+## 2. Historyczne / migracyjne odniesienia
 
----
+- Dawne odniesienia do plików i dokumentów z `md/` zostały wycofane (katalog nieaktywny po migracji 2026-04-24).
+- Starsze nazwy dokumentów typu `MAP_FUNCTIONS_WORLD_vNEXT.md` traktujemy jako historyczne nazewnictwo względem `WORLD_FUNCTION_MAP.md`.
+- Szczegółowe audyty historyczne znajdują się w `docs/audits/chronological/`.
 
-## 1. RUN / LOOP
+## 3. Do weryfikacji (runtime ↔ kanon)
 
-- [x] Init → Update → Render → Reset
-- [x] Pauza świata przez `World.paused`
-- [x] Reset przez `resetWorld()`
+- Spójność pełnego R-track (R2/R3/R4) z kanonem CARDS/ECONOMY/UI.
+- Zakres produkcyjnego użycia eventów debugowych i snapshotów (`hc.debug.js`, `hc.ui_debug.js`).
+- Pokrycie kontraktu SUB-META (sloty/wiązania) względem aktualnych dokumentów systemowych.
 
----
+## 4. Do aktualizacji (otwarte obszary)
 
-## 2. SUB-META
+- Rozszerzenia PRG i i18n (dokumenty systemowe mają status DO AKTUALIZACJI).
+- Dalsza synchronizacja mapy funkcji świata (`WORLD_FUNCTION_MAP.md`) z kodem po osobnym audycie runtime.
+- Uporządkowanie starszych bloków „plan/propozycja” tam, gdzie zostały już zastąpione audytami z 2026-04-24.
 
-- [x] Otwarcie po `PLANET_CREATED`
-- [x] UI SUB-META
-- [~] META jako system:
-  - [ ] punktacja
-  - [ ] zapis decyzji
-  - [ ] wpływ na kolejny RUN
+## 5. Uwagi operacyjne
 
-Status: **UI gotowe, system nie**
-
----
-
-## 3. R1 / Trial
-
-- [x] Trial harmoniczny
-- [x] Kolekcja karty
-- [x] Runtime effect karty
-- [ ] Integracja z SUB-META (punkty / slot)
-
----
-
-## 4. PRG
-
-- [x] PRG przez `World.pointer*`
-- [x] Modyfikatory kart
-- [ ] Odwrócenie znaku
-- [ ] PRG zależne od epoki
-
----
-
-## 5. Meteory
-
-- [x] Spawn globalny
-- [x] Kolizje harmoniczne
-- [x] Fallback → asteroida
-
----
-
-## 6. Asteroidy
-
-- [x] Powstawanie z kolizji
-- [x] Orbity
-- [x] Kolaps → planeta
-
----
-
-## 7. Planety
-
-- [x] Planety skaliste
-- [x] Planety gazowe
-- [x] PreStar
-- [ ] Znacznik życia jako jawny stan
-
----
-
-## 8. Komety
-
-### Obecny stan
-- [x] Spawn komet
-- [x] Kometa → meteor (fragmentacja)
-- [x] Kometa → asteroida → planeta skalista
-- [x] Ringi wizualne
-
-### Nowa fizyka (PLAN)
-- [ ] Rozróżnienie: wolny meteor vs orbiter
-- [ ] Kometa → orbiter planety → ring
-- [ ] Kometa → planeta skalista → life marker
-- [ ] Kometa → planeta gazowa → -30% masy/orbiterów
-- [ ] Cooldown orbitera (60s)
-- [ ] Eventy `COMET_IMPACT_*`
-
-Status: **duży blok prac**
-
----
-
-## 9. Epoki
-
-- [x] Epoka gwiazd
-- [ ] Epoka planetarna jako paradygmat
-  - [ ] reguła orbitowania
-  - [ ] zmiana percepcji / kamery
-
----
-
-## 10. Dokumentacja
-
-- [x] MAP_FUNCTIONS_WORLD_vNEXT.md
-- [ ] TARGETS_SYSTEM.md (czeka na komety + epokę planetarną)
-- [ ] EPOCHS_SYSTEM.md (czeka na epokę planetarną)
-- [ ] META scoring doc
-
----
-
-## 11. BLOKERY
-
-- [!] Brak punktacji w SUB-META
-- [!] Brak epoki planetarnej
-- [!] Brak nowej fizyki komet
-
----
-
-## 12. Kolejność wdrażania (propozycja)
-
-1. Komety (bez META)
-2. Epoka planetarna
-3. Punktacja SUB-META
-4. Integracja R1 → META
-5. Aktualizacja TARGETS_SYSTEM.md
-6. Aktualizacja EPOCHS_SYSTEM.md
+- Ten tracker ma status **ROBOCZY**: jest użyteczny do planowania i audytu, ale nie jest kanonem.
+- Decyzje systemowe należy zatwierdzać w `docs/current/systems/*` i `docs/current/ui/UI_WORLD.md`.

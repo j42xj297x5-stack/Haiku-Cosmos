@@ -1,14 +1,14 @@
 > Status: DO AKTUALIZACJI
-> Obszar: techniczne / mapa funkcji
-> Źródło prawdy: CZĘŚCIOWO
+> Obszar: mapa funkcji świata / runtime
+> Źródło prawdy: NIE / CZĘŚCIOWO
 > Ostatnia aktualizacja: 2026-04-24
-> Powiązane dokumenty: ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md, ../systems/CARDS_SYSTEM.md
+> Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md, ../systems/CARDS_SYSTEM.md, ../ui/UI_WORLD.md
 
 # Haiku Cosmos — MAP_FUNCTIONS_WORLD_vNEXT
 
-> Aktualna mapa funkcji świata (stan kodu + dokumentacja kanoniczna).
-> Zakres źródeł: `*.codex.js` oraz `md/*.md` (zgodnie z instrukcją ETAP 0).
-> Brak refaktoru/zmian logiki — wyłącznie mapowanie.
+> Ten dokument jest aktywną mapą techniczną do przyszłej synchronizacji, ale nie jest jeszcze pełnym źródłem prawdy runtime.
+> Wymaga osobnego audytu względem aktualnego kodu.
+> W tym kroku utrzymano mapę merytoryczną bez pełnego przepisywania.
 
 ---
 

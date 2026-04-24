@@ -45,9 +45,9 @@ Kanon jest mapowany warstwowo przez:
 
 ### Techniczne (aktywnie utrzymywane, ale niekanoniczne)
 
-- `docs/current/technical/WORLD_FUNCTION_MAP.md` (DO AKTUALIZACJI)
-- `docs/current/technical/IMPLEMENTATION_TRACKER.md` (DO AKTUALIZACJI)
-- `docs/current/technical/LIVE_VALIDATION_PACK.md` (DO AKTUALIZACJI)
+- `docs/current/technical/WORLD_FUNCTION_MAP.md` (DO AKTUALIZACJI; mapa aktywna, ale niepełne źródło prawdy runtime)
+- `docs/current/technical/IMPLEMENTATION_TRACKER.md` (ROBOCZY)
+- `docs/current/technical/LIVE_VALIDATION_PACK.md` (ROBOCZY)
 
 ## Zasady użycia indeksu
 
