@@ -18,7 +18,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `systems/CARDS_SYSTEM.md` — KANON
 - `systems/ECONOMY_SYSTEM.md` — KANON
 - `systems/SUB_META_SYSTEM.md` — KANON
-- `systems/PRG_SYSTEM.md` — DO AKTUALIZACJI
+- `systems/PRG_SYSTEM.md` — KANON STRUKTURALNY / DO STROJENIA
 - `systems/I18N_SYSTEM.md` — DO AKTUALIZACJI
 - `systems/ROADMAP.md` — ROBOCZY
 
