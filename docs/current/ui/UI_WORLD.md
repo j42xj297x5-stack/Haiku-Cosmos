@@ -192,6 +192,7 @@ Przy atomowym zbieraniu koloru:
 
 - trafienie obcym kolorem przerywa poprzedni kierunek,
 - to samo trafienie ustanawia nowy kierunek jako **hit1/3** (bez „martwego resetu”).
+- dotyczy to także dalszych etapów R-track (R2/R3/R4): fail rozlicza się w tle, a HUD od razu pokazuje nowy kierunek.
 
 ---
 

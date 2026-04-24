@@ -183,9 +183,16 @@ Sekwencja przerywa się natychmiast, gdy:
 - pojawi się kolor niedozwolony dla aktualnego etapu ścieżki (np. złamanie reguł po zamknięciu wcześniejszych kroków),
 - albo gracz złamie warunek aktywnej ścieżki A-track / R-track.
 
-Uwaga: dla atomowego kroku zbierania koloru (hit1→hit2→hit3) obowiązuje zasada:
+Uwaga: dla atomowego kroku zbierania koloru (hit1→hit2→hit3) obowiązuje zasada
+w całym R-track (R1/R2/R3/R4 oraz w pętli R1, jeśli korzysta z tego samego modelu 3-hit):
 obcy kolor przerywa poprzedni kierunek i jednocześnie staje się hit1 nowego kierunku
 (nie jest to „martwy reset” z utratą trafienia).
+
+Jeżeli mismatch pojawia się na głębszym etapie sekwencji (np. podczas próby R2/R3/R4):
+
+- fail i nagrody częściowe rozliczają się automatycznie zgodnie z poziomem przerwanej sekwencji,
+- system nie czeka na dodatkowe potwierdzenie gracza,
+- to samo trafienie obcego koloru jest od razu liczone jako hit1/3 nowej sekwencji.
 
 Nagrody przy FAIL:
 
