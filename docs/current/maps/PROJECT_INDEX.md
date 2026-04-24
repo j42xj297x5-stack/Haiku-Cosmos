@@ -30,7 +30,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/systems/ECONOMY_SYSTEM.md` (KANON)
 - `docs/current/systems/SUB_META_SYSTEM.md` (KANON)
 - `docs/current/systems/PRG_SYSTEM.md` (KANON STRUKTURALNY / DO STROJENIA)
-- `docs/current/systems/I18N_SYSTEM.md` (DO AKTUALIZACJI)
+- `docs/current/systems/I18N_SYSTEM.md` (KANON STRUKTURALNY / DO WDROŻENIA)
 - `docs/current/systems/ROADMAP.md` (ROBOCZY)
 
 ### UI / flow

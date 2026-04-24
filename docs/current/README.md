@@ -19,7 +19,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `systems/ECONOMY_SYSTEM.md` — KANON
 - `systems/SUB_META_SYSTEM.md` — KANON
 - `systems/PRG_SYSTEM.md` — KANON STRUKTURALNY / DO STROJENIA
-- `systems/I18N_SYSTEM.md` — DO AKTUALIZACJI
+- `systems/I18N_SYSTEM.md` — KANON STRUKTURALNY / DO WDROŻENIA
 - `systems/ROADMAP.md` — ROBOCZY
 
 ## UI i flow
