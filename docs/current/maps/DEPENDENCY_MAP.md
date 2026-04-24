@@ -28,6 +28,7 @@
 - `docs/current/systems/ECONOMY_SYSTEM.md`
 - `docs/current/systems/SUB_META_SYSTEM.md`
 - `docs/current/systems/PRG_SYSTEM.md` (KANON STRUKTURALNY / DO STROJENIA)
+- `docs/current/systems/I18N_SYSTEM.md` (KANON STRUKTURALNY / DO WDROŻENIA)
 - `docs/current/ui/UI_WORLD.md`
 
 ### KIERUNEK
@@ -43,7 +44,6 @@
 - `docs/current/technical/LIVE_VALIDATION_PACK.md`
 
 ### DO AKTUALIZACJI
-- `docs/current/systems/I18N_SYSTEM.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
 
 ### LEGACY / HISTORYCZNE (nie kanon)
@@ -65,6 +65,8 @@
 - `docs/current/technical/WORLD_FUNCTION_MAP.md` ma status DO AKTUALIZACJI i wymaga osobnego audytu merytorycznego względem runtime.
 - `docs/current/systems/PRG_SYSTEM.md` ma status KANON STRUKTURALNY / DO STROJENIA: struktura osi i relacje R1/R2/ODB są kanoniczne, ale wartości liczbowe i feeling runtime wymagają dalszego strojenia.
 - Relacja PRG ↔ SUB-META ↔ UI ↔ visual jest obowiązująca kierunkowo: struktura i slotowanie (`SUB_META_SYSTEM.md`), prezentacja i przełączanie (`UI_WORLD.md`), feeling i materiał (`docs/current/visual/*`).
+- Relacja I18N ↔ UI ↔ CARDS ↔ PRG ↔ ECONOMY ↔ SUB-META jest obowiązująca strukturalnie: I18N definiuje warstwę językową i fallback (`I18N_SYSTEM.md`), a systemy domenowe definiują sens i miejsce użycia tekstów (`UI_WORLD.md`, `CARDS_SYSTEM.md`, `PRG_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `SUB_META_SYSTEM.md`).
+- `docs/current/systems/I18N_SYSTEM.md` ma status KANON STRUKTURALNY / DO WDROŻENIA: zasady językowe, zakres tłumaczeń, model kluczy i fallback są kanoniczne, ale implementacja runtime (pliki locale, loader, przełącznik języka, testy) pozostaje do wdrożenia.
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md` i `docs/current/technical/LIVE_VALIDATION_PACK.md` mają status ROBOCZY (operacyjny, niekanoniczny).
 - Audyty w `docs/audits/thematic/runtime/` zawierają stare założenia (m.in. ścieżki `.codex.js` i `md/`).
 - `docs/legacy/` nie jest źródłem prawdy.
