@@ -18,7 +18,6 @@
   let runtimeDebugOverlay = null;
   let runtimeDebugOverlayBody = null;
   let btnDebugOverlayToggle = null;
-codex/implement-physical-logging-to-disk
   let btnDebugSelectFolder = null;
   let btnDebugFinalizeSession = null;
   let btnDebugCopyPath = null;
@@ -28,7 +27,6 @@ codex/implement-physical-logging-to-disk
   let debugSessionNote = null;
   let cfgScenarioPreset = null;
   let cfgScenarioLabel = null;
- CODEX-STARTING_POINT
   let runtimeOverlayCompact = true;
   let runtimeOverlayLastRenderMs = 0;
   let fpsAcc = 0;
@@ -251,7 +249,6 @@ codex/implement-physical-logging-to-disk
     const scenarioLabel = String(cfgScenarioLabel?.value || "").trim() || preset?.scenarioLabel || presetId || "debug_custom";
     return {
       initialRP: getInt("cfgInitialRP"),
-      scenarioLabel: String(document.getElementById("cfgScenarioLabel")?.value || "manual_session").trim() || "manual_session",
       initialCards: cards,
       initialWorldState: {
         asteroidCount: getInt("cfgAsteroidCount"),
@@ -305,7 +302,6 @@ codex/implement-physical-logging-to-disk
       runtimeDebugOverlay = document.getElementById("runtimeDebugOverlay");
       runtimeDebugOverlayBody = document.getElementById("runtimeDebugOverlayBody");
       btnDebugOverlayToggle = document.getElementById("btnDebugOverlayToggle");
- codex/implement-physical-logging-to-disk
       btnDebugSelectFolder = document.getElementById("btnDebugSelectFolder");
       btnDebugFinalizeSession = document.getElementById("btnDebugFinalizeSession");
       btnDebugCopyPath = document.getElementById("btnDebugCopyPath");
@@ -318,7 +314,6 @@ codex/implement-physical-logging-to-disk
 
       applyStaticI18nText();
       populateScenarioPresetSelect();
- CODEX-STARTING_POINT
 
       if (btnDebugOverlayToggle) {
         btnDebugOverlayToggle.addEventListener("click", () => {
@@ -327,7 +322,6 @@ codex/implement-physical-logging-to-disk
           btnDebugOverlayToggle.textContent = runtimeOverlayCompact ? t("overlay.expand") : t("overlay.compact");
         });
       }
- codex/implement-physical-logging-to-disk
       if (btnDebugSelectFolder) {
         btnDebugSelectFolder.addEventListener("click", async () => {
           if (!window.HC?.selectDebugLogFolder) return;
@@ -359,6 +353,7 @@ codex/implement-physical-logging-to-disk
             await navigator.clipboard.writeText(path);
           }
         });
+      }
 
       if (btnExportEvidence) {
         btnExportEvidence.addEventListener("click", () => {
@@ -388,7 +383,6 @@ codex/implement-physical-logging-to-disk
       }
       if (cfgScenarioPreset) {
         cfgScenarioPreset.addEventListener("change", () => applyPresetToUi(cfgScenarioPreset.value));
- CODEX-STARTING_POINT
       }
 
       scoreLabel = ensureScoreLabel();
@@ -510,20 +504,13 @@ codex/implement-physical-logging-to-disk
         <h4>${t("overlay.section.session")}</h4>
         <div class="overlay-grid">${renderRows([
           ["mode", snap.mode || "-"],
- codex/implement-physical-logging-to-disk
-          ["sessionId", snap.sessionId || "-"],
-          ["time", fmtMs(snap.sessionTimeMs)],
-          ["frame", snap.frame ?? 0],
-          ["logging", snap.loggingEnabled ? "on" : "off"],
-          ["log status", fs.status || "idle"],
-          ["backend", ls.mode || "-"],
-
-          ["scenario", snap.scenarioLabel || "-"],
           ["sessionId", snap.sessionId || "-"],
           ["time", fmtMs(snap.sessionTimeMs)],
           ["frame", snap.frame ?? 0],
           ["logging", snap.loggingEnabled ? t("overlay.loggingOn") : t("overlay.loggingOff")],
-CODEX-STARTING_POINT
+          ["log status", fs.status || "idle"],
+          ["backend", ls.mode || "-"],
+          ["scenario", snap.scenarioLabel || "-"],
           ["buffer", snap.pendingLogBufferSize ?? 0],
         ])}</div>
       </section>
@@ -531,7 +518,6 @@ CODEX-STARTING_POINT
 
     sections.push(`
       <section class="overlay-section">
-codex/implement-physical-logging-to-disk
         <h4>Log files</h4>
         <div class="overlay-grid">${renderRows([
           ["folder", ls.filesSavedTo || fs.filesSavedTo || "-"],
@@ -544,10 +530,7 @@ codex/implement-physical-logging-to-disk
 
     sections.push(`
       <section class="overlay-section">
-        <h4>Sequence</h4>
-
         <h4>${t("overlay.section.sequence")}</h4>
- CODEX-STARTING_POINT
         <div class="overlay-grid">${renderRows([
           ["active", seq.active ? "yes" : "no"],
           ["stage", seq.stage || "IDLE"],
