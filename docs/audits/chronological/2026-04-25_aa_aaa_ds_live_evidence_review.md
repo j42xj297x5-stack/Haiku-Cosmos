@@ -150,3 +150,7 @@ Ponieważ wynik jest **INCONCLUSIVE z fail-sygnałami w evidence**, rekomenduję
 
 - `node tests/cards_sequence_rtrack_takeover_smoke.test.js` -> PASS
 - Analiza checklisty manualnej: `tests/cards_sequence_three_hit_manual_checklist.md` -> odniesiona w ocenie takeover i atomowego 3-hit.
+
+## Follow-up (telemetry hardening)
+
+Po tym review wymagane jest telemetry hardening (bez zmiany mechaniki): jawne eventy decision window, przejść A-loop, DS grant i reset-to-idle, aby kolejny run AA/AAA/DS dał werdykt rozstrzygający.

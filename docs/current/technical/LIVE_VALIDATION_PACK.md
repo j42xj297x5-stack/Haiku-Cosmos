@@ -84,6 +84,20 @@ C. **Economy focus**
 - [ ] reset chain po activate/cashout,
 - [ ] częściowe nagrody RP/kart po fail R2/R3/R4.
 
+### 3.3 Required diagnostic events for AA/AAA/DS evidence
+
+Dla scenariusza `A A A -> timeout -> A A A -> timeout -> A A A -> DS(A) -> IDLE`
+evidence jest uznawany za rozstrzygający tylko jeśli `events_jsonl` zawiera:
+
+- `sequence.decision_window_opened`
+- `sequence.decision_window_timeout`
+- `sequence.decision_window_closed` (dla wariantów z kliknięciem)
+- `sequence.a_loop_entered` **albo** `sequence.continuation_resolved`
+- `sequence.ds_granted`
+- `sequence.reset_to_idle`
+
+Brak powyższych eventów może utrzymać review AA/AAA/DS w statusie **INCONCLUSIVE** nawet przy poprawnym `final_snapshot`.
+
 ### 3.2 Format nazewnictwa sesji
 
 Dla porównywalności evidence używamy formatu:

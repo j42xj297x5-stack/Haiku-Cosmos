@@ -57,3 +57,16 @@ Bez odczytu JSONL nie wolno rozstrzygać:
 - `UI_WORLD.md` — definiuje oczekiwane sygnały HUD/overlay i flow decyzji.
 
 Ten kontrakt techniczny tylko mapuje, **gdzie w runtime i evidence** te reguły mają być obserwowalne.
+
+## 7. Required diagnostic events for A-loop evidence
+
+Dla diagnostyki pętli A (`A -> AA -> AAA -> DS -> IDLE`) wymagane są eventy:
+
+- `sequence.decision_window_opened` (payload okna decyzji i offeredActions),
+- `sequence.decision_window_timeout` (jawna kontynuacja po TTL),
+- `sequence.decision_window_closed` (powód i wybrana akcja),
+- `sequence.a_loop_entered` lub diagnostycznie `sequence.continuation_resolved`,
+- `sequence.ds_granted` (source=`AAA`, delta kart, kontekst sekwencji),
+- `sequence.reset_to_idle` (powód + snapshot po resecie).
+
+Bez tych eventów analiza timeline może pozostać nierozstrzygająca, ponieważ sam `final_snapshot` nie pokazuje przebiegu decyzji i timeoutów.

@@ -756,8 +756,31 @@ const CardEngine = (() => {
     }
   }
 
-  function resetSequenceState() {
+  function emitResetToIdle(reason, previous, extras) {
+    const payload = {
+      reason: reason || "reset",
+      previousTrack: previous.track || null,
+      previousStage: previous.stage || "IDLE",
+      previousChainColors: Array.isArray(previous.chainColors) ? previous.chainColors.slice() : [],
+      finalReward: extras?.finalReward || null,
+      sequenceAfterReset: {
+        active: Boolean(state.sequence?.active),
+        stage: state.sequence?.stage || "IDLE",
+        track: state.sequence?.track || null,
+        stepIndex: Number(state.sequence?.stepIndex || 0),
+        chainColors: Array.isArray(state.sequence?.chainColors) ? state.sequence.chainColors.slice() : [],
+      }
+    };
+    emitSequenceEvent("sequence.reset_to_idle", payload, { source: "CardEngine.resetSequenceState", snapshot: true });
+  }
+
+  function resetSequenceState(reason = "reset", extras = null) {
     const previous = state.sequence || createSequenceState();
+    const previousSnapshot = {
+      track: previous.track || null,
+      stage: previous.stage || getSequenceStage(previous) || "IDLE",
+      chainColors: Array.isArray(previous.chainColors) ? previous.chainColors.slice() : [],
+    };
     state.sequence = createSequenceState({
       resolutionId: Number(previous.resolutionId || 0) + 1,
       lastResolution: previous.lastResolution || null,
@@ -770,9 +793,10 @@ const CardEngine = (() => {
       state.world.sequenceFlashColors = [];
     }
     emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_RESET, {
-      reason: "resetSequenceState",
+      reason,
       previousResolution: previous.lastResolution || null,
     }, { source: "CardEngine.resetSequenceState", snapshot: true });
+    emitResetToIdle(reason, previousSnapshot, extras);
     traceSeqHit("reset", null, { reason: "resetSequenceState" });
   }
 
@@ -877,15 +901,57 @@ const CardEngine = (() => {
   function showSequenceOverlay(level, colors, colorKey, ttlMs) {
     const options = arguments.length > 4 ? arguments[4] : null;
     const now = nowMs();
+    const overlayLevel = Math.max(1, Math.min(4, Number(level || 1)));
+    const overlayColors = Array.isArray(colors) ? colors.slice() : [];
+    const trackKey = options && options.mode ? String(options.mode) : "sequence";
+    const overlayColor = colorKey || null;
     state.sequenceOverlay = {
       visible: true,
-      level: Math.max(1, Math.min(4, Number(level || 1))),
-      colors: Array.isArray(colors) ? colors.slice() : [],
-      colorKey: colorKey || null,
+      level: overlayLevel,
+      colors: overlayColors,
+      colorKey: overlayColor,
       shownAtMs: now,
       ttlMs: Math.max(0, Number(ttlMs || 0)),
-      mode: options && options.mode ? String(options.mode) : "sequence"
+      mode: trackKey
     };
+    const seq = state.sequence || createSequenceState();
+    const continuationTarget = getOverlayContinuationTarget(state.sequenceOverlay);
+    emitSequenceEvent("sequence.decision_window_opened", {
+      track: seq.track || trackKey || null,
+      stage: seq.stage || getSequenceStage(seq) || null,
+      stepIndex: Number(seq.stepIndex || 0),
+      chainColors: Array.isArray(seq.chainColors) ? seq.chainColors.slice() : [],
+      currentColor: seq.currentColor || null,
+      completedColor: overlayColor || null,
+      offeredActions: {
+        activateR1Color: overlayColor || null,
+        cashoutTarget: getDecisionLabelForLevel(overlayLevel, seq.track),
+        timeoutContinuationTarget: continuationTarget,
+      },
+      pendingUntilMs: now + Math.max(0, Number(ttlMs || 0)),
+      ttlMs: Math.max(0, Number(ttlMs || 0)),
+      sessionTimeMs: Math.max(0, Math.floor(performance.now() - (window.HC?.Session?.logger?.sessionStartedAt || performance.now()))),
+      frame: Number(window.HC?.Session?.logger?.frame ?? -1),
+    }, { source: "CardEngine.showSequenceOverlay" });
+  }
+
+  function getDecisionLabelForLevel(level, track) {
+    const cappedLevel = Math.max(1, Math.min(4, Number(level || 1)));
+    if (track === "A") return ["A", "AA", "AAA"][cappedLevel - 1] || `A${cappedLevel}`;
+    return `R${cappedLevel}`;
+  }
+
+  function getOverlayContinuationTarget(overlay) {
+    if (!overlay) return null;
+    const mode = overlay.mode === "A" ? "A" : "R";
+    const level = Math.max(1, Math.min(4, Number(overlay.level || 1)));
+    if (mode === "A") {
+      if (level <= 1) return "AA";
+      if (level === 2) return "AAA";
+      return "IDLE";
+    }
+    if (level >= 4) return "IDLE";
+    return `R${level + 1}`;
   }
 
   function showSequenceToast(title, subtitle, colorKey, ttlMs) {
@@ -943,6 +1009,22 @@ const CardEngine = (() => {
     const idx = Math.max(1, Math.min(4, Number(level || 1)));
     const chain = Number(chainIndex || 0) >= 1 ? 5 : 1;
     return idx + chain;
+  }
+
+  function getPoolCardCountsByKind(World, kind, color) {
+    const pool = Array.isArray(World?.cardsPool) ? World.cardsPool : [];
+    const kindKey = String(kind || "").toUpperCase();
+    const colorKey = normalizePack01Color(color);
+    let total = 0;
+    let colorTotal = 0;
+    for (const card of pool) {
+      if (!card) continue;
+      const cardKind = String(card.kind || card.type || "").toUpperCase();
+      if (cardKind !== kindKey) continue;
+      total += 1;
+      if (colorKey && normalizePack01Color(card.colorA) === colorKey) colorTotal += 1;
+    }
+    return { kind: kindKey, total, color: colorKey, colorTotal };
   }
 
   function startSequenceSession() {
@@ -1244,7 +1326,7 @@ const CardEngine = (() => {
       autoResolved: true,
     }, { source: "CardEngine.failSequence", snapshot: true, severity: "warn" });
     seq.lastResolution = "failed";
-    resetSequenceState();
+    resetSequenceState("fail", { finalReward: awardedCards.map((card) => card?.id).filter(Boolean) });
   }
 
   function finalizeSequence(World, level, colors, rewardCard) {
@@ -1252,7 +1334,7 @@ const CardEngine = (() => {
     if (seq.resolutionLock) return;
     seq.resolutionLock = true;
     if (!World) {
-      resetSequenceState();
+      resetSequenceState("reset");
       return;
     }
     const cappedLevel = Math.max(1, Math.min(4, Number(level || 1)));
@@ -1273,9 +1355,21 @@ const CardEngine = (() => {
       }
       recomputeTotalCards(World);
       showSequenceDsToast(seq.baseColor || seq.A, 1500, { cards: awardedCards, rp: rpDelta });
+      const dsCountsBefore = getPoolCardCountsByKind(World, "DS", seq.baseColor || seq.A || null);
       emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_DS_GRANTED, {
         color: seq.baseColor || seq.A || null,
         stage: "AAA",
+        cardId: rewardCard?.id || null,
+        source: "AAA",
+        sequenceBeforeReset: {
+          track: seq.track || null,
+          stage: seq.stage || null,
+          stepIndex: Number(seq.stepIndex || 0),
+          chainColors: Array.isArray(seq.chainColors) ? seq.chainColors.slice() : [],
+        },
+        cardCountsBefore: dsCountsBefore,
+        cardCountsAfter: getPoolCardCountsByKind(World, "DS", seq.baseColor || seq.A || null),
+        rpDelta,
       }, { source: "CardEngine.finalizeSequence", snapshot: true });
       World.pendingCard = null;
       World.pendingCardUntilMs = 0;
@@ -1293,7 +1387,9 @@ const CardEngine = (() => {
     if (seq.tempCards) seq.tempCards.length = 0;
     if (World.cardsTemp) World.cardsTemp.length = 0;
     seq.lastResolution = "completed";
-    resetSequenceState();
+    resetSequenceState(seq.track === "A" && cappedLevel >= 3 ? "aaa_completed" : "completed", {
+      finalReward: awardedCards.map((card) => card?.id).filter(Boolean)
+    });
   }
 
   function onHitColor(colorKey, collisionContext = null) {
@@ -1390,11 +1486,14 @@ const CardEngine = (() => {
         sourceObject: collisionContext?.sourceObject || null,
       }, { source: "CardEngine.onHitColor", snapshot: true });
       if (seq.track === "A" && seq.stepIndex >= 1) {
-        emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_LOOP_AA_STARTED, {
-          stage: "AA",
+        const loopLevel = seq.stepIndex >= 2 ? "AAA" : "AA";
+        emitSequenceEvent("sequence.a_loop_entered", {
+          loopLevel,
           color: seq.baseColor || seq.A || normalized,
+          source: "continuation_after_timeout",
           chainColors: seq.chainColors || [],
-        }, { source: "CardEngine.onHitColor" });
+          expectedColor: seq.expectedColor || null,
+        }, { source: "CardEngine.onHitColor", snapshot: true });
       }
       emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_STEP_STARTED, {
         currentColor: normalized,
@@ -1551,7 +1650,7 @@ const CardEngine = (() => {
     const trace = [];
     hc.seqTrace = trace;
     hc.debugSeq = false;
-    resetSequenceState();
+    resetSequenceState("cashout", { finalReward: cardsAwarded.map((card) => card?.id).filter(Boolean) });
     if (state.world) {
       state.world.pendingCard = null;
       state.world.pendingCardUntilMs = 0;
@@ -1668,6 +1767,18 @@ const CardEngine = (() => {
     overlay.visible = false;
     const level = Math.max(1, Math.min(4, Number(overlay.level || 1)));
     const colorsClosed = Array.isArray(overlay.colors) ? overlay.colors.slice() : [];
+    const previousTrack = state.sequence.track || (overlay.mode === "A" ? "A" : "R");
+    const previousStage = state.sequence.stage || getSequenceStage(state.sequence);
+    const continuationTarget = getOverlayContinuationTarget(overlay);
+    emitSequenceEvent("sequence.decision_window_timeout", {
+      previousTrack,
+      previousStage,
+      continuationTarget,
+      chainColors: Array.isArray(state.sequence.chainColors) ? state.sequence.chainColors.slice() : [],
+      nextExpectedColor: state.sequence.A || state.sequence.baseColor || overlay.colorKey || null,
+      nextStage: continuationTarget,
+      nextTrack: overlay.mode === "A" ? "A" : "R",
+    }, { source: "CardEngine.handleSequenceOverlayTimeout", snapshot: true });
     if (level >= 4) {
       state.sequence.active = true;
       state.sequence.mode = "IDLE";
@@ -1683,6 +1794,17 @@ const CardEngine = (() => {
       state.sequence.currentColor = null;
       state.sequence.hits = 0;
       state.sequence.opened = false;
+      syncSequenceDerivedState(state.sequence, "overlay-timeout-terminal", { snapshot: true });
+      emitSequenceEvent("sequence.continuation_resolved", {
+        fromStage: previousStage,
+        fromTrack: previousTrack,
+        toStage: "IDLE",
+        toTrack: null,
+        reason: "decision_timeout",
+        expectedColor: state.sequence.expectedColor || null,
+        chainColors: Array.isArray(state.sequence.chainColors) ? state.sequence.chainColors.slice() : [],
+        note: "timeout_after_R4",
+      }, { source: "CardEngine.handleSequenceOverlayTimeout", snapshot: true });
       return;
     }
     state.sequence.active = true;
@@ -1699,6 +1821,27 @@ const CardEngine = (() => {
     state.sequence.currentColor = null;
     state.sequence.hits = 0;
     state.sequence.opened = false;
+    syncSequenceDerivedState(state.sequence, "overlay-timeout-continue", { snapshot: true });
+    if (overlay.mode === "A" && (continuationTarget === "AA" || continuationTarget === "AAA")) {
+      emitSequenceEvent("sequence.a_loop_entered", {
+        loopLevel: continuationTarget,
+        color: state.sequence.baseColor || state.sequence.A || null,
+        source: continuationTarget === "AA" ? "timeout_after_R1" : "timeout_after_AA",
+        chainColors: Array.isArray(state.sequence.chainColors) ? state.sequence.chainColors.slice() : [],
+        expectedColor: state.sequence.expectedColor || null,
+      }, { source: "CardEngine.handleSequenceOverlayTimeout", snapshot: true });
+    } else {
+      emitSequenceEvent("sequence.continuation_resolved", {
+        fromStage: previousStage,
+        fromTrack: previousTrack,
+        toStage: state.sequence.stage || null,
+        toTrack: state.sequence.track || null,
+        reason: "decision_timeout",
+        expectedColor: state.sequence.expectedColor || null,
+        chainColors: Array.isArray(state.sequence.chainColors) ? state.sequence.chainColors.slice() : [],
+        note: continuationTarget === "R2" ? "continuation_to_r_track" : null,
+      }, { source: "CardEngine.handleSequenceOverlayTimeout", snapshot: true });
+    }
   }
 
   function activateSequenceR1(colorKey, options = {}) {
@@ -1972,7 +2115,7 @@ const CardEngine = (() => {
     if (keepSequence) {
       if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
     } else {
-      resetSequenceState();
+      resetSequenceState("activation");
     }
     applyWorldSlotEffectsOnRunActivation(World, t, [normalizedColor], "R1");
     const bonusMs = getFormaTimeBonusMs(World);
@@ -5098,16 +5241,37 @@ const CardEngine = (() => {
       const inRight = mx >= layout.rightButton.x && mx <= layout.rightButton.x + layout.rightButton.w
         && my >= layout.rightButton.y && my <= layout.rightButton.y + layout.rightButton.h;
       if (inLeft || inRight) {
-        const level = Math.max(1, Math.min(4, Number(state.sequenceOverlay.level || 1)));
-        const colors = Array.isArray(state.sequenceOverlay.colors) ? state.sequenceOverlay.colors : [];
+        const overlay = state.sequenceOverlay;
+        const level = Math.max(1, Math.min(4, Number(overlay.level || 1)));
+        const colors = Array.isArray(overlay.colors) ? overlay.colors : [];
+        const reason = inLeft ? "activate" : "cashout";
         if (inLeft) {
           const pendingCard = World?.pendingCard;
           const pendingColor = pendingCard?.colorA || (Array.isArray(pendingCard?.colors) ? pendingCard.colors[0] : null);
-          const activated = activateSequenceR1(pendingColor || state.sequenceOverlay.colorKey);
+          const selectedColor = pendingColor || overlay.colorKey;
+          const activated = activateSequenceR1(selectedColor);
+          emitSequenceEvent("sequence.decision_window_closed", {
+            reason,
+            clickedSide: "left",
+            selectedAction: `activate:R1:${selectedColor || "unknown"}`,
+            resultingTrack: activated ? null : state.sequence.track || null,
+            resultingStage: activated ? "IDLE" : state.sequence.stage || null,
+            rewardPreview: null,
+            rewardGranted: activated ? "R1_ACTIVATION" : null,
+          }, { source: "CardEngine.handlePointerDown", snapshot: true });
           if (activated) {
             state.sequenceOverlay.visible = false;
           }
         } else if (inRight) {
+          emitSequenceEvent("sequence.decision_window_closed", {
+            reason,
+            clickedSide: "right",
+            selectedAction: `cashout:${getDecisionLabelForLevel(level, state.sequence.track)}`,
+            resultingTrack: null,
+            resultingStage: "IDLE",
+            rewardPreview: Array.isArray(state.sequence.tempCards) ? state.sequence.tempCards.map((card) => card?.id).filter(Boolean) : [],
+            rewardGranted: null,
+          }, { source: "CardEngine.handlePointerDown", snapshot: true });
           cashOutSequence(level, colors);
         }
         return true;
