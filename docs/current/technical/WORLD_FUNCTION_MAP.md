@@ -1,8 +1,8 @@
 > Status: ROBOCZY
 > Obszar: mapa funkcji świata / runtime
 > Źródło prawdy: CZĘŚCIOWO — robocza mapa orientacyjna; NIE zastępuje audytu kodu
-> Ostatnia aktualizacja: 2026-04-24
-> Powiązane dokumenty: ../maps/DEPENDENCY_MAP.md, IMPLEMENTATION_TRACKER.md, LIVE_VALIDATION_PACK.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../ui/UI_WORLD.md
+> Ostatnia aktualizacja: 2026-04-25
+> Powiązane dokumenty: ../maps/DEPENDENCY_MAP.md, SEQUENCE_STATE_CONTRACT.md, IMPLEMENTATION_TRACKER.md, LIVE_VALIDATION_PACK.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../ui/UI_WORLD.md
 
 # Haiku Cosmos — MAP_FUNCTIONS_WORLD_vNEXT
 
@@ -11,6 +11,35 @@
 > Przy zmianach runtime należy aktualizować tę mapę albo `IMPLEMENTATION_TRACKER.md` oraz oznaczać sekcje niepewne jako `DO WERYFIKACJI`.
 
 ---
+
+## Single Sequence Source of Truth Contract
+
+**Status:** ROBOCZY / kontrakt techniczny do synchronizacji docs↔runtime.
+
+### Canonical expected behavior (wg CARDS/UI)
+- Dla sekwencji aktywne źródło prawdy runtime ma być pojedyncze.
+- Sekwencja działa w modelu 3-hit (DIR → OPEN → CLOSE) dla każdego kroku.
+- Przerwanie przez obcy kolor nie jest „martwym resetem”: to samo trafienie staje się hit1 nowego kierunku.
+
+### Observed runtime behavior (HEAD 2026-04-25)
+- Aktywnym źródłem prawdy sekwencji jest **`CardEngine.state.sequence`** (`cards.js`).
+- Pola świata pełnią rolę pochodną (derived runtime state), głównie dla HUD/UI:
+  - `World.sequencePulseColors`,
+  - `World.sequenceFlashColors`,
+  - `World.pendingCard`,
+  - `World.pendingCardUntilMs`,
+  - `World.r1HudPulse` (legacy HUD pulse sygnałowy).
+- Event timeline do walidacji zachowania pochodzi z `events_jsonl` (nie z final snapshotu).
+
+### Missing evidence
+- Pełne świeże evidence dla AA/AAA/DS na aktualnym HEAD.
+- Pełna matryca decision window (left/right/timeout) dla R2/R3/R4.
+- Pełna walidacja ekonomii chain multiplier (x2..x9) na JSONL timeline.
+
+### Known stubs / gaps
+- `onRunActivateR2` pozostaje stubem (brak gotowej aktywacji runtime).
+- PRG toggle/runtime binding pozostaje PARTIAL/MISMATCH.
+- Economy chain multipliers pozostają PARTIAL/MISMATCH (osobny patch mechaniki poza fazą docs-only).
 
 ## 1. Globalny model RUN (init → update → render → reset)
 
@@ -81,9 +110,10 @@
 - `World.score` (RP).
 - `World.paused` (zamyka update przez `dtWorld = 0`).
 
-**R1/R2 sekwencje (różne źródła):**
-- Aktualnie używane: `World.r1 = { color, streak }` (w `hc.collisions.js`).
-- Zainicjalizowane w resecie, ale bez użycia: `World.r1Seq`, `World.r2Seq`.
+**Sekwencja runtime (single source of truth + pola pochodne):**
+- **Canonical runtime SoT:** `CardEngine.state.sequence` (w `cards.js`).
+- Pochodne pola świata (derived): `World.sequencePulseColors`, `World.sequenceFlashColors`, `World.pendingCard`, `World.pendingCardUntilMs`, `World.r1HudPulse`.
+- Historyczne/legacy inicjalizowane przy resecie: `World.r1Seq`, `World.r2Seq` (nie są aktywnym SoT sekwencji).
 
 **Karty / META:**
 - `World.cardsPool[]` — pojedyncza pula kart (R1/R2, wszystkie tiery).
