@@ -1,7 +1,7 @@
 > Status: ROBOCZY
 > Obszar: techniczne / walidacja live + evidence
 > Źródło prawdy: CZĘŚCIOWO (kontrakt roboczy evidence)
-> Ostatnia aktualizacja: 2026-04-24
+> Ostatnia aktualizacja: 2026-04-25
 > Powiązane dokumenty: ../../../logs/README.md, ../../../tests/README.md, ../../audits/chronological/2026-04-24_sequence_three_hit_contract_audit.md, ../../audits/chronological/2026-04-24_sequence_rtrack_direction_takeover_audit.md, ../../audits/chronological/2026-04-24_rtrack_events_hud_audit.md
 
 # Live Validation Pack
@@ -57,6 +57,46 @@ Minimalny opis wyniku scenariusza:
 - referencja do evidence (`run_manifest` lub eksport `hc_evidence_*`)
 - lista `issueId` (jeśli dotyczy)
 
+### 3.1 Wymagane nowe sesje debug (po audycie 2026-04-25)
+
+Checklisty obowiązkowe na aktualnym HEAD:
+
+A. **AA/AAA/DS focus**
+- [ ] wejście w A-track i domknięcie R1(A),
+- [ ] przejście AA (kolekcja 2×R1A),
+- [ ] przejście AA (aktywacja R1A),
+- [ ] przejście AA bez kliknięcia → AAA,
+- [ ] AAA auto-grant DS(A) i reset do IDLE,
+- [ ] przypadek przerwania AA/AAA obcym kolorem (takeover).
+
+B. **Decision window matrix**
+- [ ] R1: left / right / timeout,
+- [ ] R2: left / right / timeout,
+- [ ] R3: left / right / timeout,
+- [ ] R4: left / right / timeout,
+- [ ] potwierdzenie, że klik po TTL nie aktywuje starego pending decision.
+
+C. **Economy focus**
+- [ ] RP bazowe per harmonic hit,
+- [ ] mnożniki dla pierwszego ciągu (x2..x5),
+- [ ] próba ciągu drugiego (x6..x9),
+- [ ] reset chain po fail,
+- [ ] reset chain po activate/cashout,
+- [ ] częściowe nagrody RP/kart po fail R2/R3/R4.
+
+### 3.2 Format nazewnictwa sesji
+
+Dla porównywalności evidence używamy formatu:
+
+- `YYYY-MM-DD_HH-MM-SS__<focus>__<scenario>`
+
+Gdzie:
+- `<focus>` ∈ `aa-aaa-ds` | `decision-matrix` | `economy`,
+- `<scenario>` = krótki slug (`r2-right-cashout`, `aaa-autods`, `chain-reset-fail` itd.).
+
+Przykład:
+- `2026-04-25_18-10-22__decision-matrix__r3-timeout`
+
 ## 4. Klasy ryzyk i rozjazdów
 
 W trakcie walidacji oznaczamy rozjazdy co najmniej w klasach:
@@ -71,6 +111,20 @@ W trakcie walidacji oznaczamy rozjazdy co najmniej w klasach:
 Każdy issue powinien wskazywać: `expected`, `observed`, `reproSteps`, timestamp i powiązany `sessionId`.
 
 ## 5. Granice dokumentu
+
+## 6. Odczyt evidence: timeline vs stan końcowy
+
+**Ostrzeżenie kluczowe:** `final_snapshot` pokazuje wyłącznie stan końcowy sesji, a nie timeline zdarzeń.
+
+Konsekwencje:
+- `final_snapshot` nie wystarcza do diagnozy momentu fail/takeover,
+- decyzje o zgodności mechaniki wymagają analizy `events_jsonl`,
+- wnioski „co się stało najpierw” wolno wyciągać tylko z event stream (`sessionTimeMs`/`frame`), nie ze snapshotu końcowego.
+
+Nie wolno wnioskować z samego `final_snapshot`:
+- czy takeover nastąpił poprawnie „na tym samym hicie”,
+- czy decision window zamknęło się timeoutem czy kliknięciem,
+- czy RP chain multiplier został zastosowany w odpowiednim kroku.
 
 - Dokument nie zastępuje `docs/current/systems/*` ani `docs/current/ui/*`.
 - Dokument nie wymusza konkretnego narzędzia eksportu; opisuje wspólny format evidence.

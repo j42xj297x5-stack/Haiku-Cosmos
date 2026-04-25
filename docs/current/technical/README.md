@@ -3,7 +3,7 @@
 > Status: ROBOCZY
 > Obszar: mapa dokumentów technicznych
 > Źródło prawdy: NIE (warstwa pomocnicza do kanonu)
-> Ostatnia aktualizacja: 2026-04-24
+> Ostatnia aktualizacja: 2026-04-25
 > Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
 
 Katalog `docs/current/technical/` zawiera dokumenty techniczne używane do pracy operacyjnej,
@@ -12,6 +12,7 @@ audytów i synchronizacji dokumentacji z runtime.
 ## Status dokumentów
 
 - `WORLD_FUNCTION_MAP.md` — **ROBOCZY** (aktywna mapa techniczna orientacyjna; nie zastępuje pełnego audytu runtime)
+- `SEQUENCE_STATE_CONTRACT.md` — **ROBOCZY / KONTRAKT TECHNICZNY** (single source-of-truth sekwencji + zasady evidence timeline)
 - `IMPLEMENTATION_TRACKER.md` — **ROBOCZY** (tracker wdrożeń i obszarów do weryfikacji)
 - `LIVE_VALIDATION_PACK.md` — **ROBOCZY** (roboczy kontrakt walidacji runów i evidence)
 
