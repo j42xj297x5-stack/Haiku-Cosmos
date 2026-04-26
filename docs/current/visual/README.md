@@ -23,7 +23,10 @@ Katalog `docs/current/visual/` zawiera aktualny kierunek wizualny Haiku Cosmos i
 4. `SUB_META_FIGMA_BRIEF.md`
 5. `SUB_META_LAYOUT_SPEC.md`
 6. `SUB_META_COMPONENTS.md`
-7. `SUB_META_FIGMA_PROMPT_TEMPLATE.md`
+7. `SUB_META_ASSET_PIPELINE.md`
+8. `SUB_META_TYPOGRAPHY.md`
+9. `SUB_META_RESPONSIVE_SCALING.md`
+10. `SUB_META_FIGMA_PROMPT_TEMPLATE.md`
 
 ## 3. Rola dokumentów
 
@@ -33,7 +36,10 @@ Katalog `docs/current/visual/` zawiera aktualny kierunek wizualny Haiku Cosmos i
 - `SUB_META_FIGMA_BRIEF.md` — brief wykonawczy dla kierunku wizualnego SUB-META.
 - `SUB_META_LAYOUT_SPEC.md` — wykonawcza specyfikacja układu SUB-META (16:9, bez głównego scrolla).
 - `SUB_META_COMPONENTS.md` — biblioteka komponentów visual (etap 1: R1 + DS + sloty + panele).
-- `SUB_META_FIGMA_PROMPT_TEMPLATE.md` — szablon promptu do wygenerowania jednego polished mockupu SUB-META.
+- `SUB_META_ASSET_PIPELINE.md` — wykonawcza specyfikacja formatów i eksportów assetów (SVG/raster).
+- `SUB_META_TYPOGRAPHY.md` — kierunek typografii (Inter/Cinzel/Noto Sans + fallbacki).
+- `SUB_META_RESPONSIVE_SCALING.md` — zasady skalowania mobile → desktop → 4K.
+- `SUB_META_FIGMA_PROMPT_TEMPLATE.md` — szablon promptu: krok 1 component/asset pass, krok 2 polished mockup.
 
 ## 4. Zasada statusu KIERUNEK
 

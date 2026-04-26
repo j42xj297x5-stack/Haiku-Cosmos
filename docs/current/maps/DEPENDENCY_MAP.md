@@ -39,6 +39,9 @@
 - `docs/current/visual/SUB_META_FIGMA_BRIEF.md` (KIERUNEK / BRIEF WYKONAWCZY)
 - `docs/current/visual/SUB_META_LAYOUT_SPEC.md` (KIERUNEK / SPECYFIKACJA LAYOUTU)
 - `docs/current/visual/SUB_META_COMPONENTS.md` (KIERUNEK / BIBLIOTEKA KOMPONENTÓW)
+- `docs/current/visual/SUB_META_ASSET_PIPELINE.md` (KIERUNEK / SPECYFIKACJA WYKONAWCZA)
+- `docs/current/visual/SUB_META_TYPOGRAPHY.md` (KIERUNEK / TYPOGRAFIA)
+- `docs/current/visual/SUB_META_RESPONSIVE_SCALING.md` (KIERUNEK / SPECYFIKACJA RESPONSYWNOŚCI)
 - `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / SZABLON PROMPTU)
 
 ### ROBOCZY
@@ -72,4 +75,4 @@
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md` i `docs/current/technical/LIVE_VALIDATION_PACK.md` mają status ROBOCZY (operacyjny, niekanoniczny).
 - Audyty w `docs/audits/thematic/runtime/` zawierają stare założenia (m.in. ścieżki `.codex.js` i `md/`).
 - `docs/legacy/` nie jest źródłem prawdy.
-- Pakiet SUB-META + Figma w `docs/current/visual/` definiuje kierunek i ramę wykonawczą, ale nie zmienia mechaniki systemów.
+- Pakiet SUB-META + Figma (layout, komponenty, asset pipeline, typografia, responsive scaling, prompt template) w `docs/current/visual/` definiuje kierunek i ramę wykonawczą, ale nie zmienia mechaniki systemów.

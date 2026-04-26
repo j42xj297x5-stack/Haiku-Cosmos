@@ -46,6 +46,9 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/SUB_META_FIGMA_BRIEF.md` (KIERUNEK / BRIEF WYKONAWCZY)
 - `docs/current/visual/SUB_META_LAYOUT_SPEC.md` (KIERUNEK / SPECYFIKACJA LAYOUTU)
 - `docs/current/visual/SUB_META_COMPONENTS.md` (KIERUNEK / BIBLIOTEKA KOMPONENTÓW)
+- `docs/current/visual/SUB_META_ASSET_PIPELINE.md` (KIERUNEK / SPECYFIKACJA WYKONAWCZA)
+- `docs/current/visual/SUB_META_TYPOGRAPHY.md` (KIERUNEK / TYPOGRAFIA)
+- `docs/current/visual/SUB_META_RESPONSIVE_SCALING.md` (KIERUNEK / SPECYFIKACJA RESPONSYWNOŚCI)
 - `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / SZABLON PROMPTU)
 
 ### Techniczne (aktywnie utrzymywane, ale niekanoniczne)
