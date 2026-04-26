@@ -841,6 +841,7 @@ const CardEngine = (() => {
   }
 
   function getSequenceStage(seq) {
+    if (seq && seq.continuationMode === "choose_on_next_color") return "CHOOSE";
     if (!seq.track) return "R1";
     if (seq.track === "A") {
       if (seq.stepIndex <= 0) return "R1";
@@ -1072,7 +1073,7 @@ const CardEngine = (() => {
     cards.forEach((card) => {
       if (!card) return;
       const rewardKey = getRewardDedupeKey(card);
-      if (rewardKey) {
+      if (rewardKey && !card._allowSequenceDuplicate) {
         if (!seq.committedKeys) seq.committedKeys = new Set();
         if (seq.committedKeys.has(rewardKey)) return;
         seq.committedKeys.add(rewardKey);
@@ -1083,13 +1084,13 @@ const CardEngine = (() => {
     return commitSequenceRewards(World, pending, { enforceUnique: true });
   }
 
-  function pushSequenceReward(World, seq, payload, { setPending = false } = {}) {
+  function pushSequenceReward(World, seq, payload, { setPending = false, allowDuplicate = false } = {}) {
     if (!payload) return null;
     if (!Array.isArray(seq.tempCards)) seq.tempCards = [];
     const entity = createCardEntity(payload);
     if (!entity) return null;
     const rewardKey = getRewardDedupeKey(entity);
-    if (rewardKey) {
+    if (rewardKey && !allowDuplicate) {
       const existing = seq.tempCards.find((card) => getRewardDedupeKey(card) === rewardKey);
       if (existing) {
         if (setPending) {
@@ -1100,6 +1101,7 @@ const CardEngine = (() => {
         return existing;
       }
     }
+    if (allowDuplicate) entity._allowSequenceDuplicate = true;
     seq.tempCards.push(entity);
     if (setPending) {
       const now = nowMs();
@@ -1134,7 +1136,7 @@ const CardEngine = (() => {
       }
     } else if (seq.track === "A") {
       if (level === 2) {
-        reward = pushSequenceReward(World, seq, { kind: "R1", tier: "DR", colorA: baseColor });
+        reward = pushSequenceReward(World, seq, { kind: "R1", tier: "DR", colorA: baseColor }, { allowDuplicate: true });
       } else if (level === 3) {
         reward = pushSequenceReward(World, seq, { kind: "DS", tier: "DR", colorA: baseColor });
       }
@@ -1941,6 +1943,11 @@ const CardEngine = (() => {
         expectedColor: state.sequence.expectedColor || null,
       }, { source: "CardEngine.handleSequenceOverlayTimeout", snapshot: true });
     } else {
+      const route = continuationTarget === "R2"
+        ? "R_TRACK_R2"
+        : (continuationTarget === "R3"
+          ? "R_TRACK_R3"
+          : (continuationTarget === "R4" ? "R_TRACK_R4" : null));
       emitSequenceEvent("sequence.continuation_resolved", {
         fromStage: previousStage,
         fromTrack: previousTrack,
@@ -1949,6 +1956,7 @@ const CardEngine = (() => {
         reason: "decision_timeout",
         expectedColor: state.sequence.expectedColor || null,
         chainColors: Array.isArray(state.sequence.chainColors) ? state.sequence.chainColors.slice() : [],
+        route,
         note: continuationTarget === "R2" ? "continuation_to_r_track" : null,
       }, { source: "CardEngine.handleSequenceOverlayTimeout", snapshot: true });
     }
@@ -2024,7 +2032,7 @@ const CardEngine = (() => {
       isDsSuccess,
     }, { source: "CardEngine.cashOutSequence", snapshot: true });
     seq.lastResolution = "cashout";
-    resetSequenceState();
+    resetSequenceState("cashout");
     return true;
   }
 
@@ -2221,7 +2229,34 @@ const CardEngine = (() => {
     const t = nowMs();
     const normalizedColor = normalizePack01Color(colorKey);
     const tier = normalizeSubMetaTier(tierKey || "DR");
-    if (!consumePendingCard(World, { kind: "R1", tier, colors: [normalizedColor] }, t)) return false;
+    let consumed = consumePendingCard(World, { kind: "R1", tier, colors: [normalizedColor] }, t);
+    if (!consumed && state.sequence && Array.isArray(state.sequence.tempCards)) {
+      const idx = state.sequence.tempCards.findIndex((card) => cardMatches(card, "R1", [normalizedColor], tier));
+      if (idx >= 0) {
+        state.sequence.tempCards.splice(idx, 1);
+        consumed = true;
+      }
+    }
+    if (!consumed) return false;
+    if (Array.isArray(World.cardsPool) && state.sequence && Array.isArray(state.sequence.earned)) {
+      const activatedRewardIds = new Set(
+        state.sequence.earned
+          .filter((card) => String(card?.kind || card?.type || "").toUpperCase() !== "DS")
+          .map((card) => card?.id)
+          .filter(Boolean)
+      );
+      if (activatedRewardIds.size) {
+        for (let i = World.cardsPool.length - 1; i >= 0; i -= 1) {
+          const poolCard = World.cardsPool[i];
+          if (poolCard && activatedRewardIds.has(poolCard.id)) {
+            World.cardsPool.splice(i, 1);
+          }
+        }
+        recomputeTotalCards(World);
+      }
+    }
+    if (state.sequence && Array.isArray(state.sequence.tempCards)) state.sequence.tempCards.length = 0;
+    if (World.cardsTemp) World.cardsTemp.length = 0;
     if (keepSequence) {
       if (state.sequenceOverlay) state.sequenceOverlay.visible = false;
     } else {
@@ -3107,7 +3142,8 @@ const CardEngine = (() => {
       if (!card) continue;
       if (card._committed) continue;
       const rewardKey = getRewardDedupeKey(card);
-      if (rewardKey) {
+      const allowDuplicate = Boolean(card._allowSequenceDuplicate);
+      if (rewardKey && !allowDuplicate) {
         if (localRewardSeen.has(rewardKey) || poolRewardSeen.has(rewardKey)) {
           if (!state.sequence.commitDuplicateLogged) {
             console.warn("[SEQ_COMMIT_DUPLICATE] duplicate reward commit skipped", rewardKey);

@@ -1,7 +1,7 @@
 > Status: ROBOCZY
 > Obszar: techniczne / tracker wdrożenia
 > Źródło prawdy: NIE (tracker operacyjny)
-> Ostatnia aktualizacja: 2026-04-25
+> Ostatnia aktualizacja: 2026-04-26
 > Powiązane dokumenty: WORLD_FUNCTION_MAP.md, SEQUENCE_STATE_CONTRACT.md, LIVE_VALIDATION_PACK.md, ../maps/DEPENDENCY_MAP.md, ../../audits/chronological/2026-04-24_technical_docs_semantic_sync.md, ../../audits/chronological/2026-04-25_full_docs_runtime_sync_audit.md
 
 # Haiku Cosmos — IMPLEMENTATION TRACKER
@@ -33,7 +33,9 @@ Służy do szybkiego rozróżnienia: co działa, co jest historyczne, co wymaga 
 - AA/AAA/DS:
   - mechanika: **TESTED AUTOMATED** (`tests/cards_sequence_a_loop_aa_aaa_ds.test.js`),
   - live evidence: **DO NAGRANIA** (świeża sesja runtime + JSONL replay na aktualnym HEAD).
-- Decision window (left/right/timeout) dla R2/R3/R4: potrzebna pełna matryca evidence na aktualnym HEAD.
+- Decision window matrix (R1/R2/R3/R4/AA + click-after-TTL):
+  - mechanika/testy: **TESTED AUTOMATED** (`tests/cards_sequence_decision_window_matrix.test.js`),
+  - live evidence: **DO NAGRANIA** (świeży replay runtime na HEAD po patchu 2026-04-26).
 - Zakres produkcyjnego użycia eventów debugowych i snapshotów (`hc.debug.js`, `hc.ui_debug.js`).
 - Pokrycie kontraktu SUB-META (sloty/wiązania) względem aktualnych dokumentów systemowych.
 
