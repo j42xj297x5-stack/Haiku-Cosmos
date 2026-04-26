@@ -70,3 +70,19 @@ Dla diagnostyki pętli A (`A -> AA -> AAA -> DS -> IDLE`) wymagane są eventy:
 - `sequence.reset_to_idle` (powód + snapshot po resecie).
 
 Bez tych eventów analiza timeline może pozostać nierozstrzygająca, ponieważ sam `final_snapshot` nie pokazuje przebiegu decyzji i timeoutów.
+
+## 8. Routing kontraktowy po timeout po R1(A) i AA
+
+Po zamknięciu `R1(A)` i timeout/no-click:
+
+- runtime nie powinien z góry wymuszać `R-track`,
+- routing rozstrzyga się dopiero na **następnym hit1**:
+  - ten sam kolor `A` => `A-loop` (`AA`),
+  - inny kolor => `R-track` (`R2`).
+
+Po zamknięciu `AA` i timeout/no-click:
+
+- ten sam kolor `A` => `AAA`,
+- inny kolor => fail A-loop + takeover tego trafienia jako hit1 nowego kierunku.
+
+W obu przypadkach nie może występować „martwe trafienie”; hit rozstrzygający routing liczy się jako hit1 kroku docelowego.

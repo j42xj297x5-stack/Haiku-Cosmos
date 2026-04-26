@@ -135,6 +135,9 @@ const CardEngine = (() => {
       tempCards: [],
       commitDuplicateLogged: false,
       rpStart: 0,
+      continuationMode: null,
+      continuationFromStage: null,
+      continuationFromTrack: null,
       ...overrides
     };
   }
@@ -943,8 +946,12 @@ const CardEngine = (() => {
 
   function getOverlayContinuationTarget(overlay) {
     if (!overlay) return null;
-    const mode = overlay.mode === "A" ? "A" : "R";
+    const rawMode = overlay.mode;
+    const mode = rawMode === "A" ? "A" : (rawMode === "CHOOSE" ? "CHOOSE" : "R");
     const level = Math.max(1, Math.min(4, Number(overlay.level || 1)));
+    if (mode === "CHOOSE") {
+      return "choose_on_next_color";
+    }
     if (mode === "A") {
       if (level <= 1) return "AA";
       if (level === 2) return "AAA";
@@ -1228,7 +1235,7 @@ const CardEngine = (() => {
     const level = seq.stepIndex;
     const colors = seq.colorsClosed.slice(0, level);
     const normalizedColors = colors.map((color) => normalizePack01Color(color)).filter(Boolean);
-    const overlayMode = seq.track === "A" ? "A" : "R";
+    const overlayMode = !seq.track && level === 1 ? "CHOOSE" : (seq.track === "A" ? "A" : "R");
     const maxLevel = seq.track === "A" ? 3 : 4;
     const isTerminal = seq.track && level >= maxLevel;
     if (seq.track === "A" && level === 2) {
@@ -1447,8 +1454,23 @@ const CardEngine = (() => {
     }, { source: "CardEngine.onHitColor" });
 
     if (seq.mode === "IDLE") {
+      const continuationMode = seq.continuationMode || null;
+      const continuationFromStage = seq.continuationFromStage || seq.stage || null;
+      const continuationFromTrack = seq.continuationFromTrack || seq.track || null;
       const gate = canStartStepWithColor(seq, normalized);
       if (!gate.ok) {
+        if (continuationMode === "timeout_after_AA") {
+          emitSequenceEvent("sequence.continuation_resolved", {
+            fromStage: continuationFromStage,
+            fromTrack: continuationFromTrack,
+            toStage: "R1",
+            toTrack: null,
+            reason: "mismatch_after_timeout",
+            color: normalized,
+            baseColor: seq.baseColor || seq.A || null,
+            route: "FAIL_TAKEOVER",
+          }, { source: "CardEngine.onHitColor", snapshot: true });
+        }
         emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_HIT_REJECTED, {
           color: normalized,
           expectedColor: seq.expectedColor || null,
@@ -1457,9 +1479,41 @@ const CardEngine = (() => {
           chainColors: seq.chainColors || [],
         }, { source: "CardEngine.onHitColor", severity: "warn" });
         traceSeqHit("fail", normalized, { reason: gate.reason });
-        const snapshot = getHitSnapshot(seq);
-        seq.lastHitSnapshot = snapshot;
         failSequence(World);
+        if (continuationMode === "timeout_after_AA") {
+          if (!state.sequence.active) {
+            startSequenceSession();
+          }
+          const restarted = state.sequence;
+          applyDirectionSelection(restarted, normalized);
+          restarted.currentColor = normalized;
+          restarted.hits = 1;
+          restarted.opened = false;
+          restarted.mode = "IN_STEP";
+          restarted.continuationMode = null;
+          restarted.continuationFromStage = null;
+          restarted.continuationFromTrack = null;
+          setSequencePhase(restarted, "DIR");
+          emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_DIRECTION_LOCKED, {
+            currentColor: normalized,
+            expectedColor: normalized,
+            hitCount: 1,
+            stage: restarted.stage || null,
+            takeoverAfterFail: true,
+            reason: "post-fail-direction-takeover",
+            sourceObject: collisionContext?.sourceObject || null,
+          }, { source: "CardEngine.onHitColor", snapshot: true });
+          {
+            const level = restarted.stepIndex + 1;
+            addScoreToWorld(World, getSequenceMultiplier(level, restarted.chainIndex));
+          }
+          traceSeqHit("dir", normalized, { reason: "post-fail-direction-takeover" });
+          const restartedSnapshot = getHitSnapshot(restarted);
+          restarted.lastHitSnapshot = restartedSnapshot;
+          return { action: "dir", snapshot: restartedSnapshot };
+        }
+        const snapshot = getHitSnapshot(state.sequence);
+        state.sequence.lastHitSnapshot = snapshot;
         return { action: "fail", snapshot };
       }
       if (seq.chainPattern.length) {
@@ -1472,10 +1526,54 @@ const CardEngine = (() => {
         }
       }
       applyDirectionSelection(seq, normalized);
+      if (continuationMode === "choose_on_next_color") {
+        const route = seq.track === "A" ? "A_LOOP_AA" : "R_TRACK_R2";
+        const toStage = seq.track === "A" ? "AA" : "R2";
+        emitSequenceEvent("sequence.continuation_resolved", {
+          fromStage: continuationFromStage,
+          fromTrack: continuationFromTrack,
+          toStage,
+          toTrack: seq.track || null,
+          reason: "color_selected_after_timeout",
+          color: normalized,
+          baseColor: seq.baseColor || seq.A || null,
+          route,
+        }, { source: "CardEngine.onHitColor", snapshot: true });
+        if (route === "A_LOOP_AA") {
+          emitSequenceEvent("sequence.a_loop_entered", {
+            loopLevel: "AA",
+            color: seq.baseColor || seq.A || normalized,
+            source: "timeout_after_R1",
+            chainColors: seq.chainColors || [],
+            expectedColor: seq.expectedColor || null,
+          }, { source: "CardEngine.onHitColor", snapshot: true });
+        }
+      } else if (continuationMode === "timeout_after_AA") {
+        emitSequenceEvent("sequence.continuation_resolved", {
+          fromStage: continuationFromStage,
+          fromTrack: continuationFromTrack,
+          toStage: "AAA",
+          toTrack: "A",
+          reason: "color_selected_after_timeout",
+          color: normalized,
+          baseColor: seq.baseColor || seq.A || null,
+          route: "A_LOOP_AAA",
+        }, { source: "CardEngine.onHitColor", snapshot: true });
+        emitSequenceEvent("sequence.a_loop_entered", {
+          loopLevel: "AAA",
+          color: seq.baseColor || seq.A || normalized,
+          source: "timeout_after_AA",
+          chainColors: seq.chainColors || [],
+          expectedColor: seq.expectedColor || null,
+        }, { source: "CardEngine.onHitColor", snapshot: true });
+      }
       seq.currentColor = normalized;
       seq.hits = 1;
       seq.opened = false;
       seq.mode = "IN_STEP";
+      seq.continuationMode = null;
+      seq.continuationFromStage = null;
+      seq.continuationFromTrack = null;
       setSequencePhase(seq, "DIR");
       emitSequenceEvent(window.HC?.DebugEventTypes?.SEQUENCE_DIRECTION_LOCKED, {
         currentColor: normalized,
@@ -1767,7 +1865,7 @@ const CardEngine = (() => {
     overlay.visible = false;
     const level = Math.max(1, Math.min(4, Number(overlay.level || 1)));
     const colorsClosed = Array.isArray(overlay.colors) ? overlay.colors.slice() : [];
-    const previousTrack = state.sequence.track || (overlay.mode === "A" ? "A" : "R");
+    const previousTrack = state.sequence.track || (overlay.mode === "A" ? "A" : null);
     const previousStage = state.sequence.stage || getSequenceStage(state.sequence);
     const continuationTarget = getOverlayContinuationTarget(overlay);
     emitSequenceEvent("sequence.decision_window_timeout", {
@@ -1777,7 +1875,7 @@ const CardEngine = (() => {
       chainColors: Array.isArray(state.sequence.chainColors) ? state.sequence.chainColors.slice() : [],
       nextExpectedColor: state.sequence.A || state.sequence.baseColor || overlay.colorKey || null,
       nextStage: continuationTarget,
-      nextTrack: overlay.mode === "A" ? "A" : "R",
+      nextTrack: overlay.mode === "A" ? "A" : (overlay.mode === "CHOOSE" ? null : "R"),
     }, { source: "CardEngine.handleSequenceOverlayTimeout", snapshot: true });
     if (level >= 4) {
       state.sequence.active = true;
@@ -1794,6 +1892,9 @@ const CardEngine = (() => {
       state.sequence.currentColor = null;
       state.sequence.hits = 0;
       state.sequence.opened = false;
+      state.sequence.continuationMode = null;
+      state.sequence.continuationFromStage = null;
+      state.sequence.continuationFromTrack = null;
       syncSequenceDerivedState(state.sequence, "overlay-timeout-terminal", { snapshot: true });
       emitSequenceEvent("sequence.continuation_resolved", {
         fromStage: previousStage,
@@ -1821,6 +1922,15 @@ const CardEngine = (() => {
     state.sequence.currentColor = null;
     state.sequence.hits = 0;
     state.sequence.opened = false;
+    state.sequence.continuationMode = null;
+    state.sequence.continuationFromStage = previousStage || null;
+    state.sequence.continuationFromTrack = previousTrack || null;
+    if (continuationTarget === "choose_on_next_color") {
+      state.sequence.track = null;
+      state.sequence.continuationMode = "choose_on_next_color";
+    } else if (overlay.mode === "A" && continuationTarget === "AAA") {
+      state.sequence.continuationMode = "timeout_after_AA";
+    }
     syncSequenceDerivedState(state.sequence, "overlay-timeout-continue", { snapshot: true });
     if (overlay.mode === "A" && (continuationTarget === "AA" || continuationTarget === "AAA")) {
       emitSequenceEvent("sequence.a_loop_entered", {

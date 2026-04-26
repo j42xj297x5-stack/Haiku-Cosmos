@@ -30,7 +30,9 @@ Służy do szybkiego rozróżnienia: co działa, co jest historyczne, co wymaga 
 
 ## 3. Do weryfikacji (runtime ↔ kanon)
 
-- AA/AAA/DS: logika jest obecna, ale wymaga świeżego runtime evidence (dedykowane sesje debug + JSONL replay).
+- AA/AAA/DS:
+  - mechanika: **TESTED AUTOMATED** (`tests/cards_sequence_a_loop_aa_aaa_ds.test.js`),
+  - live evidence: **DO NAGRANIA** (świeża sesja runtime + JSONL replay na aktualnym HEAD).
 - Decision window (left/right/timeout) dla R2/R3/R4: potrzebna pełna matryca evidence na aktualnym HEAD.
 - Zakres produkcyjnego użycia eventów debugowych i snapshotów (`hc.debug.js`, `hc.ui_debug.js`).
 - Pokrycie kontraktu SUB-META (sloty/wiązania) względem aktualnych dokumentów systemowych.

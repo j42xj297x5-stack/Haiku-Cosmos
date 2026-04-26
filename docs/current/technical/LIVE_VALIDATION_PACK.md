@@ -47,6 +47,7 @@ Punkt odniesienia dla walidacji R-track:
 
 - `tests/cards_sequence_three_hit_manual_checklist.md`
 - `tests/cards_sequence_rtrack_takeover_smoke.test.js`
+- `tests/cards_sequence_a_loop_aa_aaa_ds.test.js` (regresja routingu A-loop: `R1(A) -> timeout -> AA/AAA/DS`)
 - audyty chronologiczne z 2026-04-24 (three-hit, direction takeover, events/HUD)
 
 Minimalny opis wyniku scenariusza:
