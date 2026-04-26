@@ -1,20 +1,32 @@
-# SUB-META — Figma prompt template (polished mockup 16:9)
+# SUB-META — Figma prompt template (component/asset pass)
 
 > Status: KIERUNEK / SZABLON PROMPTU
 > Obszar: SUB-META / Figma / prompt workflow
 > Źródło prawdy: TAK, dla przygotowania promptu do Figmy w zakresie visual direction i layoutu; NIE, dla mechaniki i runtime
 > Ostatnia aktualizacja: 2026-04-26
-> Powiązane dokumenty: `docs/current/visual/SUB_META_FIGMA_BRIEF.md`, `docs/current/visual/SUB_META_LAYOUT_SPEC.md`, `docs/current/visual/SUB_META_COMPONENTS.md`, `docs/current/visual/ART_DIRECTION.md`, `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`, `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`, `docs/current/systems/SUB_META_SYSTEM.md`, `docs/current/systems/CARDS_SYSTEM.md`, `docs/current/systems/PRG_SYSTEM.md`, `docs/current/systems/ECONOMY_SYSTEM.md`, `docs/current/ui/UI_WORLD.md`
+> Powiązane dokumenty: `docs/current/visual/SUB_META_FIGMA_BRIEF.md`, `docs/current/visual/SUB_META_LAYOUT_SPEC.md`, `docs/current/visual/SUB_META_COMPONENTS.md`, `docs/current/visual/SUB_META_ASSET_PIPELINE.md`, `docs/current/visual/SUB_META_TYPOGRAPHY.md`, `docs/current/visual/SUB_META_RESPONSIVE_SCALING.md`, `docs/current/visual/ART_DIRECTION.md`, `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`, `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`, `docs/current/systems/SUB_META_SYSTEM.md`, `docs/current/systems/CARDS_SYSTEM.md`, `docs/current/systems/PRG_SYSTEM.md`, `docs/current/systems/ECONOMY_SYSTEM.md`, `docs/current/ui/UI_WORLD.md`
 
-## Szablon do użycia
+## Szablon do użycia — krok 1 (component/asset pass)
 
 ### 1) Nazwa zadania
 
-Zaprojektuj jeden polished mockup ekranu SUB-META (16:9) dla Haiku Cosmos.
+Zaprojektuj pierwszy pass SUB-META: system komponentów i assetów skalowalnych (nie finalny polished ekran).
 
 ### 2) Cel
 
-Przygotuj pojedynczy, dopracowany wizualnie mockup SUB-META, który trzyma kierunek: rytualny minimalizm kosmiczny, panel rezonansu, cienkie linie, ciemne półprzezroczyste tło, geometria, czytelna relacja gniazd i kart.
+Przygotuj bibliotekę wykonawczą Figmy obejmującą:
+- ramki,
+- placeholdery,
+- sloty,
+- glify,
+- cienkie linie,
+- przyciski,
+- panele,
+- karty R1 i DS,
+- testową typografię,
+- mini-layout pokazujący komponenty w kontekście.
+
+To jest krok przygotowawczy do runtime i późniejszego polished mockupu.
 
 ### 3) Wejściowe dokumenty do przeczytania
 
@@ -22,6 +34,9 @@ Przeczytaj i stosuj:
 - `docs/current/visual/SUB_META_FIGMA_BRIEF.md`
 - `docs/current/visual/SUB_META_LAYOUT_SPEC.md`
 - `docs/current/visual/SUB_META_COMPONENTS.md`
+- `docs/current/visual/SUB_META_ASSET_PIPELINE.md`
+- `docs/current/visual/SUB_META_TYPOGRAPHY.md`
+- `docs/current/visual/SUB_META_RESPONSIVE_SCALING.md`
 - `docs/current/visual/ART_DIRECTION.md`
 - `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`
 - `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`
@@ -36,50 +51,42 @@ Przeczytaj i stosuj:
 - Rytualny minimalizm kosmiczny.
 - SUB-META jako astrolabium konfiguracji, nie zwykły ekwipunek.
 - Ciemna, półprzezroczysta baza.
-- Cienkie złoto-brązowe / neutralno-świetlne linie prowadzące geometrię.
+- Cienkie linie prowadzące geometrię.
 - Subtelne światło, brak agresywnego neonu.
 - Świat kosmosu ma pozostać odczuwalny pod i wokół panelu.
 
-### 5) Opis layoutu
+### 5) Zakres komponentów
 
-- Jeden ekran 16:9, bez głównego scrolla.
-- Tło świata nadal widoczne.
-- Centralna rama SUB-META z oddechem po bokach.
-- Górny pasek: tytuł SUB-META + przycisk Wróć + ewentualne przełączniki.
-- Lewa kolumna: PRG / gniazda rezonansu / gniazda pomocnicze / 4 pola ŚWIAT.
-- Prawa kolumna: magazyn kart + sekcje w użyciu / rezerwa.
-- Dolny panel: Kuźnia + opis operacji + koszt RP + Potwierdź.
-- Boczny HUD (RP i liczniki kolorów) pozostaje elementem świata.
+Zaprojektuj jako komponenty i warianty:
+- karty R1 (stany: hover/selected/disabled/locked),
+- karty DS (stany: hover/selected/disabled/locked),
+- sloty (pusty/zajęty/zablokowany),
+- glify i znaczniki osi,
+- ramki i cienkie linie,
+- panele (magazyn, opis, operacje),
+- przyciski (Wróć, Potwierdź) z wariantami,
+- etykiety kosztu RP i liczników,
+- placeholdery pod rastry tła (bez tworzenia finalnych teł).
 
-### 6) Opis komponentów
+### 6) Zasady formatów i eksportów
 
-Użyj komponentów etapu 1:
-- karta R1,
-- karta DS,
-- slot pusty,
-- slot zajęty,
-- slot zablokowany,
-- gniazdo rezonansu,
-- gniazdo pomocnicze,
-- panel Kuźni,
-- panel magazynu,
-- panel opisu,
-- przycisk Wróć,
-- przycisk Potwierdź,
-- koszt RP,
-- licznik kart,
-- stany aktywny / wybrany / nieaktywny / zablokowany.
+- Geometria: SVG.
+- Tła/tekstury: raster (PNG/WebP) jako placeholdery lub warstwy pomocnicze.
+- Nie przygotowuj finalnych teł świata w Figma.
+- Nie twórz finalnej struktury runtime; nazewnictwo traktuj roboczo wg dokumentacji.
 
-### 7) Zakres mockupu
+### 7) Mini-layout kontekstowy
 
-- Jedna plansza SUB-META (16:9).
-- Jeden spójny scenariusz konfiguracyjny pokazujący relacje slotów i kart.
-- Zakres kart tylko: R1 i DS.
+Dodaj jedną mini-kompozycję 16:9 pokazującą komponenty w użyciu:
+- bez pełnego polished wykończenia,
+- bez głównego scrolla,
+- z lokalnym miejscem na ewentualny scroll kolekcji kart po wierszu.
 
 ### 8) Zakazy
 
 - Nie projektować nowych mechanik.
 - Nie dodawać nowych typów kart.
+- Nie tworzyć finalnego polished mockupu jako głównego rezultatu kroku 1.
 - Nie robić fantasy deckbuildera.
 - Nie robić agresywnego neon sci-fi.
 - Nie robić technicznego debug UI.
@@ -87,17 +94,23 @@ Użyj komponentów etapu 1:
 - Nie łamać kanonicznych kolorów RED/YELLOW/GREEN/BLUE.
 - Nie mieszać DS z R1 (DS musi być od razu odróżnialna).
 
-### 9) Oczekiwany wynik
+### 9) Oczekiwany wynik kroku 1
 
-Dostarcz jeden polished mockup SUB-META 16:9, gotowy jako punkt odniesienia do dalszych iteracji UI i component sheet.
+Dostarcz bibliotekę komponentów i assetów SUB-META gotową do walidacji skalowania (mobile → desktop → 4K) i do kolejnego kroku polished.
 
-### 10) Checklista jakości
+### 10) Checklista jakości kroku 1
 
-- Czy ekran jest 16:9 i bez głównego scrolla?
-- Czy świat kosmosu jest nadal widoczny?
-- Czy podział lewa/prawa/dół/góra jest czytelny?
-- Czy R1 i DS są natychmiast odróżnialne?
-- Czy stany aktywny/wybrany/nieaktywny/zablokowany są jasne?
-- Czy koszt RP i przycisk Potwierdź są czytelne przed akcją?
-- Czy styl trzyma rytualny minimalizm kosmiczny?
-- Czy nie pojawiły się nowe mechaniki ani nowe typy kart?
+- Czy komponenty bazowe są gotowe jako warianty?
+- Czy geometria jest zaprojektowana pod SVG?
+- Czy karta zachowuje proporcję 1:3 (szerokość:wysokość)?
+- Czy stany hover/selected/disabled/locked są spójne?
+- Czy mini-layout trzyma 16:9 i brak głównego scrolla?
+- Czy kolekcja kart ma lokalny model scrolla po wierszu?
+- Czy typografia testowa zawiera walidację polskich znaków?
+
+## Wariant późniejszy: polished mockup całego ekranu SUB-META
+
+Po zatwierdzeniu component/asset pass wykonujemy krok 2:
+- pełny polished mockup SUB-META 16:9,
+- oparty wyłącznie o zatwierdzone komponenty,
+- z zachowaniem zasad skalowania i formatów assetów.
