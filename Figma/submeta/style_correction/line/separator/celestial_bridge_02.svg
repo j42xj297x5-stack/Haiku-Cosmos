@@ -1,0 +1,38 @@
+<svg width="418" height="100" viewBox="0 0 418 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g filter="url(#filter0_d_22_670)">
+<path d="M26 38H392" stroke="#C89A5F" stroke-opacity="0.34"/>
+<path d="M56 30H362" stroke="#78A7CB" stroke-opacity="0.28"/>
+<path d="M56 46H362" stroke="#78A7CB" stroke-opacity="0.18"/>
+<path d="M82 20V31" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M97.9 20V24" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M113.8 20V27" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M129.6 20V24" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M145.5 20V31" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M161.4 20V24" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M177.3 20V27" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M193.1 20V24" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M209 20V31" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M224.9 20V24" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M240.8 20V27" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M256.6 20V24" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M272.5 20V31" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M288.4 20V24" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M304.3 20V27" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M320.1 20V24" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M336 20V31" stroke="#78A7CB" stroke-opacity="0.42"/>
+<path d="M209 22L225 38L209 54L193 38L209 22Z" stroke="#78A7CB" stroke-opacity="0.72"/>
+<path d="M209 42C211.209 42 213 40.2091 213 38C213 35.7909 211.209 34 209 34C206.791 34 205 35.7909 205 38C205 40.2091 206.791 42 209 42Z" fill="#78A7CB" fill-opacity="0.7"/>
+</g>
+<defs>
+<filter id="filter0_d_22_670" x="0" y="0" width="418" height="100" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feMorphology radius="8" operator="erode" in="SourceAlpha" result="effect1_dropShadow_22_670"/>
+<feOffset dy="12"/>
+<feGaussianBlur stdDeviation="11"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.48 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_22_670"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_22_670" result="shape"/>
+</filter>
+</defs>
+</svg>
