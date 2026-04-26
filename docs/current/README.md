@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa aktualnej dokumentacji
 > Źródło prawdy: TAK, dla struktury i statusów dokumentów w `docs/current/`
-> Ostatnia aktualizacja: 2026-04-24
+> Ostatnia aktualizacja: 2026-04-26
 > Powiązane dokumenty: maps/PROJECT_INDEX.md, maps/DEPENDENCY_MAP.md, ../README.md, ../../README.md
 
 Ten katalog zawiera aktualną dokumentację projektu.
@@ -32,6 +32,10 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `visual/ART_DIRECTION.md` — KIERUNEK
 - `visual/KOSMOLOGIA_WIZUALNA.md` — KIERUNEK
 - `visual/BIBLIOTEKA_MATERIALOW.md` — KIERUNEK
+- `visual/SUB_META_FIGMA_BRIEF.md` — KIERUNEK / BRIEF WYKONAWCZY
+- `visual/SUB_META_LAYOUT_SPEC.md` — KIERUNEK / SPECYFIKACJA LAYOUTU
+- `visual/SUB_META_COMPONENTS.md` — KIERUNEK / BIBLIOTEKA KOMPONENTÓW
+- `visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` — KIERUNEK / SZABLON PROMPTU
 
 ## Dokumentacja techniczna
 
