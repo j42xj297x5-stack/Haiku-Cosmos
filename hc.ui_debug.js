@@ -106,6 +106,27 @@
     return el;
   }
 
+  function applyHudSvgSkin() {
+    const skinMap = [
+      { el: scoreLabel, path: "assets/visual/hud/svg/frames/hud_frame_rp_counter_ritual_01.svg", text: null },
+      { el: btnSubMeta, path: "assets/visual/hud/svg/frames/hud_button_submeta_gate_01.svg", text: "SUB-META" },
+      { el: btnRestart, path: "assets/visual/hud/svg/frames/hud_button_back_ritual_01.svg", text: "Wróć" }
+    ];
+    skinMap.forEach((entry) => {
+      const el = entry.el;
+      if (!el) return;
+      el.style.backgroundImage = `url("${entry.path}")`;
+      el.style.backgroundSize = "100% 100%";
+      el.style.backgroundRepeat = "no-repeat";
+      el.style.backgroundColor = "rgba(6,10,16,0.35)";
+      el.style.border = "1px solid rgba(180,210,255,0.35)";
+      el.style.borderRadius = "10px";
+      el.style.minHeight = "30px";
+      el.style.padding = "6px 12px";
+      if (entry.text) el.textContent = entry.text;
+    });
+  }
+
   function sanitizeNonNegativeInt(value) {
     const n = Math.floor(Number(value));
     if (!Number.isFinite(n) || n < 0) return 0;
@@ -386,6 +407,7 @@
       }
 
       scoreLabel = ensureScoreLabel();
+      applyHudSvgSkin();
 
       if (World && World.r1HudPulse === undefined) {
         World.r1HudPulse = null;

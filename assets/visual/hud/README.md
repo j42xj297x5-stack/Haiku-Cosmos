@@ -18,8 +18,8 @@ Tu trafią assety podstawowego HUD: ramki liczników, glify i metry.
 - plików runtime,
 - cudzych grafik.
 
-Stan po pass v0.1:
+Stan po local migration pass (2026-04-26):
 
-- komponenty HUD istnieją w Figmie (`Mx7U5CRQjz2T1zrLPgJDSm`),
-- lokalny eksport SVG do tego katalogu jest nadal osobnym krokiem,
-- finalne grafiki nie są jeszcze dodane ani zatwierdzone jako kanon.
+- realne SVG z `Figma/hud/style_correction` zostały skopiowane do `svg/frames`,
+- runtime HUD używa reprezentatywnie: `hud_frame_rp_counter_ritual_01.svg`, `hud_frame_color_counter_axis_01.svg`, `hud_button_submeta_gate_01.svg`, `hud_button_back_ritual_01.svg` (z fallbackiem do dotychczasowego renderingu),
+- dodatkowe warianty (`rp_counter_orbit_02`) są zachowane jako alternatywa do kolejnych passów.
