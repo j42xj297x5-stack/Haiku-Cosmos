@@ -1,6 +1,6 @@
 # Haiku Cosmos — SUB-META + HUD Figma Asset Pass 01
 
-> Status: EVIDENCE / FIGMA PASS — COMPONENT PASS COMPLETED / SVG EXPORT NOT WRITTEN TO REPO
+> Status: EVIDENCE / FIGMA PASS — COMPONENT PASS COMPLETED + STYLE CORRECTION PASS 01 COMPLETED / SVG EXPORT NOT WRITTEN TO REPO
 > Obszar: Figma, SUB-META, HUD, biblioteka komponentów SVG
 > Źródło prawdy: TAK, dla evidence tego uruchomienia Figmy. NIE, dla finalnych assetów, runtime i mechaniki.
 > Data: 2026-04-26
@@ -305,3 +305,179 @@ Następny krok to osobny `Figma SVG export`:
 3. utworzyć `assets/visual/SVG_ASSET_MANIFEST.md`,
 4. przeprowadzić review projektanta,
 5. dopiero po review wybierać rodzinę do integracji z HUD/SUB-META runtime.
+
+## 12. Style correction pass 01
+
+> Data: 2026-04-26
+> File key: `Mx7U5CRQjz2T1zrLPgJDSm`
+> URL: https://www.figma.com/design/Mx7U5CRQjz2T1zrLPgJDSm
+
+Wykonano stylistyczny pass korekcyjny SUB-META / HUD na bazie dostarczonej referencji graficznej SUB-META oraz aktualnych dokumentów visual. Celem nie była pełna przebudowa biblioteki 60 komponentów, tylko mały proof of direction dla nowego języka formy.
+
+### 12.1. Dlaczego wykonano pass korekcyjny
+
+Poprzedni pass został potraktowany jako roboczy / niekanoniczny stylistycznie. Struktura rodzin komponentów pozostała użyteczna, ale język wizualny był zbyt techniczny i za słabo zintegrowany z referencją SUB-META.
+
+Najważniejsze problemy poprzedniego passu:
+
+- zbyt płaski i schematyczny charakter ramek,
+- zbyt cienko-konstrukcyjna geometria bez ornamentalnego oddechu,
+- HUD czytany bardziej jako neutralny panel UI niż element świata,
+- sloty i placeholdery zbyt bliskie zwykłym polom technicznym,
+- glify za słabo powiązane z ramami i gniazdami,
+- separatory oraz łączniki bez dostatecznie rozpoznawalnego charakteru.
+
+### 12.2. Wykorzystane referencje
+
+Primary style reference:
+
+- dostarczony obraz referencyjny SUB-META / HUD: `ChatGPT Image 24 kwi 2026, 18_42_09.png`.
+
+Reference została potraktowana jako wzorzec atmosfery, rytmu linii, relacji rama / ornament / negatyw / światło oraz integracji prostokąta z okręgiem. Nie kopiowano jej 1:1.
+
+Dokumenty kierunkowe użyte przy pass:
+
+- `FIGMA_WORKFLOW.md`,
+- `SUB_META_LINE_ORNAMENT_LIBRARY.md`,
+- `SUB_META_FIGMA_PROMPT_TEMPLATE.md`,
+- `SUB_META_ASSET_PIPELINE.md`,
+- `SUB_META_COMPONENTS.md`,
+- `SUB_META_LAYOUT_SPEC.md`,
+- `SUB_META_TYPOGRAPHY.md`,
+- `SUB_META_RESPONSIVE_SCALING.md`,
+- `ART_DIRECTION.md`,
+- `KOSMOLOGIA_WIZUALNA.md`,
+- `BIBLIOTEKA_MATERIALOW.md`.
+
+### 12.3. Struktura Figmy po pass
+
+Stary pass został zachowany jako materiał porównawczy:
+
+- strona: `EXPLORATION_V0`,
+- sekcje archiwalne:
+  - `EXPLORATION_V0 / README / Art Board`,
+  - `EXPLORATION_V0 / SUB-META Frames`,
+  - `EXPLORATION_V0 / Lines / Connectors`,
+  - `EXPLORATION_V0 / Ornaments`,
+  - `EXPLORATION_V0 / Glyphs`,
+  - `EXPLORATION_V0 / Slots / Placeholders`,
+  - `EXPLORATION_V0 / HUD Basics`,
+  - `EXPLORATION_V0 / Mini Composition`.
+
+Nowy pass znajduje się na stronie:
+
+- `STYLE_CORRECTION_PASS_01`.
+
+Sekcje nowego passu:
+
+- `STYLE_CORRECTION_PASS_01 / README + diagnosis`,
+- `STYLE_CORRECTION_PASS_01 / 01 Frame Family`,
+- `STYLE_CORRECTION_PASS_01 / 02 Slots + Ornaments`,
+- `STYLE_CORRECTION_PASS_01 / 04 Lines + 05 HUD + 06 Glyphs`,
+- `STYLE_CORRECTION_PASS_01 / 07 Mini Style Board`.
+
+### 12.4. Utworzone rodziny komponentów
+
+Łącznie utworzono `30` komponentów.
+
+Frame Family:
+
+- `submeta/style_correction/frame/panel/ritual_gate_01`,
+- `submeta/style_correction/frame/panel/armillary_shrine_02`,
+- `submeta/style_correction/frame/panel/cosmogram_table_03`,
+- `submeta/style_correction/frame/card/r1_ritual_red_01`,
+- `submeta/style_correction/frame/card/r1_orbit_blue_02`,
+- `submeta/style_correction/frame/card/ds_ether_plus_01`,
+- `submeta/style_correction/frame/card/ds_crystal_gate_02`.
+
+Slot Family:
+
+- `submeta/style_correction/slot/empty_orbit_01`,
+- `submeta/style_correction/slot/empty_recess_02`,
+- `submeta/style_correction/slot/resonance_socket_01`,
+- `submeta/style_correction/slot/aux_socket_01`.
+
+Ornament Family:
+
+- `submeta/style_correction/ornament/corner/threshold_01`,
+- `submeta/style_correction/ornament/corner/armillary_knot_02`,
+- `submeta/style_correction/ornament/rosette/axis_bloom_01`,
+- `submeta/style_correction/ornament/orbit/sacred_ring_01`,
+- `submeta/style_correction/ornament/border/girih_breath_01`.
+
+Line Family:
+
+- `submeta/style_correction/line/separator/altar_scale_01`,
+- `submeta/style_correction/line/separator/celestial_bridge_02`,
+- `submeta/style_correction/line/connector/orbit_thread_01`,
+- `submeta/style_correction/line/connector/resonance_arc_02`.
+
+HUD Family:
+
+- `hud/style_correction/frame/rp_counter_ritual_01`,
+- `hud/style_correction/frame/rp_counter_orbit_02`,
+- `hud/style_correction/frame/color_counter_axis_01`,
+- `hud/style_correction/button/back_ritual_01`,
+- `hud/style_correction/button/submeta_gate_01`.
+
+Glyph Family:
+
+- `submeta/style_correction/glyph/axis/forma_01`,
+- `submeta/style_correction/glyph/axis/intencja_01`,
+- `submeta/style_correction/glyph/axis/czas_01`,
+- `submeta/style_correction/glyph/axis/cisza_01`.
+
+Mini Style Board:
+
+- `demo/style_correction/submeta_hud_style_board_01`.
+
+### 12.5. Różnice względem poprzedniego passu
+
+Nowy pass:
+
+- wzmacnia warstwowość ramek przez podwójne i potrójne kontury,
+- integruje narożniki z rytmem panelu zamiast doklejać je jako osobny detal,
+- częściej łączy prostokąt z kręgiem, łukiem, tickami i punktem aktywacji,
+- traktuje HUD jako mały instrument świata, nie neutralną belkę,
+- dodaje cięższe akcenty w narożnikach i centrach bez przeładowania całej powierzchni,
+- buduje glify jako część geometrii osi, a nie jako niezależne ikonki,
+- zostawia więcej kontrolowanego negatywu, żeby ornament nie konkurował z funkcją.
+
+### 12.6. Czego nie zrobiono
+
+Nie wykonano:
+
+- pełnej biblioteki 60 komponentów w nowym stylu,
+- pełnego ekranu SUB-META,
+- polished mockupu,
+- eksportu SVG do repo,
+- finalnych PNG/WebP,
+- fontów,
+- runtime zmian,
+- Code Connect,
+- Implement Design,
+- nowych mechanik.
+
+### 12.7. Co wymaga decyzji projektanta
+
+Do review projektanta pozostaje:
+
+- wybór jednej z trzech rodzin ram panelu jako kierunku głównego,
+- decyzja, czy R1 ma iść bardziej w kierunku `ritual_red_01`, czy `orbit_blue_02`,
+- decyzja, jak jasna i eteryczna ma być rodzina DS,
+- wybór poziomu gęstości narożników i border fragmentów,
+- potwierdzenie, czy HUD ma pozostać bardziej ceremonialny, czy wrócić bliżej minimalnego world-HUD,
+- decyzja, czy glify osi są wystarczająco odróżnialne w małej skali.
+
+### 12.8. Checklist
+
+- Brak zmian runtime: TAK.
+- Brak eksportu finalnych PNG/WebP do repo: TAK.
+- Brak fontów dodanych do repo: TAK.
+- Brak użycia Implement Design: TAK.
+- Brak użycia Code Connect: TAK.
+- Evidence zaktualizowane: TAK.
+
+### 12.9. Następny krok
+
+Następny krok to review projektanta na stronie `STYLE_CORRECTION_PASS_01`, wybór jednej rodziny stylistycznej i dopiero potem rozwinięcie pełnej biblioteki SUB-META / HUD w wybranym kierunku.
