@@ -96,3 +96,35 @@ Status PARTIAL:
 2. po patchu powtórzyć matrix + replay evidence.
 
 Po domknięciu: przejść do economy focus / RP multipliers.
+
+## 9. FOLLOW-UP (post-patch runtime fix)
+
+Data patcha: **2026-04-26**.
+
+### 9.1 Root cause
+
+1. **R1/AA left activate kolekcjonowało kartę do `cardsPool`**:
+   - nagrody sekwencji były już commitowane do puli podczas domykania kroku,
+   - ścieżka aktywacji konsumowała `pendingCard`, ale nie czyściła wcześniej zacommitowanych rewardów sekwencji z magazynu.
+2. **Cashout reset reason**:
+   - `cashOutSequence(...)` kończył się przez `resetSequenceState()` bez jawnego reason,
+   - telemetrycznie emitował się domyślny `reason="reset"` zamiast kontraktowego `"cashout"`.
+
+### 9.2 Co naprawiono
+
+- Aktywacja left (`R1`, `AA`) czyści rewardy bieżącej sekwencji z puli i bufora sekwencji, żeby aktywacja była **no-collect**.
+- Aktywacja `R1` ma fallback konsumpcji rewardu `R1` z `sequence.tempCards` (gdy `pendingCard` wygasł), co domyka przypadek `AA left`.
+- Cashout przez decision-window resetuje sekwencję z `resetSequenceState("cashout")`.
+- Dla timeout continuation na R-track dodany jawny `route` (`R_TRACK_R2/R3/R4`) w `sequence.continuation_resolved` (stabilizacja evidence dla matrix testu).
+
+### 9.3 Wynik po patchu
+
+- Kontraktowe rozjazdy z sekcji **HC-DM-2026-04-26-001** i **HC-DM-2026-04-26-002** zostały naprawione.
+- Matryca decision-window (R1/R2/R3/R4/AA + click-after-TTL) przechodzi automatycznie.
+
+### 9.4 Testy po patchu
+
+- `node tests/cards_sequence_rtrack_takeover_smoke.test.js` → PASS
+- `node tests/cards_sequence_a_loop_aa_aaa_ds.test.js` → PASS
+- `node tests/cards_sequence_diagnostic_events.test.js` → PASS
+- `node tests/cards_sequence_decision_window_matrix.test.js` → PASS
