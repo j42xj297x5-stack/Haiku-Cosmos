@@ -20,7 +20,10 @@ Jeżeli część treści nie mieści się wygodnie:
 ### 2.1. Tło świata / kosmos
 - Tło RUN pozostaje widoczne.
 - SUB-META jest półprzezroczystą warstwą na świecie.
-- Tła świata i rastry premium powstają poza Figmą.
+- Figma określa miejsca, maski i proporcje dla rastrów.
+- Finalne tła i tekstury są dostarczane później z raster pipeline (poza Figmą).
+- W mockupach Figma rastry mogą być neutralnymi placeholderami.
+- Placeholderów Figma nie traktujemy jako finalnych grafik produkcyjnych.
 
 ### 2.2. Centralna rama SUB-META
 - Główny panel zajmuje większość ekranu, ale zostawia oddech po bokach.

@@ -10,7 +10,7 @@
 
 ### 1) Nazwa zadania
 
-Zaprojektuj pierwszy pass SUB-META: system komponentów i assetów skalowalnych (nie finalny polished ekran).
+Zaprojektuj pierwszy pass SUB-META: asset/component pass oparty o wektor i komponenty (nie finalny polished ekran).
 
 ### 2) Cel
 
@@ -21,7 +21,8 @@ Przygotuj bibliotekę wykonawczą Figmy obejmującą:
 - glify,
 - cienkie linie,
 - przyciski,
-- panele,
+- panele jako struktury/ramy/placeholders,
+- buttony jako struktury/ramy/placeholders,
 - karty R1 i DS,
 - testową typografię,
 - mini-layout pokazujący komponenty w kontekście.
@@ -71,8 +72,9 @@ Zaprojektuj jako komponenty i warianty:
 ### 6) Zasady formatów i eksportów
 
 - Geometria: SVG.
-- Tła/tekstury: raster (PNG/WebP) jako placeholdery lub warstwy pomocnicze.
-- Nie przygotowuj finalnych teł świata w Figma.
+- Raster (PNG/WebP) w Figmie: wyłącznie placeholder lub referencja.
+- Finalne rastry (tła świata/paneli/kart/buttonów, tekstury, miękkie światła) powstają poza Figmą.
+- Nie przygotowuj finalnych raster backgrounds w Figma.
 - Nie twórz finalnej struktury runtime; nazewnictwo traktuj roboczo wg dokumentacji.
 
 ### 7) Mini-layout kontekstowy
@@ -87,6 +89,11 @@ Dodaj jedną mini-kompozycję 16:9 pokazującą komponenty w użyciu:
 - Nie projektować nowych mechanik.
 - Nie dodawać nowych typów kart.
 - Nie tworzyć finalnego polished mockupu jako głównego rezultatu kroku 1.
+- Nie projektować właściwych raster backgrounds w Figma.
+- Nie generować PNG/WebP tekstur jako finalnych assetów.
+- Nie malować tła świata w Figma.
+- Nie tworzyć materiałowych teł kart/buttonów/paneli jako finalnych assetów.
+- Używać placeholderów dla rastrów.
 - Nie robić fantasy deckbuildera.
 - Nie robić agresywnego neon sci-fi.
 - Nie robić technicznego debug UI.
