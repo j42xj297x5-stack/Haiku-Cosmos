@@ -1,7 +1,7 @@
 > Status: ROBOCZY / KONTRAKT TECHNICZNY
 > Obszar: sekwencja runtime (source-of-truth contract)
 > Źródło prawdy: NIE (dokument pomocniczy do walidacji technicznej)
-> Ostatnia aktualizacja: 2026-04-25
+> Ostatnia aktualizacja: 2026-04-26
 > Powiązane dokumenty: WORLD_FUNCTION_MAP.md, IMPLEMENTATION_TRACKER.md, LIVE_VALIDATION_PACK.md, ../systems/CARDS_SYSTEM.md, ../systems/ECONOMY_SYSTEM.md, ../ui/UI_WORLD.md
 
 # Sequence State Contract
@@ -86,3 +86,14 @@ Po zamknięciu `AA` i timeout/no-click:
 - inny kolor => fail A-loop + takeover tego trafienia jako hit1 nowego kierunku.
 
 W obu przypadkach nie może występować „martwe trafienie”; hit rozstrzygający routing liczy się jako hit1 kroku docelowego.
+
+
+## 9. Decision-window i A-loop — doprecyzowany kontrakt po testach 2026-04-26
+
+- Po `R1(A)` i timeout/no-click: kolejny hit tego samego koloru prowadzi do `A_LOOP_AA`.
+- Po `AA` i timeout/no-click: kolejny hit tego samego koloru prowadzi do `A_LOOP_AAA`.
+- Po domknięciu `AAA`: runtime przyznaje `DS(A)` i wykonuje reset do `IDLE` (`reason=aaa_completed`).
+- W A-loop obcy kolor oznacza fail/takeover: nie ma martwego trafienia, hit obcego koloru staje się `hit1` nowego kierunku.
+- Po `AAA` nie występuje decision window (auto-grant + auto-reset).
+- Left activation w decision window nie kolekcjonuje karty do puli; uruchamia wyłącznie aktywację RUN zgodnie z kontraktem.
+- Right cashout kolekcjonuje kartę i resetuje sekwencję z `reason=cashout`.

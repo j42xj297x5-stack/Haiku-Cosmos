@@ -45,3 +45,10 @@ Ten katalog zawiera aktualną dokumentację projektu.
 1. `docs/current/` jest źródłem prawdy dla aktualnego kanonu.
 2. `docs/legacy/` nie jest źródłem prawdy (użycie wyłącznie na wyraźne polecenie).
 3. Po każdej paczce migracji aktualizuj: `README.md` (root), `docs/README.md`, `docs/current/README.md`, `docs/current/maps/PROJECT_INDEX.md`.
+
+
+## Snapshot operacyjny (2026-04-26)
+
+- Sequence core: PASS (testy + evidence), szczegóły w `docs/current/technical/*` i audytach z 2026-04-26.
+- HUD clarity: pozostaje kolejnym wątkiem (OUT_OF_SCOPE w etapie mechaniki).
+- Handoff: `docs/handoff/2026-04-26_sequence_core_handoff.md`.

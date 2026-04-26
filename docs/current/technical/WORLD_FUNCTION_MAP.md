@@ -1,7 +1,7 @@
 > Status: ROBOCZY
 > Obszar: mapa funkcji świata / runtime
 > Źródło prawdy: CZĘŚCIOWO — robocza mapa orientacyjna; NIE zastępuje audytu kodu
-> Ostatnia aktualizacja: 2026-04-25
+> Ostatnia aktualizacja: 2026-04-26
 > Powiązane dokumenty: ../maps/DEPENDENCY_MAP.md, SEQUENCE_STATE_CONTRACT.md, IMPLEMENTATION_TRACKER.md, LIVE_VALIDATION_PACK.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../ui/UI_WORLD.md
 
 # Haiku Cosmos — MAP_FUNCTIONS_WORLD_vNEXT
@@ -31,10 +31,10 @@
   - `World.r1HudPulse` (legacy HUD pulse sygnałowy).
 - Event timeline do walidacji zachowania pochodzi z `events_jsonl` (nie z final snapshotu).
 
-### Missing evidence
-- Pełne świeże evidence dla AA/AAA/DS na aktualnym HEAD.
-- Pełna matryca decision window (left/right/timeout) dla R2/R3/R4.
-- Pełna walidacja ekonomii chain multiplier (x2..x9) na JSONL timeline.
+### Sequence evidence status (HEAD 2026-04-26)
+- A-loop (`R1 -> AA -> AAA -> DS -> IDLE`) potwierdzony: testy automatyczne + live evidence PASS.
+- Decision window matrix (left/right/timeout + click-after-TTL dla R1/R2/R3/R4/AA) potwierdzona testowo i audytowo.
+- Core sequence engine obsługuje R-track i A-loop zgodnie z kontraktami technicznymi.
 
 ### Known stubs / gaps
 - `onRunActivateR2` pozostaje stubem (brak gotowej aktywacji runtime).
@@ -428,8 +428,8 @@
    - `RunTimers.isColorDisabled` blokuje kolor w spawnie.
    - Aktywacja R1 uruchamia `runColorTimers` dla tego koloru, więc efekt w praktyce „wyłącza” ten kolor w spawnie (może być sprzeczne z intencją aktywacji).
 
-4) **R2 flow**
-   - Istnieje `onRunActivateR2`, ale brak mechanizmu generowania kart R2 i overlay aktywacji R2 (brak eventów/sekwencji).
+4) **R2 runtime activation effects**
+   - `onRunActivateR2` pozostaje stubem i nie realizuje docelowych efektów RUN (gap pozostaje poza etapem sequence core docs sync).
 
 5) **EffectTimers**
    - System `EffectTimers` istnieje w `hc.world.js`, ale nie jest używany w runtime.
@@ -440,8 +440,8 @@
 7) **CardEngine offers vs R1**
    - `CARD_DEFS` i system ofert/rituali istnieją, ale nie są sprzężone z sekwencją R1/R2.
 
-8) **Dokumentacja vs kod (PRG/Meta)**
-   - Dokumenty opisują dodatkowe tryby PRG i pełną progresję R1/R2.
-   - Kod zawiera tylko minimalny flow R1 + META sloty/kuźnię (brak reszty kanonu).
+8) **Dokumentacja vs kod (PRG/SUB-META/economy)**
+   - Gapy dotyczą głównie PRG runtime binding/toggle, ekonomii multiplikatorów oraz części wiązań SUB-META.
+   - Sequence core (R-track + A-loop + AAA/DS reset) jest potwierdzony i nie jest już gapem.
 
 ---

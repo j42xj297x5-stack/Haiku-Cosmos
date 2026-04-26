@@ -1,7 +1,7 @@
 > Status: ROBOCZY
 > Obszar: techniczne / walidacja live + evidence
 > Źródło prawdy: CZĘŚCIOWO (kontrakt roboczy evidence)
-> Ostatnia aktualizacja: 2026-04-25
+> Ostatnia aktualizacja: 2026-04-26
 > Powiązane dokumenty: ../../../logs/README.md, ../../../tests/README.md, ../../audits/chronological/2026-04-24_sequence_three_hit_contract_audit.md, ../../audits/chronological/2026-04-24_sequence_rtrack_direction_takeover_audit.md, ../../audits/chronological/2026-04-24_rtrack_events_hud_audit.md
 
 # Live Validation Pack
@@ -63,19 +63,19 @@ Minimalny opis wyniku scenariusza:
 Checklisty obowiązkowe na aktualnym HEAD:
 
 A. **AA/AAA/DS focus**
-- [ ] wejście w A-track i domknięcie R1(A),
-- [ ] przejście AA (kolekcja 2×R1A),
-- [ ] przejście AA (aktywacja R1A),
-- [ ] przejście AA bez kliknięcia → AAA,
-- [ ] AAA auto-grant DS(A) i reset do IDLE,
-- [ ] przypadek przerwania AA/AAA obcym kolorem (takeover).
+- [x] wejście w A-track i domknięcie R1(A),
+- [x] przejście AA (kolekcja 2×R1A),
+- [x] przejście AA (aktywacja R1A),
+- [x] przejście AA bez kliknięcia → AAA,
+- [x] AAA auto-grant DS(A) i reset do IDLE,
+- [x] przypadek przerwania AA/AAA obcym kolorem (takeover).
 
 B. **Decision window matrix**
-- [ ] R1: left / right / timeout,
-- [ ] R2: left / right / timeout,
-- [ ] R3: left / right / timeout,
-- [ ] R4: left / right / timeout,
-- [ ] potwierdzenie, że klik po TTL nie aktywuje starego pending decision.
+- [x] R1: left / right / timeout,
+- [x] R2: left / right / timeout,
+- [x] R3: left / right / timeout,
+- [x] R4: left / right / timeout,
+- [x] potwierdzenie, że klik po TTL nie aktywuje starego pending decision.
 
 C. **Economy focus**
 - [ ] RP bazowe per harmonic hit,
@@ -98,6 +98,37 @@ evidence jest uznawany za rozstrzygający tylko jeśli `events_jsonl` zawiera:
 - `sequence.reset_to_idle`
 
 Brak powyższych eventów może utrzymać review AA/AAA/DS w statusie **INCONCLUSIVE** nawet przy poprawnym `final_snapshot`.
+
+### 3.4 Confirmed evidence pack (A -> AA -> AAA -> DS)
+
+Potwierdzony pakiet evidence na aktualnym etapie:
+
+- `logs/2026-04-26_08-10-08__sess_8-101Z__debug__aa_aaa_ds__fallback_evidence_pack.json`
+- `sessionId`: `s_2026-04-26T08-10-08-101Z`
+- `scenarioLabel`: `aa_aaa_ds`
+- wynik: `PASS`
+
+Wymagane eventy potwierdzone w timeline:
+
+- `sequence.continuation_resolved`
+- `sequence.a_loop_entered`
+- `sequence.ds_granted` (`source=AAA`)
+- `sequence.reset_to_idle` (`reason=aaa_completed`)
+
+Uwaga metodologiczna: `final_snapshot` nie zastępuje timeline eventów i nie może samodzielnie rozstrzygać przebiegu timeout/route/fail.
+
+### 3.5 Closed evidence gaps
+
+Zamknięte luki evidence po audytach z 2026-04-26:
+
+- AA/AAA/DS: **CLOSED (AUTOMATED + LIVE EVIDENCE PASS)**
+- Decision-window matrix: **CLOSED (AUTOMATED PASS + audit confirmation)**
+
+Otwarte luki (poza tym etapem):
+
+- economy multipliers (x2..x9),
+- PRG runtime binding/toggle i R2 runtime activation,
+- HUD clarity (UI-only wątek, bez zmiany mechaniki).
 
 ### 3.2 Format nazewnictwa sesji
 
