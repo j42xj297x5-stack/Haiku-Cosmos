@@ -36,17 +36,23 @@ Domyślnie stosujemy SVG dla:
 
 Powód: ostrość, skalowalność i kontrola jakości od mobile po 4K.
 
-## 3. PNG/WebP jako format dla tła i tekstur
+## 3. PNG/WebP jako warstwa raster pipeline (poza Figmą)
 
-Raster (PNG/WebP) stosujemy tam, gdzie potrzebna jest materiałowość lub malarskość:
+Raster (PNG/WebP) jest przygotowywany poza Figmą w osobnym raster pipeline dla:
 - tła świata,
 - tła paneli,
 - tła przycisków,
 - tła kart,
-- tekstury materiałowe,
-- miękkie światło i warstwy głębi.
+- tekstur materiałowych,
+- miękkiego światła i warstw głębi.
 
-Uwaga: tła świata i rastry premium powstają poza Figmą. Figma przygotowuje system UI/assets.
+Figma w tym zakresie definiuje miejsca użycia rastra:
+- placeholdery,
+- maski,
+- proporcje,
+- ramy i obszary kompozycji.
+
+Finalne rastry są podpinane do layoutu dopiero po ich dostarczeniu poza Figmą.
 
 ## 4. Czego nie eksportować jako raster
 
@@ -89,14 +95,17 @@ Proponowana konwencja (bez wdrażania runtime w tym kroku):
 - `submeta/frame/<name>.svg`
 - `submeta/glyph/<name>.svg`
 - `submeta/slot/<name>.svg`
-- `submeta/card/r1/<color>/<state>.svg` lub `.png/.webp`
-- `submeta/card/ds/<color>/<state>.svg` lub `.png/.webp`
-- `submeta/panel/<name>@1x.webp`
-- `submeta/panel/<name>@2x.webp`
-- `submeta/panel/<name>@4x.webp`
-- `submeta/button/<name>@1x.webp`
-- `submeta/button/<name>@2x.webp`
-- `submeta/button/<name>@4x.webp`
+- `submeta/card/r1/<color>/<state>.svg` (rama / glif / linie / sloty)
+- `submeta/card/ds/<color>/<state>.svg` (rama / glif / linie / sloty)
+- `submeta/card/raster/<name>@1x.webp`
+- `submeta/card/raster/<name>@2x.webp`
+- `submeta/card/raster/<name>@4x.webp`
+- `submeta/panel/raster/<name>@1x.webp`
+- `submeta/panel/raster/<name>@2x.webp`
+- `submeta/panel/raster/<name>@4x.webp`
+- `submeta/button/raster/<name>@1x.webp`
+- `submeta/button/raster/<name>@2x.webp`
+- `submeta/button/raster/<name>@4x.webp`
 
 To jest **propozycja dokumentacyjna**. Nazwy runtime i mapowanie loadera wymagają osobnego kroku.
 
@@ -117,6 +126,7 @@ W tym kroku:
 - nie zapisujemy grafik do repo,
 - nie zmieniamy runtime,
 - nie pobieramy i nie commitujemy font files,
+- nie generujemy finalnych rasterów (PNG/WebP) w Figma,
 - nie generujemy tła świata.
 
 Efektem ma być gotowa specyfikacja wykonawcza dla pierwszego passu Figmy.

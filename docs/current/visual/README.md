@@ -20,19 +20,21 @@ Katalog `docs/current/visual/` zawiera aktualny kierunek wizualny Haiku Cosmos i
 
 ### 2.2. Pakiet wykonawczy SUB-META / Figma
 
-4. `SUB_META_FIGMA_BRIEF.md`
-5. `SUB_META_LAYOUT_SPEC.md`
-6. `SUB_META_COMPONENTS.md`
-7. `SUB_META_ASSET_PIPELINE.md`
-8. `SUB_META_TYPOGRAPHY.md`
-9. `SUB_META_RESPONSIVE_SCALING.md`
-10. `SUB_META_FIGMA_PROMPT_TEMPLATE.md`
+4. `FIGMA_WORKFLOW.md`
+5. `SUB_META_FIGMA_BRIEF.md`
+6. `SUB_META_LAYOUT_SPEC.md`
+7. `SUB_META_COMPONENTS.md`
+8. `SUB_META_ASSET_PIPELINE.md`
+9. `SUB_META_TYPOGRAPHY.md`
+10. `SUB_META_RESPONSIVE_SCALING.md`
+11. `SUB_META_FIGMA_PROMPT_TEMPLATE.md`
 
 ## 3. Rola dokumentów
 
 - `ART_DIRECTION.md` — główny kierunek artystyczny i zasady wizualne.
 - `KOSMOLOGIA_WIZUALNA.md` — porządek sensu, symboliki, materiału i pięciu stanów.
 - `BIBLIOTEKA_MATERIALOW.md` — praktyczne zasady koloru, materiału i światła w warstwach gry.
+- `FIGMA_WORKFLOW.md` — workflow pracy Codexa z Figma oraz podział Figma pipeline vs raster pipeline.
 - `SUB_META_FIGMA_BRIEF.md` — brief wykonawczy dla kierunku wizualnego SUB-META.
 - `SUB_META_LAYOUT_SPEC.md` — wykonawcza specyfikacja układu SUB-META (16:9, bez głównego scrolla).
 - `SUB_META_COMPONENTS.md` — biblioteka komponentów visual (etap 1: R1 + DS + sloty + panele).

@@ -37,10 +37,10 @@ Stany interakcji modelujemy jako **warianty komponentu**, nie jako przypadkowe o
 | Glify | SVG | Każdy glif jako osobny asset. |
 | Cienkie linie / ornament | SVG | Ostre na każdej skali. |
 | Sloty (pusty/zajęty/zablokowany) | SVG | Warianty stanów jako komponenty. |
-| Karta R1 | Mieszany (SVG + raster opcjonalny) | Rama/glif/linie: SVG; tło materiałowe: raster opcjonalny. |
-| Karta DS | Mieszany (SVG + raster opcjonalny) | Plus, rama i znaczniki: SVG; materiał tła opcjonalnie raster. |
-| Panele | Mieszany | Geometria SVG; tło panelu/tekstura jako raster. |
-| Przyciski | Mieszany | Kształt i obramowanie SVG; tło premium opcjonalnie raster. |
+| Karta R1 | SVG + placeholder rastra | Rama/glif/linie/slot: SVG; tło rasterowe tylko jako placeholder (finalny raster poza Figmą). |
+| Karta DS | SVG + placeholder rastra | Plus, rama i znaczniki: SVG; tło rasterowe tylko jako placeholder (finalny raster poza Figmą). |
+| Panele | SVG + placeholder rastra | Geometria SVG; tło panelu/tekstura jako placeholder (finalny raster poza Figmą). |
+| Przyciski | SVG + placeholder rastra | Kształt i obramowanie SVG; tło rasterowe tylko jako placeholder (finalny raster poza Figmą). |
 | Etykiety kosztu/liczników | SVG + tekst | Priorytet czytelności cyfr i kontrastu. |
 
 ## 4. Karty — proporcja i skalowalność
@@ -51,10 +51,15 @@ Stany interakcji modelujemy jako **warianty komponentu**, nie jako przypadkowe o
 
 ## 5. Zasady kluczowe per obiekt
 
-- **Glify jako SVG.**
-- **Ramki jako SVG.**
-- **Sloty jako SVG.**
-- **Tła kart jako raster/mieszane**, jeśli korzystają z materiału/tekstury.
+- **Rama: SVG.**
+- **Glif: SVG.**
+- **Cienka linia: SVG.**
+- **Slot: SVG.**
+- **Ornament: SVG.**
+- **Card frame: SVG.**
+- **Card raster background: placeholder, właściwy raster poza Figmą.**
+- **Panel raster background: placeholder, właściwy raster poza Figmą.**
+- **Button raster background: placeholder, właściwy raster poza Figmą.**
 
 ## 6. Opis komponentów bazowych
 

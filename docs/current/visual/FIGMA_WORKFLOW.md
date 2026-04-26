@@ -1,0 +1,145 @@
+# Haiku Cosmos — FIGMA WORKFLOW
+
+> Status: KIERUNEK / WORKFLOW WYKONAWCZY
+> Obszar: Figma / Codex / design workflow
+> Źródło prawdy: TAK, dla pracy Codexa z Figma; NIE, dla mechaniki i raster pipeline
+> Ostatnia aktualizacja: 2026-04-26
+> Powiązane dokumenty: `docs/current/visual/README.md`, `docs/current/visual/ART_DIRECTION.md`, `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`, `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`, `docs/current/visual/SUB_META_FIGMA_BRIEF.md`, `docs/current/visual/SUB_META_LAYOUT_SPEC.md`, `docs/current/visual/SUB_META_COMPONENTS.md`, `docs/current/visual/SUB_META_ASSET_PIPELINE.md`, `docs/current/visual/SUB_META_TYPOGRAPHY.md`, `docs/current/visual/SUB_META_RESPONSIVE_SCALING.md`, `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md`, `docs/current/systems/SUB_META_SYSTEM.md`, `docs/current/ui/UI_WORLD.md`
+
+## 1. Cel dokumentu
+
+Ujednolicić sposób pracy Codexa z Figma w Haiku Cosmos oraz rozdzielić dwa osobne pipeline’y: **vector/component** i **raster/background**.
+
+## 2. Czym Figma jest w projekcie
+
+Figma jest miejscem projektowania:
+- wektorów SVG,
+- komponentów UI,
+- layoutu,
+- typografii,
+- wariantów stanów komponentów,
+- bibliotek komponentów,
+- zasad design system,
+- późniejszego mappingu design → code (dopiero na wyraźne polecenie).
+
+## 3. Czym Figma nie jest w projekcie
+
+Figma NIE jest miejscem właściwego tworzenia rasterów PNG/WebP dla:
+- tła świata,
+- tła paneli,
+- tła kart,
+- tła buttonów,
+- tekstur materiałowych,
+- miękkich świateł,
+- organicznych / malarskich obrazów premium.
+
+Figma może zawierać placeholdery i podpięte referencje tych rasterów, ale finalne obrazy powstają poza Figmą.
+
+## 4. Podział: Figma pipeline vs raster pipeline
+
+### 4.1. FIGMA VECTOR / COMPONENT PIPELINE
+
+Zakres:
+- wektor,
+- komponent,
+- layout,
+- typografia,
+- biblioteka,
+- SVG,
+- design system.
+
+Efekt:
+- gotowy system komponentów i zasad,
+- mockupy z placeholderami pod rastry,
+- przygotowanie do przyszłego mappingu design → code.
+
+### 4.2. RASTER / BACKGROUND PIPELINE
+
+Zakres:
+- generowanie i przygotowanie rasterów poza Figmą,
+- PNG/WebP,
+- tła świata,
+- tła paneli,
+- tła kart,
+- tła buttonów,
+- tekstury,
+- miękkie światła,
+- materiały organiczne.
+
+Efekt:
+- finalne raster backgrounds i materiały wizualne dostarczane do użycia w makietach i runtime.
+
+## 5. Kolejność pracy
+
+1. Przeczytaj: `docs/current/README.md`.
+2. Przeczytaj: `docs/current/maps/PROJECT_INDEX.md`.
+3. Przeczytaj: `docs/current/maps/DEPENDENCY_MAP.md`.
+4. Przeczytaj: `docs/current/visual/README.md`.
+5. Przeczytaj pakiet visual dla zadania (minimum: `ART_DIRECTION.md`, `KOSMOLOGIA_WIZUALNA.md`, `BIBLIOTEKA_MATERIALOW.md`).
+6. Dla SUB-META przeczytaj komplet `SUB_META_*`.
+7. Ustal typ zadania (asset/component pass, polished mockup, design system rules, implementacja kodu).
+8. Wykonaj tylko zakres zgodny z typem zadania i poleceniem użytkownika.
+
+## 6. Jak wybierać umiejętności Figma
+
+- `Create New Figma File` — gdy trzeba utworzyć nowy plik.
+- `Generate Figma Design` — gdy trzeba zaprojektować komponenty lub układ.
+- `Generate Figma Library` — gdy celem jest biblioteka komponentów.
+- `Create Design System Rules` — gdy celem są reguły design system.
+- `Code Connect` — dopiero przy istniejącym mapowaniu komponentów Figma ↔ code.
+- `Implement Design` — tylko na wyraźne polecenie implementacji w runtime.
+- `use_figma` — zgodnie z wymaganiami narzędzia i zakresem zadania.
+
+## 7. Domyślny pierwszy krok dla SUB-META: asset/component pass
+
+W pierwszym kroku projektujemy:
+- ramki SVG,
+- glify SVG,
+- cienkie linie SVG,
+- ornamenty SVG,
+- sloty SVG,
+- ikony SVG,
+- komponenty kart R1 i DS,
+- panele i buttony jako struktury/ramy/placeholders,
+- typografię testową,
+- mini-layout kontekstowy.
+
+Nie tworzymy wtedy finalnych raster backgrounds.
+
+## 8. Kiedy wolno przejść do polished mockup
+
+Dopiero gdy:
+- asset/component pass jest gotowy i zatwierdzony,
+- komponenty są spójne,
+- stany są opisane,
+- layout i skala są zweryfikowane,
+- nie jest zmieniana mechanika.
+
+## 9. Kiedy wolno przejść do implementacji kodu
+
+Dopiero gdy:
+- użytkownik wyraźnie zleci implementację,
+- istnieje zaakceptowany kontekst dokumentacyjny i projektowy,
+- zakres implementacji jest jawny,
+- wiadomo, które elementy są placeholderem, a które finalnym assetem.
+
+## 10. Raport po pracy z Figma
+
+Po zadaniu Figma raport obejmuje:
+1. EXECUTIVE SUMMARY,
+2. LINK / IDENTYFIKATOR PLIKU FIGMA (jeśli powstał),
+3. LISTA UTWORZONYCH ELEMENTÓW,
+4. DECYZJE PROJEKTOWE,
+5. EKSPORTY / FORMATY (jeśli dotyczy),
+6. CO NIE ZOSTAŁO ZROBIONE,
+7. RYZYKA / OGRANICZENIA,
+8. NASTĘPNY KROK.
+
+## 11. Zakazy
+
+- Nie zmieniać mechaniki systemów.
+- Nie wymyślać nowych slotów, kosztów, typów kart i kanonu kart.
+- Nie traktować referencji jako blueprintu 1:1.
+- Nie przechodzić do `Implement Design` bez wyraźnego polecenia.
+- Nie projektować finalnych rasterów PNG/WebP w Figma.
+- Nie traktować placeholderów rasterowych z Figmy jako finalnych grafik produkcyjnych.
