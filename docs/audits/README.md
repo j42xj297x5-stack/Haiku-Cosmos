@@ -18,3 +18,10 @@ Każdy większy audyt powinien zawierać:
 - ryzyka
 - rekomendacje
 - następny krok
+
+
+## Ostatnie audyty (2026-04-26)
+
+- `chronological/2026-04-26_decision_window_matrix_audit.md`
+- `chronological/2026-04-26_aa_aaa_ds_mechanics_log_confirmation.md`
+- `chronological/2026-04-26_aa_aaa_ds_live_replay_after_patch.md`

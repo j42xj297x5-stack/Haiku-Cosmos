@@ -11,3 +11,5 @@ Handoff to krótki dokument przekazania stanu po większej zmianie.
   - ostatnie decyzje,
   - znane problemy,
   - rekomendowany następny krok.
+
+- `2026-04-26_sequence_core_handoff.md` — snapshot po domknięciu sequence core (A-loop/AAA/DS + decision-window).

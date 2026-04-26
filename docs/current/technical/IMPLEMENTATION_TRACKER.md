@@ -1,7 +1,7 @@
 > Status: ROBOCZY
 > Obszar: techniczne / tracker wdrożenia
 > Źródło prawdy: NIE (tracker operacyjny)
-> Ostatnia aktualizacja: 2026-04-26
+> Ostatnia aktualizacja: 2026-04-26 (sync: sequence core handoff)
 > Powiązane dokumenty: WORLD_FUNCTION_MAP.md, SEQUENCE_STATE_CONTRACT.md, LIVE_VALIDATION_PACK.md, ../maps/DEPENDENCY_MAP.md, ../../audits/chronological/2026-04-24_technical_docs_semantic_sync.md, ../../audits/chronological/2026-04-25_full_docs_runtime_sync_audit.md
 
 # Haiku Cosmos — IMPLEMENTATION TRACKER
@@ -28,25 +28,26 @@ Służy do szybkiego rozróżnienia: co działa, co jest historyczne, co wymaga 
 - Starsze nazwy dokumentów typu `MAP_FUNCTIONS_WORLD_vNEXT.md` traktujemy jako historyczne nazewnictwo względem `WORLD_FUNCTION_MAP.md`.
 - Szczegółowe audyty historyczne znajdują się w `docs/audits/chronological/`.
 
-## 3. Do weryfikacji (runtime ↔ kanon)
+## 3. Zweryfikowane w etapie 2026-04-26 (runtime ↔ kanon)
 
-- AA/AAA/DS:
-  - mechanika: **TESTED AUTOMATED** (`tests/cards_sequence_a_loop_aa_aaa_ds.test.js`),
-  - live evidence: **DO NAGRANIA** (świeża sesja runtime + JSONL replay na aktualnym HEAD).
+- A-loop AA/AAA/DS:
+  - mechanika: **TESTED AUTOMATED PASS** (`tests/cards_sequence_a_loop_aa_aaa_ds.test.js`),
+  - live evidence: **TESTED LIVE EVIDENCE PASS** (`logs/2026-04-26_08-10-08__sess_8-101Z__debug__aa_aaa_ds__fallback_evidence_pack.json`, audyt 2026-04-26).
 - Decision window matrix (R1/R2/R3/R4/AA + click-after-TTL):
-  - mechanika/testy: **TESTED AUTOMATED** (`tests/cards_sequence_decision_window_matrix.test.js`),
-  - live evidence: **DO NAGRANIA** (świeży replay runtime na HEAD po patchu 2026-04-26).
-- Zakres produkcyjnego użycia eventów debugowych i snapshotów (`hc.debug.js`, `hc.ui_debug.js`).
-- Pokrycie kontraktu SUB-META (sloty/wiązania) względem aktualnych dokumentów systemowych.
+  - mechanika/testy: **TESTED AUTOMATED PASS** (`tests/cards_sequence_decision_window_matrix.test.js`),
+  - status scenariuszy: left/right/timeout/click-after-TTL potwierdzone testem + audytem 2026-04-26.
+- Zakres produkcyjnego użycia eventów debugowych i snapshotów (`hc.debug.js`, `hc.ui_debug.js`) pozostaje obszarem operacyjnym (bez nowego patcha runtime).
+- Pokrycie kontraktu SUB-META (sloty/wiązania) względem aktualnych dokumentów systemowych: bez zmian mechaniki w tym etapie.
 
 ## 4. Do aktualizacji (otwarte obszary)
 
+- HUD clarity: **NEXT / OUT_OF_SCOPE_UI_CLARITY** (brak czytelnego znacznika etapu R1/R2/AA/AAA w HUD; osobny wątek UI, bez ruszania mechaniki).
 - R2 runtime activation: `onRunActivateR2` pozostaje stubem (niegotowe do strojenia bez osobnego patcha mechaniki).
-- PRG toggle/runtime binding: status PARTIAL/MISMATCH (UI sygnalizuje tryby, runtime binding path nie pokrywa pełnego kanonu).
+- PRG runtime binding/toggle: status PARTIAL/MISMATCH (UI sygnalizuje tryby, runtime binding path nie pokrywa pełnego kanonu).
 - Economy chain multipliers (x2..x9): status PARTIAL/MISMATCH, wymagany osobny patch mechaniki + testy ekonomii.
+- SUB-META / PRG gapy integracyjne: pozostają osobne względem domknięcia sequence core.
 - Rozszerzenia i18n (kanon strukturalny, osobny etap wdrożenia).
-- `WORLD_FUNCTION_MAP.md` została zsynchronizowana orientacyjnie do statusu ROBOCZY; pełny audyt runtime funkcja-po-funkcji pozostaje osobnym zadaniem.
-- Uporządkowanie starszych bloków „plan/propozycja” tam, gdzie zostały już zastąpione audytami z 2026-04-24.
+- `WORLD_FUNCTION_MAP.md` pozostaje mapą ROBOCZĄ; pełny audyt runtime funkcja-po-funkcji to osobny backlog.
 
 ## 5. Uwagi operacyjne
 
