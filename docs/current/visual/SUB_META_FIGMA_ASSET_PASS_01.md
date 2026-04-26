@@ -481,3 +481,60 @@ Do review projektanta pozostaje:
 ### 12.9. Następny krok
 
 Następny krok to review projektanta na stronie `STYLE_CORRECTION_PASS_01`, wybór jednej rodziny stylistycznej i dopiero potem rozwinięcie pełnej biblioteki SUB-META / HUD w wybranym kierunku.
+
+
+## 13. Real Figma SVG local migration pass
+
+> Data: 2026-04-26
+> Tryb: repo-only (bez Figma MCP), integracja realnych lokalnych eksportów SVG
+
+### 13.1. Źródło lokalne
+
+Źródłem był lokalny katalog `Figma/` zawierający eksporty `style_correction` oraz board demonstracyjny.
+
+- Liczba SVG wykryta w `Figma/`: **30**.
+- Walidacja techniczna SVG: wszystkie pliki posiadają `viewBox`; nie wykryto `base64`, `<image>`, `data:image`, `@font-face`, embed fontów.
+
+### 13.2. Migracja do `assets/visual`
+
+Skopiowano **20** realnych SVG do runtime assetów:
+
+- `assets/visual/submeta/svg/frames/` — 7 plików (panel + card frames),
+- `assets/visual/submeta/svg/glyphs/` — 4 pliki (glify osi),
+- `assets/visual/submeta/svg/lines/` — 3 pliki (connectors + separator),
+- `assets/visual/hud/svg/frames/` — 5 plików (frame/button HUD),
+- `assets/visual/submeta/svg/placeholders/` — 1 plik (`submeta_hud_style_board_01.svg`) jako evidence/reference, bez podpinania jako runtime frame.
+
+### 13.3. Manifest i priorytet realnych assetów
+
+Dodano `assets/visual/submeta/submeta_svg_manifest.json` (płaski JSON `logicalName -> path`) z wpisami dla SUB-META i HUD.
+
+Realne assety `style_correction` mają pierwszeństwo w runtime. Jeśli dany SVG nie załaduje się lub manifest jest niedostępny, pozostaje dotychczasowy rendering/fallback bez crasha.
+
+### 13.4. Runtime integration (reprezentatywnie)
+
+Podłączone realne SVG:
+
+- SUB-META:
+  - panel frame: `submeta.frame.panel.ritual_gate_01`,
+  - separator: `submeta.line.separator.altar_scale_01`,
+  - glify osi: `submeta.glyph.forma_01`, `submeta.glyph.intencja_01`, `submeta.glyph.czas_01`, `submeta.glyph.cisza_01`,
+  - card frames: `submeta.frame.card.r1_ritual_red_01` i `submeta.frame.card.ds_ether_plus_01` (socket frame overlay).
+- HUD:
+  - frame licznika kolorów: `hud.frame.color_counter_axis_01`,
+  - frame RP: `hud.frame.rp_counter_ritual_01`,
+  - przyciski: `hud.button.submeta_gate_01`, `hud.button.back_ritual_01`.
+
+### 13.5. Fallback / pozostałe braki
+
+- Brak manifestu lub brak pojedynczego SVG nie wyłącza HUD/SUB-META — działa poprzedni rendering canvas/DOM.
+- `submeta_hud_style_board_01.svg` pozostaje materiałem referencyjnym i nie jest używany jako runtime board.
+- Część slotów/ornamentów z paczki 30 SVG nie była celem tego passu runtime i pozostaje do osobnego etapu polish/live-coloring/animation.
+
+### 13.6. Review projektanta
+
+Do review projektanta pozostaje:
+
+- tuning czytelności ramek w małej skali,
+- decyzja między wariantami rodzin (`r1_ritual_red_01` vs `r1_orbit_blue_02`, `ds_ether_plus_01` vs `ds_crystal_gate_02`),
+- decyzja o stopniu live-coloring i animacji (osobny pass po akceptacji runtime integration).

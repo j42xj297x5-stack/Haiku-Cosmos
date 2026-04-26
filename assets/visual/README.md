@@ -15,7 +15,7 @@ Katalog bazowy dla assetów wizualnych Haiku Cosmos.
 
 - pierwszy realny asset pass ma produkować SVG,
 - raster pipeline pozostaje osobny,
-- lokalne SVG z pierwszego passu Figmy nie są jeszcze dodane,
-- komponenty source-of-truth dla passu v0.1 istnieją w Figmie: `Mx7U5CRQjz2T1zrLPgJDSm`,
-- finalne grafiki nie są jeszcze zatwierdzone jako kanon,
-- assety generuje późniejszy pass projektowy/Figma, nie runtime.
+- realne SVG z lokalnego eksportu `Figma/style_correction` zostały przeniesione do `assets/visual/submeta/svg/*` i `assets/visual/hud/svg/frames/*`,
+- manifest logiczny znajduje się w `assets/visual/submeta/submeta_svg_manifest.json`,
+- demo board `submeta_hud_style_board_01.svg` pozostaje assetem referencyjnym (placeholder/evidence),
+- finalny polish live-coloring i animacje pozostają osobnym krokiem po review projektanta.

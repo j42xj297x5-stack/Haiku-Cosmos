@@ -225,6 +225,59 @@ const CardEngine = (() => {
     blue: "Niebieski"
   };
 
+  const SVG_MANIFEST_PATH = "assets/visual/submeta/submeta_svg_manifest.json";
+  let svgManifestPromise = null;
+  let svgManifestMap = null;
+  const svgImageCache = new Map();
+
+  function ensureSvgManifestLoaded() {
+    if (svgManifestMap) return Promise.resolve(svgManifestMap);
+    if (svgManifestPromise) return svgManifestPromise;
+    if (typeof fetch !== "function") return Promise.resolve(null);
+    svgManifestPromise = fetch(SVG_MANIFEST_PATH)
+      .then((resp) => (resp && resp.ok ? resp.json() : null))
+      .then((json) => {
+        svgManifestMap = json && typeof json === "object" ? json : {};
+        return svgManifestMap;
+      })
+      .catch(() => {
+        svgManifestMap = {};
+        return svgManifestMap;
+      });
+    return svgManifestPromise;
+  }
+
+  function getSvgPath(logicalName) {
+    if (!logicalName || !svgManifestMap || typeof svgManifestMap !== "object") return null;
+    const path = svgManifestMap[logicalName];
+    return typeof path === "string" && path ? path : null;
+  }
+
+  function drawManifestSvg(ctx, logicalName, x, y, w, h, alpha = 1) {
+    if (!ctx || !logicalName || !Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return false;
+    if (svgManifestMap === null) {
+      ensureSvgManifestLoaded();
+      return false;
+    }
+    const src = getSvgPath(logicalName);
+    if (!src || typeof Image === "undefined") return false;
+    let entry = svgImageCache.get(logicalName);
+    if (!entry) {
+      const img = new Image();
+      entry = { img, loaded: false, failed: false };
+      img.onload = () => { entry.loaded = true; };
+      img.onerror = () => { entry.failed = true; };
+      img.src = src;
+      svgImageCache.set(logicalName, entry);
+    }
+    if (!entry.loaded || entry.failed) return false;
+    ctx.save();
+    ctx.globalAlpha = clamp01(alpha);
+    ctx.drawImage(entry.img, x, y, w, h);
+    ctx.restore();
+    return true;
+  }
+
   const SUB_META_SLOTS = [
     { key: "forma", label: "Forma" },
     { key: "intencja", label: "Intencja" },
@@ -2663,6 +2716,8 @@ const CardEngine = (() => {
     const gap = 14;
     const x = Math.floor(screenW - pad - rectW);
     const y0 = Math.floor(pad + 6);
+    const frameH = rectH * order.length + gap * (order.length - 1) + 10;
+    drawManifestSvg(ctx, "hud.frame.color_counter_axis_01", x - 16, y0 - 6, 44, frameH, 0.95);
     const nowTime = nowMs();
     const runTimers = World.runColorTimers || {};
     const runDurations = World.runColorDurations || {};
@@ -4640,6 +4695,8 @@ const CardEngine = (() => {
     ctx.globalAlpha = 1.0;
     ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.strokeRect(panel.x, panel.y, panel.w, panel.h);
+    drawManifestSvg(ctx, "submeta.frame.panel.ritual_gate_01", panel.x, panel.y, panel.w, panel.h, 0.9);
+    drawManifestSvg(ctx, "submeta.line.separator.altar_scale_01", panel.x + 12, headerY + 8, panel.w - 24, 14, 0.8);
 
     ctx.font = "14px system-ui";
     ctx.fillStyle = "rgba(255,255,255,0.92)";
@@ -4766,6 +4823,8 @@ const CardEngine = (() => {
       ctx.globalAlpha = 0.75;
       ctx.font = "11px system-ui";
       ctx.fillText(slot.label.toUpperCase(), slot.x + 8, slot.y + 14);
+      const glyphName = `submeta.glyph.${slot.key}_01`;
+      drawManifestSvg(ctx, glyphName, slot.x + slot.w - 22, slot.y + 4, 16, 16, 0.95);
       ctx.restore();
       slot.sockets.forEach((socket) => {
         const assignment = entry?.cards?.[socket.index] || null;
@@ -4779,6 +4838,10 @@ const CardEngine = (() => {
         ctx.strokeStyle = isSelectedSocket ? "rgba(120,200,255,0.9)" : "rgba(255,255,255,0.35)";
         ctx.lineWidth = isSelectedSocket ? 2 : 1;
         ctx.strokeRect(socket.x, socket.y, socket.w, socket.h);
+        const frameLogicalName = socket.index === 2
+          ? "submeta.frame.card.ds_ether_plus_01"
+          : "submeta.frame.card.r1_ritual_red_01";
+        drawManifestSvg(ctx, frameLogicalName, socket.x, socket.y, socket.w, socket.h, 0.35);
         if (isLocked) {
           const lockW = 10;
           const lockH = 8;
