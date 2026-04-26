@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa zależności projektu
 > Źródło prawdy: TAK, dla relacji między dokumentami/systemami
-> Ostatnia aktualizacja: 2026-04-24
+> Ostatnia aktualizacja: 2026-04-26
 > Powiązane dokumenty: PROJECT_INDEX.md, ../README.md, ../../../AGENTS.md
 
 ## 1. Cel dokumentu
@@ -36,6 +36,10 @@
 - `docs/current/visual/ART_DIRECTION.md`
 - `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`
 - `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`
+- `docs/current/visual/SUB_META_FIGMA_BRIEF.md` (KIERUNEK / BRIEF WYKONAWCZY)
+- `docs/current/visual/SUB_META_LAYOUT_SPEC.md` (KIERUNEK / SPECYFIKACJA LAYOUTU)
+- `docs/current/visual/SUB_META_COMPONENTS.md` (KIERUNEK / BIBLIOTEKA KOMPONENTÓW)
+- `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / SZABLON PROMPTU)
 
 ### ROBOCZY
 - `docs/current/systems/ROADMAP.md`
@@ -68,3 +72,4 @@
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md` i `docs/current/technical/LIVE_VALIDATION_PACK.md` mają status ROBOCZY (operacyjny, niekanoniczny).
 - Audyty w `docs/audits/thematic/runtime/` zawierają stare założenia (m.in. ścieżki `.codex.js` i `md/`).
 - `docs/legacy/` nie jest źródłem prawdy.
+- Pakiet SUB-META + Figma w `docs/current/visual/` definiuje kierunek i ramę wykonawczą, ale nie zmienia mechaniki systemów.

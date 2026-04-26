@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: Mapa projektu / indeks dokumentacji aktualnej
 > Źródło prawdy: TAK
-> Ostatnia aktualizacja: 2026-04-24
+> Ostatnia aktualizacja: 2026-04-26
 > Powiązane dokumenty: ../../README.md, ../README.md, DEPENDENCY_MAP.md
 
 ## Rola dokumentu
@@ -43,6 +43,10 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/ART_DIRECTION.md` (KIERUNEK)
 - `docs/current/visual/KOSMOLOGIA_WIZUALNA.md` (KIERUNEK)
 - `docs/current/visual/BIBLIOTEKA_MATERIALOW.md` (KIERUNEK)
+- `docs/current/visual/SUB_META_FIGMA_BRIEF.md` (KIERUNEK / BRIEF WYKONAWCZY)
+- `docs/current/visual/SUB_META_LAYOUT_SPEC.md` (KIERUNEK / SPECYFIKACJA LAYOUTU)
+- `docs/current/visual/SUB_META_COMPONENTS.md` (KIERUNEK / BIBLIOTEKA KOMPONENTÓW)
+- `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / SZABLON PROMPTU)
 
 ### Techniczne (aktywnie utrzymywane, ale niekanoniczne)
 
