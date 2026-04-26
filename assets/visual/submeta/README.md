@@ -21,5 +21,5 @@ Tu trafią assety wizualne przeznaczone dla SUB-META: ramy paneli, sloty, linie,
 Stan po pass v0.1:
 
 - komponenty SUB-META istnieją w Figmie (`Mx7U5CRQjz2T1zrLPgJDSm`),
-- lokalny eksport SVG do tego katalogu jest nadal osobnym krokiem,
-- finalne grafiki nie są jeszcze dodane ani zatwierdzone jako kanon.
+- lokalny testowy import SVG został wykonany dla reprezentatywnego zestawu (panel, sloty, glify, ramy kart, ornamenty),
+- pełny zestaw z Figmy wymaga dalszego uzupełnienia i review projektanta.

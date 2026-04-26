@@ -481,3 +481,35 @@ Do review projektanta pozostaje:
 ### 12.9. Następny krok
 
 Następny krok to review projektanta na stronie `STYLE_CORRECTION_PASS_01`, wybór jednej rodziny stylistycznej i dopiero potem rozwinięcie pełnej biblioteki SUB-META / HUD w wybranym kierunku.
+
+
+## 12. Repo SVG copy + runtime visual integration pass
+
+> Data: 2026-04-26
+> Tryb: repo-only (bez użycia Figmy/MCP)
+
+- W tym passie **nie używano Figmy**, Implement Design ani Code Connect.
+- Wykonano audyt repo pod kątem katalogu Figma/SVG: nie znaleziono lokalnego katalogu z gotowymi eksportami `.svg`.
+- W oparciu o listę komponentów z sekcji 11 utworzono reprezentatywny zestaw runtime-safe SVG (czyste SVG z `viewBox`, bez bitmap/base64 i bez osadzonych fontów).
+- Assety zapisano w `assets/visual/submeta/svg/*` i `assets/visual/hud/svg/frames/*` oraz dodano manifest `assets/visual/submeta/submeta_svg_manifest.json`.
+- Runtime integration pass podpiął część SVG do SUB-META/HUD z fallbackiem do dotychczasowego renderingu canvas/DOM.
+
+### 12.1. Zakres przeniesionych / dodanych SVG (testowy zestaw)
+
+- SUB-META: panel frame, frame R1, frame DS, slot empty, slot resonance, ornament corner, separator line, 4 glify osi.
+- HUD: frame RP counter, frame przycisku SUB-META, frame przycisku Back, frame color counter (biblioteka).
+
+### 12.2. Runtime integration
+
+- `cards.js`:
+  - dodano lekki loader manifestu SVG,
+  - dodano render `drawImage` dla panelu SUB-META, ornamentu/separatora, slotów empty/resonance, glifów osi oraz ramek kart R1/DS,
+  - zachowano poprzednie rysowanie canvas jako fallback, gdy SVG nie jest dostępne.
+- `hc.ui_debug.js`:
+  - dodano podpięcie ramek SVG do elementów DOM HUD (`RP`, `META`, `Restart/Back`) jako warstwa wizualna bez zmiany mechaniki.
+
+### 12.3. Ograniczenia
+
+- To jest proof-of-direction, nie finalny polish.
+- Brakuje pełnej biblioteki SVG z eksportu Figma pass 01/Style Correction pass.
+- Wymagany jest review projektanta dla proporcji, rytmu linii, kontrastu i spójności wariantów.

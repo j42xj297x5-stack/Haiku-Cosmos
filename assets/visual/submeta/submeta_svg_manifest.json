@@ -1,0 +1,17 @@
+{
+  "submeta.frame.panel.ritual_gate_01": "assets/visual/submeta/svg/frames/submeta_frame_panel_ritual_gate_01.svg",
+  "submeta.frame.card.r1_ritual_red_01": "assets/visual/submeta/svg/frames/submeta_frame_card_r1_ritual_red_01.svg",
+  "submeta.frame.card.ds_ether_plus_01": "assets/visual/submeta/svg/frames/submeta_frame_card_ds_ether_plus_01.svg",
+  "submeta.slot.empty_01": "assets/visual/submeta/svg/slots/submeta_slot_empty_01.svg",
+  "submeta.slot.resonance_01": "assets/visual/submeta/svg/slots/submeta_slot_resonance_01.svg",
+  "submeta.ornament.corner.ritual_01": "assets/visual/submeta/svg/ornaments/submeta_ornament_corner_ritual_01.svg",
+  "submeta.line.separator.double_01": "assets/visual/submeta/svg/lines/submeta_line_separator_double_01.svg",
+  "submeta.glyph.forma_01": "assets/visual/submeta/svg/glyphs/submeta_glyph_forma_01.svg",
+  "submeta.glyph.intencja_01": "assets/visual/submeta/svg/glyphs/submeta_glyph_intencja_01.svg",
+  "submeta.glyph.czas_01": "assets/visual/submeta/svg/glyphs/submeta_glyph_czas_01.svg",
+  "submeta.glyph.cisza_01": "assets/visual/submeta/svg/glyphs/submeta_glyph_cisza_01.svg",
+  "hud.frame.rp_counter_01": "assets/visual/hud/svg/frames/hud_frame_rp_counter_01.svg",
+  "hud.frame.color_counter_01": "assets/visual/hud/svg/frames/hud_frame_color_counter_01.svg",
+  "hud.button.submeta_01": "assets/visual/hud/svg/frames/hud_button_submeta_01.svg",
+  "hud.button.back_01": "assets/visual/hud/svg/frames/hud_button_back_01.svg"
+}

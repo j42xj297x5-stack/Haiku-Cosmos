@@ -327,6 +327,50 @@ const CardEngine = (() => {
   const SUB_META_FORMA_FALLBACK_DURATION_MS = 60000;
   const SUB_META_CARD_LIBRARY = buildSubMetaCardLibrary();
 
+  const SUB_META_SVG_MANIFEST_PATH = "assets/visual/submeta/submeta_svg_manifest.json";
+  const VISUAL_SVG_RUNTIME = {
+    requested: false,
+    loaded: false,
+    map: Object.create(null),
+    images: Object.create(null)
+  };
+
+  function ensureVisualSvgRuntime() {
+    if (VISUAL_SVG_RUNTIME.requested || typeof fetch !== "function") return;
+    VISUAL_SVG_RUNTIME.requested = true;
+    fetch(SUB_META_SVG_MANIFEST_PATH)
+      .then((res) => res.ok ? res.json() : null)
+      .then((json) => {
+        if (!json || typeof json !== "object") return;
+        VISUAL_SVG_RUNTIME.map = json;
+        VISUAL_SVG_RUNTIME.loaded = true;
+      })
+      .catch(() => {});
+  }
+
+  function getVisualSvg(logicalName) {
+    if (!logicalName || !VISUAL_SVG_RUNTIME.loaded) return null;
+    const path = VISUAL_SVG_RUNTIME.map[logicalName];
+    if (!path) return null;
+    if (!VISUAL_SVG_RUNTIME.images[path]) {
+      const img = new Image();
+      img.src = path;
+      VISUAL_SVG_RUNTIME.images[path] = img;
+    }
+    const img = VISUAL_SVG_RUNTIME.images[path];
+    return img && img.complete ? img : null;
+  }
+
+  function drawVisualSvg(ctx, logicalName, x, y, w, h, alpha = 1) {
+    const img = getVisualSvg(logicalName);
+    if (!img) return false;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, Number(alpha) || 1));
+    ctx.drawImage(img, x, y, w, h);
+    ctx.restore();
+    return true;
+  }
+
   function buildSubMetaComboList(size) {
     const combos = [];
     const colors = SUB_META_COLORS;
@@ -2432,6 +2476,7 @@ const CardEngine = (() => {
 
   function render(ctx, screenW, screenH) {
     if (!state.ui.enabled) return;
+    ensureVisualSvgRuntime();
     if (state.activeOffer) {
       const card = state.activeOffer.card;
       const p = getOfferProgress01();
@@ -4172,6 +4217,12 @@ const CardEngine = (() => {
     };
   }
 
+  function getMetaCardFrameKey(typeLabel, tierLabel) {
+    if (typeLabel === "R1") return "submeta.frame.card.r1_ritual_red_01";
+    if (typeLabel === "DS") return "submeta.frame.card.ds_ether_plus_01";
+    return null;
+  }
+
   function renderMetaCard(ctx, x, y, card, options = {}) {
     const typeLabel = String(card?.type || card?.kind || "R1");
     const tierLabel = normalizeSubMetaTier(card?.tier);
@@ -4214,6 +4265,9 @@ const CardEngine = (() => {
       ctx.fillStyle = paintColors[3] || "#FFFFFF";
       ctx.fillRect(x + halfW, y + halfH, rectW - halfW, rectH - halfH);
     }
+
+    const svgFrameKey = getMetaCardFrameKey(typeLabel, tierLabel);
+    drawVisualSvg(ctx, svgFrameKey, x, y, rectW, rectH, 0.92);
 
     if (tierLabel === "sDR") {
       ctx.strokeStyle = "rgba(255,255,255,0.75)";
@@ -4640,6 +4694,22 @@ const CardEngine = (() => {
     ctx.globalAlpha = 1.0;
     ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.strokeRect(panel.x, panel.y, panel.w, panel.h);
+    const hasPanelFrame = drawVisualSvg(
+      ctx,
+      "submeta.frame.panel.ritual_gate_01",
+      panel.x,
+      panel.y,
+      panel.w,
+      panel.h,
+      0.92
+    );
+    if (hasPanelFrame) {
+      drawVisualSvg(ctx, "submeta.ornament.corner.ritual_01", panel.x + 8, panel.y + 8, 28, 28, 0.95);
+      drawVisualSvg(ctx, "submeta.ornament.corner.ritual_01", panel.x + panel.w - 36, panel.y + 8, 28, 28, 0.95);
+      drawVisualSvg(ctx, "submeta.ornament.corner.ritual_01", panel.x + 8, panel.y + panel.h - 36, 28, 28, 0.95);
+      drawVisualSvg(ctx, "submeta.ornament.corner.ritual_01", panel.x + panel.w - 36, panel.y + panel.h - 36, 28, 28, 0.95);
+      drawVisualSvg(ctx, "submeta.line.separator.double_01", panel.x + 24, panel.y + 42, panel.w - 48, 8, 0.75);
+    }
 
     ctx.font = "14px system-ui";
     ctx.fillStyle = "rgba(255,255,255,0.92)";
@@ -4766,6 +4836,13 @@ const CardEngine = (() => {
       ctx.globalAlpha = 0.75;
       ctx.font = "11px system-ui";
       ctx.fillText(slot.label.toUpperCase(), slot.x + 8, slot.y + 14);
+      const glyphMap = {
+        forma: "submeta.glyph.forma_01",
+        intencja: "submeta.glyph.intencja_01",
+        czas: "submeta.glyph.czas_01",
+        cisza: "submeta.glyph.cisza_01"
+      };
+      drawVisualSvg(ctx, glyphMap[slot.key], slot.x + slot.w - 24, slot.y + 4, 16, 16, 0.9);
       ctx.restore();
       slot.sockets.forEach((socket) => {
         const assignment = entry?.cards?.[socket.index] || null;
@@ -4793,11 +4870,15 @@ const CardEngine = (() => {
         }
         ctx.restore();
         if (!assignment && !isLocked) {
-          ctx.save();
-          ctx.globalAlpha = 0.18;
-          ctx.fillStyle = "rgba(255,255,255,0.2)";
-          ctx.fillRect(socket.x + 2, socket.y + 2, socket.w - 4, socket.h - 4);
-          ctx.restore();
+          const slotLogical = socket.index === 2 ? "submeta.slot.resonance_01" : "submeta.slot.empty_01";
+          const drawn = drawVisualSvg(ctx, slotLogical, socket.x + 2, socket.y + 2, socket.w - 4, socket.h - 4, 0.95);
+          if (!drawn) {
+            ctx.save();
+            ctx.globalAlpha = 0.18;
+            ctx.fillStyle = "rgba(255,255,255,0.2)";
+            ctx.fillRect(socket.x + 2, socket.y + 2, socket.w - 4, socket.h - 4);
+            ctx.restore();
+          }
         }
         if (assignment) {
           const cardX = socket.x + Math.floor((socket.w - SUB_META_CARD_W) / 2);

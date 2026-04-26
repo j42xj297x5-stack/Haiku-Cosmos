@@ -70,6 +70,14 @@
     keys: DEBUG_UI_TEXT,
   };
 
+  function applySvgFrame(el, path) {
+    if (!el || !path) return;
+    el.style.backgroundImage = `url(${path})`;
+    el.style.backgroundRepeat = "no-repeat";
+    el.style.backgroundSize = "100% 100%";
+    el.style.backgroundPosition = "center";
+  }
+
   function updateScoreLabel(World, force) {
     if (!scoreLabel || !World) return;
     if (force || World.score !== lastScore) {
@@ -386,6 +394,9 @@
       }
 
       scoreLabel = ensureScoreLabel();
+      applySvgFrame(scoreLabel, "assets/visual/hud/svg/frames/hud_frame_rp_counter_01.svg");
+      applySvgFrame(btnSubMeta, "assets/visual/hud/svg/frames/hud_button_submeta_01.svg");
+      applySvgFrame(btnRestart, "assets/visual/hud/svg/frames/hud_button_back_01.svg");
 
       if (World && World.r1HudPulse === undefined) {
         World.r1HudPulse = null;
