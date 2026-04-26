@@ -36,6 +36,7 @@
 - `docs/current/visual/ART_DIRECTION.md`
 - `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`
 - `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`
+<<<<<<< Updated upstream
 - `docs/current/visual/FIGMA_WORKFLOW.md` (KIERUNEK / WORKFLOW WYKONAWCZY)
 - `docs/current/visual/SUB_META_FIGMA_BRIEF.md` (KIERUNEK / BRIEF WYKONAWCZY)
 - `docs/current/visual/SUB_META_LAYOUT_SPEC.md` (KIERUNEK / SPECYFIKACJA LAYOUTU)
@@ -44,6 +45,13 @@
 - `docs/current/visual/SUB_META_TYPOGRAPHY.md` (KIERUNEK / TYPOGRAFIA)
 - `docs/current/visual/SUB_META_RESPONSIVE_SCALING.md` (KIERUNEK / SPECYFIKACJA RESPONSYWNOŚCI)
 - `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / SZABLON PROMPTU)
+=======
+- `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md`
+- `docs/current/visual/SUB_META_COMPONENTS.md`
+- `docs/current/visual/SUB_META_ASSET_PIPELINE.md`
+- `docs/current/visual/FIGMA_WORKFLOW.md`
+- `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md`
+>>>>>>> Stashed changes
 
 ### ROBOCZY
 - `docs/current/systems/ROADMAP.md`
@@ -51,6 +59,7 @@
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md`
 - `docs/current/technical/LIVE_VALIDATION_PACK.md`
+- `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (evidence przebiegu Figma; nie kanon mechaniki)
 
 ### LEGACY / HISTORYCZNE (nie kanon)
 - `docs/legacy/systems/TARGETS_SYSTEM.md`
@@ -71,6 +80,8 @@
 - `docs/current/technical/WORLD_FUNCTION_MAP.md` ma status ROBOCZY i służy jako mapa orientacyjna runtime; nie zastępuje audytu funkcja-po-funkcji.
 - `docs/current/systems/PRG_SYSTEM.md` ma status KANON STRUKTURALNY / DO STROJENIA: struktura osi i relacje R1/R2/ODB są kanoniczne, ale wartości liczbowe i feeling runtime wymagają dalszego strojenia.
 - Relacja PRG ↔ SUB-META ↔ UI ↔ visual jest obowiązująca kierunkowo: struktura i slotowanie (`SUB_META_SYSTEM.md`), prezentacja i przełączanie (`UI_WORLD.md`), feeling i materiał (`docs/current/visual/*`).
+- Relacja SUB-META/HUD ↔ assety SVG jest kierunkowo opisana w `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md`, `docs/current/visual/SUB_META_COMPONENTS.md`, `docs/current/visual/SUB_META_ASSET_PIPELINE.md`, `docs/current/visual/FIGMA_WORKFLOW.md` i `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md`. Te dokumenty nie zmieniają mechaniki ani runtime.
+- Evidence pierwszego passu Figmy znajduje się w `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md`; komponenty SVG powstały w istniejącym pliku Figma, ale lokalny eksport SVG do repo nie został zapisany z powodu limitu wyniku narzędzia.
 - Relacja I18N ↔ UI ↔ CARDS ↔ PRG ↔ ECONOMY ↔ SUB-META jest obowiązująca strukturalnie: I18N definiuje warstwę językową i fallback (`I18N_SYSTEM.md`), a systemy domenowe definiują sens i miejsce użycia tekstów (`UI_WORLD.md`, `CARDS_SYSTEM.md`, `PRG_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `SUB_META_SYSTEM.md`).
 - `docs/current/systems/I18N_SYSTEM.md` ma status KANON STRUKTURALNY / DO WDROŻENIA: zasady językowe, zakres tłumaczeń, model kluczy i fallback są kanoniczne, ale implementacja runtime (pliki locale, loader, przełącznik języka, testy) pozostaje do wdrożenia.
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md` i `docs/current/technical/LIVE_VALIDATION_PACK.md` mają status ROBOCZY (operacyjny, niekanoniczny).

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # SUB-META — Figma prompt template (component/asset pass)
 
 > Status: KIERUNEK / SZABLON PROMPTU
@@ -121,3 +122,93 @@ Po zatwierdzeniu component/asset pass wykonujemy krok 2:
 - pełny polished mockup SUB-META 16:9,
 - oparty wyłącznie o zatwierdzone komponenty,
 - z zachowaniem zasad skalowania i formatów assetów.
+=======
+# Haiku Cosmos — SUB-META Figma Prompt Template
+
+> Status: KIERUNEK / PROMPT TEMPLATE
+> Obszar: Figma, SUB-META, HUD, komponenty SVG
+> Źródło prawdy: TAK, dla promptowania pierwszego passu komponentów SVG. NIE, dla mechaniki, runtime i finalnych assetów.
+> Ostatnia aktualizacja: 2026-04-26
+> Powiązane dokumenty: FIGMA_WORKFLOW.md, SUB_META_LINE_ORNAMENT_LIBRARY.md, SUB_META_ASSET_PIPELINE.md, SUB_META_COMPONENTS.md
+
+## Prompt 1 — SUB-META + HUD line/ornament asset pass
+
+Użyj tego promptu dopiero w osobnym zadaniu, gdy użytkownik wyraźnie poprosi o uruchomienie Figmy.
+
+```text
+Create the first Haiku Cosmos SUB-META + HUD line/ornament asset pass in Figma.
+
+Goal:
+Build a vector component library, not a full screen mockup.
+
+The library should include scalable SVG-ready components for:
+- SUB-META panel frames,
+- R1 card frames,
+- DS card frames,
+- slots,
+- divider lines,
+- connector/orbit lines,
+- corner ornaments,
+- subtle rosettes,
+- astrolabe-like rings,
+- HUD counter frames,
+- HUD RP/meter frames,
+- axis/state glyphs,
+- panel/card/slot placeholders.
+
+Visual direction:
+Ritual cosmic minimalism, sacred geometry, astronomical instrument, quiet UI readability.
+The result should feel like a cosmic configuration instrument, not decorative esoteric poster art.
+
+Use these inspirations structurally, not literally:
+- astrolabe: circles, arcs, scale ticks, projection grids, star-point indicators,
+- armillary sphere: intersecting rings, meridians, ecliptic/equator logic,
+- Islamic compass-and-straightedge geometry: 8/10/12 modules, rosettes, corners, border rhythm,
+- eastern 8-direction divisions: solid/broken line logic, directional balance,
+- subtle 28 mansions divisions: small ticks and ring segmentation,
+- western cosmographic wheels: concentric rings, orbits, cyclic composition.
+
+Create components as variants where useful:
+- default,
+- hover,
+- selected,
+- active,
+- disabled,
+- locked,
+- available,
+- insufficient RP,
+- special / DS.
+
+Prepare a small demo composition only to show scale, relationships and states.
+Do not create a full SUB-META screen.
+
+SVG requirements:
+- clean vector geometry,
+- scalable strokes,
+- no bitmap backgrounds,
+- no raster textures,
+- no embedded images,
+- component names compatible with later export naming.
+
+Do not:
+- copy literal religious or sacred symbols,
+- create a full mandala,
+- create tarot visuals,
+- create fantasy TCG card frames,
+- create cyberpunk neon UI,
+- create a full SUB-META screen at this stage,
+- generate raster backgrounds,
+- add fonts or runtime implementation.
+
+Use the direction from:
+- docs/current/visual/ART_DIRECTION.md,
+- docs/current/visual/KOSMOLOGIA_WIZUALNA.md,
+- docs/current/visual/BIBLIOTEKA_MATERIALOW.md,
+- docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md,
+- docs/current/visual/SUB_META_ASSET_PIPELINE.md.
+```
+
+## Oczekiwane artefakty w Figmie
+
+Figma powinna przygotować bibliotekę komponentów i wariantów oraz mini-kompozycję demonstracyjną. Eksport do repo wykonuje się dopiero po osobnej decyzji i według `SUB_META_ASSET_PIPELINE.md`.
+>>>>>>> Stashed changes

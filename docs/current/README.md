@@ -32,6 +32,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `visual/ART_DIRECTION.md` — KIERUNEK
 - `visual/KOSMOLOGIA_WIZUALNA.md` — KIERUNEK
 - `visual/BIBLIOTEKA_MATERIALOW.md` — KIERUNEK
+<<<<<<< Updated upstream
 - `visual/FIGMA_WORKFLOW.md` — KIERUNEK / WORKFLOW WYKONAWCZY
 - `visual/SUB_META_FIGMA_BRIEF.md` — KIERUNEK / BRIEF WYKONAWCZY
 - `visual/SUB_META_LAYOUT_SPEC.md` — KIERUNEK / SPECYFIKACJA LAYOUTU
@@ -40,6 +41,14 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `visual/SUB_META_TYPOGRAPHY.md` — KIERUNEK / TYPOGRAFIA
 - `visual/SUB_META_RESPONSIVE_SCALING.md` — KIERUNEK / SPECYFIKACJA RESPONSYWNOŚCI
 - `visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` — KIERUNEK / SZABLON PROMPTU
+=======
+- `visual/SUB_META_LINE_ORNAMENT_LIBRARY.md` — KIERUNEK / BIBLIOTEKA WYKONAWCZA
+- `visual/SUB_META_COMPONENTS.md` — KIERUNEK / KATALOG KOMPONENTÓW
+- `visual/SUB_META_ASSET_PIPELINE.md` — KIERUNEK / PIPELINE WYKONAWCZY
+- `visual/FIGMA_WORKFLOW.md` — KIERUNEK / WORKFLOW
+- `visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` — KIERUNEK / PROMPT TEMPLATE
+- `visual/SUB_META_FIGMA_ASSET_PASS_01.md` — EVIDENCE / FIGMA PASS (component pass completed; repo SVG export pending)
+>>>>>>> Stashed changes
 
 ## Dokumentacja techniczna
 

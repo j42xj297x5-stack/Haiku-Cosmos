@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # SUB-META — asset pipeline (Figma → runtime)
 
 > Status: KIERUNEK / SPECYFIKACJA WYKONAWCZA
@@ -130,3 +131,157 @@ W tym kroku:
 - nie generujemy tła świata.
 
 Efektem ma być gotowa specyfikacja wykonawcza dla pierwszego passu Figmy.
+=======
+# Haiku Cosmos — SUB-META Asset Pipeline
+
+> Status: KIERUNEK / PIPELINE WYKONAWCZY
+> Obszar: SUB-META, HUD, eksport assetów, SVG
+> Źródło prawdy: TAK, dla organizacji przyszłych assetów SUB-META/HUD. NIE, dla runtime, mechaniki i finalnych grafik.
+> Ostatnia aktualizacja: 2026-04-26
+> Powiązane dokumenty: FIGMA_WORKFLOW.md, SUB_META_LINE_ORNAMENT_LIBRARY.md, SUB_META_COMPONENTS.md, SUB_META_FIGMA_PROMPT_TEMPLATE.md
+
+## 1. Cel dokumentu
+
+Ten dokument opisuje strukturę katalogów i zasady nazewnictwa dla przyszłych assetów SUB-META + HUD.
+
+Na tym etapie pipeline przygotowuje repozytorium pod pierwszy pass SVG. Nie dodaje finalnych grafik i nie zmienia runtime.
+
+## 2. Struktura katalogów assetów
+
+Assety wizualne znajdują się w:
+
+```text
+assets/
+  visual/
+    submeta/
+      svg/
+        frames/
+        lines/
+        ornaments/
+        glyphs/
+        slots/
+        placeholders/
+        hud/
+      raster_placeholders/
+    hud/
+      svg/
+        frames/
+        glyphs/
+        meters/
+      raster_placeholders/
+    shared/
+      svg/
+        frames/
+        lines/
+        ornaments/
+        glyphs/
+      raster_placeholders/
+```
+
+Każdy katalog ma `README.md`, aby struktura była utrzymywana przez Git.
+
+## 3. Pierwsze assety: SVG
+
+Pierwszy asset/component pass produkuje SVG:
+
+- cienkie linie,
+- ramki,
+- sloty,
+- ornamenty,
+- glify,
+- placeholdery,
+- małe ramy i metry HUD.
+
+Nie produkuje:
+
+- PNG,
+- WebP,
+- finalnych raster backgrounds,
+- fontów,
+- importów runtime,
+- pełnych mockupów ekranu.
+
+## 4. Relacja Figma export → repo
+
+Eksport z Figmy powinien trafiać do:
+
+- `assets/visual/submeta/svg/frames/`
+- `assets/visual/submeta/svg/lines/`
+- `assets/visual/submeta/svg/ornaments/`
+- `assets/visual/submeta/svg/glyphs/`
+- `assets/visual/submeta/svg/slots/`
+- `assets/visual/submeta/svg/placeholders/`
+- `assets/visual/submeta/svg/hud/`
+- `assets/visual/hud/svg/frames/`
+- `assets/visual/hud/svg/glyphs/`
+- `assets/visual/hud/svg/meters/`
+- `assets/visual/shared/svg/frames/`
+- `assets/visual/shared/svg/lines/`
+- `assets/visual/shared/svg/ornaments/`
+- `assets/visual/shared/svg/glyphs/`
+
+Zasada:
+
+- element tylko SUB-META trafia do `submeta/`,
+- element tylko HUD trafia do `hud/`,
+- element używany w więcej niż jednej warstwie trafia do `shared/`.
+
+## 5. Raster pipeline
+
+Raster pipeline pozostaje osobny.
+
+Katalogi `raster_placeholders/` są zarezerwowane dla przyszłych roboczych placeholderów lub testów układu. Nie są częścią pierwszego passu SVG i nie powinny zawierać finalnych PNG/WebP bez osobnej decyzji projektowej.
+
+## 6. Zasady nazewnictwa
+
+Nazwy plików:
+
+- małe litery,
+- słowa rozdzielane `_`,
+- prefiks obszaru: `submeta_`, `hud_` albo `shared_`,
+- rodzina komponentu po prefiksie,
+- wariant inspiracji lub funkcji,
+- numer wariantu dwucyfrowy na końcu.
+
+Format:
+
+```text
+<area>_<family>_<role>_<variant>_<nn>.svg
+```
+
+## 7. Proponowane nazwy przyszłych plików
+
+Nie tworzyć tych plików teraz. To konwencja dla późniejszego eksportu:
+
+```text
+submeta_frame_panel_astrolabe_01.svg
+submeta_frame_panel_armillary_01.svg
+submeta_frame_card_r1_red_01.svg
+submeta_frame_card_ds_red_01.svg
+submeta_line_divider_thin_01.svg
+submeta_line_connector_orbit_01.svg
+submeta_ornament_corner_rosette_01.svg
+submeta_ornament_border_girih_01.svg
+submeta_glyph_axis_form_01.svg
+submeta_glyph_axis_intention_01.svg
+submeta_glyph_axis_time_01.svg
+submeta_glyph_axis_silence_01.svg
+hud_frame_counter_rp_01.svg
+hud_frame_counter_color_01.svg
+hud_meter_sequence_01.svg
+```
+
+## 8. Kontrola przed importem do runtime
+
+Przed jakimkolwiek runtime import należy osobno sprawdzić:
+
+- czystość SVG,
+- skalowanie stroke,
+- rozmiar pliku,
+- zgodność nazw,
+- brak embedded raster images,
+- brak fontów,
+- zgodność z `SUB_META_LINE_ORNAMENT_LIBRARY.md`.
+
+Ten krok nie jest częścią obecnego etapu.
+>>>>>>> Stashed changes

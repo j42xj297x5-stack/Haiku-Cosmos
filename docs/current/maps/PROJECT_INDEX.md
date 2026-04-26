@@ -43,6 +43,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/ART_DIRECTION.md` (KIERUNEK)
 - `docs/current/visual/KOSMOLOGIA_WIZUALNA.md` (KIERUNEK)
 - `docs/current/visual/BIBLIOTEKA_MATERIALOW.md` (KIERUNEK)
+<<<<<<< Updated upstream
 - `docs/current/visual/FIGMA_WORKFLOW.md` (KIERUNEK / WORKFLOW WYKONAWCZY)
 - `docs/current/visual/SUB_META_FIGMA_BRIEF.md` (KIERUNEK / BRIEF WYKONAWCZY)
 - `docs/current/visual/SUB_META_LAYOUT_SPEC.md` (KIERUNEK / SPECYFIKACJA LAYOUTU)
@@ -51,6 +52,14 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/SUB_META_TYPOGRAPHY.md` (KIERUNEK / TYPOGRAFIA)
 - `docs/current/visual/SUB_META_RESPONSIVE_SCALING.md` (KIERUNEK / SPECYFIKACJA RESPONSYWNOŚCI)
 - `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / SZABLON PROMPTU)
+=======
+- `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md` (KIERUNEK / BIBLIOTEKA WYKONAWCZA)
+- `docs/current/visual/SUB_META_COMPONENTS.md` (KIERUNEK / KATALOG KOMPONENTÓW)
+- `docs/current/visual/SUB_META_ASSET_PIPELINE.md` (KIERUNEK / PIPELINE WYKONAWCZY)
+- `docs/current/visual/FIGMA_WORKFLOW.md` (KIERUNEK / WORKFLOW)
+- `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / PROMPT TEMPLATE)
+- `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (EVIDENCE / FIGMA PASS; component pass completed, SVG export pending)
+>>>>>>> Stashed changes
 
 ### Techniczne (aktywnie utrzymywane, ale niekanoniczne)
 
