@@ -59,6 +59,8 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/FIGMA_WORKFLOW.md` (KIERUNEK / WORKFLOW)
 - `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / PROMPT TEMPLATE)
 - `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (EVIDENCE / FIGMA PASS; component pass completed, SVG export pending)
+- `docs/current/visual/MODULAR_FRAME_KIT.md` (KIERUNEK / AUDYT FRAME KITU)
+- `docs/current/visual/MODULAR_FRAME_KIT_ASSET_MANIFEST.md` (ROBOCZY / MANIFEST ASSETÓW FRAME KITU)
 >>>>>>> Stashed changes
 
 ### Techniczne (aktywnie utrzymywane, ale niekanoniczne)

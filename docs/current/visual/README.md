@@ -64,6 +64,8 @@ Przy pracach nad SUB-META, HUD, ramkami, liniami, ornamentami, slotami, placehol
 - `FIGMA_WORKFLOW.md` — workflow pracy w Figmie dla pierwszego passu komponentów.
 - `SUB_META_FIGMA_PROMPT_TEMPLATE.md` — prompt do późniejszego zlecenia Figmie passu `SUB-META + HUD line/ornament asset pass`.
 - `SUB_META_FIGMA_ASSET_PASS_01.md` — evidence pierwszego passu Figmy; komponenty SVG powstały w pliku Figma, ale lokalny eksport SVG do repo pozostaje osobnym krokiem.
+- `MODULAR_FRAME_KIT.md` — audyt i zasady porządkowania modular frame kitu (SVG, katalogi, statusy).
+- `MODULAR_FRAME_KIT_ASSET_MANIFEST.md` — manifest assetów frame kitu (type/layer/style/status).
 >>>>>>> Stashed changes
 
 ## 4. Zasada statusu KIERUNEK
