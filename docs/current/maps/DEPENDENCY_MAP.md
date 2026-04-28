@@ -50,6 +50,7 @@
 - `docs/current/technical/README.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (robocza architektura rozdzialu card mechanics vs card visuals / FrameComposer)
+- `docs/current/technical/FONT_SYSTEM_SPEC.md` (roboczy kontrakt font systemu UI/kart pod i18n)
 - `docs/current/technical/FRAME_COMPOSER_SPEC.md` (roboczy kontrakt layoutu modularnych SVG: anchorOffset, lineInset, ornamentScale)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md`
 - `docs/current/technical/LIVE_VALIDATION_PACK.md`
@@ -90,6 +91,7 @@
 
 - `CARD_VISUAL_ARCHITECTURE.md` wyznacza przyszly rozdzial: `cards.js` jako mechanika, `hc.card_visuals.js` jako rysowanie kart, `hc.frame_composer.js` jako skladanie ramek i `hc.visual_assets.js` jako loader/cache assetow.
 - `FRAME_COMPOSER_SPEC.md` precyzuje przyszly kontrakt `hc.frame_composer.js`: `anchorOffset`, `lineInset`, `ornamentScale`, debug anchors oraz static/dynamic layers.
+- `FONT_SYSTEM_SPEC.md` porzadkuje tokeny typografii i rejestry tekstu dla HUD/SUB-META/kart bez zmiany mechaniki.
 - `cards.js` renderuje SUB-META i HUD kart oraz ma defensywny loader manifestu SVG.
 - `hc.ui_debug.js` buduje DOM HUD i przycisk SUB-META.
 - Aktywny manifest `assets/visual/submeta/submeta_svg_manifest.json` może być pusty; runtime musi zachować funkcjonalny fallback.
