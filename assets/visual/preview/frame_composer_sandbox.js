@@ -7,7 +7,7 @@
   var toggleDebug = document.getElementById("toggleDebug");
   var ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
 
-  var manifestUrl = "assets/visual/modular_frame_kit_v01_manifest.json";
+  var manifestUrl = "/assets/visual/modular_frame_kit_v01_manifest.json";
   var partMap = {
     corners: {
       tl: "submeta.frame.corner.tl.astrolabe_01",
@@ -32,16 +32,8 @@
     statusPanel.textContent = JSON.stringify(payload, null, 2);
   }
 
-  async function render() {
-    if (!ctx || !window.HC || !window.HC.VisualAssets || !window.HC.FrameComposer) {
-      printStatus({ ok: false, error: "HC.VisualAssets / HC.FrameComposer unavailable" });
-      return;
-    }
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    var manifestResult = await window.HC.VisualAssets.loadManifest(manifestUrl);
-    var preloadResult = await window.HC.VisualAssets.preload([
+  function collectRequestedLogicalNames() {
+    return [
       partMap.corners.tl,
       partMap.corners.tr,
       partMap.corners.bl,
@@ -52,7 +44,32 @@
       partMap.edges.right,
       partMap.ornaments.topCenter,
       partMap.ornaments.bottomCenter
-    ]);
+    ];
+  }
+
+  function findMissingLogicalNames(visualAssets, logicalNames) {
+    var missing = [];
+    for (var i = 0; i < logicalNames.length; i += 1) {
+      var logicalName = logicalNames[i];
+      if (!visualAssets.getAsset(logicalName)) {
+        missing.push(logicalName);
+      }
+    }
+    return missing;
+  }
+
+  async function render() {
+    if (!ctx || !window.HC || !window.HC.VisualAssets || !window.HC.FrameComposer) {
+      printStatus({ ok: false, error: "HC.VisualAssets / HC.FrameComposer unavailable" });
+      return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    var requestedLogicalNames = collectRequestedLogicalNames();
+    var manifestResult = await window.HC.VisualAssets.loadManifest(manifestUrl);
+    var missingLogicalNames = findMissingLogicalNames(window.HC.VisualAssets, requestedLogicalNames);
+    var preloadResult = await window.HC.VisualAssets.preload(requestedLogicalNames);
 
     var layout = window.HC.FrameComposer.computeSubmetaAstrolabeLayout({
       x: 100,
@@ -76,12 +93,27 @@
       });
     }
 
+    var diagnostics = window.HC.VisualAssets.getDiagnostics();
+    var cornerTlLogicalName = partMap.corners.tl;
+
     printStatus({
       ok: true,
-      manifestResult: manifestResult,
-      preloadResult: preloadResult,
-      drawSummary: drawSummary,
-      diagnostics: window.HC.VisualAssets.getDiagnostics()
+      manifestLoaded: !!manifestResult.manifestLoaded,
+      assetCount: manifestResult.assetCount,
+      manifestUrlRequested: manifestUrl,
+      manifestUrlUsed: manifestResult.url,
+      preload: {
+        loaded: preloadResult.loaded,
+        failed: preloadResult.failed,
+        skipped: preloadResult.skipped
+      },
+      drawFrameParts: drawSummary,
+      missingLogicalNames: missingLogicalNames,
+      sampleCornerTl: {
+        logicalName: cornerTlLogicalName,
+        assetPath: window.HC.VisualAssets.getAssetPath(cornerTlLogicalName)
+      },
+      diagnostics: diagnostics
     });
   }
 
