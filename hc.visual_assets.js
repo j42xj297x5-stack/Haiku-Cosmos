@@ -31,10 +31,23 @@
     return typeof root.Image === "function";
   }
 
-  function loadImage(path) {
+  function normalizeAssetUrl(path) {
+    var value = toStringSafe(path).trim();
+    if (!value) return null;
+    if (/^https?:\/\//i.test(value)) return value;
+    if (value.charAt(0) === "/") return value;
+    if (value.indexOf("assets/") === 0) return "/" + value;
+    return value;
+  }
+
+  function loadImage(url) {
     return new Promise(function (resolve) {
       if (!canUseImage()) {
         resolve({ ok: false, error: "Image constructor unavailable" });
+        return;
+      }
+      if (!url) {
+        resolve({ ok: false, error: "Image URL unavailable" });
         return;
       }
 
@@ -55,7 +68,7 @@
         finish({ ok: false, error: "Image failed to load" });
       };
 
-      image.src = path;
+      image.src = url;
       if (image.complete && image.naturalWidth > 0) {
         finish({ ok: true, image: image });
       }
@@ -128,6 +141,10 @@
       return asset ? asset.path : null;
     },
 
+    getAssetUrl(logicalName) {
+      return normalizeAssetUrl(this.getAssetPath(logicalName));
+    },
+
     async preload(logicalNames) {
       var summary = { loaded: 0, failed: 0, skipped: 0 };
 
@@ -162,7 +179,15 @@
           continue;
         }
 
-        var result = await loadImage(asset.path);
+        var assetUrl = this.getAssetUrl(logicalName);
+        if (!assetUrl) {
+          summary.failed += 1;
+          failedAssets.add(logicalName);
+          setError("asset URL unavailable");
+          continue;
+        }
+
+        var result = await loadImage(assetUrl);
         if (result.ok && result.image) {
           imageCache.set(logicalName, result.image);
           failedAssets.delete(logicalName);
@@ -231,7 +256,8 @@
         assetCount: assetsByName.size,
         cachedCount: imageCache.size,
         failedCount: failedAssets.size,
-        lastError: lastError
+        lastError: lastError,
+        normalizeAssetUrl: true
       };
     }
   };
