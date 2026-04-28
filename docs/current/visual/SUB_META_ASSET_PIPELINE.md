@@ -1,287 +1,144 @@
-<<<<<<< Updated upstream
-# SUB-META — asset pipeline (Figma → runtime)
+# Haiku Cosmos - SUB-META Asset Pipeline
 
-> Status: KIERUNEK / SPECYFIKACJA WYKONAWCZA
-> Obszar: SUB-META / Figma / asset pipeline / eksporty
-> Źródło prawdy: TAK, dla zasad assetów SUB-META; NIE, dla implementacji runtime
-> Ostatnia aktualizacja: 2026-04-26
-> Powiązane dokumenty: `docs/current/visual/SUB_META_FIGMA_BRIEF.md`, `docs/current/visual/SUB_META_LAYOUT_SPEC.md`, `docs/current/visual/SUB_META_COMPONENTS.md`, `docs/current/visual/SUB_META_RESPONSIVE_SCALING.md`, `docs/current/visual/SUB_META_TYPOGRAPHY.md`, `docs/current/ui/UI_WORLD.md`, `docs/current/systems/SUB_META_SYSTEM.md`, `docs/current/systems/CARDS_SYSTEM.md`
+## Modular Frame Kit v0.1 export status
 
-## 1. Cel dokumentu
+Modular Frame Kit v0.1 jest pierwszym czystym eksportem modularnych frame parts po resecie legacy `style_correction`.
 
-Ten dokument definiuje **pierwszy wykonawczy pass Figmy** dla SUB-META:
-- ramki,
-- placeholdery,
-- sloty,
-- glify,
-- cienkie linie,
-- komponenty bazowe,
-- warianty paneli,
-- warianty kart R1 i DS,
-- podstawową typografię testową.
+Lokalizacje:
 
-To **nie jest** etap finalnego polished mockupu całego ekranu.
-Najpierw budujemy skalowalny system assetów i komponentów, który może zostać użyty w runtime.
+- `assets/visual/submeta/svg/frame_parts/` - SUB-META frame parts;
+- `assets/visual/hud/svg/frame_parts/` - HUD frame parts;
+- `assets/visual/cards/svg/state_accents/` - Card State Accents.
 
-## 2. SVG jako format domyślny dla elementów geometrycznych
+Manifest zbiorczy: `assets/visual/modular_frame_kit_v01_manifest.json`.
 
-Domyślnie stosujemy SVG dla:
-- ramek,
-- glifów,
-- cienkich linii,
-- ornamentów geometrycznych,
-- slotów,
-- znaczników,
-- ikon,
-- komponentów opartych na geometrii.
-
-Powód: ostrość, skalowalność i kontrola jakości od mobile po 4K.
-
-## 3. PNG/WebP jako warstwa raster pipeline (poza Figmą)
-
-Raster (PNG/WebP) jest przygotowywany poza Figmą w osobnym raster pipeline dla:
-- tła świata,
-- tła paneli,
-- tła przycisków,
-- tła kart,
-- tekstur materiałowych,
-- miękkiego światła i warstw głębi.
-
-Figma w tym zakresie definiuje miejsca użycia rastra:
-- placeholdery,
-- maski,
-- proporcje,
-- ramy i obszary kompozycji.
-
-Finalne rastry są podpinane do layoutu dopiero po ich dostarczeniu poza Figmą.
-
-## 4. Czego nie eksportować jako raster
-
-Nie rasteryzujemy:
-- cienkich linii,
-- ram,
-- slotów,
-- glifów,
-- markerów,
-- ornamentów liniowych.
-
-Te elementy powinny pozostać SVG (anty-rozmycie).
-
-## 5. Czego nie robić jako SVG
-
-Nie wymuszamy SVG dla:
-- malarskich teł,
-- bogatych tekstur materiałowych,
-- miękkich gradientów tła wymagających warstw rastra,
-- gotowych kompozycji premium, które są z natury bitmapowe.
-
-## 6. Skalowanie od smartfona do 4K
-
-Zasada nadrzędna:
-- jeden skalowalny system SVG dla geometrii,
-- warianty rozdzielczości tylko dla rastrów.
-
-Anty-rozmycie:
-- cienkie linie jako SVG,
-- glify jako SVG,
-- ramki jako SVG,
-- sloty jako SVG,
-- ornament jako SVG,
-- raster tylko tam, gdzie naprawdę jest materiał, tło, tekstura, miękkie światło lub malarska głębia.
-
-## 7. Eksporty i nazewnictwo assetów (propozycja dokumentacyjna)
-
-Proponowana konwencja (bez wdrażania runtime w tym kroku):
-
-- `submeta/frame/<name>.svg`
-- `submeta/glyph/<name>.svg`
-- `submeta/slot/<name>.svg`
-- `submeta/card/r1/<color>/<state>.svg` (rama / glif / linie / sloty)
-- `submeta/card/ds/<color>/<state>.svg` (rama / glif / linie / sloty)
-- `submeta/card/raster/<name>@1x.webp`
-- `submeta/card/raster/<name>@2x.webp`
-- `submeta/card/raster/<name>@4x.webp`
-- `submeta/panel/raster/<name>@1x.webp`
-- `submeta/panel/raster/<name>@2x.webp`
-- `submeta/panel/raster/<name>@4x.webp`
-- `submeta/button/raster/<name>@1x.webp`
-- `submeta/button/raster/<name>@2x.webp`
-- `submeta/button/raster/<name>@4x.webp`
-
-To jest **propozycja dokumentacyjna**. Nazwy runtime i mapowanie loadera wymagają osobnego kroku.
-
-## 8. Warianty rozmiaru — decyzja kierunkowa
-
-Decyzja kierunkowa:
-- preferujemy **jeden skalowalny system SVG** dla ramek, glifów, linii i slotów,
-- zamiast osobnych bitmap dla mały/średni/duży.
-
-Dla rastrów dopuszczamy warianty rozdzielczości:
-- `1x/2x/4x` lub `small/medium/large`,
-- bez ustalania jeszcze finalnych nazw runtime.
-
-## 9. Granice tego etapu
-
-W tym kroku:
-- nie tworzymy lokalnych assetów,
-- nie zapisujemy grafik do repo,
-- nie zmieniamy runtime,
-- nie pobieramy i nie commitujemy font files,
-- nie generujemy finalnych rasterów (PNG/WebP) w Figma,
-- nie generujemy tła świata.
-
-Efektem ma być gotowa specyfikacja wykonawcza dla pierwszego passu Figmy.
-=======
-# Haiku Cosmos — SUB-META Asset Pipeline
+Ten eksport nie zastepuje jeszcze runtime. FrameComposer, manifest runtime i live-coloring sa nastepnym osobnym etapem.
 
 > Status: KIERUNEK / PIPELINE WYKONAWCZY
-> Obszar: SUB-META, HUD, eksport assetów, SVG
-> Źródło prawdy: TAK, dla organizacji przyszłych assetów SUB-META/HUD. NIE, dla runtime, mechaniki i finalnych grafik.
-> Ostatnia aktualizacja: 2026-04-26
-> Powiązane dokumenty: FIGMA_WORKFLOW.md, SUB_META_LINE_ORNAMENT_LIBRARY.md, SUB_META_COMPONENTS.md, SUB_META_FIGMA_PROMPT_TEMPLATE.md
+> Obszar: SUB-META / HUD / SVG / modular frame kit / legacy evidence
+> Źródło prawdy: TAK, dla organizacji assetów SUB-META/HUD. NIE, dla mechaniki i implementacji runtime.
+> Ostatnia aktualizacja: 2026-04-28
+> Powiązane dokumenty: `MODULAR_FRAME_KIT.md`, `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`, `SUB_META_COMPONENTS.md`, `SUB_META_FIGMA_ASSET_PASS_01.md`
 
-## 1. Cel dokumentu
+## 1. Decyzja po reset review
 
-Ten dokument opisuje strukturę katalogów i zasady nazewnictwa dla przyszłych assetów SUB-META + HUD.
+Obecny `style_correction` SVG pass ma status:
 
-Na tym etapie pipeline przygotowuje repozytorium pod pierwszy pass SVG. Nie dodaje finalnych grafik i nie zmienia runtime.
+- `LEGACY / EVIDENCE / STYLE EXPLORATION`;
+- niekanoniczny;
+- nieprodukcyjny;
+- niebędący bazą dla FrameComposera.
 
-## 2. Struktura katalogów assetów
+Pliki zostały przeniesione do:
 
-Assety wizualne znajdują się w:
+- `assets/visual/legacy/style_correction_2026_04/figma_export/`;
+- `assets/visual/legacy/style_correction_2026_04/runtime_test_assets/`.
+
+Aktywny manifest runtime `assets/visual/submeta/submeta_svg_manifest.json` pozostaje pusty/neutralny do czasu osobnego FrameComposer/runtime integration pass. Wyeksportowany Modular Frame Kit v0.1 ma osobny manifest evidence/export: `assets/visual/modular_frame_kit_v01_manifest.json`.
+
+## 2. Docelowy pipeline
+
+Docelowy pipeline przechodzi z pełnych overlayów na modular frame kit:
+
+1. Figma projektuje czyste frame parts.
+2. SVG są eksportowane do aktywnego `assets/visual`.
+3. SVG przechodzą walidację i ewentualny post-process.
+4. Manifest produkcyjny mapuje modular parts, nie legacy full-frame overlays.
+5. Runtime używa FrameComposera albo podobnego modułu do składania ramek.
+6. Live-coloring i animacje są osobnym future pass.
+
+## 3. Co Figma ma produkować
+
+Figma ma produkować:
+
+- corners;
+- edges;
+- center ornaments;
+- slot frames;
+- resonance nodes/sockets;
+- bridge / connection lines;
+- sequence markers;
+- card state accents;
+- new-card markers.
+
+Figma nie ma produkować jako głównego deliverable:
+
+- pełnych monolitycznych ramek;
+- finalnych raster backgrounds;
+- ciężko wypalonych glow/shadow;
+- bitmap/base64/fontów.
+
+## 4. Aktywna struktura katalogów
+
+Aktywne produkcyjne assety, po nowym passu, powinny trafiać do:
 
 ```text
 assets/
   visual/
     submeta/
       svg/
-        frames/
-        lines/
+        frame_parts/
+        slot_frames/
+        resonance_nodes/
+        bridge_lines/
         ornaments/
         glyphs/
-        slots/
-        placeholders/
-        hud/
-      raster_placeholders/
+        state_accents/
+      submeta_svg_manifest.json
     hud/
       svg/
-        frames/
-        glyphs/
-        meters/
-      raster_placeholders/
+        frame_parts/
+        sequence_markers/
+        counters/
+        buttons/
     shared/
       svg/
-        frames/
-        lines/
+        frame_parts/
         ornaments/
         glyphs/
-      raster_placeholders/
+    legacy/
+      style_correction_2026_04/
 ```
 
-Każdy katalog ma `README.md`, aby struktura była utrzymywana przez Git.
+Istniejące katalogi `frames/`, `lines/`, `glyphs/`, `slots/`, `placeholders/` mogą pozostać jako struktura robocza, ale nie powinny sugerować, że legacy SVG jest aktywną produkcją.
 
-## 3. Pierwsze assety: SVG
+## 5. Legacy / evidence
 
-Pierwszy asset/component pass produkuje SVG:
+Legacy/evidence pozostaje w `assets/visual/legacy/`.
 
-- cienkie linie,
-- ramki,
-- sloty,
-- ornamenty,
-- glify,
-- placeholdery,
-- małe ramy i metry HUD.
+Zasady:
 
-Nie produkuje:
+- nie podpinać legacy do aktywnego manifestu;
+- nie używać legacy jako produkcyjnej ramy;
+- nie wykonywać kosmetycznego ratowania monolitycznych ramek;
+- używać legacy tylko do audytu, porównania i decyzji stylistycznych.
 
-- PNG,
-- WebP,
-- finalnych raster backgrounds,
-- fontów,
-- importów runtime,
-- pełnych mockupów ekranu.
+## 6. SVG rules before runtime
 
-## 4. Relacja Figma export → repo
+Przed importem produkcyjnym sprawdzić:
 
-Eksport z Figmy powinien trafiać do:
+- `viewBox`;
+- brak `<image>`;
+- brak `base64`;
+- brak fontów;
+- brak ciężkich baked filters;
+- obecność lub możliwość dodania `vector-effect="non-scaling-stroke"`;
+- clean layer/group naming;
+- rozdzielenie base/static i accent/dynamic layers.
 
-- `assets/visual/submeta/svg/frames/`
-- `assets/visual/submeta/svg/lines/`
-- `assets/visual/submeta/svg/ornaments/`
-- `assets/visual/submeta/svg/glyphs/`
-- `assets/visual/submeta/svg/slots/`
-- `assets/visual/submeta/svg/placeholders/`
-- `assets/visual/submeta/svg/hud/`
-- `assets/visual/hud/svg/frames/`
-- `assets/visual/hud/svg/glyphs/`
-- `assets/visual/hud/svg/meters/`
-- `assets/visual/shared/svg/frames/`
-- `assets/visual/shared/svg/lines/`
-- `assets/visual/shared/svg/ornaments/`
-- `assets/visual/shared/svg/glyphs/`
-
-Zasada:
-
-- element tylko SUB-META trafia do `submeta/`,
-- element tylko HUD trafia do `hud/`,
-- element używany w więcej niż jednej warstwie trafia do `shared/`.
-
-## 5. Raster pipeline
+## 7. Raster pipeline
 
 Raster pipeline pozostaje osobny.
 
-Katalogi `raster_placeholders/` są zarezerwowane dla przyszłych roboczych placeholderów lub testów układu. Nie są częścią pierwszego passu SVG i nie powinny zawierać finalnych PNG/WebP bez osobnej decyzji projektowej.
+PNG/WebP nie powstają w tym kroku i nie powinny być dodawane do aktywnego frame kit. Figma może wskazywać obszary pod raster, ale właściwe bitmapy powstają poza Figma w osobnym etapie.
 
-## 6. Zasady nazewnictwa
+## 8. Runtime boundary
 
-Nazwy plików:
+Ten dokument nie implementuje runtime.
 
-- małe litery,
-- słowa rozdzielane `_`,
-- prefiks obszaru: `submeta_`, `hud_` albo `shared_`,
-- rodzina komponentu po prefiksie,
-- wariant inspiracji lub funkcji,
-- numer wariantu dwucyfrowy na końcu.
+Oczekiwany przyszły etap:
 
-Format:
-
-```text
-<area>_<family>_<role>_<variant>_<nn>.svg
-```
-
-## 7. Proponowane nazwy przyszłych plików
-
-Nie tworzyć tych plików teraz. To konwencja dla późniejszego eksportu:
-
-```text
-submeta_frame_panel_astrolabe_01.svg
-submeta_frame_panel_armillary_01.svg
-submeta_frame_card_r1_red_01.svg
-submeta_frame_card_ds_red_01.svg
-submeta_line_divider_thin_01.svg
-submeta_line_connector_orbit_01.svg
-submeta_ornament_corner_rosette_01.svg
-submeta_ornament_border_girih_01.svg
-submeta_glyph_axis_form_01.svg
-submeta_glyph_axis_intention_01.svg
-submeta_glyph_axis_time_01.svg
-submeta_glyph_axis_silence_01.svg
-hud_frame_counter_rp_01.svg
-hud_frame_counter_color_01.svg
-hud_meter_sequence_01.svg
-```
-
-## 8. Kontrola przed importem do runtime
-
-Przed jakimkolwiek runtime import należy osobno sprawdzić:
-
-- czystość SVG,
-- skalowanie stroke,
-- rozmiar pliku,
-- zgodność nazw,
-- brak embedded raster images,
-- brak fontów,
-- zgodność z `SUB_META_LINE_ORNAMENT_LIBRARY.md`.
-
-Ten krok nie jest częścią obecnego etapu.
->>>>>>> Stashed changes
+- FrameComposer składa corners/edges/ornaments;
+- static layers renderują stabilne ramy;
+- dynamic layers obsługują tinting, selected/hover/locked/active, new-card marker i subtelne animacje;
+- fallback SUB-META pozostaje funkcjonalny, jeśli manifest lub asset nie załaduje się poprawnie.

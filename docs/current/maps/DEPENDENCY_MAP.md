@@ -1,26 +1,25 @@
-# Haiku Cosmos — DEPENDENCY_MAP
+# Haiku Cosmos - DEPENDENCY_MAP
 
 > Status: KANON
 > Obszar: mapa zależności projektu
 > Źródło prawdy: TAK, dla relacji między dokumentami/systemami
-> Ostatnia aktualizacja: 2026-04-26
+> Ostatnia aktualizacja: 2026-04-28
 > Powiązane dokumenty: PROJECT_INDEX.md, ../README.md, ../../../AGENTS.md
 
 ## 1. Cel dokumentu
 
-`DEPENDENCY_MAP.md` jest szybką mapą roboczą zależności między systemami gry, dokumentami i orientacyjnymi obszarami runtime.
+`DEPENDENCY_MAP.md` jest roboczą mapą zależności między systemami gry, dokumentami i orientacyjnymi obszarami runtime.
 
 ## 2. Kolejność czytania
 
-1. `README.md` (root),
+1. `README.md` w root,
 2. `docs/README.md`,
 3. `docs/current/README.md`,
 4. `docs/current/maps/PROJECT_INDEX.md`,
 5. `docs/current/maps/DEPENDENCY_MAP.md`.
 
-## 3. Dokumenty wg statusu
+## 3. KANON
 
-### KANON
 - `docs/current/README.md`
 - `docs/current/maps/PROJECT_INDEX.md`
 - `docs/current/maps/DEPENDENCY_MAP.md`
@@ -31,60 +30,74 @@
 - `docs/current/systems/I18N_SYSTEM.md` (KANON STRUKTURALNY / DO WDROŻENIA)
 - `docs/current/ui/UI_WORLD.md`
 
-### KIERUNEK
+## 4. KIERUNEK visual
+
 - `docs/current/visual/README.md`
 - `docs/current/visual/ART_DIRECTION.md`
 - `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`
 - `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`
-<<<<<<< Updated upstream
-- `docs/current/visual/FIGMA_WORKFLOW.md` (KIERUNEK / WORKFLOW WYKONAWCZY)
-- `docs/current/visual/SUB_META_FIGMA_BRIEF.md` (KIERUNEK / BRIEF WYKONAWCZY)
-- `docs/current/visual/SUB_META_LAYOUT_SPEC.md` (KIERUNEK / SPECYFIKACJA LAYOUTU)
-- `docs/current/visual/SUB_META_COMPONENTS.md` (KIERUNEK / BIBLIOTEKA KOMPONENTÓW)
-- `docs/current/visual/SUB_META_ASSET_PIPELINE.md` (KIERUNEK / SPECYFIKACJA WYKONAWCZA)
-- `docs/current/visual/SUB_META_TYPOGRAPHY.md` (KIERUNEK / TYPOGRAFIA)
-- `docs/current/visual/SUB_META_RESPONSIVE_SCALING.md` (KIERUNEK / SPECYFIKACJA RESPONSYWNOŚCI)
-- `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / SZABLON PROMPTU)
-=======
-- `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md`
+- `docs/current/visual/MODULAR_FRAME_KIT.md`
+- `docs/current/visual/MODULAR_FRAME_KIT_FIGMA_PROMPT.md`
 - `docs/current/visual/SUB_META_COMPONENTS.md`
 - `docs/current/visual/SUB_META_ASSET_PIPELINE.md`
 - `docs/current/visual/FIGMA_WORKFLOW.md`
 - `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md`
->>>>>>> Stashed changes
+- `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md`
 
-### ROBOCZY
+## 5. ROBOCZY / EVIDENCE
+
 - `docs/current/systems/ROADMAP.md`
 - `docs/current/technical/README.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
+- `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (robocza architektura rozdzialu card mechanics vs card visuals / FrameComposer)
+- `docs/current/technical/FRAME_COMPOSER_SPEC.md` (roboczy kontrakt layoutu modularnych SVG: anchorOffset, lineInset, ornamentScale)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md`
 - `docs/current/technical/LIVE_VALIDATION_PACK.md`
-- `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (evidence przebiegu Figma; nie kanon mechaniki)
+- `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (evidence przebiegu Figma i runtime review)
+- `docs/current/visual/MODULAR_FRAME_KIT_ASSET_MANIFEST.md` (evidence manifestu legacy SVG)
 
-### LEGACY / HISTORYCZNE (nie kanon)
+## 6. LEGACY / HISTORYCZNE
+
 - `docs/legacy/systems/TARGETS_SYSTEM.md`
 - `docs/legacy/technical/HAIKU_EDITOR.md`
 - `docs/legacy/technical/WORLD_FUNCTION_MAP_OLD.md`
 - `docs/legacy/workflow/CODEX_START.md`
 - `docs/legacy/workflow/CODEX_PATCHPOINTS.md`
 - `docs/legacy/workflow/haiku_cosmos_agents.md`
+- `assets/visual/legacy/style_correction_2026_04/` - legacy/evidence obecnego SVG passu SUB-META/HUD.
 
-## 4. Evidence / audyty
+## 7. Kluczowe relacje
 
-- `docs/audits/chronological/` — audyty etapowe.
-- `docs/audits/thematic/runtime/AUDIT_DEAD_CODE.md` — historyczny evidence.
-- `docs/audits/thematic/runtime/AUDIT_SEQUENCE_ENGINE.md` — historyczny evidence.
+### Systemy
 
-## 5. Ostrzeżenia
+- `CARDS_SYSTEM.md` definiuje typy kart, sekwencje i DS.
+- `ECONOMY_SYSTEM.md` definiuje RP i koszty.
+- `SUB_META_SYSTEM.md` definiuje strukturę konfiguracji kart w SUB-META.
+- `UI_WORLD.md` definiuje sposób prezentacji HUD, SUB-META i META.
 
-- `docs/current/technical/WORLD_FUNCTION_MAP.md` ma status ROBOCZY i służy jako mapa orientacyjna runtime; nie zastępuje audytu funkcja-po-funkcji.
-- `docs/current/systems/PRG_SYSTEM.md` ma status KANON STRUKTURALNY / DO STROJENIA: struktura osi i relacje R1/R2/ODB są kanoniczne, ale wartości liczbowe i feeling runtime wymagają dalszego strojenia.
-- Relacja PRG ↔ SUB-META ↔ UI ↔ visual jest obowiązująca kierunkowo: struktura i slotowanie (`SUB_META_SYSTEM.md`), prezentacja i przełączanie (`UI_WORLD.md`), feeling i materiał (`docs/current/visual/*`).
-- Relacja SUB-META/HUD ↔ assety SVG jest kierunkowo opisana w `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md`, `docs/current/visual/SUB_META_COMPONENTS.md`, `docs/current/visual/SUB_META_ASSET_PIPELINE.md`, `docs/current/visual/FIGMA_WORKFLOW.md` i `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md`. Te dokumenty nie zmieniają mechaniki ani runtime.
-- Evidence pierwszego passu Figmy znajduje się w `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md`; komponenty SVG powstały w istniejącym pliku Figma, ale lokalny eksport SVG do repo nie został zapisany z powodu limitu wyniku narzędzia.
-- Relacja I18N ↔ UI ↔ CARDS ↔ PRG ↔ ECONOMY ↔ SUB-META jest obowiązująca strukturalnie: I18N definiuje warstwę językową i fallback (`I18N_SYSTEM.md`), a systemy domenowe definiują sens i miejsce użycia tekstów (`UI_WORLD.md`, `CARDS_SYSTEM.md`, `PRG_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `SUB_META_SYSTEM.md`).
-- `docs/current/systems/I18N_SYSTEM.md` ma status KANON STRUKTURALNY / DO WDROŻENIA: zasady językowe, zakres tłumaczeń, model kluczy i fallback są kanoniczne, ale implementacja runtime (pliki locale, loader, przełącznik języka, testy) pozostaje do wdrożenia.
-- `docs/current/technical/IMPLEMENTATION_TRACKER.md` i `docs/current/technical/LIVE_VALIDATION_PACK.md` mają status ROBOCZY (operacyjny, niekanoniczny).
-- Audyty w `docs/audits/thematic/runtime/` zawierają stare założenia (m.in. ścieżki `.codex.js` i `md/`).
+### Visual / assets
+
+- `ART_DIRECTION.md`, `KOSMOLOGIA_WIZUALNA.md` i `BIBLIOTEKA_MATERIALOW.md` definiują bazowy kierunek oprawy.
+- `MODULAR_FRAME_KIT.md` jest kierunkiem dla nowych frame parts, static/dynamic layers i decyzji o odrzuceniu obecnego passu produkcyjnego.
+- `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest promptem wykonawczym dla następnego passu Figma.
+- `SUB_META_ASSET_PIPELINE.md` definiuje docelową organizację aktywnych modular assets oraz legacy/evidence policy.
+- `SUB_META_COMPONENTS.md` definiuje komponenty frame parts, dynamic state layers, new-card marker i slot bridges.
+
+- `assets/visual/modular_frame_kit_v01_manifest.json` opisuje wyeksportowany Modular Frame Kit v0.1 (`35` SVG) jako `exported_review_ready`, bez runtime integration.
+- `FRAME_COMPOSER_SPEC.md` definiuje roboczy kontrakt przyszlego skladania modularnych SVG po anchorach, nie po samym `viewBox`.
+
+### Runtime
+
+- `CARD_VISUAL_ARCHITECTURE.md` wyznacza przyszly rozdzial: `cards.js` jako mechanika, `hc.card_visuals.js` jako rysowanie kart, `hc.frame_composer.js` jako skladanie ramek i `hc.visual_assets.js` jako loader/cache assetow.
+- `FRAME_COMPOSER_SPEC.md` precyzuje przyszly kontrakt `hc.frame_composer.js`: `anchorOffset`, `lineInset`, `ornamentScale`, debug anchors oraz static/dynamic layers.
+- `cards.js` renderuje SUB-META i HUD kart oraz ma defensywny loader manifestu SVG.
+- `hc.ui_debug.js` buduje DOM HUD i przycisk SUB-META.
+- Aktywny manifest `assets/visual/submeta/submeta_svg_manifest.json` może być pusty; runtime musi zachować funkcjonalny fallback.
+
+## 8. Ostrzeżenia
+
+- Dokumenty visual nie zmieniają mechaniki kart, sekwencji, kosztów RP ani PRG behavior.
+- Obecne SVG `style_correction_2026_04` nie są kanonem i nie są bazą dla FrameComposera.
+- Nowe ramki v0.1 powstaly od zera w Figmie jako modular parts i zostaly wyeksportowane do `assets/visual/...`; runtime integration pozostaje future pass.
+- FrameComposer, live-coloring, new/seen-card state i animacje to osobne future pass.
 - `docs/legacy/` nie jest źródłem prawdy.
-- Pakiet SUB-META + Figma (layout, komponenty, asset pipeline, typografia, responsive scaling, prompt template) w `docs/current/visual/` definiuje kierunek i ramę wykonawczą, ale nie zmienia mechaniki systemów.

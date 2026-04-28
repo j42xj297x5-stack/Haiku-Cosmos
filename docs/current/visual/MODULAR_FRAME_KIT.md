@@ -1,103 +1,243 @@
-# Haiku Cosmos — MODULAR FRAME KIT (AUDYT 2026-04-27)
+# Haiku Cosmos - Modular Frame Kit
 
-> Status: KIERUNEK / AUDYT ASSETÓW
-> Obszar: visual / assets / Figma / SVG (HUD, SUB-META, shared)
-> Źródło prawdy: TAK, dla porządku katalogowego i zasad przygotowania frame kitu do kolejnego kroku
-> Nie obejmuje: runtime, mechaniki, sekwencji, implementacji FrameComposer
+> Status: KIERUNEK / RESET PO AUDYCIE
+> Obszar: visual / assets / Figma / SVG / HUD / SUB-META
+> Źródło prawdy: TAK, dla kierunku nowego modular frame kit
+> Ostatnia aktualizacja: 2026-04-28
+> Nie obejmuje: mechaniki, sekwencji, kosztów RP, implementacji FrameComposer
 
-## 1. Cel systemu
+## 1. Decyzja po audycie
 
-Celem Modular Frame Kit jest przygotowanie cienkiego, modułowego języka ramek zgodnego z kierunkiem **rytualnego minimalizmu kosmicznego**: lekka geometria, czytelność, cisza wizualna, brak ciężkich fantasy borderów i brak agresywnego neonu.
+Audyt aktualnego passu SVG wykazał, że zestaw `style_correction` nie nadaje się jako baza produkcyjna dla FrameComposera.
 
-W tym kroku wykonano wyłącznie audyt i uporządkowanie dokumentacyjne.
+Najważniejsze problemy:
 
-## 2. Zasady modułowości
+- dominują pełne, monolityczne ramy zamiast modułów corner/edge/ornament;
+- występują duplikaty między lokalnym eksportem Figma i `assets/visual`;
+- wiele plików ma baked-in filtry glow/shadow;
+- brakuje `vector-effect="non-scaling-stroke"`;
+- grupy/layer names są niespójne;
+- kolory są wypalone w źródłach i utrudniają runtime tinting.
 
-Docelowy kit ma być składany z części:
+Decyzja:
 
-- `corner_tl`, `corner_tr`, `corner_bl`, `corner_br`
-- `edge_top`, `edge_bottom`, `edge_left`, `edge_right`
-- `ornament_top_center`, `ornament_bottom_center`
-- `marker_sequence`, `slot_frame`, `separator`
+- obecny pass SVG ma status `LEGACY / EVIDENCE / STYLE EXPLORATION`;
+- nie jest kanonem wizualnym;
+- nie jest produkcyjnym zestawem runtime;
+- nie jest bazą do FrameComposera;
+- nowe ramki powstają od zera w Figmie jako modular frame kit.
 
-Stan obecny (na dzień **2026-04-27**): w `assets/visual/*/svg/frames/` dominują **monolityczne ramy** eksportowane 1:1 z Figmy (niepartycjonowane na corner/edge). To jest dobry materiał referencyjny stylistycznie, ale wymaga dalszego cleanupu pod modular composition.
+Legacy evidence znajduje się w:
+
+- `assets/visual/legacy/style_correction_2026_04/figma_export/`
+- `assets/visual/legacy/style_correction_2026_04/runtime_test_assets/`
+
+## 2. Docelowa modularność
+
+Nowy kit ma składać się wyłącznie z części, nie z pełnych overlayów:
+
+- corners: `corner_tl`, `corner_tr`, `corner_bl`, `corner_br`;
+- edges: `edge_top`, `edge_bottom`, `edge_left`, `edge_right`;
+- center ornaments: `ornament_top_center`, `ornament_bottom_center`;
+- neutral panel frames;
+- slot frames;
+- resonance sockets/nodes;
+- bridge/connection lines;
+- sequence markers;
+- card state accents.
+
+FrameComposer lub podobny moduł ma później składać te części w runtime. Ten dokument nie definiuje jeszcze implementacji.
 
 ## 3. Rodziny stylu
 
-Do utrzymania i porządkowania używamy rodzin:
+Główne rodziny nowego passu:
 
-- `astrolabe` (domyślna baza)
-- `ritual`
-- `eldritch`
-- `forge`
-- `ether`
-- `sequence`
-- `minimal`
+- `astrolabe / alchemical` - główna rodzina SUB-META;
+- `sacred / eldritch subtle` - gniazda, relacje, mosty i resonance nodes;
+- `forge / brass` - osobny przyszły zestaw dla Kuźni;
+- `minimal / sequence` - HUD i sekwencje.
 
-Aktualny zestaw realnie pokrywa głównie: `astrolabe`, `ritual`, `ether`, `sequence`; warianty `eldritch` i `forge` są na razie śladowe/eksperymentalne.
+Styl ma pozostać zgodny z rytualnym minimalizmem kosmicznym: cienka linia, dużo oddechu, brak ciężkich fantasy ramek i brak agresywnego neonu.
 
-## 4. Zasady techniczne SVG (wynik audytu)
+## 4. Zasady SVG
 
-Przeskanowano wszystkie SVG z obszaru `assets/visual/**` i `Figma/**` powiązane z frame kitem.
+Nowe źródła SVG powinny być przygotowane tak, aby dało się je składać i kolorować w runtime:
 
-### 4.1. Co jest OK
+- transparent background;
+- grouped layers with clean names;
+- no embedded fonts;
+- no bitmap;
+- no base64;
+- no baked heavy shadows;
+- no final raster backgrounds;
+- thin strokes;
+- `vector-effect="non-scaling-stroke"` albo eksport z myślą o takim post-processingu;
+- neutral base layers oddzielone od accent/state layers.
 
-- wszystkie audytowane pliki mają `viewBox`;
-- nie wykryto osadzonych bitmap `<image>` ani `base64`;
-- brak osadzonych fontów;
-- brak pełnych nieprzezroczystych teł typu „tapeta” poza kontrolowanymi wypełnieniami panelowymi.
+Glows, pulse, shimmer i draw-in powinny być traktowane jako runtime effect layer, nie jako ciężko wypalony filtr w źródle SVG.
 
-### 4.2. Co wymaga cleanupu
+## 5. Static vs Dynamic Layers
 
-- prawie wszystkie assety mają baked-in `filter` (drop shadow/glow), co utrudnia runtime sterowanie stanami;
-- brak `vector-effect="non-scaling-stroke"` w kitach liniowych (ryzyko pogrubiania stroke przy skalowaniu);
-- nazwy grup/layerów są eksportowe i niespójne z docelową strukturą (`base-line`, `secondary-line`, `ornament`, `accent` itd.);
-- część ramek panelowych zawiera ciemny fill panelu w tym samym pliku co obrys (to utrudnia użycie jako czysty frame-part).
+### A. Warstwy statyczne
 
-## 5. Mapa katalogów (stan faktyczny)
+Warstwy statyczne to elementy stabilne, zwykle bez animacji:
 
-- `Figma/submeta/style_correction/*` — eksport źródłowy style-correction (frames/lines/ornaments/slots/glyph).
-- `Figma/hud/style_correction/*` — eksport źródłowy HUD style-correction.
-- `Figma/demo/style_correction/*` — demo/style board.
-- `assets/visual/submeta/svg/{frames,lines,glyphs,placeholders}` — docelowe kopie eksportów do repo.
-- `assets/visual/hud/svg/frames` — docelowe kopie eksportów HUD.
-- `assets/visual/submeta/svg/{ornaments,slots,hud}` — katalogi istnieją, obecnie puste.
+- bazowe narożniki paneli;
+- bazowe cienkie krawędzie;
+- neutralne ramy paneli;
+- neutralne ramy HUD;
+- nieaktywne separatory;
+- nieaktywne slot frames;
+- podstawowy dark/panel substrate.
 
-## 6. Manifest assetów
+Zasady:
 
-Pełny manifest (50 pozycji, z klasyfikacją `type/layer/style/status`) znajduje się w:
+- cienka linia;
+- brak agresywnego glow;
+- neutralne złoto, perła, grafit lub ciemny materiał panelowy;
+- przygotowanie pod tinting, ale domyślnie stabilny, spokojny wygląd.
 
-- `docs/current/visual/MODULAR_FRAME_KIT_ASSET_MANIFEST.md`
+### B. Warstwy dynamiczne
 
-## 7. Assety gotowe do użycia (w zakresie dokumentacyjnym / preview)
+Warstwy dynamiczne mogą być kolorowane i animowane live:
 
-- `assets/visual/submeta/svg/placeholders/submeta_hud_style_board_01.svg` (`demo`, `ready`)
-- skopiowane do `assets/visual` ramy HUD i SUB-META można używać jako **statyczne preview/evidence**, ale nie jako finalne moduły composera.
+- karta osadzona w slocie;
+- aktywna obwódka slotu;
+- aktywne połączenie między slotami;
+- resonance line / bridge;
+- sekwencyjny marker `R1` / `R2` / `AA` / `AAA`;
+- nowa karta w magazynie;
+- karta nietknięta / nieotwarta;
+- hover / focus / selected;
+- DS / piąty stan;
+- aktywny koszt / brak kosztu;
+- aktywna Kuźnia.
 
-## 8. Assety eksperymentalne
+Dynamic layer nie powinien zamieniać UI w neon. Ruch ma być subtelny, czytelny i osadzony w systemie koloru.
 
-Eksperymentalne (jeszcze nieprzeniesione do `assets/visual`) pozostają w `Figma/submeta/style_correction/`:
+### C. Zasada "new / untouched card"
 
-- ornamenty (`ornament/*`),
-- sloty (`slot/*`),
-- separator `celestial_bridge_02.svg`.
+Nowa karta, która trafia do magazynu, może mieć subtelny ruch:
 
-To jest materiał do selekcji i cleanupu przed etapem modularizacji.
+- delikatny pulse linii;
+- lekki shimmer ornamentu;
+- mały oddech glow;
+- spokojny draw-in obwódki.
 
-## 9. Lista problemów
+Po otwarciu, obejrzeniu albo wybraniu karty:
 
-1. Duplikaty 1:1 między `Figma/*/style_correction` a `assets/visual/*` (potrzebna jawna polityka: source vs deliverable).
-2. Brak rozbicia monolitycznych ramek na `corner/edge/ornament`.
-3. Baked-in filtry i stałe kolory ograniczają runtime recolor/state pipeline.
-4. Niespójność coverage: ornaments/slots są w Figmie, ale nie są jeszcze przeniesione do `assets/visual/submeta/svg/ornaments|slots`.
+- karta dostaje status `seen/touched`;
+- traci animację nowości;
+- pozostaje normalnym, stabilnym elementem.
 
-## 10. Rekomendowany następny krok
+To jest kierunek visual/UX i future pass. Nie wymaga implementacji teraz, jeśli runtime nie ma bezpiecznego statusu `seen/touched`.
 
-**Jeden krok:** wykonać dedykowany **cleanup assetów SVG (non-runtime)**:
+### D. Slot connections
 
-- wybrać zestaw v1 do modularizacji,
-- usunąć baked-in glow/shadow z wersji runtime-ready,
-- rozciąć 2–3 kluczowe ramy na `corner/edge/ornament`,
-- zachować równolegle wariant `style_correction` jako evidence.
+Połączenia między slotami, jeśli powstaną, powinny być projektowane jako dynamiczne:
 
-Dopiero po tym kroku warto pisać spec i implementację `FrameComposer`.
+- cienkie linie;
+- aktywne mosty;
+- subtelny pulse;
+- możliwy draw-in;
+- kolor osi albo relacji;
+- bez agresywnego neonu.
+
+Ten kierunek nie implementuje mechaniki połączeń. To visual direction i przyszły hook animacyjny.
+
+### E. Karty w slotach
+
+Karty w slotach mogą mieć:
+
+- aktywną linię obwódki;
+- subtelny pulse w aktywnym stanie;
+- kolor osi;
+- delikatny stan `locked` / `disabled` / `active`.
+
+Bazowy frame karty pozostaje stabilny. Ruch dotyczy tylko state/accent layer.
+
+## 6. Minimalny zakres nowego passu
+
+Pierwszy nowy pass powinien dostarczyć:
+
+- SUB-META astrolabe modular frame kit;
+- HUD minimal sequence kit;
+- card state accents.
+
+Szczegółowy prompt/spec dla Figmy znajduje się w `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`.
+
+## 7. Figma pass v0.1
+
+Nowy plik Figma dla pierwszego modularnego passu:
+
+- Nazwa: `Haiku Cosmos — Modular Frame Kit v0.1`
+- File key: `1KsSouDlvB24HznqRPXUf5`
+- URL: https://www.figma.com/design/1KsSouDlvB24HznqRPXUf5
+
+Utworzono sześć stron:
+
+- `README / Rules`
+- `SUB-META Astrolabe Kit`
+- `HUD Minimal Sequence Kit`
+- `Card State Accents`
+- `Runtime Tinting Notes`
+- `Mini Assembly Board`
+
+Pass v0.1 zawiera `35` modularnych komponentów:
+
+- `14` części SUB-META astrolabe kit;
+- `15` części HUD minimal sequence kit;
+- `6` warstw card state accents.
+
+Najważniejsze zasady wykonania:
+
+- komponenty są częściami ram, nie pełnymi overlayami;
+- komponenty mają transparentne tła;
+- warstwy są rozdzielone na `frame-base`, `frame-secondary`, `ticks`, `ornament`, `accent`, `state-layer`;
+- akcenty są przygotowane pod runtime tinting;
+- `state-layer` jest przyszłym targetem animacji;
+- glow/pulse/shimmer pozostają runtime effect layer, nie baked SVG.
+
+SVG zostaly wyeksportowane do repo w trzech batchach technicznych. Zestaw ma status `exported_review_ready`, ale nie jest jeszcze zintegrowany z runtime.
+
+Szczegóły passu i lista komponentów są zapisane w `SUB_META_FIGMA_ASSET_PASS_01.md`, sekcja `15. Modular Frame Kit Figma pass v0.1`.
+
+## 8. Status eksportu v0.1
+
+Manifest: `assets/visual/modular_frame_kit_v01_manifest.json`.
+
+Asset count: `35` SVG:
+
+- `14` SUB-META frame parts;
+- `15` HUD frame parts;
+- `6` Card State Accents.
+
+Runtime integration: `not_integrated`.
+
+Legacy `style_correction_2026_04` pozostaje evidence w `assets/visual/legacy/` i nie jest produkcyjnym source-of-truth.
+
+## 9. Static preview board
+
+Statyczny preview board znajduje sie w:
+
+- `assets/visual/preview/modular_frame_kit_v01_preview.html`
+
+To narzedzie review przed FrameComposerem. Pokazuje proof of assembly dla SUB-META, HUD, Card State Accents i CSS-only tinting simulation. Nie podlacza assetow do runtime i nie definiuje implementacji FrameComposera.
+
+Preview tuning note:
+
+- center ornaments powinny miec osobne parametry `ornamentScale`;
+- top-center moze byc minimalnie mocniejszy niz bottom-center, ale nie moze dominowac cienkiej ramy;
+- skala ornamentu jest parametrem kompozycyjnym layoutu, nie zmiana assetu SVG.
+
+Szczegoly przyszlego kontraktu technicznego FrameComposera sa w `../technical/FRAME_COMPOSER_SPEC.md`. Spec opisuje `anchorOffset`, `lineInset`, `ornamentScale`, debug anchors oraz static/dynamic layers bez implementacji runtime.
+
+## 10. Runtime follow-up
+
+Po nowym eksporcie SVG potrzebny będzie osobny etap:
+
+- walidacja SVG;
+- post-processing pod `non-scaling-stroke`, jeśli Figma nie wyeksportuje tego poprawnie;
+- manifest produkcyjnych modular assets;
+- integracja FrameComposer;
+- dopiero później live-coloring i animacje.

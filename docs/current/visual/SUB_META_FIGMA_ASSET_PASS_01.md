@@ -1,6 +1,6 @@
 # Haiku Cosmos — SUB-META + HUD Figma Asset Pass 01
 
-> Status: EVIDENCE / FIGMA PASS — COMPONENT PASS COMPLETED + STYLE CORRECTION PASS 01 COMPLETED / SVG EXPORT NOT WRITTEN TO REPO
+> Status: EVIDENCE / FIGMA PASS / STYLE CORRECTION LEGACY AFTER RUNTIME REVIEW
 > Obszar: Figma, SUB-META, HUD, biblioteka komponentów SVG
 > Źródło prawdy: TAK, dla evidence tego uruchomienia Figmy. NIE, dla finalnych assetów, runtime i mechaniki.
 > Data: 2026-04-26
@@ -538,3 +538,258 @@ Do review projektanta pozostaje:
 - tuning czytelności ramek w małej skali,
 - decyzja między wariantami rodzin (`r1_ritual_red_01` vs `r1_orbit_blue_02`, `ds_ether_plus_01` vs `ds_crystal_gate_02`),
 - decyzja o stopniu live-coloring i animacji (osobny pass po akceptacji runtime integration).
+
+## 14. Post-runtime review: legacy current SVG pass and restart with modular frame kit
+
+> Data: 2026-04-27
+> Tryb: repo-only, bez Figma MCP, bez generowania nowych grafik
+
+Po integracji runtime obecny pass SVG został oceniony ponownie z perspektywy kompozycji, skalowania i przygotowania pod przyszły FrameComposer.
+
+Wnioski:
+
+- obecne SVG działały technicznie jako ładowane assety;
+- fallback runtime pozostawał defensywny;
+- wizualnie pass nie spełnił wymagań produkcyjnych;
+- pełne ramki jako overlay źle skalowały się względem layoutu i potrafiły przecinać układ;
+- audyt wykazał monolityczność, duplikaty Figma/assets, baked filters/glow/shadow, brak `non-scaling-stroke`, niespójne grupy i stałe kolory.
+
+Decyzja:
+
+- obecny pass przeniesiono do `assets/visual/legacy/style_correction_2026_04/`;
+- `figma_export/` zachowuje lokalny eksport Figma jako evidence;
+- `runtime_test_assets/` zachowuje kopie, które były testowo podpięte w runtime;
+- aktywny manifest SVG został wyczyszczony;
+- nowe ramki mają powstać od zera w Figmie jako modular frame kit.
+
+Nowy pass ma projektować części, nie pełne overlaye:
+
+- corners;
+- edges;
+- center ornaments;
+- slot frames;
+- resonance nodes;
+- bridge/connection lines;
+- sequence markers;
+- card state accents.
+
+Runtime cleanup i pełna integracja FrameComposer są osobnymi etapami. Ten review nie zmienia mechaniki kart, sekwencji, kosztów RP ani PRG behavior.
+
+## 15. Modular Frame Kit Figma pass v0.1
+
+> Data: 2026-04-27
+> Tryb: Figma design/library pass
+> File key: `1KsSouDlvB24HznqRPXUf5`
+> URL: https://www.figma.com/design/1KsSouDlvB24HznqRPXUf5
+
+Utworzono nowy plik Figma:
+
+- `Haiku Cosmos — Modular Frame Kit v0.1`
+
+To jest nowy, czysty pass modularnych komponentów SVG-ready. Nie bazuje na `STYLE_CORRECTION_PASS_01` ani na lokalnych SVG przeniesionych do legacy/evidence.
+
+### 15.1. Strony utworzone w Figmie
+
+- `README / Rules`
+- `SUB-META Astrolabe Kit`
+- `HUD Minimal Sequence Kit`
+- `Card State Accents`
+- `Runtime Tinting Notes`
+- `Mini Assembly Board`
+
+### 15.2. Utworzone komponenty
+
+Łącznie utworzono `35` komponentów.
+
+SUB-META Astrolabe Kit:
+
+- `submeta/frame_parts/corner_tl_astrolabe_01`
+- `submeta/frame_parts/corner_tr_astrolabe_01`
+- `submeta/frame_parts/corner_bl_astrolabe_01`
+- `submeta/frame_parts/corner_br_astrolabe_01`
+- `submeta/frame_parts/edge_top_thin_astrolabe_01`
+- `submeta/frame_parts/edge_bottom_thin_astrolabe_01`
+- `submeta/frame_parts/edge_left_thin_astrolabe_01`
+- `submeta/frame_parts/edge_right_thin_astrolabe_01`
+- `submeta/frame_parts/ornament_top_center_astrolabe_01`
+- `submeta/frame_parts/ornament_bottom_center_astrolabe_01`
+- `submeta/frame_parts/separator_altar_scale_01`
+- `submeta/slot_frame/r1_socket_01`
+- `submeta/resonance_node/r2_socket_01`
+- `submeta/bridge_line/resonance_bridge_01`
+
+HUD Minimal Sequence Kit:
+
+- `hud/frame_parts/corner_tl_minimal_01`
+- `hud/frame_parts/corner_tr_minimal_01`
+- `hud/frame_parts/corner_bl_minimal_01`
+- `hud/frame_parts/corner_br_minimal_01`
+- `hud/frame_parts/edge_top_minimal_01`
+- `hud/frame_parts/edge_bottom_minimal_01`
+- `hud/frame_parts/edge_left_minimal_01`
+- `hud/frame_parts/edge_right_minimal_01`
+- `hud/sequence_marker/r1_01`
+- `hud/sequence_marker/r2_01`
+- `hud/sequence_marker/aa_01`
+- `hud/sequence_marker/aaa_01`
+- `hud/rp_mini_frame_01`
+- `hud/button_submeta_frame_01`
+- `hud/button_back_frame_01`
+
+Card State Accents:
+
+- `card_state/r1_slot_active_accent_01`
+- `card_state/ds_slot_active_accent_01`
+- `card_state/new_card_pulse_layer_01`
+- `card_state/seen_card_stable_layer_01`
+- `card_state/locked_slot_accent_01`
+- `card_state/selected_slot_accent_01`
+
+### 15.3. Runtime tinting / animation readiness
+
+Przyjęto podział warstw w komponentach:
+
+- `frame-base` — stabilna geometria bazowa;
+- `frame-secondary` — drugi plan, niski kontrast, opcjonalny delikatny tint;
+- `ticks` — podziałka, indeksy, kalibracja;
+- `ornament` — astrolabiczne i rytualne detale;
+- `accent` — warstwa runtime tinting;
+- `state-layer` — przyszły target dla pulse, draw-in, shimmer i stanów aktywnych.
+
+Plansza `Runtime Tinting Notes` opisuje kontrakt:
+
+- `frame-base: static`
+- `frame-secondary: static/tintable low`
+- `accent: tintable`
+- `state-layer: tintable + animatable`
+- `glow-guide: runtime effect only`
+
+Nie dodano animacji runtime. To wyłącznie gotowość projektowa pod przyszły pass.
+
+### 15.4. Mini Assembly Board
+
+Na stronie `Mini Assembly Board` złożono demonstracyjnie jedną ramkę SUB-META z instancji komponentów:
+
+- 4 narożniki;
+- 4 krawędzie;
+- ornament górny i dolny;
+- separator;
+- slot frame;
+- resonance node;
+- bridge line.
+
+To jest proof of assembly, nie pełny mockup SUB-META i nie implementacja FrameComposera.
+
+### 15.5. Walidacja Figma
+
+Walidacja struktury zwróciła:
+
+- liczba komponentów: `35`;
+- image paints: `0`;
+- baked effects: `0`;
+- największy komponent: `submeta/frame_parts/ornament_top_center_astrolabe_01` (`220 x 64`);
+- brak monolitycznego full overlay component.
+
+### 15.6. Czego nie zrobiono
+
+Nie wykonano:
+
+- eksportu SVG do repo;
+- PNG/WebP/JPG;
+- dodawania fontów;
+- runtime integration;
+- FrameComposera;
+- Implement Design;
+- Code Connect;
+- zmian mechaniki, kosztów RP, sekwencji albo PRG behavior.
+
+### 15.7. Co wymaga review projektanta
+
+Do review projektanta pozostaje:
+
+- czy poziom ornamentu narożników SUB-META jest wystarczająco bogaty bez wejścia w fantasy border;
+- czy krawędzie są wystarczająco neutralne i rozciągalne;
+- czy HUD sequence markers są czytelne w małej skali;
+- czy DS/perła/eter ma właściwy poziom jasności;
+- czy `new_card_pulse_layer_01` jest wystarczająco subtelny;
+- czy Mini Assembly Board dobrze pokazuje kierunek przyszłego FrameComposera.
+
+## 16. Modular Frame Kit v0.1 - SVG export completed
+
+> Data: 2026-04-27
+> Tryb: repo export sync, bez runtime integration
+> File key: `1KsSouDlvB24HznqRPXUf5`
+
+SVG z pliku `Haiku Cosmos - Modular Frame Kit v0.1` zostaly wyeksportowane do repo w trzech batchach:
+
+- Batch 01 / SUB-META: `14` SVG w `assets/visual/submeta/svg/frame_parts/`;
+- Batch 02 / HUD: `15` SVG w `assets/visual/hud/svg/frame_parts/`;
+- Batch 03 / Card State Accents: `6` SVG w `assets/visual/cards/svg/state_accents/`.
+
+Razem: `35` SVG.
+
+Manifest zbiorczy:
+
+- `assets/visual/modular_frame_kit_v01_manifest.json`
+
+Walidacja lokalna: PASS.
+
+- `viewBox`: PASS;
+- embedded raster/base64/image: PASS;
+- embedded fonts/font-family: PASS;
+- baked filters / `fe*`: PASS.
+
+Nie wykonano:
+
+- runtime integration;
+- FrameComposera;
+- globalnego manifestu runtime;
+- Code Connect;
+- Implement Design;
+- PNG/WebP/JPG/fontow.
+
+Nastepny krok: review assetow oraz osobny FrameComposer spec / integration pass.
+
+## 17. Modular Frame Kit v0.1 - static preview board
+
+> Data: 2026-04-28
+> Tryb: repo-only visual preview, bez runtime integration
+
+Dodano statyczny preview board:
+
+- `assets/visual/preview/modular_frame_kit_v01_preview.html`
+- `assets/visual/preview/modular_frame_kit_v01_preview.css`
+- `assets/visual/preview/modular_frame_kit_v01_preview.js`
+
+Preview laduje `assets/visual/modular_frame_kit_v01_manifest.json` i pokazuje:
+
+- SUB-META modular frame assembly;
+- HUD minimal kit preview;
+- Card State Accents preview;
+- CSS-only tinting simulation.
+
+Preview nie wykonuje:
+
+- runtime integration;
+- FrameComposera;
+- zmian mechaniki;
+- edycji SVG;
+- eksportu nowych grafik.
+
+Tinting jest tylko symulacja CSS przez filtry i overlay. Poniewaz SVG sa ladowane jako zewnetrzne obrazy, glebokie kolorowanie warstw wymaga osobnego przygotowania SVG albo przyszlego inline/runtime SVG pass.
+
+## 18. Preview tuning: center ornament scale
+
+> Data: 2026-04-28
+> Tryb: repo-only preview tuning, bez Figma MCP
+
+Manual review wykazal, ze SUB-META top/bottom center ornaments w preview board byly zbyt dominujace wzgledem cienkiej ramy.
+
+Zmieniono tylko osadzenie w preview board:
+
+- `--submeta-top-ornament-scale: 0.78`;
+- `--submeta-bottom-ornament-scale: 0.84`.
+
+Nie edytowano SVG source, manifestu ani runtime. Figma MCP nie byla uzyta.
+
+Docelowo FrameComposer powinien traktowac `ornamentScale` i `anchorOffset` jako parametry layoutowe, a nie jako zmiane assetu.

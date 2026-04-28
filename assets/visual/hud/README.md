@@ -1,5 +1,13 @@
 # assets/visual/hud
 
+## Modular Frame Kit v0.1
+
+Nowe modularne assety HUD znajduja sie w `svg/frame_parts/`.
+
+Status: `exported_review_ready`, ale runtime integration nadal nie jest wykonana.
+
+Legacy overlaye `style_correction_2026_04` nie sa aktywnym source-of-truth. FrameComposer integration bedzie osobnym krokiem po review assetow.
+
 > Status: STRUKTURA ROBOCZA
 > Obszar: HUD
 
@@ -18,8 +26,9 @@ Tu trafią assety podstawowego HUD: ramki liczników, glify i metry.
 - plików runtime,
 - cudzych grafik.
 
-Stan po local migration pass (2026-04-26):
+Stan po reset review i eksporcie v0.1 (2026-04-28):
 
-- realne SVG z `Figma/hud/style_correction` zostały skopiowane do `svg/frames`,
-- runtime HUD używa reprezentatywnie: `hud_frame_rp_counter_ritual_01.svg`, `hud_frame_color_counter_axis_01.svg`, `hud_button_submeta_gate_01.svg`, `hud_button_back_ritual_01.svg` (z fallbackiem do dotychczasowego renderingu),
-- dodatkowe warianty (`rp_counter_orbit_02`) są zachowane jako alternatywa do kolejnych passów.
+- SVG z `style_correction_2026_04` zostały przeniesione do `assets/visual/legacy/style_correction_2026_04/`,
+- runtime HUD nie używa już DOM `background-image` z legacy SVG,
+- aktywne legacy `svg/frames` nie zawiera produkcyjnych ramek z tego passu,
+- nowy HUD kit v0.1 istnieje jako minimalny modular sequence kit w `svg/frame_parts/`.

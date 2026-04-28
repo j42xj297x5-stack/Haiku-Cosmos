@@ -1,67 +1,87 @@
-# Haiku Cosmos — MODULAR FRAME KIT ASSET MANIFEST (2026-04-27)
+# Haiku Cosmos - Modular Frame Kit Asset Manifest
 
-> Status: AUDYT / INWENTARYZACJA
-> Zakres: SVG powiązane z frame kitem w `assets/visual/**` i `Figma/**`
+> Status: EVIDENCE / LEGACY MANIFEST
+> Zakres: SVG powiązane z audytem frame kitu `style_correction_2026_04`
+> Ostatnia aktualizacja: 2026-04-27
+> Źródło prawdy: TAK, dla lokalizacji legacy/evidence. NIE, dla aktywnych produkcyjnych assetów.
 
-## Podsumowanie
+## 1. Podsumowanie po reset review
 
-- Łącznie assetów SVG: **50**
-- `ready`: **1**
-- `needs_cleanup`: **19**
-- `experimental`: **10**
-- `duplicate`: **20**
+Audyt objął 50 SVG:
 
-## Tabela manifestu
+- 30 lokalnych eksportów Figma `style_correction`;
+- 20 runtime test assets z aktywnego `assets/visual`.
 
-| ścieżka | typ | warstwa | styl | status | uwagi |
-|---|---|---|---|---|---|
-| Figma/demo/style_correction/submeta_hud_style_board_01.svg \| demo \| unknown \| unknown \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/hud/style_correction/button/back_ritual_01.svg \| unknown \| hud \| ritual \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/hud/style_correction/button/submeta_gate_01.svg \| unknown \| hud \| unknown \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/hud/style_correction/frame/color_counter_axis_01.svg \| unknown \| hud \| sequence \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/hud/style_correction/frame/rp_counter_orbit_02.svg \| unknown \| hud \| astrolabe \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/hud/style_correction/frame/rp_counter_ritual_01.svg \| unknown \| hud \| ritual \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/frame/card/ds_crystal_gate_02.svg \| unknown \| submeta \| ether \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/frame/card/ds_ether_plus_01.svg \| unknown \| submeta \| ether \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/frame/card/r1_orbit_blue_02.svg \| unknown \| submeta \| astrolabe \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/frame/card/r1_ritual_red_01.svg \| unknown \| submeta \| ritual \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/frame/panel/armillary_shrine_02.svg \| unknown \| submeta \| astrolabe \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/frame/panel/cosmogram_table_03.svg \| unknown \| submeta \| astrolabe \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/frame/panel/ritual_gate_01.svg \| unknown \| submeta \| ritual \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/glyph/axis/cisza_01.svg \| marker \| submeta \| unknown \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/glyph/axis/czas_01.svg \| marker \| submeta \| unknown \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/glyph/axis/forma_01.svg \| marker \| submeta \| unknown \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/glyph/axis/intencja_01.svg \| marker \| submeta \| unknown \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/line/connector/orbit_thread_01.svg \| marker \| submeta \| astrolabe \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/line/connector/resonance_arc_02.svg \| marker \| submeta \| sequence \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/line/separator/altar_scale_01.svg \| marker \| submeta \| unknown \| duplicate \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/line/separator/celestial_bridge_02.svg \| marker \| submeta \| unknown \| experimental \| brak kopii w assets/visual; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/ornament/border/girih_breath_01.svg \| ornament \| submeta \| unknown \| experimental \| brak kopii w assets/visual; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/ornament/corner/armillary_knot_02.svg \| ornament \| submeta \| astrolabe \| experimental \| brak kopii w assets/visual; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/ornament/corner/threshold_01.svg \| ornament \| submeta \| unknown \| experimental \| brak kopii w assets/visual; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/ornament/orbit/sacred_ring_01.svg \| ornament \| submeta \| unknown \| experimental \| brak kopii w assets/visual; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/ornament/rosette/axis_bloom_01.svg \| ornament \| submeta \| sequence \| experimental \| brak kopii w assets/visual; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/slot/aux_socket_01.svg \| slot_frame \| submeta \| unknown \| experimental \| brak kopii w assets/visual; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/slot/empty_orbit_01.svg \| slot_frame \| submeta \| astrolabe \| experimental \| brak kopii w assets/visual; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/slot/empty_recess_02.svg \| slot_frame \| submeta \| unknown \| experimental \| brak kopii w assets/visual; viewBox=OK, bitmap/base64=NO, filter=YES |
-| Figma/submeta/style_correction/slot/resonance_socket_01.svg \| slot_frame \| submeta \| sequence \| experimental \| brak kopii w assets/visual; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/hud/svg/frames/hud_button_back_ritual_01.svg \| marker \| hud \| ritual \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/hud/svg/frames/hud_button_submeta_gate_01.svg \| marker \| hud \| unknown \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/hud/svg/frames/hud_frame_color_counter_axis_01.svg \| unknown \| hud \| sequence \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; monolityczna rama; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/hud/svg/frames/hud_frame_rp_counter_orbit_02.svg \| unknown \| hud \| astrolabe \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; monolityczna rama; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/hud/svg/frames/hud_frame_rp_counter_ritual_01.svg \| unknown \| hud \| ritual \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; monolityczna rama; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/frames/submeta_frame_card_ds_crystal_gate_02.svg \| unknown \| submeta \| ether \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; monolityczna rama; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/frames/submeta_frame_card_ds_ether_plus_01.svg \| unknown \| submeta \| ether \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; monolityczna rama; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/frames/submeta_frame_card_r1_orbit_blue_02.svg \| unknown \| submeta \| astrolabe \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; monolityczna rama; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/frames/submeta_frame_card_r1_ritual_red_01.svg \| unknown \| submeta \| ritual \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; monolityczna rama; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/frames/submeta_frame_panel_armillary_shrine_02.svg \| unknown \| submeta \| astrolabe \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; monolityczna rama; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/frames/submeta_frame_panel_cosmogram_table_03.svg \| unknown \| submeta \| astrolabe \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; monolityczna rama; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/frames/submeta_frame_panel_ritual_gate_01.svg \| unknown \| submeta \| ritual \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; monolityczna rama; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/glyphs/submeta_glyph_cisza_01.svg \| marker \| submeta \| unknown \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/glyphs/submeta_glyph_czas_01.svg \| marker \| submeta \| unknown \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/glyphs/submeta_glyph_forma_01.svg \| marker \| submeta \| unknown \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/glyphs/submeta_glyph_intencja_01.svg \| marker \| submeta \| unknown \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/lines/submeta_line_connector_orbit_thread_01.svg \| marker \| submeta \| astrolabe \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/lines/submeta_line_connector_resonance_arc_02.svg \| marker \| submeta \| sequence \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/lines/submeta_line_separator_altar_scale_01.svg \| separator \| submeta \| unknown \| needs_cleanup \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
-| assets/visual/submeta/svg/placeholders/submeta_hud_style_board_01.svg \| demo \| submeta \| unknown \| ready \| duplicate 1:1 z parą Figma/assets; viewBox=OK, bitmap/base64=NO, filter=YES |
+Po decyzji projektowej cały zestaw ma status:
+
+- `LEGACY / EVIDENCE / STYLE EXPLORATION`;
+- nie kanon;
+- nie produkcja;
+- nie baza do FrameComposera.
+
+## 2. Aktualna lokalizacja
+
+Wszystkie SVG z audytu przeniesiono do:
+
+```text
+assets/visual/legacy/style_correction_2026_04/
+  figma_export/
+  runtime_test_assets/
+  README.md
+```
+
+Aktywne katalogi legacy `assets/visual/submeta/svg/frames`, `assets/visual/submeta/svg/glyphs`, `assets/visual/submeta/svg/lines`, `assets/visual/submeta/svg/placeholders` i `assets/visual/hud/svg/frames` nie zawieraja obecnie produkcyjnych SVG z passu `style_correction_2026_04`.
+
+Modular Frame Kit v0.1 ma osobny manifest evidence/export:
+
+```text
+assets/visual/modular_frame_kit_v01_manifest.json
+```
+
+Ten manifest opisuje `35` nowych SVG jako `exported_review_ready`, ale runtime integration pozostaje niewykonana.
+
+## 3. Grupy legacy
+
+| grupa | lokalizacja | liczba SVG | status |
+|---|---:|---:|---|
+| Figma demo export | `assets/visual/legacy/style_correction_2026_04/figma_export/demo/style_correction/` | 1 | evidence |
+| Figma HUD export | `assets/visual/legacy/style_correction_2026_04/figma_export/hud/style_correction/` | 5 | evidence |
+| Figma SUB-META export | `assets/visual/legacy/style_correction_2026_04/figma_export/submeta/style_correction/` | 24 | evidence |
+| Runtime HUD test assets | `assets/visual/legacy/style_correction_2026_04/runtime_test_assets/hud/svg/frames/` | 5 | evidence |
+| Runtime SUB-META frame test assets | `assets/visual/legacy/style_correction_2026_04/runtime_test_assets/submeta/svg/frames/` | 7 | evidence |
+| Runtime SUB-META glyph test assets | `assets/visual/legacy/style_correction_2026_04/runtime_test_assets/submeta/svg/glyphs/` | 4 | evidence |
+| Runtime SUB-META line test assets | `assets/visual/legacy/style_correction_2026_04/runtime_test_assets/submeta/svg/lines/` | 3 | evidence |
+| Runtime SUB-META placeholder evidence | `assets/visual/legacy/style_correction_2026_04/runtime_test_assets/submeta/svg/placeholders/` | 1 | evidence |
+
+## 4. Problemy wykazane przez audyt
+
+- Większość assetów to pełne monolityczne ramy.
+- Duża część plików była duplikatem między Figma export i runtime assets.
+- Wiele plików zawierało baked-in `filter`, glow lub shadow.
+- Brakowało `vector-effect="non-scaling-stroke"`.
+- Grupy i warstwy były niespójne.
+- Stałe kolory utrudniały runtime tinting.
+
+## 5. Aktywny manifest
+
+`assets/visual/submeta/submeta_svg_manifest.json` jest obecnie pusty:
+
+```json
+{}
+```
+
+Runtime ma zachować fallback canvas/DOM i nie ładować legacy SVG jako produkcyjnych assetów.
+
+## 6. Nastepny produkcyjny manifest
+
+Nastepny manifest produkcyjny powinien powstac dopiero w osobnym FrameComposer/runtime integration pass. Nie nalezy podmieniac pustego `assets/visual/submeta/submeta_svg_manifest.json` na legacy SVG.
+
+Nowy manifest ma mapować modular parts, np.:
+
+- `submeta.frame_part.astrolabe.corner_tl_01`;
+- `submeta.frame_part.astrolabe.edge_top_01`;
+- `submeta.slot_frame.astrolabe.base_01`;
+- `submeta.resonance_socket.sacred.base_01`;
+- `submeta.bridge_line.sacred.base_01`;
+- `hud.sequence_marker.minimal.base_01`;
+- `card_state.new.pulse_layer_01`.

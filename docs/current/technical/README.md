@@ -1,9 +1,12 @@
 # docs/current/technical
 
+> Update 2026-04-28: `CARD_VISUAL_ARCHITECTURE.md` dodaje robocza architekture rozdzialu mechaniki kart, card visuals, FrameComposera i visual asset loadera.
+> Update 2026-04-28: `FRAME_COMPOSER_SPEC.md` dodaje roboczy kontrakt techniczny dla anchorOffset, ornamentScale i modular SVG layout.
+
 > Status: ROBOCZY
 > Obszar: mapa dokumentów technicznych
 > Źródło prawdy: NIE (warstwa pomocnicza do kanonu)
-> Ostatnia aktualizacja: 2026-04-26
+> Ostatnia aktualizacja: 2026-04-28
 > Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
 
 Katalog `docs/current/technical/` zawiera dokumenty techniczne używane do pracy operacyjnej,
@@ -15,6 +18,8 @@ audytów i synchronizacji dokumentacji z runtime.
 - `SEQUENCE_STATE_CONTRACT.md` — **ROBOCZY / KONTRAKT TECHNICZNY** (single source-of-truth sekwencji + zasady evidence timeline)
 - `IMPLEMENTATION_TRACKER.md` — **ROBOCZY** (tracker wdrożeń i obszarów do weryfikacji)
 - `LIVE_VALIDATION_PACK.md` — **ROBOCZY** (roboczy kontrakt walidacji runów i evidence)
+- `FRAME_COMPOSER_SPEC.md` - **ROBOCZY / KONTRAKT TECHNICZNY** (anchorOffset, ornamentScale i layout modularnych SVG bez mechaniki)
+- `CARD_VISUAL_ARCHITECTURE.md` - **ROBOCZY / ARCHITEKTURA TECHNICZNA** (rozdzial mechaniki kart, card visuals, FrameComposera i visual assets)
 
 ## Zasady
 

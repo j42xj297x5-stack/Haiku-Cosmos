@@ -1,229 +1,164 @@
-<<<<<<< Updated upstream
-# SUB-META — biblioteka komponentów (etap 1)
+# Haiku Cosmos - SUB-META Components
 
-> Status: KIERUNEK / BIBLIOTEKA KOMPONENTÓW
-> Obszar: SUB-META / component sheet dla Figma
-> Źródło prawdy: TAK, dla visual component design w Figma; NIE, dla runtime i mechaniki
-> Ostatnia aktualizacja: 2026-04-26
-> Powiązane dokumenty: `docs/current/visual/SUB_META_FIGMA_BRIEF.md`, `docs/current/visual/SUB_META_LAYOUT_SPEC.md`, `docs/current/visual/SUB_META_ASSET_PIPELINE.md`, `docs/current/visual/SUB_META_RESPONSIVE_SCALING.md`, `docs/current/visual/SUB_META_TYPOGRAPHY.md`, `docs/current/systems/CARDS_SYSTEM.md`, `docs/current/systems/SUB_META_SYSTEM.md`, `docs/current/systems/PRG_SYSTEM.md`, `docs/current/systems/ECONOMY_SYSTEM.md`, `docs/current/ui/UI_WORLD.md`
+## Modular Frame Kit v0.1 exported components
 
-## 1. Zakres etapu 1
+Eksport v0.1 dostarcza nowe komponenty frame parts i state accents:
 
-W tym etapie projektujemy komponenty dla:
-- kart R1,
-- kart DS,
-- stanów slotów i paneli,
-- bazowej typografii,
-- komponentów potrzebnych do pierwszego component/asset pass.
+- SUB-META: corners, edges, center ornaments, separator, slot frame, resonance node i bridge line;
+- HUD: corners, edges, sequence markers, RP mini frame i button frames;
+- Cards: R1 active accent, DS active accent, new-card pulse layer, seen stable layer, locked accent i selected accent.
 
-## 2. Zasady wspólne
+Static/base relation:
 
-Każdy komponent ma być:
-- czytelny,
-- spójny z rytualnym minimalizmem kosmicznym,
-- oparty o cienkie linie i subtelne światło,
-- gotowy do skalowania mobile → desktop → 4K.
+- corners, edges, ornaments, separators, slot frames i HUD frames sa stabilnymi frame parts;
+- state accents, sequence markers, bridge/resonance akcenty i new-card pulse sa warstwami dynamicznymi przygotowanymi pod przyszly tinting/animation.
 
-Stany interakcji modelujemy jako **warianty komponentu**, nie jako przypadkowe osobne style:
-- `hover`,
-- `selected`,
-- `disabled`,
-- `locked`.
-
-## 3. Format preferowany i eksport (per komponent)
-
-| Komponent | Preferowany format | Uwagi eksportowe |
-|---|---|---|
-| Ramki | SVG | Geometria wektorowa, bez rasteryzacji. |
-| Glify | SVG | Każdy glif jako osobny asset. |
-| Cienkie linie / ornament | SVG | Ostre na każdej skali. |
-| Sloty (pusty/zajęty/zablokowany) | SVG | Warianty stanów jako komponenty. |
-| Karta R1 | SVG + placeholder rastra | Rama/glif/linie/slot: SVG; tło rasterowe tylko jako placeholder (finalny raster poza Figmą). |
-| Karta DS | SVG + placeholder rastra | Plus, rama i znaczniki: SVG; tło rasterowe tylko jako placeholder (finalny raster poza Figmą). |
-| Panele | SVG + placeholder rastra | Geometria SVG; tło panelu/tekstura jako placeholder (finalny raster poza Figmą). |
-| Przyciski | SVG + placeholder rastra | Kształt i obramowanie SVG; tło rasterowe tylko jako placeholder (finalny raster poza Figmą). |
-| Etykiety kosztu/liczników | SVG + tekst | Priorytet czytelności cyfr i kontrastu. |
-
-## 4. Karty — proporcja i skalowalność
-
-- Karty projektujemy w proporcji **1:3 (szerokość:wysokość)**.
-- Karty R1 i DS traktujemy jako komponenty skalowalne, nie zestaw sztywnych bitmap.
-- Warianty kolorów i stanów utrzymujemy w jednym systemie komponentowym.
-
-## 5. Zasady kluczowe per obiekt
-
-- **Rama: SVG.**
-- **Glif: SVG.**
-- **Cienka linia: SVG.**
-- **Slot: SVG.**
-- **Ornament: SVG.**
-- **Card frame: SVG.**
-- **Card raster background: placeholder, właściwy raster poza Figmą.**
-- **Panel raster background: placeholder, właściwy raster poza Figmą.**
-- **Button raster background: placeholder, właściwy raster poza Figmą.**
-
-## 6. Opis komponentów bazowych
-
-### 6.1. Karta R1
-- Dominanta osiowa RED/YELLOW/GREEN/BLUE.
-- Czytelna rama i glif.
-- Brak mylenia z DS.
-
-### 6.2. Karta DS
-- Charakter „dodatkowego slotu” z wyraźnym znakiem `+`.
-- Odróżnialna od R1 już w miniaturze.
-
-### 6.3. Sloty
-- `pusty`: gotowość osadzenia,
-- `zajęty`: fokus na osadzonej karcie,
-- `zablokowany`: czytelna blokada bez agresywnego alarmu.
-
-### 6.4. Panele i przyciski
-- Hierarchia: informacja → koszt → akcja.
-- Warianty stanów zawsze jako component variants.
-
-## 7. Zasady eksportu
-
-- Eksporty grupować według klas (`frame`, `glyph`, `slot`, `card`, `panel`, `button`).
-- Nie tworzyć jeszcze runtime folderów ani map loadera.
-- Dla rastrów dopuszczalne warianty 1x/2x/4x.
-- Dla geometrii priorytet SVG (pojedynczy skalowalny system).
-
-## 8. Czego unikać
-
-- Losowego miksu formatów bez uzasadnienia.
-- Wypalania cienkich linii do bitmap.
-- Tworzenia osobnych styli stanów poza systemem wariantów.
-- Ozdobnego fontu w małych etykietach operacyjnych.
-=======
-# Haiku Cosmos — SUB-META Components
+Ten eksport nie implementuje runtime, statusow kart ani FrameComposera.
 
 > Status: KIERUNEK / KATALOG KOMPONENTÓW
-> Obszar: SUB-META, HUD, komponenty wizualne SVG
-> Źródło prawdy: TAK, dla rodzin komponentów wizualnych SUB-META/HUD. NIE, dla mechaniki i implementacji runtime.
-> Ostatnia aktualizacja: 2026-04-26
-> Powiązane dokumenty: SUB_META_LINE_ORNAMENT_LIBRARY.md, SUB_META_ASSET_PIPELINE.md, FIGMA_WORKFLOW.md, SUB_META_FIGMA_PROMPT_TEMPLATE.md, ../ui/UI_WORLD.md, ../systems/SUB_META_SYSTEM.md
+> Obszar: SUB-META / HUD / frame parts / dynamic state layers
+> Źródło prawdy: TAK, dla rodzin komponentów wizualnych. NIE, dla mechaniki i runtime.
+> Ostatnia aktualizacja: 2026-04-28
+> Powiązane dokumenty: `MODULAR_FRAME_KIT.md`, `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`, `SUB_META_ASSET_PIPELINE.md`, `SUB_META_FIGMA_ASSET_PASS_01.md`
 
 ## 1. Cel dokumentu
 
-Ten dokument porządkuje pierwsze rodziny komponentów wizualnych dla SUB-META i podstawowego HUD.
+Ten dokument porządkuje rodziny komponentów wizualnych dla SUB-META i HUD po decyzji o resecie obecnego SVG passu.
 
-Szczegółowy kierunek linii, ornamentów i inspiracji historyczno-matematycznych znajduje się w `SUB_META_LINE_ORNAMENT_LIBRARY.md`.
+Nowy kierunek:
 
-## 2. Podział obszarów
+- frame parts zamiast monolitycznych ramek;
+- static base oddzielone od dynamic accent;
+- czyste SVG source;
+- runtime tinting i animacje jako future pass.
 
-### SUB-META
+## 2. Static base components
 
-Elementy używane w overlayu konfiguracji:
+Komponenty stabilne, zwykle bez animacji:
 
-- ramy paneli,
-- sloty,
-- ramy kart R1/DS,
-- linie połączeń R2,
-- separatory,
-- placeholdery paneli/kart/slotów,
-- glify osi i stanów.
+- `frame_part.corner`;
+- `frame_part.edge`;
+- `frame_part.center_ornament`;
+- `panel_frame.neutral`;
+- `hud_frame.neutral`;
+- `separator.inactive`;
+- `slot_frame.inactive`;
+- `panel_substrate.dark`.
 
-### HUD
+Zasady:
 
-Elementy używane w podstawowym HUD:
+- cienka linia;
+- neutralny materiał;
+- brak ciężkiego glow;
+- czytelność w małej skali;
+- przygotowanie do składania przez FrameComposer.
 
-- ramy liczników RP,
-- ramy liczników kolorów,
-- metry sekwencji,
-- małe glify stanu,
-- ticki i subtelne skale.
+## 3. Dynamic state layers
 
-### Shared
+Komponenty, które mogą być kolorowane lub animowane live:
 
-Elementy neutralne, używane przez więcej niż jedną warstwę:
+- `slot_accent.active`;
+- `slot_accent.selected`;
+- `slot_accent.hover`;
+- `slot_accent.locked`;
+- `slot_accent.disabled`;
+- `connection_line.active`;
+- `connection_line.inactive`;
+- `resonance_bridge.active`;
+- `sequence_marker.R1`;
+- `sequence_marker.R2`;
+- `sequence_marker.AA`;
+- `sequence_marker.AAA`;
+- `cost_state.available`;
+- `cost_state.insufficient`;
+- `forge_state.active`;
+- `ds_state.active`;
 
-- bazowe linie,
-- neutralne ramy,
-- proste ornamenty,
-- glify osiowe bez przypisania do jednego widoku.
+Dynamic layer ma wzmacniać odczyt stanu, nie dekorować wszystkiego naraz.
 
-## 3. Rodziny komponentów liniowych
+## 4. New-card marker
 
-Pierwszy katalog komponentów obejmuje:
+Nowa karta w magazynie może dostać osobny component/layer:
 
-- `frame.main`
-- `frame.panel`
-- `frame.card`
-- `frame.slot`
-- `line.divider`
-- `line.connector`
-- `line.scale_tick`
-- `ornament.corner`
-- `ornament.border`
-- `ornament.rosette`
-- `ornament.orbit`
-- `glyph.axis`
-- `glyph.state`
-- `glyph.card_r1`
-- `glyph.card_ds`
-- `placeholder.panel`
-- `placeholder.card`
-- `placeholder.slot`
-- `hud.meter_frame`
-- `hud.counter_frame`
+- `card_state.new_pulse_line`;
+- `card_state.new_shimmer_ornament`;
+- `card_state.new_draw_in_outline`;
+- `card_state.seen_stable`.
 
-Nazwy rodzin są logiczne. Konkretne nazwy plików eksportu opisuje `SUB_META_ASSET_PIPELINE.md`.
+Zasada:
 
-## 4. Pierwszy zestaw komponentów SVG
+- `new` / `untouched` może subtelnie oddychać;
+- po obejrzeniu, wyborze albo interakcji karta przechodzi do `seen/touched`;
+- `seen/touched` jest stabilne i bez animacji nowości.
 
-Pierwszy asset/component pass powinien dostarczyć:
+To jest kierunek component/UX. Implementacja statusu `seen/touched` jest future pass.
 
-- 3 warianty ram paneli SUB-META,
-- 3 warianty ramek kart R1,
-- 3 warianty ramek DS,
-- 4 warianty slotów,
-- 4 typy linii separatorów,
-- 4 typy linii połączeń,
-- 8 glifów osi/stanów inspirowanych geometrią,
-- 4 narożniki ornamentowe,
-- 2 rozety subtelne,
-- 2 pierścienie astrolabiczne,
-- 2 ramki HUD liczników,
-- 2 ramki HUD RP/metrów.
+## 5. Slot connection / bridge line
 
-To jest biblioteka komponentów, nie pełny ekran SUB-META.
+Połączenia slotów powinny mieć własne komponenty:
 
-## 5. Stany komponentów
+- `bridge_line.base`;
+- `bridge_line.active`;
+- `bridge_line.locked`;
+- `bridge_line.draw_in`;
+- `resonance_node.base`;
+- `resonance_node.active`.
 
-Komponenty powinny mieć warianty lub style pozwalające odróżnić:
+Zasady:
 
-- `default`,
-- `hover`,
-- `selected`,
-- `active`,
-- `disabled`,
-- `locked`,
-- `available`,
-- `insufficient RP`,
-- `special / DS`.
+- cienka linia;
+- subtelny pulse tylko w aktywnym stanie;
+- kolor osi lub relacji;
+- bez agresywnego neonu;
+- brak zmiany mechaniki połączeń w samym design passie.
 
-Stany muszą wzmacniać czytelność, a nie dekoracyjność.
+## 6. Karty w slotach
 
-## 6. Relacja do folderów assetów
+Karta osadzona w slocie składa się z:
 
-Eksporty trafiają do:
+- stabilnej bazy karty;
+- czytelnego koloru osi;
+- opcjonalnej aktywnej obwódki;
+- dynamic accent layer dla `active`, `hover`, `selected`, `locked`, `disabled`.
 
-- `assets/visual/submeta/svg/...` dla komponentów SUB-META,
-- `assets/visual/hud/svg/...` dla komponentów HUD,
-- `assets/visual/shared/svg/...` dla komponentów współdzielonych.
+Bazowy frame karty pozostaje stabilny. Animacje dotyczą wyłącznie warstwy state/accent.
 
-Katalogi `raster_placeholders/` są poza pierwszym pass SVG.
+## 7. HUD components
 
-## 7. Granice
+HUD powinien używać prostszego zestawu:
+
+- `hud_frame_part.corner`;
+- `hud_frame_part.edge`;
+- `hud_sequence_marker`;
+- `hud_rp_mini_frame`;
+- `hud_submeta_button_frame`;
+- `hud_color_counter_frame`;
+- `hud_sequence_pulse_accent`.
+
+HUD ma pozostać minimalny i nie zasłaniać świata.
+
+## 8. Figma component rules
+
+Każdy komponent:
+
+- clean name;
+- grouped layers;
+- transparent background;
+- no embedded fonts;
+- no bitmap;
+- no base64;
+- no baked heavy shadow/glow;
+- predictable bounds;
+- base/static i accent/dynamic jako osobne warstwy lub warianty.
+
+## 9. Granice
 
 Ten dokument nie definiuje:
 
-- mechaniki kart,
-- kosztów RP,
-- zachowania runtime,
-- layoutu finalnego ekranu,
-- finalnych grafik.
+- mechaniki kart;
+- kosztów RP;
+- zasad sekwencji;
+- implementacji FrameComposer;
+- statusu `seen/touched` w runtime.
 
-Komponenty mają przygotować język wizualny, który później może zostać wdrożony bez zmiany kanonu mechanicznego.
->>>>>>> Stashed changes
+To katalog komponentów pod przyszły Figma pass i późniejszą integrację runtime.

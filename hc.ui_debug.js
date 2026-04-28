@@ -107,16 +107,16 @@
   }
 
   function applyHudSvgSkin() {
+    // Legacy style_correction SVG HUD skins are disabled; keep readable DOM fallback until FrameComposer/HUD kit lands.
     const skinMap = [
-      { el: scoreLabel, path: "assets/visual/hud/svg/frames/hud_frame_rp_counter_ritual_01.svg", text: null },
-      { el: btnSubMeta, path: "assets/visual/hud/svg/frames/hud_button_submeta_gate_01.svg", text: "SUB-META" },
-      { el: btnRestart, path: "assets/visual/hud/svg/frames/hud_button_back_ritual_01.svg", text: "Wróć" }
+      { el: scoreLabel, text: null },
+      { el: btnSubMeta, text: "SUB-META" },
+      { el: btnRestart, text: "Wróć" }
     ];
     skinMap.forEach((entry) => {
       const el = entry.el;
       if (!el) return;
-      el.style.backgroundImage = `url("${entry.path}")`;
-      el.style.backgroundSize = "100% 100%";
+      el.style.backgroundImage = "none";
       el.style.backgroundRepeat = "no-repeat";
       el.style.backgroundColor = "rgba(6,10,16,0.35)";
       el.style.border = "1px solid rgba(180,210,255,0.35)";

@@ -226,11 +226,17 @@ const CardEngine = (() => {
   };
 
   const SVG_MANIFEST_PATH = "assets/visual/submeta/submeta_svg_manifest.json";
+  // Legacy style_correction SVG assets are disabled until a new modular FrameComposer pass exists.
+  const LEGACY_SVG_FRAME_ASSETS_ENABLED = false;
   let svgManifestPromise = null;
   let svgManifestMap = null;
   const svgImageCache = new Map();
 
   function ensureSvgManifestLoaded() {
+    if (!LEGACY_SVG_FRAME_ASSETS_ENABLED) {
+      svgManifestMap = {};
+      return Promise.resolve(svgManifestMap);
+    }
     if (svgManifestMap) return Promise.resolve(svgManifestMap);
     if (svgManifestPromise) return svgManifestPromise;
     if (typeof fetch !== "function") return Promise.resolve(null);
@@ -254,6 +260,7 @@ const CardEngine = (() => {
   }
 
   function drawManifestSvg(ctx, logicalName, x, y, w, h, alpha = 1) {
+    if (!LEGACY_SVG_FRAME_ASSETS_ENABLED) return false;
     if (!ctx || !logicalName || !Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return false;
     if (svgManifestMap === null) {
       ensureSvgManifestLoaded();
@@ -2717,6 +2724,7 @@ const CardEngine = (() => {
     const x = Math.floor(screenW - pad - rectW);
     const y0 = Math.floor(pad + 6);
     const frameH = rectH * order.length + gap * (order.length - 1) + 10;
+    // TODO(FrameComposer): replace this simple HUD fallback frame with modular static frame parts.
     drawManifestSvg(ctx, "hud.frame.color_counter_axis_01", x - 16, y0 - 6, 44, frameH, 0.95);
     const nowTime = nowMs();
     const runTimers = World.runColorTimers || {};
@@ -4695,6 +4703,7 @@ const CardEngine = (() => {
     ctx.globalAlpha = 1.0;
     ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.strokeRect(panel.x, panel.y, panel.w, panel.h);
+    // TODO(FrameComposer): keep this readable fallback until new modular frame parts replace legacy SVG overlays.
     drawManifestSvg(ctx, "submeta.frame.panel.ritual_gate_01", panel.x, panel.y, panel.w, panel.h, 0.9);
     drawManifestSvg(ctx, "submeta.line.separator.altar_scale_01", panel.x + 12, headerY + 8, panel.w - 24, 14, 0.8);
 

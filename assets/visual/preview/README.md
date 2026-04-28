@@ -1,0 +1,36 @@
+# Modular Frame Kit v0.1 preview
+
+Status: `static visual preview board`.
+
+Source manifest: `assets/visual/modular_frame_kit_v01_manifest.json`.
+
+Run from repo root:
+
+```bash
+python -m http.server 8123
+```
+
+Open:
+
+```text
+http://localhost:8123/assets/visual/preview/modular_frame_kit_v01_preview.html
+```
+
+## Scope
+
+- SUB-META modular frame assembly from corners, edges, ornaments, separator, slot frame, resonance node and bridge line.
+- HUD minimal kit preview with frame parts, RP mini frame, button frames and sequence markers.
+- Card State Accents preview for the 6 exported state layers.
+- CSS-only tinting simulation.
+
+## Boundaries
+
+- No runtime integration.
+- No FrameComposer.
+- No Figma MCP.
+- No SVG edits.
+- No PNG/WebP/JPG/font assets.
+
+## Tinting limitation
+
+The preview uses external SVG images. CSS filters and overlay colors can suggest red/yellow/green/blue/ether variants, but they do not deeply recolor SVG layers. True runtime tinting needs a later SVG preparation or inline/runtime SVG pass.
