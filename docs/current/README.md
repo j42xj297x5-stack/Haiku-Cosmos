@@ -47,6 +47,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `technical/README.md` - ROBOCZY
 - `technical/WORLD_FUNCTION_MAP.md` - ROBOCZY
 - `technical/CARD_VISUAL_ARCHITECTURE.md` - ROBOCZY / ARCHITEKTURA TECHNICZNA
+- `technical/FONT_SYSTEM_SPEC.md` - ROBOCZY / DO WDROZENIA
 - `technical/FRAME_COMPOSER_SPEC.md` - ROBOCZY / KONTRAKT TECHNICZNY
 - `technical/IMPLEMENTATION_TRACKER.md` - ROBOCZY
 - `technical/LIVE_VALIDATION_PACK.md` - ROBOCZY
