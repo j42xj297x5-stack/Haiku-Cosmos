@@ -322,3 +322,17 @@ Dodatkowe doprecyzowanie stanu kart:
 - `new-card pulse` jest stanem visual/UX;
 - `seen` / `touched` wygasza ruch i stabilizuje karte;
 - powyzsze stany nie zmieniaja mechaniki, typu karty ani zasad sekwencji.
+## 11. Update status — infrastructure modules available (2026-04-28)
+
+Wykonany zostal bezpieczny krok infrastrukturalny bez zmiany mechaniki:
+
+- `hc.visual_assets.js`: loader/cache/lookup dla `modular_frame_kit_v01_manifest.json`;
+- `hc.frame_composer.js`: pure layout calculations i debug helpers bez decyzji gameplayowych;
+- `hc.card_visuals.js`: pozostaje modułem scaffolding/no-op (integracja extraction pass).
+
+Zasady utrzymane:
+
+- `cards.js` nie powinien bezposrednio ladowac nowych modularnych SVG jako docelowego renderingu;
+- integracja produkcyjna SUB-META pozostaje osobnym pass;
+- FrameComposer moze byc podpinany etapowo przez `HC.CardVisuals`, nie przez rozszerzanie mechaniki `cards.js`.
+

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Haiku Cosmos — FrameComposer Sandbox</title>
+  <link rel="stylesheet" href="./frame_composer_sandbox.css" />
+</head>
+<body>
+  <main class="sandbox-shell">
+    <h1>FrameComposer Sandbox (repo-only)</h1>
+    <p class="note">Pure layout + modular assets preload. No runtime game integration.</p>
+
+    <canvas id="sandboxCanvas" width="960" height="620" aria-label="FrameComposer sandbox canvas"></canvas>
+
+    <section class="toolbar">
+      <button id="btnReload" type="button">Reload + Redraw</button>
+      <label><input id="toggleDebug" type="checkbox" checked /> Show debug anchors</label>
+    </section>
+
+    <pre id="statusPanel">Loading...</pre>
+  </main>
+
+  <script src="../../../hc.visual_assets.js"></script>
+  <script src="../../../hc.frame_composer.js"></script>
+  <script src="./frame_composer_sandbox.js"></script>
+</body>
+</html>

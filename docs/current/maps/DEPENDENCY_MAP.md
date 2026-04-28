@@ -90,7 +90,8 @@
 ### Runtime
 
 - `CARD_VISUAL_ARCHITECTURE.md` wyznacza przyszly rozdzial: `cards.js` jako mechanika, `hc.card_visuals.js` jako rysowanie kart, `hc.frame_composer.js` jako skladanie ramek i `hc.visual_assets.js` jako loader/cache assetow.
-- `FRAME_COMPOSER_SPEC.md` precyzuje przyszly kontrakt `hc.frame_composer.js`: `anchorOffset`, `lineInset`, `ornamentScale`, debug anchors oraz static/dynamic layers.
+- `FRAME_COMPOSER_SPEC.md` precyzuje kontrakt `hc.frame_composer.js`: `anchorOffset`, `lineInset`, `ornamentScale`, debug anchors oraz static/dynamic layers; zawiera tez status v0.1 implementation.
+- `assets/visual/preview/frame_composer_sandbox.html` testuje repo-only wspolprace `hc.visual_assets.js` + `hc.frame_composer.js` poza runtime gry.
 - `FONT_SYSTEM_SPEC.md` porzadkuje tokeny typografii i rejestry tekstu dla HUD/SUB-META/kart bez zmiany mechaniki.
 - `cards.js` renderuje SUB-META i HUD kart oraz ma defensywny loader manifestu SVG.
 - `hc.ui_debug.js` buduje DOM HUD i przycisk SUB-META.

@@ -34,3 +34,20 @@ http://localhost:8123/assets/visual/preview/modular_frame_kit_v01_preview.html
 ## Tinting limitation
 
 The preview uses external SVG images. CSS filters and overlay colors can suggest red/yellow/green/blue/ether variants, but they do not deeply recolor SVG layers. True runtime tinting needs a later SVG preparation or inline/runtime SVG pass.
+
+
+## FrameComposer sandbox (v0.1 infrastructure)
+
+Open:
+
+```text
+http://localhost:8123/assets/visual/preview/frame_composer_sandbox.html
+```
+
+Scope:
+
+- loads `hc.visual_assets.js` and `hc.frame_composer.js`;
+- loads manifest `assets/visual/modular_frame_kit_v01_manifest.json`;
+- preloads SUB-META astrolabe frame parts;
+- computes pure layout and draws one test frame + debug anchors on canvas;
+- does not use `cards.js` and does not integrate with production SUB-META rendering.

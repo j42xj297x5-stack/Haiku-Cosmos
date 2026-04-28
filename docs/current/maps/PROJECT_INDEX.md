@@ -70,4 +70,5 @@ Kanon jest mapowany warstwowo przez:
 - `targets_system`, `HAIKU_EDITOR`, `CODEX_START`, `CODEX_PATCHPOINTS`, `haiku_cosmos_agents` są dokumentami legacy i nie są aktywną specyfikacją.
 - Obecny pass SVG `style_correction_2026_04` jest evidence w `assets/visual/legacy/`, nie aktywnym zestawem produkcyjnym.
 - Modular Frame Kit v0.1 ma manifest evidence/export w `assets/visual/modular_frame_kit_v01_manifest.json`; runtime integration pozostaje future pass.
-- `FRAME_COMPOSER_SPEC.md` opisuje przyszly kontrakt layoutu modularnych SVG (`anchorOffset`, `lineInset`, `ornamentScale`) bez implementacji runtime.
+- `FRAME_COMPOSER_SPEC.md` opisuje kontrakt layoutu modularnych SVG (`anchorOffset`, `lineInset`, `ornamentScale`) i zawiera sekcje v0.1 implementation status (repo-only infrastructure).
+- `assets/visual/preview/frame_composer_sandbox.html` to manualny sandbox review dla `HC.VisualAssets` + `HC.FrameComposer` bez integracji runtime.
