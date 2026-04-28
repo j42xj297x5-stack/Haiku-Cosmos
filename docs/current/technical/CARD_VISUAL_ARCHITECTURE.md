@@ -296,3 +296,29 @@ Zasada:
 Ten dokument nie zmienia runtime behavior.
 
 Dodanie no-op namespace plikow jest bezpiecznym scaffoldingiem, ale ich podpiecie do `index.codex.html` powinno nastapic dopiero wtedy, gdy pierwszy extraction pass bedzie gotowy i testowany.
+
+## 14. Font relation (card visuals vs mechanika)
+
+Warstwa visual kart ma uzywac wspolnych tokenow typografii, a nie lokalnych ad-hoc fontow.
+
+Zasady:
+
+- `HC.CardVisuals` korzysta z tokenow font systemu (`--hc-font-ui`, `--hc-font-display`, `--hc-font-mono`);
+- tytul karty i etykiety UI pozostaja w rejestrze UI/body;
+- haiku / tekst poetycki moze miec spokojniejszy rejestr niz label techniczny;
+- renderowanie tekstu musi dopuszczac dluzsze tlumaczenia (pl/en i kolejne locale), bez zakladania stalej dlugosci stringa;
+- decyzja o konkretnym loaderze fontow pozostaje osobnym passsem.
+
+## 15. I18N note dla visual architecture
+
+- UI text i card text powinny docelowo przejsc na locale keys.
+- Ten krok nie wdraza loadera i18n.
+- Nie przenosimy masowo tekstow z runtime do slownikow.
+- Polski pozostaje jezykiem glownym, angielski pierwszym jezykiem alternatywnym.
+- Brak tlumaczen nie moze zablokowac UI; visual ma umiec pokazac bezpieczny fallback.
+
+Dodatkowe doprecyzowanie stanu kart:
+
+- `new-card pulse` jest stanem visual/UX;
+- `seen` / `touched` wygasza ruch i stabilizuje karte;
+- powyzsze stany nie zmieniaja mechaniki, typu karty ani zasad sekwencji.
