@@ -111,7 +111,8 @@
       missingLogicalNames: missingLogicalNames,
       sampleCornerTl: {
         logicalName: cornerTlLogicalName,
-        assetPath: window.HC.VisualAssets.getAssetPath(cornerTlLogicalName)
+        assetPath: window.HC.VisualAssets.getAssetPath(cornerTlLogicalName),
+        assetUrl: window.HC.VisualAssets.getAssetUrl(cornerTlLogicalName)
       },
       diagnostics: diagnostics
     });
