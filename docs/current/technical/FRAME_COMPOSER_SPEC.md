@@ -299,7 +299,18 @@ Zasady:
 - przygotowac hooki animacji dla new-card pulse, active slot line, bridge line pulse, selected shimmer i DS/ether accent;
 - animacje nie sa zrodlem prawdy i nie definiuja mechaniki.
 
-## 12. Zakazy
+## 12. v0.1 implementation status
+
+Status na 2026-04-28 (repo-only infrastructure pass):
+
+- `HC.VisualAssets` zaimplementowany jako bezpieczny loader/cache/lookup dla manifestu `assets/visual/modular_frame_kit_v01_manifest.json`;
+- `HC.FrameComposer` zaimplementowany dla pure layout calculations (`corners`, `edges`, `center ornaments`, `anchorOffset`, `lineInset`, `ornamentScale`) + debug helper;
+- dodano sandbox review `assets/visual/preview/frame_composer_sandbox.html` (manifest + preload + pojedynczy frame draw + debug anchors);
+- runtime integration pozostaje `not_integrated`;
+- produkcyjny rendering SUB-META nadal nie uzywa FrameComposera;
+- depth/relief, live-coloring i animation hooks pozostaja future pass.
+
+## 13. Zakazy
 
 FrameComposer nie moze:
 

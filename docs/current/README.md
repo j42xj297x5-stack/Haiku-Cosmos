@@ -65,4 +65,5 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - Legacy SVG `style_correction_2026_04`: przeniesione do evidence; aktywny `submeta_svg_manifest.json` jest pusty/neutralny.
 - Modular Frame Kit v0.1: `35` SVG exported_review_ready, manifest `assets/visual/modular_frame_kit_v01_manifest.json`.
 - Static preview board: `assets/visual/preview/modular_frame_kit_v01_preview.html`.
-- Runtime integration: not_integrated; nastepny krok to `technical/FRAME_COMPOSER_SPEC.md` -> pure layout implementation.
+- Runtime integration: not_integrated; `HC.VisualAssets` + `HC.FrameComposer` sa wdrozone jako repo-only infrastruktura v0.1 (loader/cache + pure layout), bez podpiecia produkcyjnego SUB-META.
+- FrameComposer v0.1 infrastructure sandbox: `assets/visual/preview/frame_composer_sandbox.html`.

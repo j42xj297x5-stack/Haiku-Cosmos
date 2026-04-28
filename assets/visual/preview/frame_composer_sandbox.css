@@ -1,0 +1,62 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: #06080d;
+  color: #d9e0ea;
+  font-family: "Noto Sans", "Inter", system-ui, sans-serif;
+}
+
+.sandbox-shell {
+  width: min(1000px, calc(100vw - 24px));
+  margin: 20px auto;
+  display: grid;
+  gap: 12px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.note {
+  margin: 0;
+  color: #a8b6c9;
+}
+
+canvas {
+  width: 100%;
+  height: auto;
+  border: 1px solid rgba(208, 219, 241, 0.2);
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 40%, rgba(214, 191, 130, 0.08), transparent 45%), #0b1019;
+}
+
+.toolbar {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+button {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+pre {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid rgba(208, 219, 241, 0.2);
+  border-radius: 8px;
+  background: rgba(7, 10, 16, 0.8);
+  color: #b8c8dd;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+}
