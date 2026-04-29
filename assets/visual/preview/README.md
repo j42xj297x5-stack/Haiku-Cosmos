@@ -67,3 +67,20 @@ Scope:
 - semantic 9-zone map (hidden semantics, not visual table) and center-based positioning legend;
 - explicit PRG/WORLD/core content model placeholders for R2/R3/R4/DS;
 - no runtime integration, no mechanics changes, no new graphic assets.
+
+### SUB-META v2 wireframe preview (Composition v0.3)
+
+Open:
+
+```text
+http://localhost:8123/assets/visual/preview/submeta_v2_wireframe/submeta_v2_wireframe.html
+```
+
+Scope:
+
+- low-fi composition pass with organic cockpit layout (non-3x3 table look);
+- top/middle/bottom weight separation with middle cockpit dominance;
+- geometric resonance core with R4/R3/R2/DS placeholders and mini connectors;
+- PRG and ŚWIAT modeled as symmetric wings;
+- mobile concept as core + workspace selector;
+- no runtime integration, no mechanics changes, no new graphic assets.

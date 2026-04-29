@@ -90,3 +90,14 @@ Wireframe pokazuje:
 - `middle_center_resonance_core` powinno mieć kołowy lub wielokątny rdzeń z relacjami R2/R3/R4/DS.
 - PRG i ŚWIAT mają podobny ciężar wizualny oraz czytelną parę „świat wewnętrzny ↔ świat zewnętrzny”.
 - Dół: inventory (szeroki bank kart) + mini Kuźnia (portal) + card detail (duży czytnik) mają tworzyć zbalansowaną bazę kokpitu.
+
+## Composition v0.3 — organic cockpit
+
+- 9 stref pozostaje semantyką architektury, ale układ nie jest widoczną tabelą 3×3.
+- `top band` jest celowo niski i nie dominuje przestrzeni.
+- `middle cockpit` jest największym obszarem i niesie główny ciężar decyzji.
+- PRG i ŚWIAT są traktowane jako symetryczne skrzydła (wewnętrzne vs zewnętrzne), z zachowaniem różnic semantycznych.
+- `resonance core` ma formę geometryczną (koło/pierścień/węzły), a nie prostokątny panel.
+- `bottom operations` balansuje magazyn i card detail, z mini Kuźnią jako małym portalem wejściowym.
+- mini connectors / unlockables są pokazane jako future UX/visual layer; nie jest to implementacja mechaniki runtime.
+- mobile jest opisywany jako `core + workspace selector`, a nie pełny cockpit naraz.

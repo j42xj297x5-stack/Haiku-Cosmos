@@ -145,3 +145,12 @@ Zasada: najpierw zatwierdzenie layoutu 9 stref i kontraktu mount/anchors, potem 
 - Ten dokument nie zmienia mechaniki, kosztów RP, sekwencji ani PRG runtime.
 - Nie implementuje SUB-META v2 w kodzie.
 - Nie podłącza nowych assetów i nie wymaga Figma w tym kroku.
+
+## 8. Composition principle
+
+Zasada kompozycyjna dla SUB-META v2:
+
+- zawartość i ciężar informacji decydują o wielkości oraz proporcji stref,
+- symetria PRG ↔ ŚWIAT ma wyższy priorytet niż równa tabela,
+- `middle_center_resonance_core` jest formą wyjątkową geometrycznie,
+- layout projektujemy jako jeden cockpit resonance system, nie 9 identycznych paneli.
