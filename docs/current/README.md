@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa aktualnej dokumentacji
 > Źródło prawdy: TAK, dla struktury i statusów dokumentów w `docs/current/`
-> Ostatnia aktualizacja: 2026-04-28
+> Ostatnia aktualizacja: 2026-04-29
 > Powiązane dokumenty: maps/PROJECT_INDEX.md, maps/DEPENDENCY_MAP.md, ../README.md, ../../README.md
 
 Ten katalog zawiera aktualną dokumentację projektu.
@@ -25,6 +25,11 @@ Ten katalog zawiera aktualną dokumentację projektu.
 ## UI i flow
 
 - `ui/UI_WORLD.md` - KANON
+
+## UI i flow
+
+- `ui/UI_WORLD.md` - KANON
+- `ui/SUB_META_V2_LAYOUT_SPEC.md` - ROBOCZY / SPEC PROJEKTOWY UI
 
 ## Oprawa wizualna
 
@@ -51,6 +56,8 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `technical/FONT_SYSTEM_SPEC.md` - ROBOCZY / DO WDROZENIA
 - `technical/FRAME_COMPOSER_SPEC.md` - ROBOCZY / KONTRAKT TECHNICZNY
 - `technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` - ROBOCZY / AUDYT LAYOUTU
+- `technical/CENTER_BASED_POSITIONING_SPEC.md` - ROBOCZY / KONTRAKT TECHNICZNY VISUAL LAYOUT
+- `technical/SUB_META_V2_BOX_AUDIT.md` - ROBOCZY / AUDYT PROJEKTOWO-TECHNICZNY
 - `technical/IMPLEMENTATION_TRACKER.md` - ROBOCZY
 - `technical/LIVE_VALIDATION_PACK.md` - ROBOCZY
 

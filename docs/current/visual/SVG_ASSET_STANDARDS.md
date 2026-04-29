@@ -3,7 +3,7 @@
 > Status: ROBOCZY / STANDARD WYKONAWCZY
 > Obszar: visual / SVG / frame parts / raster pipeline / asset metadata
 > Zrodlo prawdy: TAK roboczo dla standardu wykonawczego nowych assetow; NIE dla mechaniki
-> Ostatnia aktualizacja: 2026-04-28
+> Ostatnia aktualizacja: 2026-04-29
 > Powiazane dokumenty: ART_DIRECTION.md, KOSMOLOGIA_WIZUALNA.md, BIBLIOTEKA_MATERIALOW.md, MODULAR_FRAME_KIT.md, SUB_META_COMPONENTS.md, SUB_META_ASSET_PIPELINE.md, ../technical/FRAME_COMPOSER_SPEC.md
 
 ## 1. Cel
@@ -271,3 +271,19 @@ SVG/raster nie moze opisac:
 - sekwencji R1/R2/R3/R4;
 - stanu gry jako source of truth.
 
+
+
+## 9. SUB-META v2 center-based asset standard
+
+Dla nowych assetow SUB-META v2 obowiazuje:
+
+- kazdy nowy SVG ma `viewBox` i jawna referencyjna wielkosc (dokumentowana w manifeście/specu);
+- kazdy `frame_part` ma anchor metadata (minimum: center/top/bottom/left/right + lokalne line/socket anchors, gdy dotyczy);
+- kazdy ornament ma pivot center jako domyslna os montazu/skalowania;
+- kazdy socket ma jawny `socket center` i semantyke `socketIn/socketOut`;
+- kazda bridge line ma `start/end anchors` i reguly zachowania dla density;
+- cienie/poswiaty realizujemy jako `bleed`, nie jako reczne przesuniecia assetow;
+- asset nie wymusza layoutu (brak hardcodu pozycji panelu w assetcie);
+- layout decyduje o montazu, asset dostarcza forme i detal.
+
+Notatka: ten standard wspiera future pass SUB-META v2 i nie oznacza automatycznej integracji runtime w tym kroku.
