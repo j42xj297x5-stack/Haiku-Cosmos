@@ -1,3 +1,5 @@
+> Update 2026-04-29: `SUB_META_V2_BOX_AUDIT.md` dodaje pelny audit obecnego SUB-META boxu i mapowanie do 9 stref v2.
+> Update 2026-04-29: `CENTER_BASED_POSITIONING_SPEC.md` definiuje kontrakt center-based positioning (mountCenter/mountSize/visualSize/bleed + named anchors).
 # docs/current/technical
 
 > Update 2026-04-28: `CARD_VISUAL_ARCHITECTURE.md` dodaje robocza architekture rozdzialu mechaniki kart, card visuals, FrameComposera i visual asset loadera.
@@ -27,6 +29,8 @@ audytów i synchronizacji dokumentacji z runtime.
 - `CARD_VISUAL_ARCHITECTURE.md` - **ROBOCZY / ARCHITEKTURA TECHNICZNA** (rozdzial mechaniki kart, card visuals, FrameComposera i visual assets)
 - `FONT_SYSTEM_SPEC.md` - **ROBOCZY / DO WDROZENIA** (font stack, rejestry typografii, przygotowanie pod i18n)
 - `SUB_META_LAYOUT_ANCHOR_AUDIT.md` - **ROBOCZY / AUDYT LAYOUTU** (obecny layout SUB-META, extraction pass v0.1, mount points, `SubMetaLayoutAnchors`, mobile/density considerations)
+- `SUB_META_V2_BOX_AUDIT.md` - **ROBOCZY / AUDYT PROJEKTOWO-TECHNICZNY** (pelny audit obecnego SUB-META boxu i mapowanie elementow do cockpit 9 stref)
+- `CENTER_BASED_POSITIONING_SPEC.md` - **ROBOCZY / KONTRAKT TECHNICZNY VISUAL LAYOUT** (mountCenter/mountSize/visualSize/bleed + named anchors)
 
 ## Zasady
 

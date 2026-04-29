@@ -3,7 +3,7 @@
 > Status: KIERUNEK
 > Obszar: mapa kierunku wizualnego
 > Źródło prawdy: TAK, dla kolejności czytania i ról dokumentów wizualnych
-> Ostatnia aktualizacja: 2026-04-28
+> Ostatnia aktualizacja: 2026-04-29
 > Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
 
 ## 1. Cel katalogu
@@ -38,7 +38,7 @@ Przy pracach nad SUB-META, HUD, ramkami, slotami, ornamentami, glifami, liniami 
 - `MODULAR_FRAME_KIT_ASSET_MANIFEST.md` - evidence manifestu po audycie i lokalizacja legacy.
 - `SUB_META_COMPONENTS.md` - katalog komponentów: frame parts, static base, dynamic accents, new-card marker, slot bridges.
 - `SUB_META_ASSET_PIPELINE.md` - struktura katalogów, legacy/evidence policy i docelowy modular pipeline.
-- `SVG_ASSET_STANDARDS.md` - roboczy standard wykonawczy SVG/frame parts, anchor metadata, naming, density i raster pipeline.
+- `SVG_ASSET_STANDARDS.md` - roboczy standard wykonawczy SVG/frame parts, anchor metadata, naming, density i raster pipeline, w tym pass center-based dla SUB-META v2.
 - `SUB_META_FIGMA_ASSET_PASS_01.md` - evidence poprzednich passów Figma i runtime review.
 - `FIGMA_WORKFLOW.md` - zasady pracy z Figma, gdy Figma jest używana.
 - `SUB_META_FIGMA_PROMPT_TEMPLATE.md` - starszy prompt template, pomocniczy względem nowego frame kit promptu.

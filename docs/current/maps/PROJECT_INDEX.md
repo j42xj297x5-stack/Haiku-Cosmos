@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa projektu / indeks dokumentacji aktualnej
 > Źródło prawdy: TAK
-> Ostatnia aktualizacja: 2026-04-28
+> Ostatnia aktualizacja: 2026-04-29
 > Powiązane dokumenty: ../../README.md, ../README.md, DEPENDENCY_MAP.md
 
 ## Rola dokumentu
@@ -36,6 +36,7 @@ Kanon jest mapowany warstwowo przez:
 ## UI / flow
 
 - `docs/current/ui/UI_WORLD.md` (KANON)
+- `docs/current/ui/SUB_META_V2_LAYOUT_SPEC.md` (ROBOCZY / SPEC PROJEKTOWY UI)
 
 ## Visual
 
@@ -62,6 +63,8 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/technical/FONT_SYSTEM_SPEC.md` (ROBOCZY / DO WDROZENIA)
 - `docs/current/technical/FRAME_COMPOSER_SPEC.md` (ROBOCZY / KONTRAKT TECHNICZNY)
 - `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` (ROBOCZY / AUDYT LAYOUTU)
+- `docs/current/technical/SUB_META_V2_BOX_AUDIT.md` (ROBOCZY / AUDYT PROJEKTOWO-TECHNICZNY)
+- `docs/current/technical/CENTER_BASED_POSITIONING_SPEC.md` (ROBOCZY / KONTRAKT TECHNICZNY VISUAL LAYOUT)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md` (ROBOCZY)
 - `docs/current/technical/LIVE_VALIDATION_PACK.md` (ROBOCZY)
 
