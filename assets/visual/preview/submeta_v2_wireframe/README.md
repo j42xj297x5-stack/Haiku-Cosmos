@@ -6,7 +6,7 @@ URL lokalny:
 `http://localhost:8123/assets/visual/preview/submeta_v2_wireframe/submeta_v2_wireframe.html`
 
 Aktywny tryb domyślny:
-- `SUB-META v2 Composition v0.5 — anchor-aware concept pass`.
+- `SUB-META v2 Layout Tokens v0.7 — normalized contract data pass`.
 
 Zakres:
 - repo-only desktop/tablet/mobile composition pass,
@@ -30,3 +30,9 @@ Contract pass v0.6 (anchor/rect handoff):
 - doprecyzowany model anchor IDs zgodny z `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`,
 - debug overlay z etykietami anchor IDs i prostym podglądem warstw rect,
 - nadal repo-only: bez runtime integration i bez zmian mechaniki.
+
+
+Layout tokens v0.7:
+- preview JS zawiera obiekt `SUBMETA_LAYOUT_TOKENS_V07` (repo-only),
+- dodana jest funkcja `validateSubmetaLayoutTokens(tokens)` uruchamiana przy starcie preview,
+- debug overlay pozostaje aktywny i działa bez runtime integration.

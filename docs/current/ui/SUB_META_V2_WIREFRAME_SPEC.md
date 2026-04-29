@@ -1,7 +1,7 @@
 > Status: ROBOCZY / SPEC WIREFRAME
 > Obszar: SUB-META v2 / low-fi layout preview
 > Źródło prawdy: NIE (roboczy etap przed polished design i runtime)
-> Ostatnia aktualizacja: 2026-04-29 (composition v0.5)
+> Ostatnia aktualizacja: 2026-04-29 (layout tokens v0.7)
 > Powiązane dokumenty: UI_WORLD.md, SUB_META_V2_LAYOUT_SPEC.md, ../technical/SUB_META_V2_BOX_AUDIT.md, ../technical/CENTER_BASED_POSITIONING_SPEC.md
 
 # SUB-META v2 — Wireframe spec (desktop/tablet/mobile)
@@ -76,3 +76,16 @@ Najważniejsze ustalenia v0.6:
 
 Preview może pokazać debug outlines/anchors przez przełącznik `Toggle debug contract`.
 To jest warstwa pomocnicza handoffu, nie finalne UI.
+
+
+## Layout tokens v0.7 (normalized contract data)
+
+Preview jest rozszerzony o repo-only warstwę danych `SUBMETA_LAYOUT_TOKENS_V07`:
+- normalized `mountCenter` / `mountSize`,
+- normalized `visualBleed`,
+- rect tokens (`layoutRect`, `interactiveRect`, `visualMountRect`, `visualBleedRect`, `contentSafeRect`),
+- stable group IDs i child placement tokens,
+- minimal connector tokens,
+- prostą walidację struktury (`validateSubmetaLayoutTokens`).
+
+To nadal nie jest runtime API ani produkcyjny renderer.

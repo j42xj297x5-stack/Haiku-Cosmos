@@ -175,3 +175,10 @@ Reguła: `interactiveRect` nigdy nie może być przykryte przez dekoracyjny conn
 - Preview v0.5 zawierała mieszane, krótkie chipy anchorów (`named:*`) — w v0.6 kontrakt stabilizuje pełne, hierarchiczne IDs.
 - Preview v0.5 nie rozdzielała jawnie wszystkich rect typów per strefa — v0.6 wprowadza jednoznaczny rect handoff.
 - Brak konfliktu z kanonem mechaniki: DS pozostaje w inventory, R4+R3 pozostają w core, R2 pozostają relacyjne.
+
+
+## 12. Powiązanie z Layout Tokens v0.7
+
+- Ten dokument (v0.6) pozostaje opisowym handoffem anchor/rect.
+- Znormalizowana warstwa danych jest opisana w: `docs/current/ui/SUB_META_V2_LAYOUT_TOKENS.md`.
+- v0.7 nie zmienia mechaniki ani runtime sequence; porządkuje tylko kontrakt danych pod future FrameComposer.
