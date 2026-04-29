@@ -97,7 +97,18 @@ SUB-META v2 definiuje semantyczny układ 9 stref jako cockpit rezonansu: nie jak
 - **R4**: karta meta-strukturalna jedności konfiguracji; slot centralny lub specjalny slot rdzenia.
 - **DS**: dodatkowy slot powiązany czytelnie z gałęziami świata; nie traktowany jak zwykły R1.
 
-## 4. Tryby density / urządzenia
+## 4. Content model v0.2 — decyzje projektanta
+
+- **PRG**: 4 osie. Każda oś zawiera 2 sloty (`R1` + rozszerzenie/ODB/alternatywne działanie). Dodatkowo PRG ma 3 sloty `R2`; wszystkie trzy mogą być osadzone, ale tylko jedna karta `R2` aktywuje jedną parę slotów PRG naraz.
+- **ŚWIAT**: 4 osie świata. Każda oś zawiera 3 sloty (2 sloty `R1` + 1 slot rozszerzenia). Dodatkowo ŚWIAT ma 3 sloty `R2`; wszystkie trzy mogą być osadzone, ale tylko jedna karta `R2` aktywuje jedną parę slotów ŚWIAT naraz.
+- **Centrum (resonance core)**: rdzeń łączący PRG i ŚWIAT. Ma być geometrycznie specjalny (koło/wielokąt/pierścień), z jawnym miejscem dla: `R2 bridges` i aktywnego wiązania, `R3` jako stabilizacji/rezerwacji konfiguracji, jednej karty `R4` jako jedności PRG–ŚWIAT oraz modułu `DS` jako rozszerzenia.
+- **Dół kokpitu**: magazyn jako szeroki bank wielu kart; mini Kuźnia jako mały panel/portal wejścia do głębszego panelu tworzenia i modyfikacji; card detail po prawej wielkościowo zbliżony do magazynu (balans dołu).
+- **Symetria PRG ↔ ŚWIAT**: obie strefy mają podobny ciężar kompozycyjny i porównywalną rangę informacyjną.
+- **9 stref**: pozostają semantyką architektury, ale nie mogą być prezentowane jako wizualna tabela 3×3; finalny układ ma być organiczny i relacyjny.
+- **Future resources**: layout zostawia przestrzeń dla przyszłych bytów (kryształy, materiały, mini-łączniki, zasoby integrowane w Kuźni).
+- **Unlock behavior**: warstwa odblokowań jest traktowana tu jako future UX/visual signaling; w tym kroku nie definiuje ani nie zmienia mechaniki.
+
+## 5. Tryby density / urządzenia
 
 ### Desktop / large
 - Pełny cockpit 9 stref jednocześnie.
@@ -115,7 +126,7 @@ SUB-META v2 definiuje semantyczny układ 9 stref jako cockpit rezonansu: nie jak
 - Inventory/forge/detail jako tabs/drawer/panele przełączane.
 - Minimalne ornamenty, maksymalna czytelność dotyku.
 
-## 5. Future visual depth layers
+## 6. Future visual depth layers
 
 To future visual pass (bez implementacji teraz):
 
@@ -129,7 +140,7 @@ To future visual pass (bez implementacji teraz):
 
 Zasada: najpierw zatwierdzenie layoutu 9 stref i kontraktu mount/anchors, potem dopiero depth pass i ewentualne rastry.
 
-## 6. Zakres i granice
+## 7. Zakres i granice
 
 - Ten dokument nie zmienia mechaniki, kosztów RP, sekwencji ani PRG runtime.
 - Nie implementuje SUB-META v2 w kodzie.

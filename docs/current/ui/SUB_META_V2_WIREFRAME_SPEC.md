@@ -8,7 +8,7 @@
 
 ## Cel
 
-Wireframe repo-only weryfikuje układ 9 stref jako cockpit resonance system bez zmiany mechaniki, kosztów RP i runtime behavior.
+Wireframe repo-only weryfikuje układ 9 stref jako cockpit resonance system bez zmiany mechaniki, kosztów RP i runtime behavior. Low-fi v0.1 był diagramem stref, a nie finalnym layoutem produkcyjnym.
 
 ## Preview
 
@@ -63,18 +63,16 @@ Wireframe pokazuje:
 
 ## Proporcje robocze
 
-- Desktop/Tablet: kompozycja 3x3 z semantycznie uprzywilejowanym środkiem.
+- Desktop/Tablet: content-driven cockpit o nierównych proporcjach paneli; 9 stref pozostaje semantyką ukrytą, a nie wizualną tabelą 3x3.
 - Mobile: stałe sekcje krytyczne + 1 aktywny workspace.
 
 ## Decyzje projektanta przed kolejnym krokiem
 
-1. Czy `middle_center_resonance_core` ma być największym punktem ciężkości SUB-META?
-2. Czy Kuźnia ma być zawsze widoczna, czy jako głębszy panel / drawer?
-3. Czy card detail ma być stałe na desktopie, a przełączane na mobile?
-4. Czy inventory ma być dolnym pasem, czy osobną szufladą?
-5. Czy R4 ma być centralnym slotem rdzenia, czy specjalnym slotem nad/poniżej rdzenia?
-6. Czy DS ma być pokazywane przy gniazdach, czy w osobnym module rozszerzeń?
-7. Czy mobile ma być jednym ekranem przewijanym, czy systemem zakładek/workspace?
+1. PRG i ŚWIAT mają już potwierdzoną podstawową zawartość slotową (4 osie; PRG: 2 sloty/axis, ŚWIAT: 2xR1 + extension/axis; po 3 sloty R2).
+2. R3 pozostaje do mechanicznego doprecyzowania, ale layoutowo działa jako stabilizator/rezerwa resonance core.
+3. R4 layoutowo jest centralną jednością PRG–ŚWIAT i nie jest traktowana jak zwykły slot boczny.
+4. Kuźnia w v0.2 jest mini wejściem do głębszego panelu (nie pełnym dużym panelem).
+5. Magazyn i card detail powinny balansować dół kompozycji przy zachowaniu asymetrii funkcjonalnej.
 
 ## Czego wireframe jeszcze nie robi
 
@@ -83,3 +81,12 @@ Wireframe pokazuje:
 - nie używa FrameComposer w produkcyjnym rendererze,
 - nie zawiera finalnego art direction polish,
 - nie używa Figma MCP ani nowych assetów.
+
+
+## Kierunek kompozycyjny v0.2
+
+- Następny wireframe ma być content-driven: pokazuje realną zawartość PRG/WORLD/core, a nie abstrakcyjne placeholdery.
+- 9 stref pozostaje mapą semantyczną i nie może być wizualizowane jako równa tabela.
+- `middle_center_resonance_core` powinno mieć kołowy lub wielokątny rdzeń z relacjami R2/R3/R4/DS.
+- PRG i ŚWIAT mają podobny ciężar wizualny oraz czytelną parę „świat wewnętrzny ↔ świat zewnętrzny”.
+- Dół: inventory (szeroki bank kart) + mini Kuźnia (portal) + card detail (duży czytnik) mają tworzyć zbalansowaną bazę kokpitu.
