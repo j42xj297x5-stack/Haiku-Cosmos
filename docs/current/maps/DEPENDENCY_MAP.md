@@ -29,6 +29,7 @@
 - `docs/current/systems/PRG_SYSTEM.md` (KANON STRUKTURALNY / DO STROJENIA)
 - `docs/current/systems/I18N_SYSTEM.md` (KANON STRUKTURALNY / DO WDROŻENIA)
 - `docs/current/ui/UI_WORLD.md`
+- `docs/current/ui/SUB_META_V2_WIREFRAME_SPEC.md` (ROBOCZY / SPEC WIREFRAME)
 
 ## 4. KIERUNEK visual
 

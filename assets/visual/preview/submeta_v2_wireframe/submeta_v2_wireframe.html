@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SUB-META v2 Wireframe Preview</title>
+  <link rel="stylesheet" href="submeta_v2_wireframe.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <h1>SUB-META v2 — low-fi wireframe</h1>
+    <div class="mode-switch" role="group" aria-label="Tryb widoku">
+      <button data-mode="desktop" class="is-active">Desktop</button>
+      <button data-mode="tablet">Tablet</button>
+      <button data-mode="mobile">Mobile</button>
+    </div>
+  </header>
+
+  <main id="wireframeRoot" class="mode-desktop">
+    <section class="legend panel">
+      <h2>Legenda center-based</h2>
+      <ul>
+        <li><span class="swatch layout"></span> layout rect</li>
+        <li><span class="swatch interactive"></span> interactive rect</li>
+        <li><span class="swatch mount"></span> visual mount rect</li>
+        <li><span class="swatch bleed"></span> visual bleed rect</li>
+        <li><span class="swatch pivot"></span> center pivot</li>
+        <li><span class="swatch anchor"></span> named anchors</li>
+      </ul>
+    </section>
+
+    <section class="cockpit panel" id="cockpitGrid"></section>
+
+    <section class="mobile-workspace panel" id="mobileWorkspace"></section>
+  </main>
+
+  <script src="submeta_v2_wireframe.js"></script>
+</body>
+</html>

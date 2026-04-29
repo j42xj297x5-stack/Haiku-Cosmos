@@ -51,3 +51,19 @@ Scope:
 - preloads SUB-META astrolabe frame parts;
 - computes pure layout and draws one test frame + debug anchors on canvas;
 - does not use `cards.js` and does not integrate with production SUB-META rendering.
+
+
+## SUB-META v2 wireframe preview
+
+Open:
+
+```text
+http://localhost:8123/assets/visual/preview/submeta_v2_wireframe/submeta_v2_wireframe.html
+```
+
+Scope:
+
+- low-fi desktop/tablet/mobile wireframe pass;
+- semantic 9-zone map and center-based positioning legend;
+- explicit placement placeholders for R2/R3/R4/DS;
+- no runtime integration, no mechanics changes, no new graphic assets.
