@@ -4,7 +4,7 @@
 > Obszar: Modular Frame Kit v0.1 / SVG layout / card visuals / SUB-META / HUD
 > Zrodlo prawdy: TAK roboczo dla kontraktu layoutu FrameComposera; NIE dla mechaniki
 > Ostatnia aktualizacja: 2026-04-28
-> Powiazane dokumenty: ../visual/MODULAR_FRAME_KIT.md, ../visual/SUB_META_ASSET_PIPELINE.md, ../visual/SUB_META_COMPONENTS.md, CARD_VISUAL_ARCHITECTURE.md
+> Powiazane dokumenty: ../visual/MODULAR_FRAME_KIT.md, ../visual/SUB_META_ASSET_PIPELINE.md, ../visual/SUB_META_COMPONENTS.md, ../visual/SVG_ASSET_STANDARDS.md, CARD_VISUAL_ARCHITECTURE.md, SUB_META_LAYOUT_ANCHOR_AUDIT.md
 
 ## 1. Cel FrameComposera
 
@@ -299,18 +299,198 @@ Zasady:
 - przygotowac hooki animacji dla new-card pulse, active slot line, bridge line pulse, selected shimmer i DS/ether accent;
 - animacje nie sa zrodlem prawdy i nie definiuja mechaniki.
 
-## 12. v0.1 implementation status
+## 12. Line-anchor layout correction
+
+Status korekty na 2026-04-28: FrameComposer sandbox sklada SUB-META astrolabe frame po zasadzie `line-anchor to line-anchor`.
+
+Previous issue:
+
+- assety SVG ladowaly sie poprawnie, ale layout skladal je jak osobne obrazki ustawione wzgledem ogolnego `rect`;
+- corners trafialy w target rect innym punktem niz widoczny pivot linii;
+- edge top/bottom/left/right byly rozciagane po runie wynikajacym z bbox/corner size, a nie po realnych anchorach cornerow;
+- center ornaments byly pozycjonowane wzgledem rect/insetu, nie wzgledem srodka konstrukcyjnej krawedzi.
+
+Nowy model wprowadza jawny `frameLineRect`.
+
+```js
+{
+  targetRect: rect,
+  frameLineRect: {
+    x: rect.x + frameLineInsetX,
+    y: rect.y + frameLineInsetY,
+    w: rect.w - frameLineInsetX * 2,
+    h: rect.h - frameLineInsetY * 2
+  }
+}
+```
+
+`rect` pozostaje targetem sandboxu/panelu. `frameLineRect` jest realna linia konstrukcyjna ramy. Dla SUB-META astrolabe sandbox v0.1 defaulty wynikaja z preview board i SVG geometry:
+
+- `cornerSize: 80`;
+- `cornerAnchorOffset: { x: 16, y: 16 }`;
+- `edgeThickness: 28`;
+- `edgeLineInset: 10`;
+- `cornerJoinInset: 52`;
+- `frameLineInsetX/Y: 32`;
+- `topOrnamentScale: 0.78`;
+- `bottomOrnamentScale: 0.84`.
+
+Corner formulas:
+
+```text
+TL bbox.x = frameLineRect.x - cornerAnchorOffset.x
+TL bbox.y = frameLineRect.y - cornerAnchorOffset.y
+
+TR bbox.x = frameLineRect.x + frameLineRect.w - (cornerSize - cornerAnchorOffset.x)
+TR bbox.y = frameLineRect.y - cornerAnchorOffset.y
+
+BL bbox.x = frameLineRect.x - cornerAnchorOffset.x
+BL bbox.y = frameLineRect.y + frameLineRect.h - (cornerSize - cornerAnchorOffset.y)
+
+BR bbox.x = frameLineRect.x + frameLineRect.w - (cornerSize - cornerAnchorOffset.x)
+BR bbox.y = frameLineRect.y + frameLineRect.h - (cornerSize - cornerAnchorOffset.y)
+```
+
+W ten sposob lokalny anchor assetu trafia w corner `frameLineRect`, zamiast przypadkowo wyrownywac caly viewBox do recta.
+
+Edge line-anchor logic:
+
+```text
+top/bottom startX = frameLineRect.x + cornerJoinInset
+top/bottom endX   = frameLineRect.x + frameLineRect.w - cornerJoinInset
+assetWidth        = (endX - startX) + edgeLineInset * 2
+assetX            = startX - edgeLineInset
+assetY            = frameLineY - edgeThickness / 2
+
+left/right startY = frameLineRect.y + cornerJoinInset
+left/right endY   = frameLineRect.y + frameLineRect.h - cornerJoinInset
+assetHeight       = (endY - startY) + edgeLineInset * 2
+assetY            = startY - edgeLineInset
+assetX            = frameLineX - edgeThickness / 2
+```
+
+`cornerJoinInset` jest dystansem od corner anchora do miejsca, w ktorym edge zaczyna widoczny przebieg linii. Dla obecnego SUB-META SVG wartosc `52` odpowiada dlugosci widocznego corner runu i ogranicza chaotyczne wejscie edge pod ornament naroznika.
+
+Center ornaments:
+
+- top-center anchor: `{ x: frameLineRect.x + frameLineRect.w / 2, y: frameLineRect.y + topOrnamentOffsetY }`;
+- bottom-center anchor: `{ x: frameLineRect.x + frameLineRect.w / 2, y: frameLineRect.y + frameLineRect.h + bottomOrnamentOffsetY }`;
+- `ornamentScale` pozostaje parametrem layoutu, liczonym wzgledem naturalnego rozmiaru ornamentu `220 x 64`;
+- offsety domyslnie wynosza `0`, czyli ornament siedzi blisko osi krawedzi.
+
+Debug overlay pokazuje:
+
+- target rect;
+- `frameLineRect`;
+- corner anchor points;
+- edge line start/end points;
+- corner, edge i ornament bounding boxes;
+- ornament center points.
+
+Ta korekta nie zmienia SVG, manifestu, mechaniki, `cards.js`, `hc.ui_debug.js`, ani nie wlacza production SUB-META integration.
+
+## 13. SUB-META mount point preparation
+
+FrameComposer nie powinien znac produkcyjnego layoutu SUB-META na sztywno.
+
+Zasada przyszlej integracji:
+
+```text
+cards.js / World state
+  -> SUB-META view model
+  -> SubMetaLayoutAnchors
+  -> HC.CardVisuals
+  -> HC.FrameComposer
+  -> HC.VisualAssets
+```
+
+FrameComposer dostaje:
+
+- mount point rect, np. `submeta.root_frame`, `submeta.world_slots_panel_frame`, `submeta.slot_frame`;
+- style preset, np. `astrolabe`, `forge`, `minimal`;
+- density, np. `small`, `medium`, `large`;
+- visual state, np. `static`, `selected`, `locked`, `active`, `disabled`;
+- resolved parts lub logicalName map.
+
+FrameComposer nie dostaje:
+
+- kosztow RP jako reguly;
+- decyzji, czy karta moze byc przypisana;
+- sekwencji R1/R2/R3/R4;
+- PRG behavior;
+- mutacji `World.score`, `cardsPool` albo slotow.
+
+Aktualny SUB-META layout w `cards.js` wymaga osobnego extraction/anchor pass przed integracja runtime. `getSubMetaLayout(screenW, screenH)` liczy dzis recty, ale `renderSubMetaOverlay` i `handleSubMetaPointerDown` mieszaja layout, rysowanie, selection state, assign/remove/forge i legacy SVG fallback. Przed podpieciem ramek nalezy wytworzyc czysty kontrakt `SubMetaLayoutAnchors`, opisany w `SUB_META_LAYOUT_ANCHOR_AUDIT.md`.
+
+Minimalny przyszly integration path:
+
+1. Wydzielic pure anchor layout bez mutacji mechaniki.
+2. Zmapowac mount points i density.
+3. Podpiac pojedynczy frame za flaga visual.
+4. Zachowac obecny fallback, gdy manifest lub asset nie jest gotowy.
+
+Extraction pass v0.1:
+
+- `hc.submeta_layout.js` udostepnia `HC.SubMetaLayout.computeWithAnchors(width, height, options)`;
+- `cards.js` uzywa `HC.SubMetaLayout.compute(...)` przez kompatybilny wrapper `getSubMetaLayout()`;
+- `HC.SubMetaLayout.computeAnchors(layout)` zwraca mount points, ktore FrameComposer bedzie mogl konsumowac w przyszlym pass;
+- FrameComposer nadal nie liczy layoutu SUB-META i nie powinien przejmowac tej odpowiedzialnosci;
+- production SUB-META FrameComposer integration pozostaje `not_integrated`.
+
+## 14. Runtime probe: SUB-META root frame behind flag
+
+Status na 2026-04-28: pierwszy runtime visual probe jest wlaczony za flaga w `cards.js`.
+
+Zakres probe:
+
+- tylko `submeta.root_frame`;
+- tylko glowna rama overlay SUB-META;
+- brak ramek slotow, paneli wewnetrznych, kart, pickerow, Kuzni i buttonow;
+- brak depth/relief, animation i live-coloring;
+- brak zmian mechaniki, kosztow RP, sekwencji, PRG behavior i hit rectow.
+
+Flaga:
+
+```js
+const FRAME_COMPOSER_SUBMETA_ROOT_ENABLED = true;
+```
+
+Przeplyw:
+
+```text
+renderSubMetaOverlay
+  -> getSubMetaLayout()
+  -> HC.SubMetaLayout.computeAnchors(layout)
+  -> submeta.root_frame rect
+  -> HC.FrameComposer.computeSubmetaAstrolabeLayout(rect)
+  -> HC.FrameComposer.drawFrameParts(ctx, HC.VisualAssets, frameLayout, partMap)
+```
+
+`HC.VisualAssets` laduje manifest `/assets/visual/modular_frame_kit_v01_manifest.json` i preloaduje tylko 10 assetow root frame: 4 corners, 4 edges i 2 center ornaments.
+
+Fallback:
+
+- jesli flaga jest `false`, uzywany jest stary render;
+- jesli `HC.VisualAssets`, `HC.FrameComposer` albo `HC.SubMetaLayout` sa niedostepne, uzywany jest stary render;
+- jesli manifest/preload nie sa gotowe w pierwszej klatce, render przechodzi fallbackiem i probe probuje narysowac frame w kolejnych klatkach po zakonczeniu preload;
+- jesli `drawFrameParts` nie narysuje pelnego zestawu root frame, stary fallback zostaje zachowany.
+
+Ten probe nie oznacza pelnej produkcyjnej integracji SUB-META. To minimalny, odwracalny test runtime dla jednego mount pointu.
+
+## 15. v0.1 implementation status
 
 Status na 2026-04-28 (repo-only infrastructure pass):
 
 - `HC.VisualAssets` zaimplementowany jako bezpieczny loader/cache/lookup dla manifestu `assets/visual/modular_frame_kit_v01_manifest.json`;
-- `HC.FrameComposer` zaimplementowany dla pure layout calculations (`corners`, `edges`, `center ornaments`, `anchorOffset`, `lineInset`, `ornamentScale`) + debug helper;
+- `HC.FrameComposer` zaimplementowany dla pure layout calculations (`frameLineRect`, `corners`, `edges`, `center ornaments`, `anchorOffset`, `lineInset`, `cornerJoinInset`, `ornamentScale`) + debug helper;
+- `HC.SubMetaLayout` zaimplementowany jako extraction pass v0.1 dla obecnego SUB-META layoutu i semantycznych mount points;
+- SUB-META ma runtime probe dla `submeta.root_frame` za flaga; pelna production visual integration nadal wymaga osobnego passu;
 - dodano sandbox review `assets/visual/preview/frame_composer_sandbox.html` (manifest + preload + pojedynczy frame draw + debug anchors);
-- runtime integration pozostaje `not_integrated`;
-- produkcyjny rendering SUB-META nadal nie uzywa FrameComposera;
+- runtime integration pozostaje czesciowe/probe-only;
+- produkcyjny rendering SUB-META uzywa FrameComposera tylko dla root frame, a reszta overlay pozostaje legacy/procedural canvas;
 - depth/relief, live-coloring i animation hooks pozostaja future pass.
 
-## 13. Zakazy
+## 16. Zakazy
 
 FrameComposer nie moze:
 

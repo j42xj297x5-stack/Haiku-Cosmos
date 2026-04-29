@@ -4,6 +4,9 @@
 > Update 2026-04-28: `FRAME_COMPOSER_SPEC.md` dodaje roboczy kontrakt techniczny dla anchorOffset, ornamentScale i modular SVG layout.
 > Update 2026-04-28: `FONT_SYSTEM_SPEC.md` dodaje roboczy kontrakt typografii UI/kart pod i18n i mobile/desktop.
 > Update 2026-04-28: `hc.visual_assets.js` i `hc.frame_composer.js` maja v0.1 implementation (repo-only, bez runtime integration) oraz sandbox review `assets/visual/preview/frame_composer_sandbox.html`.
+> Update 2026-04-28: `SUB_META_LAYOUT_ANCHOR_AUDIT.md` mapuje obecny layout SUB-META i proponuje mount points / `SubMetaLayoutAnchors` przed integracja FrameComposera.
+> Update 2026-04-28: `hc.submeta_layout.js` dodaje extraction pass v0.1: `HC.SubMetaLayout.compute(...)`, `computeAnchors(...)`, `computeWithAnchors(...)` i diagnostics bez zmiany mechaniki/renderingu.
+> Update 2026-04-28: `cards.js` ma minimalny runtime probe `submeta.root_frame` przez `HC.FrameComposer` za flaga `FRAME_COMPOSER_SUBMETA_ROOT_ENABLED`.
 
 > Status: ROBOCZY
 > Obszar: mapa dokumentów technicznych
@@ -20,9 +23,10 @@ audytów i synchronizacji dokumentacji z runtime.
 - `SEQUENCE_STATE_CONTRACT.md` — **ROBOCZY / KONTRAKT TECHNICZNY** (single source-of-truth sekwencji + zasady evidence timeline)
 - `IMPLEMENTATION_TRACKER.md` — **ROBOCZY** (tracker wdrożeń i obszarów do weryfikacji)
 - `LIVE_VALIDATION_PACK.md` — **ROBOCZY** (roboczy kontrakt walidacji runów i evidence)
-- `FRAME_COMPOSER_SPEC.md` - **ROBOCZY / KONTRAKT TECHNICZNY** (anchorOffset, ornamentScale i layout modularnych SVG bez mechaniki; sekcja v0.1 implementation status)
+- `FRAME_COMPOSER_SPEC.md` - **ROBOCZY / KONTRAKT TECHNICZNY** (anchorOffset, ornamentScale, root frame runtime probe i layout modularnych SVG bez mechaniki; sekcja v0.1 implementation status)
 - `CARD_VISUAL_ARCHITECTURE.md` - **ROBOCZY / ARCHITEKTURA TECHNICZNA** (rozdzial mechaniki kart, card visuals, FrameComposera i visual assets)
 - `FONT_SYSTEM_SPEC.md` - **ROBOCZY / DO WDROZENIA** (font stack, rejestry typografii, przygotowanie pod i18n)
+- `SUB_META_LAYOUT_ANCHOR_AUDIT.md` - **ROBOCZY / AUDYT LAYOUTU** (obecny layout SUB-META, extraction pass v0.1, mount points, `SubMetaLayoutAnchors`, mobile/density considerations)
 
 ## Zasady
 

@@ -37,6 +37,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `visual/MODULAR_FRAME_KIT_ASSET_MANIFEST.md` - EVIDENCE / MANIFEST LEGACY
 - `visual/SUB_META_COMPONENTS.md` - KIERUNEK / KATALOG KOMPONENTÓW
 - `visual/SUB_META_ASSET_PIPELINE.md` - KIERUNEK / PIPELINE WYKONAWCZY
+- `visual/SVG_ASSET_STANDARDS.md` - ROBOCZY / STANDARD WYKONAWCZY
 - `visual/SUB_META_FIGMA_ASSET_PASS_01.md` - EVIDENCE / FIGMA + RUNTIME REVIEW
 - `visual/FIGMA_WORKFLOW.md` - KIERUNEK / WORKFLOW
 - `visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` - KIERUNEK / STARSZY PROMPT TEMPLATE
@@ -49,6 +50,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `technical/CARD_VISUAL_ARCHITECTURE.md` - ROBOCZY / ARCHITEKTURA TECHNICZNA
 - `technical/FONT_SYSTEM_SPEC.md` - ROBOCZY / DO WDROZENIA
 - `technical/FRAME_COMPOSER_SPEC.md` - ROBOCZY / KONTRAKT TECHNICZNY
+- `technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` - ROBOCZY / AUDYT LAYOUTU
 - `technical/IMPLEMENTATION_TRACKER.md` - ROBOCZY
 - `technical/LIVE_VALIDATION_PACK.md` - ROBOCZY
 
@@ -65,5 +67,6 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - Legacy SVG `style_correction_2026_04`: przeniesione do evidence; aktywny `submeta_svg_manifest.json` jest pusty/neutralny.
 - Modular Frame Kit v0.1: `35` SVG exported_review_ready, manifest `assets/visual/modular_frame_kit_v01_manifest.json`.
 - Static preview board: `assets/visual/preview/modular_frame_kit_v01_preview.html`.
-- Runtime integration: not_integrated; `HC.VisualAssets` + `HC.FrameComposer` sa wdrozone jako repo-only infrastruktura v0.1 (loader/cache + pure layout), bez podpiecia produkcyjnego SUB-META.
+- Runtime integration: root frame probe only; `HC.VisualAssets` + `HC.FrameComposer` sa wdrozone jako infrastruktura v0.1, a produkcyjny SUB-META uzywa ich tylko dla glownej ramy za flaga.
+- SUB-META layout extraction: `hc.submeta_layout.js` udostepnia `HC.SubMetaLayout.computeWithAnchors(...)` jako czysty kontrakt layout + anchors, bez produkcyjnego FrameComposera.
 - FrameComposer v0.1 infrastructure sandbox: `assets/visual/preview/frame_composer_sandbox.html`.

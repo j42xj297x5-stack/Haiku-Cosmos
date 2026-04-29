@@ -8,6 +8,29 @@
   var ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
 
   var manifestUrl = "/assets/visual/modular_frame_kit_v01_manifest.json";
+  var targetRect = {
+    x: 100,
+    y: 90,
+    w: 760,
+    h: 460
+  };
+  var layoutParams = {
+    cornerSize: 80,
+    edgeThickness: 28,
+    lineRectInset: { x: 32, y: 32 },
+    ornamentSize: { w: 220, h: 64 },
+    anchors: {
+      cornerAnchorOffset: { x: 16, y: 16 },
+      edgeLineInset: 10,
+      cornerJoinInset: 52
+    },
+    scales: {
+      topOrnament: 0.78,
+      bottomOrnament: 0.84
+    },
+    topOrnamentOffsetY: 0,
+    bottomOrnamentOffsetY: 0
+  };
   var partMap = {
     corners: {
       tl: "submeta.frame.corner.tl.astrolabe_01",
@@ -71,12 +94,7 @@
     var missingLogicalNames = findMissingLogicalNames(window.HC.VisualAssets, requestedLogicalNames);
     var preloadResult = await window.HC.VisualAssets.preload(requestedLogicalNames);
 
-    var layout = window.HC.FrameComposer.computeSubmetaAstrolabeLayout({
-      x: 100,
-      y: 90,
-      w: 760,
-      h: 460
-    });
+    var layout = window.HC.FrameComposer.computeSubmetaAstrolabeLayout(targetRect, layoutParams);
 
     var drawSummary = window.HC.FrameComposer.drawFrameParts(
       ctx,
@@ -89,7 +107,9 @@
       window.HC.FrameComposer.drawDebug(ctx, layout, {
         showRect: true,
         showAnchors: true,
-        showLineRect: true
+        showLineRect: true,
+        showBounds: true,
+        showEdgeLineAnchors: true
       });
     }
 
@@ -113,6 +133,31 @@
         logicalName: cornerTlLogicalName,
         assetPath: window.HC.VisualAssets.getAssetPath(cornerTlLogicalName),
         assetUrl: window.HC.VisualAssets.getAssetUrl(cornerTlLogicalName)
+      },
+      layoutParams: {
+        targetRect: targetRect,
+        frameLineInsetX: layoutParams.lineRectInset.x,
+        frameLineInsetY: layoutParams.lineRectInset.y,
+        cornerSize: layoutParams.cornerSize,
+        cornerAnchorOffset: layoutParams.anchors.cornerAnchorOffset,
+        edgeThickness: layoutParams.edgeThickness,
+        edgeLineInset: layoutParams.anchors.edgeLineInset,
+        cornerJoinInset: layoutParams.anchors.cornerJoinInset,
+        topOrnamentScale: layoutParams.scales.topOrnament,
+        bottomOrnamentScale: layoutParams.scales.bottomOrnament,
+        topOrnamentOffsetY: layoutParams.topOrnamentOffsetY,
+        bottomOrnamentOffsetY: layoutParams.bottomOrnamentOffsetY
+      },
+      computedLayout: {
+        frameLineRect: layout.frameLineRect,
+        cornerAnchors: layout.debug.anchorPoints.filter(function (point) {
+          return point.type === "corner";
+        }),
+        ornamentCenters: layout.debug.anchorPoints.filter(function (point) {
+          return point.type === "ornament";
+        }),
+        edgeLineAnchors: layout.debug.edgeLineAnchors,
+        boundingBoxes: layout.debug.boundingBoxes
       },
       diagnostics: diagnostics
     });

@@ -40,6 +40,7 @@
 - `docs/current/visual/MODULAR_FRAME_KIT_FIGMA_PROMPT.md`
 - `docs/current/visual/SUB_META_COMPONENTS.md`
 - `docs/current/visual/SUB_META_ASSET_PIPELINE.md`
+- `docs/current/visual/SVG_ASSET_STANDARDS.md`
 - `docs/current/visual/FIGMA_WORKFLOW.md`
 - `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md`
 - `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md`
@@ -52,6 +53,7 @@
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (robocza architektura rozdzialu card mechanics vs card visuals / FrameComposer)
 - `docs/current/technical/FONT_SYSTEM_SPEC.md` (roboczy kontrakt font systemu UI/kart pod i18n)
 - `docs/current/technical/FRAME_COMPOSER_SPEC.md` (roboczy kontrakt layoutu modularnych SVG: anchorOffset, lineInset, ornamentScale)
+- `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` (roboczy audyt obecnego layoutu SUB-META i kontraktu mount points)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md`
 - `docs/current/technical/LIVE_VALIDATION_PACK.md`
 - `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (evidence przebiegu Figma i runtime review)
@@ -83,14 +85,20 @@
 - `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest promptem wykonawczym dla następnego passu Figma.
 - `SUB_META_ASSET_PIPELINE.md` definiuje docelową organizację aktywnych modular assets oraz legacy/evidence policy.
 - `SUB_META_COMPONENTS.md` definiuje komponenty frame parts, dynamic state layers, new-card marker i slot bridges.
+- `SVG_ASSET_STANDARDS.md` definiuje roboczy standard wykonawczy SVG/raster assets: anchor metadata, naming, statusy static/tintable/animatable, density i raster boundary.
 
-- `assets/visual/modular_frame_kit_v01_manifest.json` opisuje wyeksportowany Modular Frame Kit v0.1 (`35` SVG) jako `exported_review_ready`, bez runtime integration.
+- `assets/visual/modular_frame_kit_v01_manifest.json` opisuje wyeksportowany Modular Frame Kit v0.1 (`35` SVG) jako `exported_review_ready`; runtime uzywa go tylko dla `submeta.root_frame` probe za flaga.
 - `FRAME_COMPOSER_SPEC.md` definiuje roboczy kontrakt przyszlego skladania modularnych SVG po anchorach, nie po samym `viewBox`.
+- `SUB_META_LAYOUT_ANCHOR_AUDIT.md` mapuje obecny canvas layout SUB-META w `cards.js` oraz proponuje `SubMetaLayoutAnchors` przed integracja FrameComposera.
+- `hc.submeta_layout.js` jest extraction pass v0.1 dla `SubMetaLayoutAnchors`: liczy ten sam layout co `getSubMetaLayout()` i zwraca semantyczne mount points bez renderingu.
 
 ### Runtime
 
 - `CARD_VISUAL_ARCHITECTURE.md` wyznacza przyszly rozdzial: `cards.js` jako mechanika, `hc.card_visuals.js` jako rysowanie kart, `hc.frame_composer.js` jako skladanie ramek i `hc.visual_assets.js` jako loader/cache assetow.
 - `FRAME_COMPOSER_SPEC.md` precyzuje kontrakt `hc.frame_composer.js`: `anchorOffset`, `lineInset`, `ornamentScale`, debug anchors oraz static/dynamic layers; zawiera tez status v0.1 implementation.
+- `SUB_META_LAYOUT_ANCHOR_AUDIT.md` opisuje warstwe layout anchors, ktora przekazuje recty/mount points do przyszlego `HC.FrameComposer` zamiast hardcodowania layoutu w composerze.
+- `hc.submeta_layout.js` tworzy namespace `HC.SubMetaLayout`; `cards.js` korzysta z niego przez wrapper `getSubMetaLayout()` i zachowuje defensywny fallback.
+- `cards.js` ma minimalny runtime probe root frame: `FRAME_COMPOSER_SUBMETA_ROOT_ENABLED`, `HC.VisualAssets` preload i `HC.FrameComposer.drawFrameParts` tylko dla glownej ramy SUB-META.
 - `assets/visual/preview/frame_composer_sandbox.html` testuje repo-only wspolprace `hc.visual_assets.js` + `hc.frame_composer.js` poza runtime gry.
 - `FONT_SYSTEM_SPEC.md` porzadkuje tokeny typografii i rejestry tekstu dla HUD/SUB-META/kart bez zmiany mechaniki.
 - `cards.js` renderuje SUB-META i HUD kart oraz ma defensywny loader manifestu SVG.

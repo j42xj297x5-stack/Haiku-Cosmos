@@ -24,8 +24,9 @@ Przy pracach nad SUB-META, HUD, ramkami, slotami, ornamentami, glifami, liniami 
 5. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` - gdy przygotowujesz nowy pass Figma
 6. `SUB_META_COMPONENTS.md`
 7. `SUB_META_ASSET_PIPELINE.md`
-8. `FIGMA_WORKFLOW.md` - tylko przed użyciem Figma
-9. `SUB_META_FIGMA_ASSET_PASS_01.md` - evidence historycznego passu
+8. `SVG_ASSET_STANDARDS.md`
+9. `FIGMA_WORKFLOW.md` - tylko przed użyciem Figma
+10. `SUB_META_FIGMA_ASSET_PASS_01.md` - evidence historycznego passu
 
 ## 3. Rola dokumentów
 
@@ -37,6 +38,7 @@ Przy pracach nad SUB-META, HUD, ramkami, slotami, ornamentami, glifami, liniami 
 - `MODULAR_FRAME_KIT_ASSET_MANIFEST.md` - evidence manifestu po audycie i lokalizacja legacy.
 - `SUB_META_COMPONENTS.md` - katalog komponentów: frame parts, static base, dynamic accents, new-card marker, slot bridges.
 - `SUB_META_ASSET_PIPELINE.md` - struktura katalogów, legacy/evidence policy i docelowy modular pipeline.
+- `SVG_ASSET_STANDARDS.md` - roboczy standard wykonawczy SVG/frame parts, anchor metadata, naming, density i raster pipeline.
 - `SUB_META_FIGMA_ASSET_PASS_01.md` - evidence poprzednich passów Figma i runtime review.
 - `FIGMA_WORKFLOW.md` - zasady pracy z Figma, gdy Figma jest używana.
 - `SUB_META_FIGMA_PROMPT_TEMPLATE.md` - starszy prompt template, pomocniczy względem nowego frame kit promptu.

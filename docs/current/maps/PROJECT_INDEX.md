@@ -48,6 +48,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/MODULAR_FRAME_KIT_ASSET_MANIFEST.md` (EVIDENCE / MANIFEST LEGACY)
 - `docs/current/visual/SUB_META_COMPONENTS.md` (KIERUNEK / KATALOG KOMPONENTÓW)
 - `docs/current/visual/SUB_META_ASSET_PIPELINE.md` (KIERUNEK / PIPELINE WYKONAWCZY)
+- `docs/current/visual/SVG_ASSET_STANDARDS.md` (ROBOCZY / STANDARD WYKONAWCZY)
 - `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (EVIDENCE / FIGMA + RUNTIME REVIEW)
 - `docs/current/visual/FIGMA_WORKFLOW.md` (KIERUNEK / WORKFLOW)
 - `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / STARSZY PROMPT TEMPLATE)
@@ -60,6 +61,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (ROBOCZY / ARCHITEKTURA TECHNICZNA)
 - `docs/current/technical/FONT_SYSTEM_SPEC.md` (ROBOCZY / DO WDROZENIA)
 - `docs/current/technical/FRAME_COMPOSER_SPEC.md` (ROBOCZY / KONTRAKT TECHNICZNY)
+- `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` (ROBOCZY / AUDYT LAYOUTU)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md` (ROBOCZY)
 - `docs/current/technical/LIVE_VALIDATION_PACK.md` (ROBOCZY)
 
@@ -71,4 +73,7 @@ Kanon jest mapowany warstwowo przez:
 - Obecny pass SVG `style_correction_2026_04` jest evidence w `assets/visual/legacy/`, nie aktywnym zestawem produkcyjnym.
 - Modular Frame Kit v0.1 ma manifest evidence/export w `assets/visual/modular_frame_kit_v01_manifest.json`; runtime integration pozostaje future pass.
 - `FRAME_COMPOSER_SPEC.md` opisuje kontrakt layoutu modularnych SVG (`anchorOffset`, `lineInset`, `ornamentScale`) i zawiera sekcje v0.1 implementation status (repo-only infrastructure).
+- `SVG_ASSET_STANDARDS.md` opisuje standard wykonawczy dla przyszlych SVG/rastrow: anchor metadata, nazewnictwo, statusy static/tintable/animatable i density.
+- `SUB_META_LAYOUT_ANCHOR_AUDIT.md` mapuje obecny layout SUB-META w `cards.js` i opisuje extraction pass v0.1 / kontrakt `SubMetaLayoutAnchors`.
+- `hc.submeta_layout.js` udostepnia runtime namespace `HC.SubMetaLayout` dla czystego layoutu SUB-META, density i mount points; produkcyjny FrameComposer jest podlaczony tylko jako `submeta.root_frame` probe za flaga.
 - `assets/visual/preview/frame_composer_sandbox.html` to manualny sandbox review dla `HC.VisualAssets` + `HC.FrameComposer` bez integracji runtime.

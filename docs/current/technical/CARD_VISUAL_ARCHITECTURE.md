@@ -322,6 +322,48 @@ Dodatkowe doprecyzowanie stanu kart:
 - `new-card pulse` jest stanem visual/UX;
 - `seen` / `touched` wygasza ruch i stabilizuje karte;
 - powyzsze stany nie zmieniaja mechaniki, typu karty ani zasad sekwencji.
+
+## 16. SUB-META layout extraction pass v0.1
+
+Dodany zostal osobny modul layoutu SUB-META:
+
+- `hc.submeta_layout.js`;
+- namespace: `HC.SubMetaLayout`;
+- status: `extracted_not_integrated`.
+
+Nowa warstwa siedzi pomiedzy mechanika a visuals:
+
+```text
+cards.js / World state
+  -> getSubMetaLayout wrapper
+  -> HC.SubMetaLayout.compute(...)
+  -> HC.SubMetaLayout.computeAnchors(...)
+  -> future HC.CardVisuals / HC.FrameComposer
+```
+
+Zasady:
+
+- `cards.js` nadal pozostaje wlascicielem mechaniki, assign/remove/forge, kosztow RP i PRG behavior;
+- `HC.SubMetaLayout` liczy tylko recty, density i mount points;
+- `HC.SubMetaLayout` nie rysuje i nie laduje assetow;
+- `cards.js` nie powinien byc docelowo jedynym miejscem layoutu SUB-META;
+- produkcyjne podpiecie FrameComposera nadal wymaga osobnego visual integration pass.
+## 17. SUB-META root frame runtime probe
+
+Pierwszy runtime visual probe zostal ograniczony do glownej ramy SUB-META:
+
+- `cards.js` ma flage `FRAME_COMPOSER_SUBMETA_ROOT_ENABLED`;
+- `renderSubMetaOverlay()` probuje narysowac tylko `submeta.root_frame` przez `HC.FrameComposer`;
+- `HC.VisualAssets` laduje tylko minimalny part map root frame;
+- stary procedural/legacy render SUB-META pozostaje fallbackiem;
+- production rendering jest nadal czesciowo legacy: sloty, panele wewnetrzne, karty, picker, Kuznia i buttony nie sa jeszcze integrowane z FrameComposerem.
+
+Granice:
+
+- probe nie zmienia mechaniki, sekwencji, kosztow RP, PRG behavior ani hit rectow;
+- probe nie robi depth/relief, animacji ani live-coloring;
+- kolejne ramki powinny przechodzic przez `HC.SubMetaLayout`, `HC.CardVisuals`, `HC.FrameComposer` i `HC.VisualAssets`, zamiast dopisywania hardcodowanych assetow bezposrednio do mechaniki `cards.js`.
+
 ## 11. Update status — infrastructure modules available (2026-04-28)
 
 Wykonany zostal bezpieczny krok infrastrukturalny bez zmiany mechaniki:
@@ -329,6 +371,8 @@ Wykonany zostal bezpieczny krok infrastrukturalny bez zmiany mechaniki:
 - `hc.visual_assets.js`: loader/cache/lookup dla `modular_frame_kit_v01_manifest.json`;
 - `hc.frame_composer.js`: pure layout calculations i debug helpers bez decyzji gameplayowych;
 - `hc.card_visuals.js`: pozostaje modułem scaffolding/no-op (integracja extraction pass).
+- `hc.submeta_layout.js`: pure SUB-META layout + anchors extraction, bez renderingu i bez mechaniki.
+- `cards.js`: probe root frame za flaga, z fallbackiem do starego renderu i bez zmian mechaniki.
 
 Zasady utrzymane:
 

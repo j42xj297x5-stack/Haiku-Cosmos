@@ -334,6 +334,69 @@ const CardEngine = (() => {
   const SUB_META_CARD_GAP_X = 12;
   const SUB_META_CARD_GAP_Y = 10;
   const SUB_META_COUNT_PAD = 8;
+  const FRAME_COMPOSER_SUBMETA_ROOT_ENABLED = true;
+  const FRAME_COMPOSER_SUBMETA_ROOT_DEBUG = false;
+  const FRAME_COMPOSER_SUBMETA_ROOT_MANIFEST_URL = "/assets/visual/modular_frame_kit_v01_manifest.json";
+  const FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_X = 44;
+  const FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_Y = 54;
+  const FRAME_COMPOSER_SUBMETA_ROOT_LAYOUT_OVERRIDES = {
+    cornerSize: 68,
+    edgeThickness: 24,
+    lineRectInset: {
+      x: FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_X,
+      y: FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_Y
+    },
+    anchors: {
+      cornerAnchorOffset: { x: 42, y: 54 },
+      edgeLineInset: 10,
+      cornerJoinInset: 46
+    },
+    scales: {
+      topOrnament: 0.62,
+      bottomOrnament: 0.72
+    },
+    topOrnamentOffsetY: -38,
+    bottomOrnamentOffsetY: 10
+  };
+  const FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP = {
+    corners: {
+      tl: "submeta.frame.corner.tl.astrolabe_01",
+      tr: "submeta.frame.corner.tr.astrolabe_01",
+      bl: "submeta.frame.corner.bl.astrolabe_01",
+      br: "submeta.frame.corner.br.astrolabe_01"
+    },
+    edges: {
+      top: "submeta.frame.edge.top_thin.astrolabe_01",
+      bottom: "submeta.frame.edge.bottom_thin.astrolabe_01",
+      left: "submeta.frame.edge.left_thin.astrolabe_01",
+      right: "submeta.frame.edge.right_thin.astrolabe_01"
+    },
+    ornaments: {
+      topCenter: "submeta.frame.center_ornament.top.astrolabe_01",
+      bottomCenter: "submeta.frame.center_ornament.bottom.astrolabe_01"
+    }
+  };
+  const FRAME_COMPOSER_SUBMETA_ROOT_PARTS = [
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.corners.tl,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.corners.tr,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.corners.bl,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.corners.br,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.edges.top,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.edges.bottom,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.edges.left,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.edges.right,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.ornaments.topCenter,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.ornaments.bottomCenter
+  ];
+  const subMetaRootFrameVisualState = {
+    requested: false,
+    manifestLoaded: false,
+    preloadStatus: "idle",
+    preloadSummary: null,
+    rootFrameDrawn: false,
+    fallbackUsed: true,
+    lastLogKey: ""
+  };
   const SUB_META_SLOT_COLORS = {
     forma: "red",
     intencja: "yellow",
@@ -579,6 +642,7 @@ const CardEngine = (() => {
     if (World.formaOrbitReductionAsteroidBase === undefined) World.formaOrbitReductionAsteroidBase = 0;
     if (World.formaOrbitReductionPlanetBase === undefined) World.formaOrbitReductionPlanetBase = 0;
     if (World.formaOrbitReductionStarBase === undefined) World.formaOrbitReductionStarBase = 0;
+    requestSubMetaRootFrameAssets();
     if (!Array.isArray(state.sequence.tempCards)) state.sequence.tempCards = [];
     World.cardsTemp = state.sequence.tempCards;
     const runTimers = window.HC && window.HC.RunTimers;
@@ -4346,7 +4410,183 @@ const CardEngine = (() => {
     ctx.restore();
   }
 
+  function getSubMetaVisualRuntime() {
+    const root = typeof window !== "undefined" ? window : (typeof globalThis !== "undefined" ? globalThis : null);
+    const hc = root && root.HC;
+    return {
+      visualAssets: hc && hc.VisualAssets,
+      frameComposer: hc && hc.FrameComposer,
+      layoutEngine: hc && hc.SubMetaLayout
+    };
+  }
+
+  function logSubMetaRootFrameDiagnostic(status, details = {}) {
+    if (!FRAME_COMPOSER_SUBMETA_ROOT_DEBUG || typeof console === "undefined" || typeof console.debug !== "function") return;
+    const key = `${status}:${JSON.stringify(details)}`;
+    if (subMetaRootFrameVisualState.lastLogKey === key) return;
+    subMetaRootFrameVisualState.lastLogKey = key;
+    console.debug("[HC.SubMetaRootFrame]", status, details);
+  }
+
+  function requestSubMetaRootFrameAssets() {
+    if (!FRAME_COMPOSER_SUBMETA_ROOT_ENABLED || subMetaRootFrameVisualState.requested) return false;
+
+    const { visualAssets } = getSubMetaVisualRuntime();
+    if (!visualAssets
+      || typeof visualAssets.loadManifest !== "function"
+      || typeof visualAssets.preload !== "function") {
+      subMetaRootFrameVisualState.preloadStatus = "visual_assets_unavailable";
+      return false;
+    }
+
+    subMetaRootFrameVisualState.requested = true;
+    subMetaRootFrameVisualState.preloadStatus = "loading_manifest";
+    const manifestReady = typeof visualAssets.isReady === "function" && visualAssets.isReady();
+    const manifestPromise = manifestReady
+      ? Promise.resolve({ ok: true, manifestLoaded: true, skipped: true })
+      : visualAssets.loadManifest(FRAME_COMPOSER_SUBMETA_ROOT_MANIFEST_URL);
+
+    manifestPromise
+      .then((manifestResult) => {
+        if (!manifestResult || !manifestResult.ok) {
+          subMetaRootFrameVisualState.manifestLoaded = false;
+          subMetaRootFrameVisualState.preloadStatus = "manifest_error";
+          logSubMetaRootFrameDiagnostic("manifest_error", manifestResult || {});
+          return null;
+        }
+
+        subMetaRootFrameVisualState.manifestLoaded = true;
+        subMetaRootFrameVisualState.preloadStatus = "preloading";
+        return visualAssets.preload(FRAME_COMPOSER_SUBMETA_ROOT_PARTS);
+      })
+      .then((preloadSummary) => {
+        if (!preloadSummary) return;
+        subMetaRootFrameVisualState.preloadSummary = preloadSummary;
+        subMetaRootFrameVisualState.preloadStatus = preloadSummary.failed > 0 ? "preload_partial" : "ready";
+        logSubMetaRootFrameDiagnostic(subMetaRootFrameVisualState.preloadStatus, preloadSummary);
+      })
+      .catch((error) => {
+        subMetaRootFrameVisualState.manifestLoaded = false;
+        subMetaRootFrameVisualState.preloadStatus = "preload_error";
+        subMetaRootFrameVisualState.preloadSummary = { error: String(error && (error.message || error)) };
+        logSubMetaRootFrameDiagnostic("preload_error", subMetaRootFrameVisualState.preloadSummary);
+      });
+
+    return true;
+  }
+
+  function areSubMetaRootFrameAssetsReady(visualAssets) {
+    if (!visualAssets
+      || typeof visualAssets.isReady !== "function"
+      || typeof visualAssets.getAsset !== "function"
+      || typeof visualAssets.getImage !== "function"
+      || !visualAssets.isReady()) {
+      return false;
+    }
+    return FRAME_COMPOSER_SUBMETA_ROOT_PARTS.every((logicalName) => (
+      !!visualAssets.getAsset(logicalName) && !!visualAssets.getImage(logicalName)
+    ));
+  }
+
+  function getSubMetaRootFrameAnchor(layout) {
+    const { layoutEngine } = getSubMetaVisualRuntime();
+    if (layoutEngine && typeof layoutEngine.computeAnchors === "function") {
+      try {
+        const anchors = layoutEngine.computeAnchors(layout);
+        return anchors?.byName?.["submeta.root_frame"] || anchors?.["submeta.root_frame"] || anchors?.rootFrame || null;
+      } catch (_error) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  function getSubMetaRootFrameVisualMountRect(layout) {
+    const anchor = getSubMetaRootFrameAnchor(layout);
+    const rect = anchor?.rect || layout?.panel;
+    if (!rect) return null;
+
+    return {
+      x: rect.x - FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_X,
+      y: rect.y - FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_Y,
+      w: rect.w + FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_X * 2,
+      h: rect.h + FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_Y * 2
+    };
+  }
+
+  function drawSubMetaRootFrameWithComposer(ctx, layout) {
+    if (!FRAME_COMPOSER_SUBMETA_ROOT_ENABLED) {
+      subMetaRootFrameVisualState.rootFrameDrawn = false;
+      subMetaRootFrameVisualState.fallbackUsed = true;
+      return false;
+    }
+
+    const { visualAssets, frameComposer } = getSubMetaVisualRuntime();
+    if (!visualAssets || !frameComposer
+      || typeof frameComposer.computeSubmetaAstrolabeLayout !== "function"
+      || typeof frameComposer.drawFrameParts !== "function") {
+      requestSubMetaRootFrameAssets();
+      subMetaRootFrameVisualState.rootFrameDrawn = false;
+      subMetaRootFrameVisualState.fallbackUsed = true;
+      return false;
+    }
+
+    requestSubMetaRootFrameAssets();
+    if (!areSubMetaRootFrameAssetsReady(visualAssets)) {
+      subMetaRootFrameVisualState.rootFrameDrawn = false;
+      subMetaRootFrameVisualState.fallbackUsed = true;
+      return false;
+    }
+
+    const visualRect = getSubMetaRootFrameVisualMountRect(layout);
+    if (!visualRect) {
+      subMetaRootFrameVisualState.rootFrameDrawn = false;
+      subMetaRootFrameVisualState.fallbackUsed = true;
+      return false;
+    }
+
+    const frameLayout = frameComposer.computeSubmetaAstrolabeLayout(
+      visualRect,
+      FRAME_COMPOSER_SUBMETA_ROOT_LAYOUT_OVERRIDES
+    );
+    const summary = frameComposer.drawFrameParts(
+      ctx,
+      visualAssets,
+      frameLayout,
+      FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP,
+      { alpha: 0.92 }
+    );
+    const expectedCount = FRAME_COMPOSER_SUBMETA_ROOT_PARTS.length;
+    const drawn = !!summary
+      && summary.drawn === expectedCount
+      && summary.total === expectedCount
+      && summary.failed === 0;
+
+    subMetaRootFrameVisualState.rootFrameDrawn = drawn;
+    subMetaRootFrameVisualState.fallbackUsed = !drawn;
+    logSubMetaRootFrameDiagnostic(drawn ? "root_frame_drawn" : "root_frame_fallback", summary || {});
+    return drawn;
+  }
+
   function getSubMetaLayout(screenW, screenH) {
+    const root = typeof window !== "undefined" ? window : (typeof globalThis !== "undefined" ? globalThis : null);
+    const layoutEngine = root && root.HC && root.HC.SubMetaLayout;
+    if (layoutEngine && typeof layoutEngine.compute === "function") {
+      const layout = layoutEngine.compute(screenW, screenH, {
+        slots: SUB_META_SLOTS,
+        prgBranches: SUB_META_PRG_BRANCHES,
+        scale: SUB_META_SCALE,
+        cardMetrics: {
+          w: SUB_META_CARD_W,
+          h: SUB_META_CARD_H,
+          gapX: SUB_META_CARD_GAP_X,
+          gapY: SUB_META_CARD_GAP_Y,
+          countPad: SUB_META_COUNT_PAD
+        }
+      });
+      if (layout && layout.panel && Array.isArray(layout.hitRects)) return layout;
+    }
+
     const panelW = Math.min(780, Math.floor(screenW * 0.94));
     const panelH = Math.min(640, Math.floor(screenH * 0.92));
     const panelX = Math.floor((screenW - panelW) / 2);
@@ -4703,8 +4943,11 @@ const CardEngine = (() => {
     ctx.globalAlpha = 1.0;
     ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.strokeRect(panel.x, panel.y, panel.w, panel.h);
-    // TODO(FrameComposer): keep this readable fallback until new modular frame parts replace legacy SVG overlays.
-    drawManifestSvg(ctx, "submeta.frame.panel.ritual_gate_01", panel.x, panel.y, panel.w, panel.h, 0.9);
+    const rootFrameDrawn = drawSubMetaRootFrameWithComposer(ctx, layout);
+    if (!rootFrameDrawn) {
+      // TODO(FrameComposer): keep this readable fallback until modular root frame assets are ready.
+      drawManifestSvg(ctx, "submeta.frame.panel.ritual_gate_01", panel.x, panel.y, panel.w, panel.h, 0.9);
+    }
     drawManifestSvg(ctx, "submeta.line.separator.altar_scale_01", panel.x + 12, headerY + 8, panel.w - 24, 14, 0.8);
 
     ctx.font = "14px system-ui";
