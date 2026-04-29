@@ -1,7 +1,7 @@
 > Status: ROBOCZY / SPEC WIREFRAME
 > Obszar: SUB-META v2 / low-fi layout preview
 > Źródło prawdy: NIE (roboczy etap przed polished design i runtime)
-> Ostatnia aktualizacja: 2026-04-29
+> Ostatnia aktualizacja: 2026-04-29 (composition v0.4)
 > Powiązane dokumenty: UI_WORLD.md, SUB_META_V2_LAYOUT_SPEC.md, ../technical/SUB_META_V2_BOX_AUDIT.md, ../technical/CENTER_BASED_POSITIONING_SPEC.md
 
 # SUB-META v2 — Wireframe spec (desktop/tablet/mobile)
@@ -91,7 +91,7 @@ Wireframe pokazuje:
 - PRG i ŚWIAT mają podobny ciężar wizualny oraz czytelną parę „świat wewnętrzny ↔ świat zewnętrzny”.
 - Dół: inventory (szeroki bank kart) + mini Kuźnia (portal) + card detail (duży czytnik) mają tworzyć zbalansowaną bazę kokpitu.
 
-## Composition v0.3 — organic cockpit
+## Composition v0.4 — content-driven cockpit
 
 - 9 stref pozostaje semantyką architektury, ale układ nie jest widoczną tabelą 3×3.
 - `top band` jest celowo niski i nie dominuje przestrzeni.
@@ -101,3 +101,15 @@ Wireframe pokazuje:
 - `bottom operations` balansuje magazyn i card detail, z mini Kuźnią jako małym portalem wejściowym.
 - mini connectors / unlockables są pokazane jako future UX/visual layer; nie jest to implementacja mechaniki runtime.
 - mobile jest opisywany jako `core + workspace selector`, a nie pełny cockpit naraz.
+
+
+## Composition v0.4 — content-driven cockpit (repo-only)
+
+- Preview odchodzi od czytelnego odczytu 3×3 panel table; 9 stref pozostaje semantyką architektury.
+- Wszystkie placeholdery kart mają pionową orientację i wysoki card ratio (R1/R2/R3/R4/DS/EXT/ODB).
+- PRG (lewe skrzydło) ma charakter pionowy: 4 osie, każda `R1 + ODB`, z osobną kolumną 3 slotów R2 blisko środka.
+- ŚWIAT (prawe skrzydło) ma charakter bardziej poziomy: 4 osie, każda `R1 + R1 + EXT`, z R2 przy wewnętrznej krawędzi i porównywalnym ciężarem do PRG.
+- Resonance core (środek) jest najmocniejszy wizualnie: centralne `R4`, dwa boczne sloty `R3` (lewy bliżej PRG, prawy bliżej Świata), plus osobny moduł `DS` przy rdzeniu.
+- Dodane są subtelne mini connectory i placeholdery unlockable/future resource nodes jako future visual/UX cues, bez runtime behavior.
+- Dół kompozycji zachowuje balans: szeroki inventory bank (mini pionowe karty), mały portal Kuźni, duży card detail reader.
+- Pass jest wyłącznie repo-only preview HTML/CSS/JS; brak runtime integration, brak zmian mechaniki i brak nowych assetów.
