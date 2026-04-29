@@ -1,14 +1,14 @@
 (function () {
   const zones = [
-    ['top_left_status', 'status / RP', 'top-band micro telemetry', ['mountCenter','named:status.left']],
-    ['top_center_identity', 'SUB-META identity', 'panel identity + mode', ['mountCenter','named:identity.center']],
-    ['top_right_navigation', 'navigation', 'back + workspace mode', ['mountCenter','named:navigation.right']],
-    ['middle_left_prg', 'PRG wing', '4 axes x (R1 + ODB), 3xR2 inner side', ['mountCenter','named:prg.wing.inner']],
-    ['middle_center_resonance_core', 'resonance core', 'R4 center + 2xR3 orbiters', ['pivot:center','named:core.r4']],
-    ['middle_right_world', 'ŚWIAT wing', '4 axes x (R1 + R1 + EXT), 3xR2 inner side', ['mountCenter','named:world.wing.inner']],
-    ['bottom_left_inventory', 'inventory bank', 'wide reserve + DS in resources', ['named:inventory.bank']],
-    ['bottom_center_forge', 'Kuźnia', '3:1 vertical card refinement rack', ['named:forge.input']],
-    ['bottom_right_card_detail', 'card detail reader', 'large card inspector + haiku area', ['named:detail.card']] 
+    ['top_left_status', 'status / RP', 'top-band micro telemetry', ['submeta.overlay.top.left.center']],
+    ['top_center_identity', 'SUB-META identity', 'panel identity + mode', ['submeta.overlay.top.center.center']],
+    ['top_right_navigation', 'navigation', 'back + workspace mode', ['submeta.overlay.top.right.center']],
+    ['middle_left_prg', 'PRG wing', '4 axes x (R1 + ODB), 3xR2 inner side', ['submeta.prg.center']],
+    ['middle_center_resonance_core', 'resonance core', 'R4 center + 2xR3 orbiters', ['submeta.core.center','submeta.core.r4.center']],
+    ['middle_right_world', 'ŚWIAT wing', '4 axes x (R1 + R1 + EXT), 3xR2 inner side', ['submeta.world.center']],
+    ['bottom_left_inventory', 'inventory bank', 'wide reserve + DS in resources', ['submeta.inventory.center','submeta.inventory.ds.row.center']],
+    ['bottom_center_forge', 'Kuźnia', '3:1 vertical card refinement rack', ['submeta.forge.center']],
+    ['bottom_right_card_detail', 'card detail reader', 'large card inspector + haiku area', ['submeta.detail.center','submeta.detail.cardPreview.center','submeta.detail.textBlock.center']] 
   ];
 
   const root = document.getElementById('wireframeRoot');
@@ -21,6 +21,10 @@
   const worldWing = () => `<div class="world-wing">${Array.from({ length: 4 }).map(() => `<div class="world-axis">${card('R1')}${card('R1')}${card('EXT','ext')}${card('R2','r2')}</div>`).join('')}</div>`;
 
   const coreMarkup = () => `<div class="core-wrap"><div class="connector left"></div><div class="connector right"></div><div class="future-node n1">unlockable node</div><div class="future-node n2">mini connector</div><div class="future-node n3">future node</div><div class="core-shell"><div class="r4-seat">${card('R4','r4')}</div></div><div class="r3-left">${card('R3','r3')}</div><div class="r3-right">${card('R3','r3')}</div></div>`;
+
+
+
+  const rectLayer = () => `<div class="debug-rect-layer"><span class="debug-rect-layout">layout</span><span class="debug-rect-hit">interactive</span><span class="debug-rect-mount">mount</span><span class="debug-rect-bleed">bleed</span><span class="debug-rect-safe">safe</span></div>`;
 
   function zoneBody(id) {
     if (id === 'middle_left_prg') return prgWing();
@@ -35,7 +39,7 @@
   zones.forEach(([id, role, info, anchors]) => {
     const el = document.createElement('article');
     el.className = `zone zone-${id}`;
-    el.innerHTML = `<h3>${id}</h3><div class="meta">${role} · ${info}</div><div>${anchors.map((a) => `<span class="anchor-chip">${a}</span>`).join('')}</div>${zoneBody(id)}`;
+    el.innerHTML = `<h3>${id}</h3><div class="meta">${role} · ${info}</div><div>${anchors.map((a) => `<span class="anchor-chip">${a}</span>`).join('')}</div><span class="debug-anchor-label">${anchors[0]}</span>${rectLayer()}${zoneBody(id)}`;
     cockpit.appendChild(el);
   });
 
@@ -45,6 +49,13 @@
     mobileWorkspace.querySelectorAll('button').forEach((btn) => btn.addEventListener('click', () => renderMobile(btn.dataset.tab)));
   }
   renderMobile('CORE');
+
+  const debugToggle = document.getElementById('debugToggle');
+  debugToggle.addEventListener('click', () => {
+    root.classList.toggle('debug-off');
+    const pressed = !root.classList.contains('debug-off');
+    debugToggle.setAttribute('aria-pressed', String(pressed));
+  });
 
   document.querySelectorAll('[data-mode]').forEach((btn) => {
     btn.addEventListener('click', () => {

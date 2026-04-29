@@ -61,3 +61,16 @@ main { padding: 12px; display:grid; gap: 12px; }
 .workspace-panel{border:1px solid #506d91;border-radius:10px;padding:10px;min-height:180px}
 .mode-tablet .zone-middle_center_resonance_core{grid-column:1 / span 2}
 .mode-tablet .zone-bottom_center_forge{grid-column:1 / span 2}
+
+
+.debug-toggle { margin-left:12px; padding:8px 12px; border:1px solid #d2ae73; background:#2a2118; color:#f1d9ad; border-radius:10px; }
+.mode-switch { display:flex; align-items:center; }
+.debug-off .debug-anchor-label,.debug-off .debug-rect-layer { display:none; }
+.debug-anchor-label { position:absolute; top:6px; right:6px; font-size:9px; border:1px dashed #d2ae73; border-radius:8px; padding:1px 5px; color:#f3d7a4; background:rgba(36,28,16,.65); z-index:3; }
+.debug-rect-layer { position:absolute; inset:6px; pointer-events:none; z-index:2; }
+.debug-rect-layer span { position:absolute; border:1px dotted; border-radius:8px; opacity:.7; font-size:8px; padding:1px 4px; }
+.debug-rect-layout { inset:0; border-color:#92b6ff; color:#92b6ff; }
+.debug-rect-hit { inset:5px; border-color:#9ee0b6; color:#9ee0b6; }
+.debug-rect-mount { inset:10px; border-color:#f3d7a4; color:#f3d7a4; }
+.debug-rect-bleed { inset:-4px; border-color:#c39df9; color:#c39df9; }
+.debug-rect-safe { inset:14px; border-color:#d5e2ff; color:#d5e2ff; }
