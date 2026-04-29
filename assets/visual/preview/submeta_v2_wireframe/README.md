@@ -6,18 +6,18 @@ URL lokalny:
 `http://localhost:8123/assets/visual/preview/submeta_v2_wireframe/submeta_v2_wireframe.html`
 
 Aktywny tryb domyślny:
-- `Composition v0.4 — content-driven cockpit`.
+- `SUB-META v2 Composition v0.5 — anchor-aware concept pass`.
 
 Zakres:
 - repo-only desktop/tablet/mobile composition pass,
 - 9 stref jako semantyka layoutu (nie wizualny grid 3×3),
 - wszystkie sloty kart jako pionowe placeholdery,
-- PRG jako skrzydło o charakterze pionowym (4 osie, R1 + ODB),
-- ŚWIAT jako skrzydło o charakterze bardziej poziomym (4 osie, R1 + R1 + EXT),
-- R2 blisko środka (czytelne relacje wing ↔ core),
-- rdzeń resonance: R4 centralnie, 2 sloty R3 bocznie, DS jako osobny moduł rdzenia,
-- dół: szeroki inventory bank + mini Kuźnia portal + duży card detail,
-- mini connectors / unlockable / future resource nodes jako layer future UX (bez mechaniki).
+- PRG jako pionowe skrzydło (4 osie: R1 + ODB, 3xR2 po stronie wewnętrznej),
+- ŚWIAT jako bardziej poziome skrzydło (4 osie: R1 + R1 + EXT, 3xR2 po stronie wewnętrznej),
+- rdzeń resonance: R4 centralnie, 2 sloty R3 jako orbiter cards,
+- DS usunięte z centrum i osadzone w magazynie zasobów,
+- dół: szeroki inventory bank + funkcjonalna mini Kuźnia + duży card detail reader,
+- anchor-aware opis stref i mount logic pod przyszłe ramki/ornamenty/SVG.
 
 Poza zakresem:
 - runtime integration,
