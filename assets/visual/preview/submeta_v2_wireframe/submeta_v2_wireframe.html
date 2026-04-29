@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SUB-META v2 Composition v0.5 Preview</title>
+  <title>SUB-META v2 Composition v0.6 Layout Contract Preview</title>
   <link rel="stylesheet" href="submeta_v2_wireframe.css" />
 </head>
 <body>
   <header class="toolbar">
-    <h1>SUB-META v2 Composition v0.5 — anchor-aware concept pass</h1>
+    <h1>SUB-META v2 FrameComposer Layout Contract v0.6 — anchor/rect handoff</h1>
     <div class="mode-switch" role="group" aria-label="Tryb widoku">
       <button data-mode="desktop" class="is-active">Desktop</button>
       <button data-mode="tablet">Tablet</button>
       <button data-mode="mobile">Mobile</button>
     </div>
+    <button id="debugToggle" class="debug-toggle" aria-pressed="true">Toggle debug contract</button>
   </header>
 
   <main id="wireframeRoot" class="mode-desktop">

@@ -24,3 +24,9 @@ Poza zakresem:
 - zmiany mechaniki,
 - Figma MCP,
 - nowe assety SVG/PNG/fonty.
+
+
+Contract pass v0.6 (anchor/rect handoff):
+- doprecyzowany model anchor IDs zgodny z `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`,
+- debug overlay z etykietami anchor IDs i prostym podglądem warstw rect,
+- nadal repo-only: bez runtime integration i bez zmian mechaniki.

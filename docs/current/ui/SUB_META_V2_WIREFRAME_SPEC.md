@@ -58,3 +58,21 @@ Preview i spec jawnie utrzymują kierunek pod dalszą implementację:
 - nie używa FrameComposer w produkcyjnym rendererze,
 - nie zawiera finalnego art direction polish,
 - nie używa Figma MCP ani nowych assetów.
+
+
+## FrameComposer Layout Contract v0.6 (anchor/rect handoff)
+
+Ten spec wireframe jest powiązany z technicznym handoffem:
+- `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`.
+
+Najważniejsze ustalenia v0.6:
+- stabilne, hierarchiczne anchor IDs dla root/PRG/WORLD/core/inventory/forge/detail,
+- jawny rozdział: `layoutRect`, `interactiveRect`, `visualMountRect`, `visualBleedRect`, `contentSafeRect`,
+- center-based positioning i domyślny pivot `center`,
+- oddzielna warstwa connectorów od warstwy kart,
+- minimalny JSON-like contract pod przyszły FrameComposer.
+
+### Warstwa debug preview
+
+Preview może pokazać debug outlines/anchors przez przełącznik `Toggle debug contract`.
+To jest warstwa pomocnicza handoffu, nie finalne UI.
