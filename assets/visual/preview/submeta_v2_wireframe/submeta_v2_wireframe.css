@@ -1,0 +1,29 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; }
+body { margin: 0; background:#0f1217; color:#e9eef8; }
+.toolbar { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid #344; }
+.mode-switch button { margin-left:8px; padding:8px 12px; border:1px solid #678; background:#1a2130; color:#dce; border-radius:6px; }
+.mode-switch .is-active { border-color:#8cf; background:#243247; }
+main { padding:12px; display:grid; gap:12px; }
+.panel { border:1px solid #3a4a66; background:#141b28; border-radius:8px; padding:10px; }
+.legend ul { display:grid; grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); padding:0; list-style:none; gap:6px; }
+.swatch { width:14px; height:14px; display:inline-block; margin-right:8px; vertical-align:middle; }
+.layout{border:2px solid #5f7ca5}.interactive{border:2px dashed #9ad37a}.mount{border:2px solid #e9e27a}.bleed{border:2px dashed #d08de3}.pivot{background:#ff6b6b;border-radius:50%}.anchor{background:#67c4ff}
+.cockpit { display:grid; gap:8px; }
+.zone { position:relative; min-height:110px; border:2px solid #5f7ca5; padding:8px; }
+.zone .meta { font-size:12px; opacity:.85; }
+.mount-box { position:absolute; inset:24px 12px 12px 12px; border:1px solid #e9e27a; }
+.bleed-box { position:absolute; inset:18px 6px 6px 6px; border:1px dashed #d08de3; pointer-events:none; }
+.interactive-box { position:absolute; inset:32px 18px 18px 18px; border:1px dashed #9ad37a; pointer-events:none; }
+.pivot-dot { position:absolute; left:50%; top:50%; width:8px; height:8px; margin:-4px; border-radius:50%; background:#ff6b6b; }
+.anchor-dot { position:absolute; width:6px; height:6px; background:#67c4ff; }
+.a-top { left:50%; top:8px; margin-left:-3px; }
+.a-right { right:8px; top:50%; margin-top:-3px; }
+.a-bottom { left:50%; bottom:8px; margin-left:-3px; }
+.a-left { left:8px; top:50%; margin-top:-3px; }
+.mode-desktop .cockpit { grid-template-columns:repeat(3,1fr); }
+.mode-tablet .cockpit { grid-template-columns:repeat(3,1fr); }
+.mode-mobile .cockpit { display:none; }
+.mobile-workspace { display:none; }
+.mode-mobile .mobile-workspace { display:block; }
+.workspace-tabs button{margin:4px;padding:10px 12px;min-width:110px;}
+.workspace-panel{border:2px solid #5f7ca5;min-height:180px;padding:8px;position:relative;}

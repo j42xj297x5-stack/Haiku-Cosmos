@@ -30,6 +30,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 
 - `ui/UI_WORLD.md` - KANON
 - `ui/SUB_META_V2_LAYOUT_SPEC.md` - ROBOCZY / SPEC PROJEKTOWY UI
+- `ui/SUB_META_V2_WIREFRAME_SPEC.md` - ROBOCZY / SPEC WIREFRAME
 
 ## Oprawa wizualna
 
