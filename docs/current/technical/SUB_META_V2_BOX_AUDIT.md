@@ -82,3 +82,11 @@ Celem audytu jest opisanie obecnego SUB-META overlay jako punktu wyjścia do arc
 - Umieścić R2 jako bridge w `middle_center_resonance_core` (jedno aktywne wiązanie naraz).
 - Dać przestrzeń dla R3 (stabilizacja/rezerwacja) i R4 (meta-jedność konfiguracji) jako elementów rdzenia.
 - Zachować DS jako czytelnie odrębny slot dodatkowy, nie jako zwykły R1.
+
+
+## 7. Designer content clarification 2026-04-29
+
+- Aktualny layout proof-of-concept nie ma jeszcze pełnego, jawnego miejsca na wszystkie byty rdzenia (`R2`/`R3`/`R4`/`DS`) w jednym resonance core.
+- W wersji v2 te elementy muszą być projektowane jako jawne byty kompozycyjne i informacyjne, a nie tylko rozproszone sockety po bokach.
+- Obecny proof-of-concept nie oddaje docelowej gęstości informacji wynikającej z modelu: PRG 4x2 + 3 R2, ŚWIAT 4x(2R1+ext) + 3 R2, oraz centralny rdzeń z R4 i stabilizacją R3.
+- Konsekwencja dla kolejnego passu: wireframe/content preview ma odchodzić od wyglądu tabeli i pokazywać relacyjny, content-driven cockpit.

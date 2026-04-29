@@ -63,7 +63,7 @@ http://localhost:8123/assets/visual/preview/submeta_v2_wireframe/submeta_v2_wire
 
 Scope:
 
-- low-fi desktop/tablet/mobile wireframe pass;
-- semantic 9-zone map and center-based positioning legend;
-- explicit placement placeholders for R2/R3/R4/DS;
+- low-fi v0.2 content-driven desktop/tablet/mobile wireframe pass;
+- semantic 9-zone map (hidden semantics, not visual table) and center-based positioning legend;
+- explicit PRG/WORLD/core content model placeholders for R2/R3/R4/DS;
 - no runtime integration, no mechanics changes, no new graphic assets.

@@ -6,9 +6,9 @@ URL lokalny:
 `http://localhost:8123/assets/visual/preview/submeta_v2_wireframe/submeta_v2_wireframe.html`
 
 Zakres:
-- desktop/tablet/mobile wireframe pass,
-- 9 stref cockpit resonance,
-- miejsca na R2/R3/R4/DS,
+- v0.2 content-driven wireframe (desktop/tablet/mobile),
+- 9 stref jako semantyka cockpitu, nie widoczna tabela 3x3,
+- model zawartości PRG/WORLD/core (R2/R3/R4/DS),
 - wizualizacja center-based positioning (layout/interactivity/mount/bleed/center/anchors).
 
 Poza zakresem:
