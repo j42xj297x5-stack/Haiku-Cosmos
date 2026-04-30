@@ -1,3 +1,5 @@
+> Uwaga (2026-04-30): Ten prompt dotyczy zadan Figma-generated/fitting. Dla recznie rysowanych assetow Inkscape-first obowiazuje `VISUAL_EXECUTION_GUIDE.md` + `SVG_ASSET_STANDARDS.md`.
+
 # Haiku Cosmos - Modular Frame Kit Figma Prompt
 
 > Status: PROMPT WYKONAWCZY / CURRENT

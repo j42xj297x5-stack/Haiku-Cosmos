@@ -142,3 +142,10 @@ Nie wykonano eksportu SVG do repo, runtime integration, Implement Design ani Cod
 - Nie podpinać legacy SVG jako produkcyjnych assetów.
 - Nie generować pełnych rasterów ani fontów w ramach frame kit.
 - Nie robic pelnego FrameComposera przed review preview board i osobnym pure layout implementation pass.
+
+
+## Uwaga: Inkscape-first direction
+
+- Aktualny kierunek produkcyjny dla recznego projektowania ornamentow i ramek moze byc **Inkscape-first**.
+- Dokumenty Figma pozostaja aktualne jako workflow fitting/review/composition pass.
+- `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest current dla zadan Figma-generated/Figma-fitting, ale nie jest obowiazkowy dla hand-drawn assetow tworzonych Inkscape-first.
