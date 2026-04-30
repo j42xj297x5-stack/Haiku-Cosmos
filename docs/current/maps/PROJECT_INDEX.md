@@ -36,9 +36,12 @@ Kanon jest mapowany warstwowo przez:
 ## UI / flow
 
 - `docs/current/ui/UI_WORLD.md` (KANON)
-- `docs/current/ui/SUB_META_V2_LAYOUT_SPEC.md` (ROBOCZY / SPEC PROJEKTOWY UI)
-- `docs/current/ui/SUB_META_V2_WIREFRAME_SPEC.md` (ROBOCZY / SPEC WIREFRAME)
-- `docs/current/ui/SUB_META_MEMORY_PACK.md` (ROBOCZY / HANDOFF PROJEKTOWY)
+- `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT)
+- `docs/current/ui/SUB_META_V2_LAYOUT_SPEC.md` (ROBOCZY / SPEC-HISTORY INPUT)
+- `docs/current/ui/SUB_META_V2_WIREFRAME_SPEC.md` (ROBOCZY / SPEC-HISTORY INPUT)
+- `docs/current/ui/SUB_META_V2_LAYOUT_TOKENS.md` (ROBOCZY / SPEC-HISTORY INPUT)
+- `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (ROBOCZY / SPEC-HISTORY INPUT)
+- `docs/current/ui/SUB_META_MEMORY_PACK.md` (ROBOCZY / HANDOFF / SPEC-HISTORY INPUT)
 
 ## Visual
 
@@ -88,5 +91,6 @@ Kanon jest mapowany warstwowo przez:
 - `SUB_META_LAYOUT_ANCHOR_AUDIT.md` mapuje obecny layout SUB-META w `cards.js` i opisuje extraction pass v0.1 / kontrakt `SubMetaLayoutAnchors`.
 - `hc.submeta_layout.js` udostepnia runtime namespace `HC.SubMetaLayout` dla czystego layoutu SUB-META, density i mount points; produkcyjny FrameComposer jest podlaczony tylko jako `submeta.root_frame` probe za flaga.
 - `assets/visual/preview/frame_composer_sandbox.html` to manualny sandbox review dla `HC.VisualAssets` + `HC.FrameComposer` bez integracji runtime.
-- Dokumenty SUB-META v2 w `docs/current/ui/` pozostają roboczym stackiem (layout/wireframe/tokens/framecomposer/memory pack) do przyszłego scalenia; na tym etapie nie są pojedynczym master-speciem.
+- `SUB_META_V2_MASTER_SPEC.md` jest głównym roboczym dokumentem layout/design handoff dla SUB-META v2.
+- Pozostały stack SUB-META v2 (`LAYOUT_SPEC`, `WIREFRAME_SPEC`, `LAYOUT_TOKENS`, `FRAMECOMPOSER_CONTRACT`, `MEMORY_PACK`) pozostaje jako input history/spec-history i kandydat do scalenia/legacy po review (bez usuwania plików na tym etapie).
 - Dokumenty evidence Figma (`SUB_META_FIGMA_*`) oraz manifesty legacy/evidence (`MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) nie są aktywnym produkcyjnym source-of-truth dla runtime.
