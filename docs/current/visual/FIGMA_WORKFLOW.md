@@ -111,17 +111,23 @@ Raport po zadaniu Figma powinien zawierac:
 8. nastepny krok.
 
 
-## Figma as fitting board after Inkscape
+## Figma as optional fitting board after raster/Inkscape
 
-Ten dokument wspiera wariant, w ktorym Figma **nie jest glownym narzedziem kreacji**.
+Figma jest **opcjonalna**, a nie obowiazkowa po kazdym passie raster/Inkscape.
 
-Wariant Inkscape-first -> Figma fitting obejmuje:
+Figma fitting startuje dopiero, gdy projektant dostarczy:
+- pelny eksport warstwowej ramki glownej, albo
+- wybrane czesci ramki do modularnego dopasowania.
 
-1. import SVG z Inkscape do Figmy,
-2. crop/fit/check bounds i alignment,
-3. weryfikacje anchorow/mount points w kontekscie layout boardu,
-4. testowanie komponentow w layout boardzie i review kompozycji,
-5. brak redesignu stylu, chyba ze jest to jawnie zlecone,
-6. export/review dopiero po walidacji zgodnosci ze `SVG_ASSET_STANDARDS.md`.
+Zakres zadania Codex/Figma na tym etapie:
+1. crop/fit i alignment,
+2. check bounds,
+3. assign/verify anchors,
+4. prepare mount points,
+5. test against layout board,
+6. rekomendacja modular split pod FrameComposer (jesli potrzebna),
+7. export/review po walidacji zgodnosci ze `SVG_ASSET_STANDARDS.md`.
+
+Figma nie redesignuje stylu linii ani charakteru ornamentu, chyba ze jest to jawnie zlecone.
 
 `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` pozostaje aktywny dla zadan Figma-generated lub Figma-fitting, ale nie wymusza Figma-first dla recznie rysowanych assetow Inkscape.

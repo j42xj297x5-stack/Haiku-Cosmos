@@ -98,6 +98,7 @@ Kanon jest mapowany warstwowo przez:
 
 ## Aktualizacja workflow visual (2026-04-30)
 
-- `VISUAL_EXECUTION_GUIDE.md` obsluguje wariant **Inkscape-first + Figma fitting/review**.
-- `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest current dla zadan Figma, ale nie zastepuje recznego Inkscape design pass.
-- `SVG_ASSET_STANDARDS.md` pozostaje obowiazkowym standardem wykonawczym dla obu sciezek.
+- `VISUAL_EXECUTION_GUIDE.md` obsluguje wariant **raster-first -> Inkscape layered master -> optional Figma fitting/review**.
+- Sciezka visual dopuszcza decyzje po zlozeniu ramki glownej: merged asset albo modular export do Figma fitting/anchors.
+- `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest current dla zadan Figma i nie jest wymagany dla raster-first/Inkscape-only design pass.
+- `SVG_ASSET_STANDARDS.md` pozostaje obowiazkowym standardem, gdy assety trafiaja do repo/production-candidate flow.

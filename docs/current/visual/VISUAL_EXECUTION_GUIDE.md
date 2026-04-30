@@ -169,14 +169,16 @@ Po tym przewodniku logiczna kolejność to:
 5. dopiero potem migracja zastąpionych dokumentów do `docs/legacy/`.
 
 
-## Inkscape-first workflow
+## Raster-first -> Inkscape -> optional Figma fitting workflow
 
-Aktualny workflow wykonawczy wspiera tryb **Inkscape-first**.
+Aktualny workflow wykonawczy wspiera praktyczny tryb **raster-first -> Inkscape**, z opcjonalnym passsem Figma po zlozeniu ramki glownej.
 
-- **Inkscape** jest glownym narzedziem projektowania ornamentow, ramek i czystych krzywych SVG.
-- **Figma** jest passsem nastepnym: fitting/review/composition (crop, alignment, bounds, layout board).
-- Nie nalezy zakladac, ze wszystkie assety powstaja od zera w Figmie.
-- Dla obu sciezek (Inkscape-first oraz Figma-generated) obowiazuja `SVG_ASSET_STANDARDS.md`: `viewBox`, transparent background, clean layers/groups, brak bitmap/base64/fontow, brak baked heavy glow, przygotowanie pod tinting i anchor metadata.
+- **Raster reference** (np. ChatGPT-generated) powstaje poza repo i sluzy jako material referencyjny, nie runtime asset.
+- **Inkscape** sluzy do wektoryzacji rastra, cleanupu krzywych, refinamentu linii i zlozenia warstwowej ramki glownej (layered master frame).
+- **Figma** jest opcjonalnym passsem nastepnym: fitting/crop/bounds, anchor verification, mount points i layout-board review.
+- Nie nalezy zakladac, ze kazdy pass Inkscape konczy sie od razu modularnym production SVG; layered master frame jest dozwolonym etapem posrednim.
+- Po zlozeniu ramki glownej zapada decyzja pipeline: (A) jeden scalony asset ramki albo (B) eksport modularnych elementow do Figma fitting/FrameComposer preparation.
+- Dla obu sciezek (Inkscape-first i Figma-generated/fitting) obowiazuja `SVG_ASSET_STANDARDS.md`: `viewBox`, transparent background, clean layers/groups, brak bitmap/base64/fontow, brak baked heavy glow, przygotowanie pod tinting i anchor metadata.
 
 ### Zalecana sciezka pracy
 
@@ -184,8 +186,9 @@ Aktualny workflow wykonawczy wspiera tryb **Inkscape-first**.
 2. `VISUAL_EXECUTION_GUIDE.md`
 3. core visual docs (`ART_DIRECTION.md`, `KOSMOLOGIA_WIZUALNA.md`, `BIBLIOTEKA_MATERIALOW.md`, + dokument domenowy np. `MODULAR_FRAME_KIT.md`)
 4. `SVG_ASSET_STANDARDS.md`
-5. Inkscape design pass
-6. SVG cleanup/export
-7. Figma fitting/review pass
-8. manifest/pipeline update
-9. optional FrameComposer/runtime pass jako osobny etap
+5. raster reference generation (outside repo)
+6. Inkscape vectorization + layered master frame assembly
+7. decyzja: merged frame asset albo modular export
+8. optional Figma fitting/review (anchors/mount points/layout board)
+9. SVG validation + manifest/pipeline update
+10. optional FrameComposer/runtime pass jako osobny etap

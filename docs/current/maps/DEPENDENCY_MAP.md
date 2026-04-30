@@ -42,9 +42,9 @@
 2. `docs/current/visual/VISUAL_EXECUTION_GUIDE.md`
 3. `ART_DIRECTION.md` -> `KOSMOLOGIA_WIZUALNA.md` -> `BIBLIOTEKA_MATERIALOW.md`
 4. zaleznie od zadania: `MODULAR_FRAME_KIT.md`, `SVG_ASSET_STANDARDS.md`, `SUB_META_ASSET_PIPELINE.md`
-5. Inkscape design pass (jesli zadanie jest hand-drawn / clean-curve SVG)
-6. `FIGMA_WORKFLOW.md` jako fitting/review/composition pass po Inkscape lub pass Figma-generated
-7. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jako aktualny prompt wykonawczy dla zadan Figma (nie zastępuje Inkscape-first design pass)
+5. raster reference generation (poza repo) + Inkscape vectorization/layered master
+6. `FIGMA_WORKFLOW.md` jako optional fitting/review/composition pass po eksporcie ramki lub elementow
+7. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jako aktualny prompt dla zadan Figma (nie dotyczy raster-first/Inkscape-only design pass)
 8. dokumenty Figma evidence (`SUB_META_FIGMA_*`, `MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) czytaj wylacznie jako history/review, nie aktywna produkcje/source-of-truth
 
 ### D) Zadania technical / runtime / evidence
@@ -163,6 +163,6 @@
 
 ## 8. Aktualizacja visual workflow (2026-04-30)
 
-- Warstwa visual execution wspiera **Inkscape-first + Figma fitting**.
-- `SVG_ASSET_STANDARDS.md` pozostaje wymaganym standardem dla obu sciezek.
+- Warstwa visual execution wspiera **raster reference -> Inkscape layered master -> optional Figma fitting**.
+- `SVG_ASSET_STANDARDS.md` pozostaje wymaganym standardem dla obu sciezek, gdy assety trafiaja do repo/production-candidate flow.
 - Runtime integration pozostaje osobnym passsem po walidacji i aktualizacji manifestu.
