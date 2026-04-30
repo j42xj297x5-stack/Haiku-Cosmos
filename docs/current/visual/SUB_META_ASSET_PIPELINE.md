@@ -92,17 +92,20 @@ assets/
 - Ten dokument porzadkuje pipeline dokumentacyjny przed kolejnym realnym passem Figma/SVG.
 
 
-## Pipeline wariant: Inkscape-first + Figma fitting/review
+## Pipeline wariant: raster reference -> Inkscape master -> optional Figma fitting
 
-Pipeline CURRENT nie wymusza Figma-first. Dopuszczona i wspierana jest sciezka Inkscape-first:
+Pipeline CURRENT nie wymusza Figma-first. Dopuszczona i wspierana jest sciezka:
 
-1. Inkscape source creation (ornaments/frame parts/clean curves),
-2. SVG cleanup (warstwy, grupy, bounds, metadata, brak bitmap/base64/fontow),
-3. Figma fitting/review (crop, fit, alignment, layout board),
-4. validation (`SVG_ASSET_STANDARDS.md`),
-5. manifest update,
-6. preview board/review board update,
-7. production_candidate marking (po review),
-8. runtime integration jako osobny pass.
+1. raster reference generation (poza repo, np. ChatGPT) jako source/reference, nie runtime asset,
+2. Inkscape vectorization + curve cleanup,
+3. layered master frame assembly w Inkscape jako design source,
+4. decyzja pipeline:
+   - A) merged frame asset, albo
+   - B) modular export do opcjonalnego Figma fitting,
+5. (wariant B) Figma fitting: crop/fit, bounds, anchors, mount points, layout-board test,
+6. SVG validation (`SVG_ASSET_STANDARDS.md`),
+7. manifest/status update,
+8. production_candidate marking po review,
+9. future runtime/FrameComposer integration pass jako osobny etap.
 
-Ta sciezka nie zmienia mechaniki i nie uruchamia runtime integration w tym samym kroku dokumentacyjnym.
+FrameComposer modularization moze byc domknieta pozniej, gdy design sie ustabilizuje. Ta sciezka nie zmienia mechaniki i nie uruchamia runtime integration w tym samym kroku dokumentacyjnym.

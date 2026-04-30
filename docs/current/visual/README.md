@@ -144,8 +144,9 @@ Nie wykonano eksportu SVG do repo, runtime integration, Implement Design ani Cod
 - Nie robic pelnego FrameComposera przed review preview board i osobnym pure layout implementation pass.
 
 
-## Uwaga: Inkscape-first direction
+## Uwaga: practical workflow (raster-first + Inkscape)
 
-- Aktualny kierunek produkcyjny dla recznego projektowania ornamentow i ramek moze byc **Inkscape-first**.
-- Dokumenty Figma pozostaja aktualne jako workflow fitting/review/composition pass.
+- Aktualny praktyczny workflow visual moze byc **raster-first + Inkscape vectorization**.
+- Dokumenty Figma pozostaja aktualne dla opcjonalnego passu fitting/review po przygotowaniu ramki lub jej elementow.
+- Nie istnieje osobny Inkscape guide i na tym etapie nie jest wymagany.
 - `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest current dla zadan Figma-generated/Figma-fitting, ale nie jest obowiazkowy dla hand-drawn assetow tworzonych Inkscape-first.
