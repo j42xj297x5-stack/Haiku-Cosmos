@@ -58,6 +58,8 @@
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md`
 - `docs/current/technical/LIVE_VALIDATION_PACK.md`
 - `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (evidence przebiegu Figma i runtime review)
+- `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` (evidence Figma cleanup + derived modular frame/ornament kit v0.2)
+- `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` (evidence Figma style correction + living ritual line v0.3)
 - `docs/current/visual/MODULAR_FRAME_KIT_ASSET_MANIFEST.md` (evidence manifestu legacy SVG)
 
 ## 6. LEGACY / HISTORYCZNE
@@ -89,6 +91,8 @@
 - `SVG_ASSET_STANDARDS.md` definiuje roboczy standard wykonawczy SVG/raster assets: anchor metadata, naming, statusy static/tintable/animatable, density i raster boundary.
 
 - `assets/visual/modular_frame_kit_v01_manifest.json` opisuje wyeksportowany Modular Frame Kit v0.1 (`35` SVG) jako `exported_review_ready`; runtime uzywa go tylko dla `submeta.root_frame` probe za flaga.
+- `SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` opisuje Figma-only cleanup dwoch traced vector bases i derived kit v0.2 (`70` komponentow), bez eksportu SVG i bez runtime integration.
+- `SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` opisuje Figma-only style correction + source re-cut v0.3 (`76` komponentow), z roboczym stroke `#B8DDF0`, zywa rytualna linia, bez eksportu SVG i bez runtime integration.
 - `FRAME_COMPOSER_SPEC.md` definiuje roboczy kontrakt przyszlego skladania modularnych SVG po anchorach, nie po samym `viewBox`.
 - `SUB_META_LAYOUT_ANCHOR_AUDIT.md` mapuje obecny canvas layout SUB-META w `cards.js` oraz proponuje `SubMetaLayoutAnchors` przed integracja FrameComposera.
 - `hc.submeta_layout.js` jest extraction pass v0.1 dla `SubMetaLayoutAnchors`: liczy ten sam layout co `getSubMetaLayout()` i zwraca semantyczne mount points bez renderingu.
@@ -111,5 +115,7 @@
 - Dokumenty visual nie zmieniają mechaniki kart, sekwencji, kosztów RP ani PRG behavior.
 - Obecne SVG `style_correction_2026_04` nie są kanonem i nie są bazą dla FrameComposera.
 - Nowe ramki v0.1 powstaly od zera w Figmie jako modular parts i zostaly wyeksportowane do `assets/visual/...`; runtime integration pozostaje future pass.
+- Derived kit v0.2 powstal w Figmie jako evidence/design source; nie jest jeszcze aktywnym asset manifestem runtime.
+- Derived kit v0.3 powstal w Figmie jako style correction evidence/design source; nie jest aktywnym asset manifestem runtime.
 - FrameComposer, live-coloring, new/seen-card state i animacje to osobne future pass.
 - `docs/legacy/` nie jest źródłem prawdy.

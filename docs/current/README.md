@@ -45,6 +45,8 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `visual/SUB_META_ASSET_PIPELINE.md` - KIERUNEK / PIPELINE WYKONAWCZY
 - `visual/SVG_ASSET_STANDARDS.md` - ROBOCZY / STANDARD WYKONAWCZY
 - `visual/SUB_META_FIGMA_ASSET_PASS_01.md` - EVIDENCE / FIGMA + RUNTIME REVIEW
+- `visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` - EVIDENCE / FIGMA CLEANUP + DERIVED KIT
+- `visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` - EVIDENCE / FIGMA STYLE CORRECTION + LIVING RITUAL LINE
 - `visual/FIGMA_WORKFLOW.md` - KIERUNEK / WORKFLOW
 - `visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` - KIERUNEK / STARSZY PROMPT TEMPLATE
 - `visual/SUB_META_LINE_ORNAMENT_LIBRARY.md` - KIERUNEK / BIBLIOTEKA POMOCNICZA
@@ -74,6 +76,8 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - HUD/SUB-META legacy SVG pass: przeniesiony do `assets/visual/legacy/style_correction_2026_04/`.
 - Legacy SVG `style_correction_2026_04`: przeniesione do evidence; aktywny `submeta_svg_manifest.json` jest pusty/neutralny.
 - Modular Frame Kit v0.1: `35` SVG exported_review_ready, manifest `assets/visual/modular_frame_kit_v01_manifest.json`.
+- Modular Frame Kit v0.2 Figma cleanup/derived kit: `70` Figma components draft/evidence in `ramka-v1` (`HSAtk0l6Udl5XZp28Ijesl`), no SVG export/runtime integration.
+- Modular Frame Kit v0.3 Figma style correction/source re-cut: `76` Figma components draft/evidence in `ramka-v1` (`HSAtk0l6Udl5XZp28Ijesl`), living ritual line, no SVG export/runtime integration.
 - Static preview board: `assets/visual/preview/modular_frame_kit_v01_preview.html`.
 - Runtime integration: root frame probe only; `HC.VisualAssets` + `HC.FrameComposer` sa wdrozone jako infrastruktura v0.1, a produkcyjny SUB-META uzywa ich tylko dla glownej ramy za flaga.
 - SUB-META layout extraction: `hc.submeta_layout.js` udostepnia `HC.SubMetaLayout.computeWithAnchors(...)` jako czysty kontrakt layout + anchors, bez produkcyjnego FrameComposera.

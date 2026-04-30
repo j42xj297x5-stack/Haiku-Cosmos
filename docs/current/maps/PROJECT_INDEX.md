@@ -52,6 +52,8 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/SUB_META_ASSET_PIPELINE.md` (KIERUNEK / PIPELINE WYKONAWCZY)
 - `docs/current/visual/SVG_ASSET_STANDARDS.md` (ROBOCZY / STANDARD WYKONAWCZY)
 - `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (EVIDENCE / FIGMA + RUNTIME REVIEW)
+- `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` (EVIDENCE / FIGMA CLEANUP + DERIVED KIT)
+- `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` (EVIDENCE / FIGMA STYLE CORRECTION + LIVING RITUAL LINE)
 - `docs/current/visual/FIGMA_WORKFLOW.md` (KIERUNEK / WORKFLOW)
 - `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / STARSZY PROMPT TEMPLATE)
 - `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md` (KIERUNEK / BIBLIOTEKA POMOCNICZA)
@@ -76,6 +78,8 @@ Kanon jest mapowany warstwowo przez:
 - `targets_system`, `HAIKU_EDITOR`, `CODEX_START`, `CODEX_PATCHPOINTS`, `haiku_cosmos_agents` są dokumentami legacy i nie są aktywną specyfikacją.
 - Obecny pass SVG `style_correction_2026_04` jest evidence w `assets/visual/legacy/`, nie aktywnym zestawem produkcyjnym.
 - Modular Frame Kit v0.1 ma manifest evidence/export w `assets/visual/modular_frame_kit_v01_manifest.json`; runtime integration pozostaje future pass.
+- Modular Frame Kit v0.2 ma evidence w `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md`; to Figma-only cleanup + derived kit pass bez eksportu SVG i bez runtime integration.
+- Modular Frame Kit v0.3 ma evidence w `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md`; to Figma-only style correction + source re-cut pass z zywa rytualna linia, bez eksportu SVG i bez runtime integration.
 - `FRAME_COMPOSER_SPEC.md` opisuje kontrakt layoutu modularnych SVG (`anchorOffset`, `lineInset`, `ornamentScale`) i zawiera sekcje v0.1 implementation status (repo-only infrastructure).
 - `SVG_ASSET_STANDARDS.md` opisuje standard wykonawczy dla przyszlych SVG/rastrow: anchor metadata, nazewnictwo, statusy static/tintable/animatable i density.
 - `SUB_META_LAYOUT_ANCHOR_AUDIT.md` mapuje obecny layout SUB-META w `cards.js` i opisuje extraction pass v0.1 / kontrakt `SubMetaLayoutAnchors`.

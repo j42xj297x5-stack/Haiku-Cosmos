@@ -3,7 +3,7 @@
 > Status: KIERUNEK / RESET PO AUDYCIE
 > Obszar: visual / assets / Figma / SVG / HUD / SUB-META
 > Źródło prawdy: TAK, dla kierunku nowego modular frame kit
-> Ostatnia aktualizacja: 2026-04-28
+> Ostatnia aktualizacja: 2026-04-29
 > Nie obejmuje: mechaniki, sekwencji, kosztów RP, implementacji FrameComposer
 
 ## 1. Decyzja po audycie
@@ -241,3 +241,97 @@ Po nowym eksporcie SVG potrzebny będzie osobny etap:
 - manifest produkcyjnych modular assets;
 - integracja FrameComposer;
 - dopiero później live-coloring i animacje.
+
+## 11. Figma cleanup + derived frame kit v0.2
+
+> Data: 2026-04-29
+> Tryb: Figma MCP cleanup + derived component kit
+> File key: `HSAtk0l6Udl5XZp28Ijesl`
+> URL: https://www.figma.com/design/HSAtk0l6Udl5XZp28Ijesl/ramka-v1?node-id=3-19&t=2BKRKd76WaKHgSSE-0
+
+Pass v0.2 uzyl dwoch traced vector bases jako materialu referencyjnego:
+
+- `Page 1 / image 1 (Traced)` jako `BIG FRAME LANGUAGE`;
+- `Page 2 / image 1 (Traced)` jako `SMALL PANEL LANGUAGE`.
+
+Zrodla nie zostaly potraktowane jako finalne assety. Zamiast tego wykonano cleanup przez przerysowanie i normalizacje do modularnych czesci.
+
+Utworzono w Figmie:
+
+- `9` stron roboczych;
+- `70` komponentow draft/evidence;
+- rodziny: `main`, `small`, `slot`, `node`, `connector`, `card`, `forge`, `detail`;
+- shared metadata namespace: `haiku.framekit.v02`;
+- neutral black stroke components, bez gradientow, glow, rasterow, image paints, effects i tekstu w komponentach.
+
+Walidacja Figma MCP:
+
+- image paints: `0`;
+- effects: `0`;
+- component text nodes: `0`;
+- missing metadata: `0`;
+- root component fills/effects: `0`.
+
+Ten pass jest zgodny z przyszlym FrameComposer/SVG workflow:
+
+- center-based positioning;
+- named anchors;
+- rozdzial `layoutRect`, `interactiveRect`, `visualMountRect`, `visualBleedRect`, `contentSafeRect`;
+- jawny `bleed`;
+- `static_base`, `tintable_accent`, `animatable_state_layer`.
+
+Nie wykonano:
+
+- eksportu SVG do repo;
+- runtime integration;
+- zmian mechaniki;
+- Implement Design;
+- Code Connect.
+
+Evidence znajduje sie w:
+
+- `SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md`.
+
+## 12. Style correction + derived frame kit v0.3
+
+> Data: 2026-04-29
+> Tryb: Figma MCP style correction + source re-cut
+> File key: `HSAtk0l6Udl5XZp28Ijesl`
+> URL: https://www.figma.com/design/HSAtk0l6Udl5XZp28Ijesl/ramka-v1
+
+Pass v0.3 jest korekta stylu wzgledem v0.2. v0.2 pozostaje evidence i technical baseline, ale nie powinien byc traktowany jako docelowy charakter linii.
+
+Najwazniejsza decyzja v0.3:
+
+- cleanup nie oznacza sterylizacji;
+- zachowac zywa, rytualna, kosmologiczna linie z pierwszego zrodla;
+- utrzymac komponentowosc, center-based positioning, named anchors i rect separation;
+- pracowac roboczym chlodnym stroke `#B8DDF0` na ciemnym tle review, bez finalnej palety produktu.
+
+Utworzono w Figmie:
+
+- `9` nowych stron v0.3;
+- `76` komponentow;
+- rodziny: `main`, `small`, `slot`, `node`, `connector`, `card`, `forge`, `detail`;
+- shared metadata namespace: `haiku.framekit.v03`;
+- optional composition tests dla malego panelu, kapsuly, slot/bridge, sredniego panelu i card detail mini.
+
+Walidacja v0.3 component set:
+
+- image paints: `0`;
+- effects: `0`;
+- component text nodes: `0`;
+- missing metadata: `0`;
+- black strokes: `0`.
+
+Nie wykonano:
+
+- eksportu SVG do repo;
+- runtime integration;
+- zmian mechaniki;
+- Implement Design;
+- Code Connect.
+
+Evidence znajduje sie w:
+
+- `SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md`.
