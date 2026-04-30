@@ -38,6 +38,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/ui/UI_WORLD.md` (KANON)
 - `docs/current/ui/SUB_META_V2_LAYOUT_SPEC.md` (ROBOCZY / SPEC PROJEKTOWY UI)
 - `docs/current/ui/SUB_META_V2_WIREFRAME_SPEC.md` (ROBOCZY / SPEC WIREFRAME)
+- `docs/current/ui/SUB_META_MEMORY_PACK.md` (ROBOCZY / HANDOFF PROJEKTOWY)
 
 ## Visual
 

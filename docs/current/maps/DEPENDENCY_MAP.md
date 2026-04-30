@@ -30,6 +30,7 @@
 - `docs/current/systems/I18N_SYSTEM.md` (KANON STRUKTURALNY / DO WDROŻENIA)
 - `docs/current/ui/UI_WORLD.md`
 - `docs/current/ui/SUB_META_V2_WIREFRAME_SPEC.md` (ROBOCZY / SPEC WIREFRAME)
+- `docs/current/ui/SUB_META_MEMORY_PACK.md` (ROBOCZY / HANDOFF PROJEKTOWY)
 
 ## 4. KIERUNEK visual
 
