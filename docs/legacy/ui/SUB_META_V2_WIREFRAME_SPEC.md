@@ -1,3 +1,9 @@
+> Status: LEGACY / ZASTĄPIONE PRZEZ SUB_META_V2_MASTER_SPEC.md
+> Powód przeniesienia: scalone do master spec po audytach 6A/6B
+> Źródło prawdy: NIE (historyczne / referencyjne)
+> Current entrypoint: docs/current/ui/SUB_META_V2_MASTER_SPEC.md
+> Uwaga: Nie jest current source-of-truth.
+
 > Status: ROBOCZY / SPEC WIREFRAME
 > Obszar: SUB-META v2 / low-fi layout preview
 > Źródło prawdy: NIE (roboczy etap przed polished design i runtime)

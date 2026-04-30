@@ -111,7 +111,7 @@ Ten dokument jest roboczym **master specem SUB-META v2**. Jego rolą jest zastą
 ## 5. PRG wing
 
 - 4 osie PRG pozostają podstawą lewego skrzydła.
-- W osi występuje logika `R1 + ODB/alternatywa` zgodnie z roboczym stackiem v2.
+- W osi występuje logika `R1 + ODB/alternatywa` zgodnie z roboczym stackiem v2 (layoutowo/roboczo, bez zmiany mechaniki PRG).
 - Dostępne są 3 sloty R2 bridge dla relacji.
 - Znaczenie osi i typów kart pozostaje zgodne z `PRG_SYSTEM.md`.
 - Ograniczenie: ten dokument definiuje layout/config, nie runtime behavior.
@@ -119,7 +119,7 @@ Ten dokument jest roboczym **master specem SUB-META v2**. Jego rolą jest zastą
 ## 6. WORLD wing
 
 - 4 osie świata pozostają podstawą prawego skrzydła.
-- Na oś przypada układ `2×R1 + EXT`.
+- Na oś przypada układ `2×R1 + EXT` jako wizualny model strefy (bez redefinicji mechaniki).
 - Dostępne są 3 sloty R2 bridge.
 - DS jest traktowany jako rozszerzenie/zasób specjalny poza centrum rdzenia.
 - Relacje semantyczne pozostają zgodne z `SUB_META_SYSTEM.md` i `UI_WORLD.md`.
@@ -136,7 +136,7 @@ Ten dokument jest roboczym **master specem SUB-META v2**. Jego rolą jest zastą
 ## 8. Inventory / Forge / Detail
 
 - Inventory działa jako bank kart i zasobów.
-- Forge jest mini-workspace procesu R1 → sDR1 → pDR1.
+- Forge jest mini-workspace procesu R1 → sDR1 → pDR1 jako schemat UI workspace; koszty i reguły pozostają wg `CARDS_SYSTEM.md` i `ECONOMY_SYSTEM.md`.
 - Detail działa jako reader: duża karta, glif, metadata, haiku.
 - Relacje z economy/cards/i18n są zachowane, ale bez przepisywania tych systemów.
 
@@ -236,7 +236,7 @@ Przykład (skrót):
 ## 12. Connectors
 
 - Typy: semantic, decorative, debug.
-- Stany: active / inactive / available / blocked.
+- Stany: active / inactive / available / blocked (stany prezentacji/layout review, nie runtime logic).
 - Główna relacja przepływu: PRG ↔ core ↔ WORLD.
 - Minimum relacji connectorów:
   - PRG axis ↔ PRG bridge,
