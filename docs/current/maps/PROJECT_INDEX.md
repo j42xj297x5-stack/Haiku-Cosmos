@@ -37,8 +37,6 @@ Kanon jest mapowany warstwowo przez:
 
 - `docs/current/ui/UI_WORLD.md` (KANON)
 - `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT)
-- `docs/current/ui/SUB_META_V2_LAYOUT_SPEC.md` (ROBOCZY / SPEC-HISTORY INPUT)
-- `docs/current/ui/SUB_META_V2_WIREFRAME_SPEC.md` (ROBOCZY / SPEC-HISTORY INPUT)
 - `docs/current/ui/SUB_META_V2_LAYOUT_TOKENS.md` (ROBOCZY / SPEC-HISTORY INPUT)
 - `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (ROBOCZY / SPEC-HISTORY INPUT)
 - `docs/current/ui/SUB_META_MEMORY_PACK.md` (ROBOCZY / HANDOFF / SPEC-HISTORY INPUT)
@@ -92,7 +90,9 @@ Kanon jest mapowany warstwowo przez:
 - `hc.submeta_layout.js` udostepnia runtime namespace `HC.SubMetaLayout` dla czystego layoutu SUB-META, density i mount points; produkcyjny FrameComposer jest podlaczony tylko jako `submeta.root_frame` probe za flaga.
 - `assets/visual/preview/frame_composer_sandbox.html` to manualny sandbox review dla `HC.VisualAssets` + `HC.FrameComposer` bez integracji runtime.
 - `SUB_META_V2_MASTER_SPEC.md` jest głównym roboczym dokumentem layout/design handoff dla SUB-META v2.
-- Pozostały stack SUB-META v2 (`LAYOUT_SPEC`, `WIREFRAME_SPEC`, `LAYOUT_TOKENS`, `FRAMECOMPOSER_CONTRACT`, `MEMORY_PACK`) pozostaje jako input history/spec-history i kandydat do scalenia/legacy po review (bez usuwania plików na tym etapie).
+- `SUB_META_V2_LAYOUT_SPEC.md` i `SUB_META_V2_WIREFRAME_SPEC.md` zostały przeniesione do `docs/legacy/ui/` jako dokumenty historyczne zastąpione przez `SUB_META_V2_MASTER_SPEC.md`.
+- `SUB_META_V2_LAYOUT_TOKENS.md` i `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` pozostają w `docs/current/ui/` jako active technical/appendix candidates do późniejszego cleanupu kontraktu FrameComposer.
+- `SUB_META_MEMORY_PACK.md` pozostaje w `docs/current/ui/` jako pomocniczy handoff/memory pack (nie główny entrypoint layoutu).
 - Dokumenty evidence Figma (`SUB_META_FIGMA_*`) oraz manifesty legacy/evidence (`MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) nie są aktywnym produkcyjnym source-of-truth dla runtime.
 
 

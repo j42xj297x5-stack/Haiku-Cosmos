@@ -1,3 +1,9 @@
+> Status: LEGACY / ZASTĄPIONE PRZEZ SUB_META_V2_MASTER_SPEC.md
+> Powód przeniesienia: scalone do master spec po audytach 6A/6B
+> Źródło prawdy: NIE (historyczne / referencyjne)
+> Current entrypoint: docs/current/ui/SUB_META_V2_MASTER_SPEC.md
+> Uwaga: Nie jest current source-of-truth.
+
 > Status: ROBOCZY / SPEC PROJEKTOWY UI
 > Obszar: SUB-META v2 / cockpit resonance layout
 > Źródło prawdy: NIE (spec projektowy przed implementacją runtime)

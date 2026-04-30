@@ -25,13 +25,12 @@ Ten katalog zawiera aktualną dokumentację projektu.
 ### 3) ui
 - `ui/UI_WORLD.md` - **KANON** - nadrzędny kontrakt UI/HUD/SUB-META/META.
 - `ui/SUB_META_V2_MASTER_SPEC.md` - **ROBOCZY / MASTER SPEC UI-LAYOUT** - nadrzędny roboczy dokument SUB-META v2 dla layout/design handoff.
-- `ui/SUB_META_V2_LAYOUT_SPEC.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
-- `ui/SUB_META_V2_WIREFRAME_SPEC.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_V2_LAYOUT_TOKENS.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_MEMORY_PACK.md` - **HANDOFF / ROBOCZY / SPEC-HISTORY INPUT** - pomocniczy handoff, nie główny master spec layoutu.
 
-> Uwaga: dotychczasowy stack SUB-META v2 pozostaje dostępny jako input history/spec-history do review i ewentualnej migracji legacy w kolejnym kroku (bez usuwania plików na tym etapie).
+> Uwaga: `SUB_META_V2_LAYOUT_SPEC.md` i `SUB_META_V2_WIREFRAME_SPEC.md` zostały przeniesione do `docs/legacy/ui/` jako historyczne (zastąpione przez `SUB_META_V2_MASTER_SPEC.md`).
+> `SUB_META_V2_LAYOUT_TOKENS.md` i `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` pozostają w `docs/current/ui/` jako aktywne technical/appendix candidates.
 
 ### 4) visual
 - `visual/README.md` - **KIERUNEK** - mapa czytania dokumentów wizualnych.

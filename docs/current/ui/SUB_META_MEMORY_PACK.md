@@ -1,12 +1,17 @@
 # Haiku Cosmos — SUB_META_MEMORY_PACK
 
-> Status: ROBOCZY / HANDOFF PROJEKTOWY
+> Status: ROBOCZY / HANDOFF PROJEKTOWY / MEMORY PACK (POMOCNICZY)
 > Obszar: SUB-META / working memory / design handoff
-> Źródło prawdy: NIE, to nie jest kanon systemowy; TAK, jako operacyjny memory pack do kolejnych passów projektowych
+> Źródło prawdy: NIE, to nie jest kanon systemowy ani główny entrypoint layoutu; TAK, jako operacyjny memory pack do kolejnych passów projektowych
 > Ostatnia aktualizacja: 2026-04-30
-> Powiązane dokumenty: `../maps/PROJECT_INDEX.md`, `../maps/DEPENDENCY_MAP.md`, `SUB_META_V2_WIREFRAME_SPEC.md`, `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`, `SUB_META_V2_LAYOUT_TOKENS.md`, `../visual/README.md`
+> Powiązane dokumenty: `../maps/PROJECT_INDEX.md`, `../maps/DEPENDENCY_MAP.md`, `SUB_META_V2_MASTER_SPEC.md`, `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`, `SUB_META_V2_LAYOUT_TOKENS.md`, `../visual/README.md`, `../../legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md`
 
 ## 1. PURPOSE
+
+**Główny entrypoint layout/design handoff SUB-META v2:** `docs/current/ui/SUB_META_V2_MASTER_SPEC.md`.
+
+Ten memory pack jest dokumentem pomocniczym i nie zastępuje master spec.
+
 
 Ten dokument istnieje po to, żeby przed kolejnymi pracami nad SUB-META szybko załadować **minimalny, poprawny kontekst**.
 
