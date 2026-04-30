@@ -172,6 +172,26 @@ Minimalny zestaw stable IDs wymagany do spójnego handoffu:
 - CORE: `submeta.core.r4`, `submeta.core.r3`, `submeta.core.r2.hub`.
 - resource/DS: `submeta.inventory.ds_slot`.
 
+### 10.1 Canonical aliasing / naming compatibility
+
+Do czasu osobnego technical cleanupu kontraktów v0.6/v0.7, master spec traktuje poniższe warianty nazewnictwa jako **kompatybilne aliasy**:
+
+| Canonical (master) | Compatible alias (v0.6/v0.7) | Note |
+| --- | --- | --- |
+| `submeta.prg` | `submeta.prg.wing` | node-level zone/wing alias |
+| `submeta.world` | `submeta.world.wing` | node-level zone/wing alias |
+| `submeta.prg.r2.bridge.*` | `submeta.prg.bridge.*` | v0.6 używa wariantu `r2.bridge.*`, v0.7 używa skrótu `bridge.*` |
+| `submeta.world.r2.bridge.*` | `submeta.world.bridge.*` | v0.6 używa wariantu `r2.bridge.*`, v0.7 używa skrótu `bridge.*` |
+
+Zasady poziomów ID:
+- anchor-level IDs używają postfixu `.center`, gdy wskazują punkt montażu (np. `submeta.root.center`, `submeta.prg.axis.size.center`, `submeta.world.axis.form.center`, `submeta.core.r4.center`, `submeta.inventory.ds.row.center`).
+- node-level IDs nie muszą mieć postfixu `.center`, gdy oznaczają byt/strefę (np. `submeta.root`, `submeta.prg.wing`, `submeta.world.wing`, `submeta.core`, `submeta.inventory`).
+
+Reguła kompatybilności:
+- jeśli dokumenty v0.6 i v0.7 używają wariantów nazw, master spec traktuje je jako aliasy kompatybilności do czasu technicznego cleanupu,
+- nowe prace powinny preferować naming wskazany w master spec albo w późniejszym active technical contract,
+- aliasing nie zmienia mechaniki ani runtime behavior.
+
 Pełne listy i mapowania anchorów pozostają w dokumentach token/contract do czasu późniejszego cleanupu legacy/appendix.
 
 ## 11. Layout tokens / normalized data
@@ -185,6 +205,18 @@ Kontrakt danych:
 - recty pochodne liczone z center/size,
 - elementy grupowane semantycznie (zones, wings, bridges, utility),
 - connectors jako osobna grupa danych/warstwa.
+
+Minimum groups (v0.7 skrót operacyjny):
+1. PRG axis group — 4 osie (`R1 + ODB`),
+2. PRG bridge group — `3×R2`,
+3. WORLD axis group — 4 osie (`R1 + R1 + EXT`),
+4. WORLD bridge group — `3×R2`,
+5. CORE group — `R4 center` + `R3 left/right` + `R2 relation zone`,
+6. INVENTORY group — bank kart + DS,
+7. FORGE group — `R1 → sDR1 → pDR1`,
+8. DETAIL group — card preview + glyph + metadata + haiku.
+
+Pełny schema tokenów/grup/relacji pozostaje w `SUB_META_V2_LAYOUT_TOKENS.md` do czasu decyzji appendix/legacy.
 
 Przykład (skrót):
 
@@ -206,8 +238,19 @@ Przykład (skrót):
 - Typy: semantic, decorative, debug.
 - Stany: active / inactive / available / blocked.
 - Główna relacja przepływu: PRG ↔ core ↔ WORLD.
+- Minimum relacji connectorów:
+  - PRG axis ↔ PRG bridge,
+  - WORLD axis ↔ WORLD bridge,
+  - PRG bridge ↔ resonance core,
+  - WORLD bridge ↔ resonance core,
+  - core R4/R3 relation zone ↔ active bridge state,
+  - inventory/DS ↔ world/resource context,
+  - forge ↔ selected card/resource context,
+  - detail ↔ selected card/context.
 - Connector layer musi być oddzielony od card layer.
+- Semantic i decorative connectors domyślnie muszą mieć `avoidsInteractiveRects=true`.
 - Connectory wspierają czytelność relacji, nie zastępują semantyki kart.
+- Debug connectors mogą istnieć wyłącznie jako review/debug layer, nie jako final visual.
 
 ## 13. Responsywność
 
@@ -253,6 +296,10 @@ Po tym kroku poniższe dokumenty są traktowane jako input history/evidence/appe
 - `SUB_META_MEMORY_PACK.md`,
 - `../technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md`,
 - `../technical/SUB_META_V2_BOX_AUDIT.md`.
+
+Uwaga porządkowa:
+- `SUB_META_V2_LAYOUT_TOKENS.md` i `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` pozostają ważnymi technical/appendix candidates do czasu osobnego cleanupu kontraktu FrameComposer.
+- Nie należy przenosić ich do `legacy` bez decyzji projektanta albo osobnego patcha.
 
 ## 17. Anti-patterns
 
