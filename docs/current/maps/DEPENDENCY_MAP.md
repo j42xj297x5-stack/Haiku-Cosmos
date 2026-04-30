@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa zależności projektu
 > Źródło prawdy: TAK, dla relacji między dokumentami/systemami
-> Ostatnia aktualizacja: 2026-04-29
+> Ostatnia aktualizacja: 2026-04-30
 > Powiązane dokumenty: PROJECT_INDEX.md, ../README.md, ../../../AGENTS.md
 
 ## 1. Cel dokumentu
@@ -38,10 +38,11 @@
 
 ### C) Zadania visual / SVG / Figma
 1. `docs/current/visual/README.md`
-2. `ART_DIRECTION.md` -> `KOSMOLOGIA_WIZUALNA.md` -> `BIBLIOTEKA_MATERIALOW.md`
-3. zależnie od zadania: `MODULAR_FRAME_KIT.md`, `SVG_ASSET_STANDARDS.md`, `SUB_META_ASSET_PIPELINE.md`
-4. `FIGMA_WORKFLOW.md`
-5. dokumenty Figma evidence (`SUB_META_FIGMA_*`, `MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) czytaj jako evidence, nie aktywną produkcję
+2. `docs/current/visual/VISUAL_EXECUTION_GUIDE.md`
+3. `ART_DIRECTION.md` -> `KOSMOLOGIA_WIZUALNA.md` -> `BIBLIOTEKA_MATERIALOW.md`
+4. zależnie od zadania: `MODULAR_FRAME_KIT.md`, `SVG_ASSET_STANDARDS.md`, `SUB_META_ASSET_PIPELINE.md`
+5. `FIGMA_WORKFLOW.md`
+6. dokumenty Figma evidence (`SUB_META_FIGMA_*`, `MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) czytaj jako evidence, nie aktywną produkcję/source-of-truth
 
 ### D) Zadania technical / runtime / evidence
 1. Warstwa map jak wyżej
@@ -66,6 +67,7 @@
 ## 4. KIERUNEK visual
 
 - `docs/current/visual/README.md`
+- `docs/current/visual/VISUAL_EXECUTION_GUIDE.md`
 - `docs/current/visual/ART_DIRECTION.md`
 - `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`
 - `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`

@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa projektu / indeks dokumentacji aktualnej
 > Źródło prawdy: TAK
-> Ostatnia aktualizacja: 2026-04-29
+> Ostatnia aktualizacja: 2026-04-30
 > Powiązane dokumenty: ../../README.md, ../README.md, DEPENDENCY_MAP.md
 
 ## Rola dokumentu
@@ -43,6 +43,7 @@ Kanon jest mapowany warstwowo przez:
 ## Visual
 
 - `docs/current/visual/README.md` (KIERUNEK)
+- `docs/current/visual/VISUAL_EXECUTION_GUIDE.md` (KIERUNEK / PRZEWODNIK WYKONAWCZY)
 - `docs/current/visual/ART_DIRECTION.md` (KIERUNEK)
 - `docs/current/visual/KOSMOLOGIA_WIZUALNA.md` (KIERUNEK)
 - `docs/current/visual/BIBLIOTEKA_MATERIALOW.md` (KIERUNEK)
@@ -56,7 +57,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` (EVIDENCE / FIGMA CLEANUP + DERIVED KIT)
 - `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` (EVIDENCE / FIGMA STYLE CORRECTION + LIVING RITUAL LINE)
 - `docs/current/visual/FIGMA_WORKFLOW.md` (KIERUNEK / WORKFLOW)
-- `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / STARSZY PROMPT TEMPLATE)
+- `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / STARSZY PROMPT TEMPLATE, pomocniczy)
 - `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md` (KIERUNEK / BIBLIOTEKA POMOCNICZA)
 
 ## Techniczne

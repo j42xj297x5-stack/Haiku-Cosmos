@@ -3,12 +3,20 @@
 > Status: KIERUNEK
 > Obszar: mapa kierunku wizualnego
 > Źródło prawdy: TAK, dla kolejności czytania i ról dokumentów wizualnych
-> Ostatnia aktualizacja: 2026-04-29
+> Ostatnia aktualizacja: 2026-04-30
 > Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
 
 ## 1. Cel katalogu
 
-Katalog `docs/current/visual/` zawiera aktualny kierunek wizualny Haiku Cosmos i jest źródłem prawdy dla decyzji dotyczących oprawy graficznej, SUB-META, HUD, kart, ramek, materiałów i asset pipeline.
+Katalog `docs/current/visual/` zawiera aktualny kierunek wizualny Haiku Cosmos i jest źródłem prawdy dla decyzji dotyczących oprawy graficznej, SUB-META, HUD, kart, ramek, materiałów i asset pipeline. Core visual direction pozostaje w trio: `ART_DIRECTION.md`, `KOSMOLOGIA_WIZUALNA.md`, `BIBLIOTEKA_MATERIALOW.md`.
+
+
+## 2. Zalecana ścieżka czytania (execution-first)
+
+1. `docs/current/visual/README.md`
+2. `VISUAL_EXECUTION_GUIDE.md`
+3. core visual direction: `ART_DIRECTION.md`, `KOSMOLOGIA_WIZUALNA.md`, `BIBLIOTEKA_MATERIALOW.md`
+4. odpowiedni standard/pipeline zależnie od zadania (`MODULAR_FRAME_KIT.md`, `SVG_ASSET_STANDARDS.md`, `SUB_META_ASSET_PIPELINE.md`, `SUB_META_COMPONENTS.md`, `FIGMA_WORKFLOW.md`)
 
 ## 2. Minimalna kolejność czytania
 
@@ -35,6 +43,7 @@ Przy pracach nad SUB-META, HUD, ramkami, slotami, ornamentami, glifami, liniami 
 - `ART_DIRECTION.md` - główny kierunek artystyczny i zasady wizualne.
 - `KOSMOLOGIA_WIZUALNA.md` - porządek sensu, symboliki, materiału i pięciu stanów.
 - `BIBLIOTEKA_MATERIALOW.md` - praktyczne zasady koloru, materiału i światła.
+- `VISUAL_EXECUTION_GUIDE.md` - główny przewodnik wykonawczy visual/SVG/Figma po przeczytaniu core direction.
 - `MODULAR_FRAME_KIT.md` - aktualny kierunek nowego modular frame kit i decyzja o legacy obecnego passu SVG.
 - `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` - prompt/spec wykonawczy dla następnego passu Figma.
 - `MODULAR_FRAME_KIT_ASSET_MANIFEST.md` - evidence manifestu po audycie i lokalizacja legacy.
