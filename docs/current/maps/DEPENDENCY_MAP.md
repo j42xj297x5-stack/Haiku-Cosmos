@@ -8,7 +8,7 @@
 
 ## 1. Cel dokumentu
 
-`DEPENDENCY_MAP.md` jest roboczą mapą zależności między systemami gry, dokumentami i orientacyjnymi obszarami runtime.
+`DEPENDENCY_MAP.md` jest kanoniczną mapą relacji między systemami, dokumentami i orientacyjnymi obszarami runtime.
 
 ## 2. Kolejność czytania
 
@@ -17,6 +17,37 @@
 3. `docs/current/README.md`,
 4. `docs/current/maps/PROJECT_INDEX.md`,
 5. `docs/current/maps/DEPENDENCY_MAP.md`.
+
+
+## 2A. Szybkie ścieżki czytania wg typu zadania
+
+### A) Zadania systemowe / mechaniczne
+1. `README.md`
+2. `docs/README.md`
+3. `docs/current/README.md`
+4. `docs/current/maps/PROJECT_INDEX.md`
+5. `docs/current/maps/DEPENDENCY_MAP.md`
+6. `docs/current/systems/CARDS_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `SUB_META_SYSTEM.md`
+7. `docs/current/systems/PRG_SYSTEM.md`, `I18N_SYSTEM.md`
+
+### B) Zadania UI / HUD / SUB-META
+1. Warstwa map jak wyżej
+2. `docs/current/ui/UI_WORLD.md`
+3. stack roboczy SUB-META v2: `SUB_META_V2_LAYOUT_SPEC.md`, `SUB_META_V2_WIREFRAME_SPEC.md`, `SUB_META_V2_LAYOUT_TOKENS.md`, `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`, `SUB_META_MEMORY_PACK.md`
+4. `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` i `SUB_META_V2_BOX_AUDIT.md`
+
+### C) Zadania visual / SVG / Figma
+1. `docs/current/visual/README.md`
+2. `ART_DIRECTION.md` -> `KOSMOLOGIA_WIZUALNA.md` -> `BIBLIOTEKA_MATERIALOW.md`
+3. zależnie od zadania: `MODULAR_FRAME_KIT.md`, `SVG_ASSET_STANDARDS.md`, `SUB_META_ASSET_PIPELINE.md`
+4. `FIGMA_WORKFLOW.md`
+5. dokumenty Figma evidence (`SUB_META_FIGMA_*`, `MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) czytaj jako evidence, nie aktywną produkcję
+
+### D) Zadania technical / runtime / evidence
+1. Warstwa map jak wyżej
+2. `docs/current/technical/README.md`
+3. `WORLD_FUNCTION_MAP.md`, `FRAME_COMPOSER_SPEC.md`, `SEQUENCE_STATE_CONTRACT.md`, `IMPLEMENTATION_TRACKER.md`, `LIVE_VALIDATION_PACK.md`
+4. audyty i handoff traktuj pomocniczo: `docs/audits/`, `docs/handoff/`
 
 ## 3. KANON
 
