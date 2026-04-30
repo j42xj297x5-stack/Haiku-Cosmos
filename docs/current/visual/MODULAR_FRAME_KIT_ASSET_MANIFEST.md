@@ -1,9 +1,17 @@
 # Haiku Cosmos - Modular Frame Kit Asset Manifest
 
-> Status: EVIDENCE / LEGACY MANIFEST
-> Zakres: SVG powiązane z audytem frame kitu `style_correction_2026_04`
-> Ostatnia aktualizacja: 2026-04-27
-> Źródło prawdy: TAK, dla lokalizacji legacy/evidence. NIE, dla aktywnych produkcyjnych assetów.
+> Status: EVIDENCE / MANIFEST LEGACY PASS / NOT PRODUCTION SOURCE-OF-TRUTH
+> Zakres: SVG powiazane z audytem frame kitu `style_correction_2026_04`
+> Ostatnia aktualizacja: 2026-04-30
+> Źródło prawdy: TAK, dla lokalizacji legacy/evidence. NIE, dla aktywnego production manifestu.
+
+## 0. WAŻNE OSTRZEŻENIE
+
+- Ten dokument **nie jest aktywnym production manifestem**.
+- Ten dokument **nie jest podstawa do runtime integration** bez osobnego review i pipeline cleanup.
+- Aktywny pipeline wykonawczy opisuje `SUB_META_ASSET_PIPELINE.md`.
+- Aktualny prompt wykonawczy opisuje `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`.
+- Runtime integration wymaga osobnego kroku technicznego.
 
 ## 1. Podsumowanie po reset review
 

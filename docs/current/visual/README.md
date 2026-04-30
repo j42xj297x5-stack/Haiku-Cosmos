@@ -46,11 +46,11 @@ Przy pracach nad SUB-META, HUD, ramkami, slotami, ornamentami, glifami, liniami 
 - `VISUAL_EXECUTION_GUIDE.md` - główny przewodnik wykonawczy visual/SVG/Figma po przeczytaniu core direction.
 - `MODULAR_FRAME_KIT.md` - aktualny kierunek nowego modular frame kit i decyzja o legacy obecnego passu SVG.
 - `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` - aktualny prompt wykonawczy (CURRENT) dla kolejnego passu Figma/SVG preparation.
-- `MODULAR_FRAME_KIT_ASSET_MANIFEST.md` - evidence manifestu po audycie i lokalizacja legacy.
-- `SUB_META_COMPONENTS.md` - katalog komponentów: frame parts, static base, dynamic accents, new-card marker, slot bridges.
-- `SUB_META_ASSET_PIPELINE.md` - struktura katalogów, legacy/evidence policy i docelowy modular pipeline.
+- `MODULAR_FRAME_KIT_ASSET_MANIFEST.md` - evidence/legacy manifest; NOT PRODUCTION SOURCE-OF-TRUTH.
+- `SUB_META_COMPONENTS.md` - katalog komponentow i statusow (planned/review/production_candidate/evidence_only).
+- `SUB_META_ASSET_PIPELINE.md` - aktywny pipeline wykonawczy (CURRENT): direction -> prompt -> Figma -> SVG -> validation -> manifest -> review -> production candidate -> osobny runtime pass.
 - `SVG_ASSET_STANDARDS.md` - roboczy standard wykonawczy SVG/frame parts, anchor metadata, naming, density i raster pipeline, w tym pass center-based dla SUB-META v2.
-- `SUB_META_FIGMA_ASSET_PASS_01.md` - evidence poprzednich passów Figma i runtime review (history/review, nie production source-of-truth).
+- `SUB_META_FIGMA_ASSET_PASS_01.md` - evidence/history/review (nie production source-of-truth).
 - `SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` - evidence passu Figma MCP cleanup + derived modular frame/ornament kit v0.2.
 - `SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` - evidence passu Figma MCP style correction + source re-cut v0.3, przywracajacego zywa rytualna linie przy zachowaniu modularnosci.
 - `FIGMA_WORKFLOW.md` - zasady pracy z Figma, gdy Figma jest używana.

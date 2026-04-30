@@ -123,9 +123,10 @@
 - `VISUAL_EXECUTION_GUIDE.md` prowadzi execution visual/SVG/Figma.
 - `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest aktualnym promptem wykonawczym (CURRENT).
 - `FIGMA_WORKFLOW.md` opisuje proces od guide do walidacji SVG i osobnego runtime passu.
-- `SUB_META_ASSET_PIPELINE.md` definiuje docelową organizację aktywnych modular assets oraz legacy/evidence policy.
-- `SUB_META_COMPONENTS.md` definiuje komponenty frame parts, dynamic state layers, new-card marker i slot bridges.
-- `SVG_ASSET_STANDARDS.md` definiuje roboczy standard wykonawczy SVG/raster assets: anchor metadata, naming, statusy static/tintable/animatable, density i raster boundary.
+- `SUB_META_ASSET_PIPELINE.md` jest aktywnym pipeline wykonawczym (CURRENT) od direction/context do production-candidate marking; runtime integration pozostaje osobnym pass.
+- `SVG_ASSET_STANDARDS.md` jest standardem wykonawczym SVG (walidacja, naming, warstwy, granice rasterowe).
+- `SUB_META_COMPONENTS.md` jest katalogiem komponentow i statusow.
+- `MODULAR_FRAME_KIT_ASSET_MANIFEST.md` oraz dokumenty `SUB_META_FIGMA_*` maja status evidence/legacy/review i nie sa production source-of-truth.
 
 - `assets/visual/modular_frame_kit_v01_manifest.json` opisuje wyeksportowany Modular Frame Kit v0.1 (`35` SVG) jako `exported_review_ready`; runtime uzywa go tylko dla `submeta.root_frame` probe za flaga.
 - `SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` opisuje Figma-only cleanup dwoch traced vector bases i derived kit v0.2 (`70` komponentow), bez eksportu SVG i bez runtime integration.
