@@ -33,7 +33,8 @@
 ### B) Zadania UI / HUD / SUB-META
 1. Warstwa map jak wyżej
 2. `docs/current/ui/UI_WORLD.md`
-3. stack roboczy SUB-META v2: `SUB_META_V2_LAYOUT_SPEC.md`, `SUB_META_V2_WIREFRAME_SPEC.md`, `SUB_META_V2_LAYOUT_TOKENS.md`, `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`, `SUB_META_MEMORY_PACK.md`
+3. `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` jako główny roboczy master spec layout/design handoff
+4. stack wejściowy/spec-history SUB-META v2: `SUB_META_V2_LAYOUT_SPEC.md`, `SUB_META_V2_WIREFRAME_SPEC.md`, `SUB_META_V2_LAYOUT_TOKENS.md`, `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`, `SUB_META_MEMORY_PACK.md`
 4. `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` i `SUB_META_V2_BOX_AUDIT.md`
 
 ### C) Zadania visual / SVG / Figma
@@ -62,8 +63,8 @@
 - `docs/current/systems/PRG_SYSTEM.md` (KANON STRUKTURALNY / DO STROJENIA)
 - `docs/current/systems/I18N_SYSTEM.md` (KANON STRUKTURALNY / DO WDROŻENIA)
 - `docs/current/ui/UI_WORLD.md`
-- `docs/current/ui/SUB_META_V2_WIREFRAME_SPEC.md` (ROBOCZY / SPEC WIREFRAME)
-- `docs/current/ui/SUB_META_MEMORY_PACK.md` (ROBOCZY / HANDOFF PROJEKTOWY)
+- `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT)
+- stack wejściowy/spec-history SUB-META v2: `SUB_META_V2_LAYOUT_SPEC.md`, `SUB_META_V2_WIREFRAME_SPEC.md`, `SUB_META_V2_LAYOUT_TOKENS.md`, `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`, `SUB_META_MEMORY_PACK.md`
 
 ## 4. KIERUNEK visual
 

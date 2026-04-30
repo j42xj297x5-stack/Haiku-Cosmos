@@ -24,13 +24,14 @@ Ten katalog zawiera aktualną dokumentację projektu.
 
 ### 3) ui
 - `ui/UI_WORLD.md` - **KANON** - nadrzędny kontrakt UI/HUD/SUB-META/META.
-- `ui/SUB_META_V2_LAYOUT_SPEC.md` - **ROBOCZY** - spec projektowy layoutu SUB-META v2.
-- `ui/SUB_META_V2_WIREFRAME_SPEC.md` - **ROBOCZY** - wireframe i układ stref.
-- `ui/SUB_META_V2_LAYOUT_TOKENS.md` - **ROBOCZY** - tokeny i dane layoutowe dla future pass.
-- `ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` - **ROBOCZY** - handoff techniczny pod integrację FrameComposer.
-- `ui/SUB_META_MEMORY_PACK.md` - **HANDOFF / ROBOCZY** - pamięć operacyjna dla kolejnych passów projektowych.
+- `ui/SUB_META_V2_MASTER_SPEC.md` - **ROBOCZY / MASTER SPEC UI-LAYOUT** - nadrzędny roboczy dokument SUB-META v2 dla layout/design handoff.
+- `ui/SUB_META_V2_LAYOUT_SPEC.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
+- `ui/SUB_META_V2_WIREFRAME_SPEC.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
+- `ui/SUB_META_V2_LAYOUT_TOKENS.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
+- `ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
+- `ui/SUB_META_MEMORY_PACK.md` - **HANDOFF / ROBOCZY / SPEC-HISTORY INPUT** - pomocniczy handoff, nie główny master spec layoutu.
 
-> Uwaga: stack dokumentów SUB-META v2 pozostaje roboczy i będzie porządkowany/scalany w osobnym kroku.
+> Uwaga: dotychczasowy stack SUB-META v2 pozostaje dostępny jako input history/spec-history do review i ewentualnej migracji legacy w kolejnym kroku (bez usuwania plików na tym etapie).
 
 ### 4) visual
 - `visual/README.md` - **KIERUNEK** - mapa czytania dokumentów wizualnych.
