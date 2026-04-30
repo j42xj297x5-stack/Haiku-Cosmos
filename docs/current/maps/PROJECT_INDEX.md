@@ -91,7 +91,7 @@ Kanon jest mapowany warstwowo przez:
 - `assets/visual/preview/frame_composer_sandbox.html` to manualny sandbox review dla `HC.VisualAssets` + `HC.FrameComposer` bez integracji runtime.
 - `SUB_META_V2_MASTER_SPEC.md` jest głównym roboczym dokumentem layout/design handoff dla SUB-META v2.
 - `SUB_META_V2_LAYOUT_SPEC.md` i `SUB_META_V2_WIREFRAME_SPEC.md` zostały przeniesione do `docs/legacy/ui/` jako dokumenty historyczne zastąpione przez `SUB_META_V2_MASTER_SPEC.md`.
-- `SUB_META_V2_LAYOUT_TOKENS.md` i `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` pozostają w `docs/current/ui/` jako active technical/appendix candidates do późniejszego cleanupu kontraktu FrameComposer.
+- `FRAME_COMPOSER_SPEC.md` jest aktywnym nadrzednym technical contractem dla future FrameComposer handoff; `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` i `SUB_META_V2_LAYOUT_TOKENS.md` pozostaja appendiksami SUB-META/data. Cleanup kontraktu nie zmienil runtime implementation.
 - `SUB_META_MEMORY_PACK.md` pozostaje w `docs/current/ui/` jako pomocniczy handoff/memory pack (nie główny entrypoint layoutu).
 - Dokumenty evidence Figma (`SUB_META_FIGMA_*`) oraz manifesty legacy/evidence (`MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) nie są aktywnym produkcyjnym source-of-truth dla runtime.
 

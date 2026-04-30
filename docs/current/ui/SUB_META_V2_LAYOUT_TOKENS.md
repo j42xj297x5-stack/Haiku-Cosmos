@@ -1,7 +1,7 @@
-> Status: ROBOCZY / HANDOFF DANYCH
+> Status: ROBOCZY / APPENDIX DANYCH (NORMALIZED TOKENS)
 > Obszar: SUB-META v2 / Layout Tokens v0.7
-> Źródło prawdy: NIE (repo-only contract data do future FrameComposer)
-> Ostatnia aktualizacja: 2026-04-29
+> Źródło prawdy: TAK, jako normalized layout data appendix v0.7; NIE, jako pełny master spec ani runtime integration
+> Ostatnia aktualizacja: 2026-04-30
 > Powiązane dokumenty: SUB_META_V2_FRAMECOMPOSER_CONTRACT.md, SUB_META_V2_MASTER_SPEC.md (dawny wireframe spec przeniesiony do docs/legacy/ui/), UI_WORLD.md, ../systems/SUB_META_SYSTEM.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md
 
 # SUB-META v2 Layout Tokens v0.7 — normalized contract data
@@ -9,6 +9,8 @@
 ## 1. Cel
 
 Dokument opisuje **znormalizowaną warstwę danych** dla layout contractu SUB-META v2.
+
+Entrypoint semantyczny/layout pozostaje w `SUB_META_V2_MASTER_SPEC.md`. Active technical contract dla future FrameComposer pozostaje w `../technical/FRAME_COMPOSER_SPEC.md`. Ten dokument to appendix danych v0.7 (nie pełny master).
 
 To jest pass repo-only:
 - bez runtime integration,
@@ -172,4 +174,5 @@ Minimum relacji:
 ## 10. Status
 
 Ten kontrakt jest **repo-only normalized data handoff**.
-Nie jest jeszcze runtime API i nie oznacza finalnej integracji renderera.
+Tokeny v0.7 nie są same w sobie runtime integration.
+Aliasing/naming cleanup v0.6/v0.7 może wymagać osobnego future technical pass, jeśli będzie potrzebny w implementacji runtime.

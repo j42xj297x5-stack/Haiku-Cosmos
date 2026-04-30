@@ -48,7 +48,7 @@ Przy pracach nad SUB-META, HUD, ramkami, slotami, ornamentami, glifami, liniami 
 - `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` - aktualny prompt wykonawczy (CURRENT) dla kolejnego passu Figma/SVG preparation.
 - `MODULAR_FRAME_KIT_ASSET_MANIFEST.md` - evidence/legacy manifest; NOT PRODUCTION SOURCE-OF-TRUTH.
 - `SUB_META_COMPONENTS.md` - katalog komponentow i statusow (planned/review/production_candidate/evidence_only).
-- `SUB_META_ASSET_PIPELINE.md` - aktywny pipeline wykonawczy (CURRENT): direction -> prompt -> Figma -> SVG -> validation -> manifest -> review -> production candidate -> osobny runtime pass.
+- `SUB_META_ASSET_PIPELINE.md` - aktywny pipeline wykonawczy (CURRENT): wariant Figma oraz wariant raster-first/Inkscape-first, oba konczace sie walidacja SVG i osobnym runtime pass.
 - `SVG_ASSET_STANDARDS.md` - roboczy standard wykonawczy SVG/frame parts, anchor metadata, naming, density i raster pipeline, w tym pass center-based dla SUB-META v2.
 - `SUB_META_FIGMA_ASSET_PASS_01.md` - evidence/history/review (nie production source-of-truth).
 - `SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` - evidence passu Figma MCP cleanup + derived modular frame/ornament kit v0.2.

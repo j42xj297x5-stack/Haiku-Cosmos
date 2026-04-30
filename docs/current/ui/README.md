@@ -11,8 +11,9 @@
 
 ## Wejściowy stack SUB-META v2 (spec-history / input)
 
-- `SUB_META_V2_LAYOUT_TOKENS.md` (aktywny technical/appendix candidate)
-- `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (aktywny technical/appendix candidate)
+- `FRAME_COMPOSER_SPEC.md` (active technical contract dla future FrameComposer handoff)
+- `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (SUB-META appendix handoff)
+- `SUB_META_V2_LAYOUT_TOKENS.md` (normalized data appendix v0.7)
 - `SUB_META_MEMORY_PACK.md` (pomocniczy handoff / memory pack; nie główny entrypoint)
 
 Powyższe dokumenty pozostają aktywne jako wejście/history do review oraz kandydaci do dalszego porządkowania po akceptacji master spec.

@@ -1,10 +1,24 @@
 # Haiku Cosmos - FrameComposer v0.1 Spec
 
-> Status: ROBOCZY / KONTRAKT TECHNICZNY
-> Obszar: Modular Frame Kit v0.1 / SVG layout / card visuals / SUB-META / HUD
-> Zrodlo prawdy: TAK roboczo dla kontraktu layoutu FrameComposera; NIE dla mechaniki
-> Ostatnia aktualizacja: 2026-04-28
-> Powiazane dokumenty: ../visual/MODULAR_FRAME_KIT.md, ../visual/SUB_META_ASSET_PIPELINE.md, ../visual/SUB_META_COMPONENTS.md, ../visual/SVG_ASSET_STANDARDS.md, CARD_VISUAL_ARCHITECTURE.md, SUB_META_LAYOUT_ANCHOR_AUDIT.md
+> Status: ROBOCZY / AKTYWNY KONTRAKT TECHNICZNY
+> Obszar: FrameComposer / SVG modular layout / anchors / rects
+> Zrodlo prawdy: TAK, dla ogolnego kontraktu technicznego przyszlego FrameComposera; NIE, dla mechaniki; NIE, dla runtime implementation juz wykonanego; NIE, dla finalnych assetow visual
+> Ostatnia aktualizacja: 2026-04-30
+> Powiazane dokumenty: ../ui/SUB_META_V2_MASTER_SPEC.md, ../ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md, ../ui/SUB_META_V2_LAYOUT_TOKENS.md, CENTER_BASED_POSITIONING_SPEC.md, ../visual/SVG_ASSET_STANDARDS.md, ../visual/SUB_META_ASSET_PIPELINE.md
+
+
+## 0. Source documents i hierarchy
+
+Hierarchy po cleanupie kontraktu:
+
+1. `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` - master spec UI/layout (entrypoint semantyczny SUB-META).
+2. `docs/current/technical/FRAME_COMPOSER_SPEC.md` - aktywny nadrzedny technical contract dla future FrameComposer handoff.
+3. `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` - SUB-META-specific appendix (anchor/rect handoff zgodny z master spec i tym kontraktem).
+4. `docs/current/ui/SUB_META_V2_LAYOUT_TOKENS.md` - normalized layout data appendix v0.7.
+5. `docs/current/technical/CENTER_BASED_POSITIONING_SPEC.md` - ogolny standard center-based positioning.
+6. `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` i `SUB_META_V2_BOX_AUDIT.md` - audit/evidence, nie active source-of-truth.
+
+Ten dokument nie implementuje runtime i nie zastępuje visual asset pipeline.
 
 ## 1. Cel FrameComposera
 
@@ -490,7 +504,18 @@ Status na 2026-04-28 (repo-only infrastructure pass):
 - produkcyjny rendering SUB-META uzywa FrameComposera tylko dla root frame, a reszta overlay pozostaje legacy/procedural canvas;
 - depth/relief, live-coloring i animation hooks pozostaja future pass.
 
-## 16. Zakazy
+## 16. What this spec does not implement
+
+Ten kontrakt nie jest implementacja runtime. Nie dostarcza gotowego API produkcyjnego, nie uruchamia integracji z `cards.js` i nie dostarcza finalnych assetow.
+
+W szczegolnosci nie implementuje:
+
+- mechaniki kart, PRG i sekwencji;
+- produkcyjnego fitting pass dla wszystkich stref SUB-META;
+- automatycznego resolvingu aliasow naming v0.6/v0.7 w runtime;
+- finalnej polityki fallbackow assets po stronie runtime.
+
+## 17. Zakazy
 
 FrameComposer nie moze:
 
