@@ -4,7 +4,7 @@
 > Obszar: Figma / SUB-META v2 / modular frame kit / source cleanup
 > Zrodlo prawdy: TAK, dla evidence tego passu Figma. NIE, dla runtime, mechaniki i finalnego eksportu SVG.
 > Data: 2026-04-29
-> Powiazane dokumenty: FIGMA_WORKFLOW.md, MODULAR_FRAME_KIT.md, SVG_ASSET_STANDARDS.md, ../ui/SUB_META_V2_LAYOUT_SPEC.md, ../ui/SUB_META_V2_WIREFRAME_SPEC.md, ../technical/CENTER_BASED_POSITIONING_SPEC.md, ../technical/FRAME_COMPOSER_SPEC.md
+> Powiazane dokumenty: FIGMA_WORKFLOW.md, MODULAR_FRAME_KIT.md, SVG_ASSET_STANDARDS.md, ../ui/SUB_META_V2_MASTER_SPEC.md (dawny layout/wireframe spec przeniesiony do docs/legacy/ui/), ../technical/CENTER_BASED_POSITIONING_SPEC.md, ../technical/FRAME_COMPOSER_SPEC.md
 
 ## 1. Cel passu
 
