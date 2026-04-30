@@ -21,6 +21,7 @@ Kanon jest mapowany warstwowo przez:
 ## Mapy
 
 - `docs/current/README.md` - mapa warstwy `docs/current/`.
+- `docs/current/README_ARCHITECT.md` - **ARCHITECT MEMORY / CURRENT** - skondensowany entrypoint pamięci dla ChatGPT-architekta.
 - `docs/current/maps/PROJECT_INDEX.md` - główny indeks bieżącego kanonu.
 - `docs/current/maps/DEPENDENCY_MAP.md` - mapa relacji między systemami, dokumentami i orientacyjnymi obszarami kodu.
 
