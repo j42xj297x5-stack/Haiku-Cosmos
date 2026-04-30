@@ -27,20 +27,23 @@ Figma nie jest zrodlem:
 - finalnych raster backgrounds;
 - runtime integration.
 
-## 2. Kolejnosc czytania przed Figma
+## 2. Kolejnosc czytania i pracy (current)
 
-Przed uzyciem Figma przeczytaj:
+1. `docs/current/visual/README.md`
+2. `docs/current/visual/VISUAL_EXECUTION_GUIDE.md`
+3. core visual docs: `ART_DIRECTION.md`, `KOSMOLOGIA_WIZUALNA.md`, `BIBLIOTEKA_MATERIALOW.md`
+4. `MODULAR_FRAME_KIT.md`
+5. `SVG_ASSET_STANDARDS.md`
+6. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`
+7. Figma work / review
+8. SVG export validation
+9. manifest / pipeline update
+10. osobny technical/runtime pass
 
-1. `docs/current/README.md`;
-2. `docs/current/maps/PROJECT_INDEX.md`;
-3. `docs/current/maps/DEPENDENCY_MAP.md`;
-4. `docs/current/visual/README.md`;
-5. `MODULAR_FRAME_KIT.md`;
-6. `SUB_META_ASSET_PIPELINE.md`;
-7. `SUB_META_COMPONENTS.md`;
-8. dokument wykonawczy wskazany w zadaniu.
-
-Dla Modular Frame Kit v0.1 prompt wykonawczy znajduje sie w `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`.
+Dodatkowe zasady:
+- dokumenty Figma evidence to historia/review, nie automatyczne źródło produkcyjne;
+- traced vector bases nie mogą wejść do production kit bez cleanupu;
+- eksport SVG wymaga walidacji zgodnej z `SVG_ASSET_STANDARDS.md`.
 
 ## 3. Podzial pipeline
 

@@ -42,7 +42,8 @@
 3. `ART_DIRECTION.md` -> `KOSMOLOGIA_WIZUALNA.md` -> `BIBLIOTEKA_MATERIALOW.md`
 4. zależnie od zadania: `MODULAR_FRAME_KIT.md`, `SVG_ASSET_STANDARDS.md`, `SUB_META_ASSET_PIPELINE.md`
 5. `FIGMA_WORKFLOW.md`
-6. dokumenty Figma evidence (`SUB_META_FIGMA_*`, `MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) czytaj jako evidence, nie aktywną produkcję/source-of-truth
+6. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jako aktualny prompt wykonawczy
+7. dokumenty Figma evidence (`SUB_META_FIGMA_*`, `MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) czytaj wyłącznie jako history/review, nie aktywną produkcję/source-of-truth
 
 ### D) Zadania technical / runtime / evidence
 1. Warstwa map jak wyżej
@@ -119,7 +120,9 @@
 
 - `ART_DIRECTION.md`, `KOSMOLOGIA_WIZUALNA.md` i `BIBLIOTEKA_MATERIALOW.md` definiują bazowy kierunek oprawy.
 - `MODULAR_FRAME_KIT.md` jest kierunkiem dla nowych frame parts, static/dynamic layers i decyzji o odrzuceniu obecnego passu produkcyjnego.
-- `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest promptem wykonawczym dla następnego passu Figma.
+- `VISUAL_EXECUTION_GUIDE.md` prowadzi execution visual/SVG/Figma.
+- `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest aktualnym promptem wykonawczym (CURRENT).
+- `FIGMA_WORKFLOW.md` opisuje proces od guide do walidacji SVG i osobnego runtime passu.
 - `SUB_META_ASSET_PIPELINE.md` definiuje docelową organizację aktywnych modular assets oraz legacy/evidence policy.
 - `SUB_META_COMPONENTS.md` definiuje komponenty frame parts, dynamic state layers, new-card marker i slot bridges.
 - `SVG_ASSET_STANDARDS.md` definiuje roboczy standard wykonawczy SVG/raster assets: anchor metadata, naming, statusy static/tintable/animatable, density i raster boundary.

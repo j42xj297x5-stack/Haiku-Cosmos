@@ -1,10 +1,15 @@
 # SUB-META — Figma Brief wykonawczy
 
-> Status: KIERUNEK / BRIEF WYKONAWCZY
+> Status: BRIEF POMOCNICZY / KONTEKST KIERUNKOWY
 > Obszar: SUB-META / Figma / visual direction
-> Źródło prawdy: TAK, dla promptowania Figmy w zakresie SUB-META visual direction; NIE, dla mechaniki
-> Ostatnia aktualizacja: 2026-04-26
-> Powiązane dokumenty: `docs/current/systems/SUB_META_SYSTEM.md`, `docs/current/systems/CARDS_SYSTEM.md`, `docs/current/systems/PRG_SYSTEM.md`, `docs/current/systems/ECONOMY_SYSTEM.md`, `docs/current/ui/UI_WORLD.md`, `docs/current/visual/ART_DIRECTION.md`, `docs/current/visual/KOSMOLOGIA_WIZUALNA.md`, `docs/current/visual/BIBLIOTEKA_MATERIALOW.md`, `docs/current/visual/SUB_META_LAYOUT_SPEC.md`, `docs/current/visual/SUB_META_COMPONENTS.md`, `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md`
+> Źródło prawdy: TAK, jako kontekst kierunkowy; NIE, jako aktualny execution guide i NIE, jako aktualny prompt wykonawczy
+> Ostatnia aktualizacja: 2026-04-30
+> Powiązane dokumenty: VISUAL_EXECUTION_GUIDE.md, MODULAR_FRAME_KIT_FIGMA_PROMPT.md, FIGMA_WORKFLOW.md, docs/current/visual/ART_DIRECTION.md
+
+> Uwaga: Ten brief czytaj **po** `VISUAL_EXECUTION_GUIDE.md`.
+> - Current execution guide: `VISUAL_EXECUTION_GUIDE.md`
+> - Current executable prompt: `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`
+> - Ten dokument: pomocniczy brief kontekstowy
 
 ## 1. Cel dokumentu
 

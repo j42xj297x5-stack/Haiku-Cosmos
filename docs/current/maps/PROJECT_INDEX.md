@@ -48,7 +48,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/KOSMOLOGIA_WIZUALNA.md` (KIERUNEK)
 - `docs/current/visual/BIBLIOTEKA_MATERIALOW.md` (KIERUNEK)
 - `docs/current/visual/MODULAR_FRAME_KIT.md` (KIERUNEK / RESET PO AUDYCIE)
-- `docs/current/visual/MODULAR_FRAME_KIT_FIGMA_PROMPT.md` (KIERUNEK / PROMPT WYKONAWCZY)
+- `docs/current/visual/MODULAR_FRAME_KIT_FIGMA_PROMPT.md` (CURRENT / PROMPT WYKONAWCZY)
 - `docs/current/visual/MODULAR_FRAME_KIT_ASSET_MANIFEST.md` (EVIDENCE / MANIFEST LEGACY)
 - `docs/current/visual/SUB_META_COMPONENTS.md` (KIERUNEK / KATALOG KOMPONENTÓW)
 - `docs/current/visual/SUB_META_ASSET_PIPELINE.md` (KIERUNEK / PIPELINE WYKONAWCZY)
@@ -56,8 +56,9 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (EVIDENCE / FIGMA + RUNTIME REVIEW)
 - `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` (EVIDENCE / FIGMA CLEANUP + DERIVED KIT)
 - `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` (EVIDENCE / FIGMA STYLE CORRECTION + LIVING RITUAL LINE)
+- `docs/current/visual/SUB_META_FIGMA_BRIEF.md` (BRIEF POMOCNICZY / KONTEKSTOWY, czytać po guide + current prompt)
 - `docs/current/visual/FIGMA_WORKFLOW.md` (KIERUNEK / WORKFLOW)
-- `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (KIERUNEK / STARSZY PROMPT TEMPLATE, pomocniczy)
+- `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (REFERENCE TEMPLATE / POMOCNICZY, NIE CURRENT EXECUTION)
 - `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md` (KIERUNEK / BIBLIOTEKA POMOCNICZA)
 
 ## Techniczne

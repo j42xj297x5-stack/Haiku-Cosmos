@@ -1,169 +1,80 @@
 # Haiku Cosmos - Modular Frame Kit Figma Prompt
 
-> Status: KIERUNEK / PROMPT WYKONAWCZY
-> Obszar: Figma / SUB-META / HUD / modular frame kit
-> Źródło prawdy: TAK, dla następnego passu Figma frame parts
-> Ostatnia aktualizacja: 2026-04-27
-> Nie obejmuje: runtime, mechaniki, FrameComposer implementation, raster pipeline
+> Status: PROMPT WYKONAWCZY / CURRENT
+> Obszar: visual / Figma / modular frame kit / SVG preparation
+> Źródło prawdy:
+> - TAK, jako aktualna instrukcja wykonawcza dla kolejnego passu Figma modular frame kit,
+> - NIE, dla kanonu mechaniki,
+> - NIE, dla finalnych assetów runtime.
+> Ostatnia aktualizacja: 2026-04-30
+> Powiązane dokumenty: VISUAL_EXECUTION_GUIDE.md, MODULAR_FRAME_KIT.md, SVG_ASSET_STANDARDS.md, SUB_META_ASSET_PIPELINE.md, FIGMA_WORKFLOW.md, ART_DIRECTION.md, KOSMOLOGIA_WIZUALNA.md, BIBLIOTEKA_MATERIALOW.md
 
-## 1. Cel passu
+## A) Zadanie dla Figma
 
-Zaprojektuj od zera czysty modular frame kit dla SUB-META i HUD Haiku Cosmos.
+Przygotuj **kolejny pass komponentów modular frame kit** jako source design do przyszłego eksportu SVG.
 
-Nie używaj obecnych `style_correction` SVG jako bazy produkcyjnej. Traktuj je wyłącznie jako legacy/evidence oraz negatywną lekcję audytu: monolityczne ramy, baked filters i stałe kolory nie są docelowym kierunkiem.
+Zakres:
+- modular parts, nie pełne overlaye;
+- przygotowanie pod review i przyszły FrameComposer;
+- bez integracji runtime.
 
-## 2. Zakazy projektowe
+## B) Zakazy
 
-Nie projektować:
+- Nie twórz monolitycznych full-frame overlayów jako głównego deliverable.
+- Nie dodawaj rasterów, `<image>`, base64 ani embedded fontów.
+- Nie bake'uj ciężkiego glow/shadow jako warstwy bazowej.
+- Nie traktuj evidence (`SUB_META_FIGMA_*`, legacy passów) jako production source-of-truth.
+- Nie implementuj runtime, mechaniki, FrameComposer integration ani Code Connect.
 
-- pełnych monolitycznych ramek;
-- full-frame overlayów;
-- finalnych raster backgrounds;
-- bitmap;
-- base64;
-- embedded fonts;
-- ciężkich wypalonych shadows/glows;
-- assetów, które wymagają ręcznego skalowania jako jeden duży obraz.
+## C) Wymagane komponenty
 
-## 3. Projektować wyłącznie modular parts
+### 1) SUB-META astrolabe kit
+- `corner_tl/tr/bl/br`
+- `edge_top/bottom/left/right`
+- `ornament_top_center`, `ornament_bottom_center`
+- `divider_h`
+- `slot_frame`
+- `resonance_socket`
+- `bridge_line`
 
-Zakres komponentów:
+### 2) HUD minimal/sequence kit
+- `corner_tl/tr/bl/br`
+- `edge_top/bottom/left/right`
+- `sequence_marker`
+- `rp_mini_frame`
+- `submeta_button_frame`
 
-- corners;
-- edges;
-- center ornaments;
-- slot frames;
-- resonance nodes;
-- bridge / connection lines;
-- card state accents;
-- new-card marker;
-- sequence marker.
+### 3) Card state accents
+- `r1_active_accent`
+- `ds_active_accent`
+- `new_card_pulse_layer`
+- `seen_card_stable_layer`
 
-Każdy komponent powinien być samodzielnym SVG-friendly part, możliwym do późniejszego złożenia w runtime.
+## D) Zasady stylu
 
-## 4. Linie
+- Rytualny minimalizm kosmiczny: cienka, żywa linia i czytelna geometria.
+- Dużo oddechu, bez ciężkiego fantasy border i bez agresywnego neonu.
+- Rozdziel warstwy na: `static_base`, `accent`, `state_layer`.
+- Bazę utrzymuj neutralną; kolor osi traktuj jako accent/state (runtime tinting readiness).
 
-Linie powinny być:
+## E) Zasady techniczne SVG-ready
 
-- cienkie;
-- skalowalne;
-- czytelne w małej skali;
-- bez pogrubiania przy rozciąganiu;
-- przygotowane pod `vector-effect="non-scaling-stroke"` albo pod łatwy post-process po eksporcie.
-
-## 5. Kolory
-
-Zasady koloru:
-
-- bazowe elementy neutralne;
-- accent layers przygotowane pod runtime tinting;
-- nie bake'ować na stałe wszystkich kolorów;
-- kolory osi traktować jako warstwę akcentu/stanu, nie jako pełne zalanie ramy.
-
-Neutral base: grafit, perła, przygaszone złoto, ciemny panel substrate.
-
-Accent: RED/YELLOW/GREEN/BLUE oraz piąty stan dla DS/specjalnych warstw.
-
-## 6. Efekty
-
-Nie bake'ować ciężkiego glow/shadow.
-
-Figma może pokazać wariant poglądowy z glow/pulse/shimmer, ale źródłowy SVG part ma pozostać czysty.
-
-Docelowo:
-
-- glow = runtime effect layer;
-- pulse = runtime effect layer;
-- shimmer = runtime effect layer;
-- draw-in = runtime animation hook.
-
-## 7. Rodziny stylu
-
-Główna rodzina:
-
-- astrolabe / alchemical.
-
-Gniazda i relacje:
-
-- sacred / eldritch subtle.
-
-Kuźnia:
-
-- forge / brass jako osobny przyszły zestaw, bez pełnej produkcji w tym passie.
-
-HUD:
-
-- minimal / sequence.
-
-## 8. Minimalny zestaw pierwszego nowego passu
-
-### A. SUB-META astrolabe modular frame kit
-
-- 4 corners;
-- 4 edges;
-- top-center ornament;
-- bottom-center ornament;
-- 1 separator;
-- 1 slot frame;
-- 1 resonance socket;
-- 1 bridge line.
-
-### B. HUD minimal sequence kit
-
-- 4 corners;
-- 4 edges;
-- 1 sequence marker;
-- 1 RP mini frame;
-- 1 SUB-META button frame.
-
-### C. Card state accents
-
-- R1 slot active accent;
-- DS slot active accent;
-- new-card pulse layer;
-- seen-card stable layer.
-
-## 9. SVG-friendly component rules
-
-Każdy component/layer:
-
-- clean name;
-- grouped layers;
 - transparent background;
-- no embedded fonts;
-- no bitmap;
-- no base64;
-- no baked heavy shadows;
-- no final raster background;
-- predictable bounds;
-- source part oddzielony od preview/effect variant.
+- clean layer/group names;
+- predictable bounds + viewBox readiness;
+- preferowane przygotowanie pod `vector-effect="non-scaling-stroke"`;
+- brak raster/base64/fonts;
+- brak baked heavy glow/shadow;
+- anchor/mount metadata readiness (`anchorType`, `anchorOffset`, `lineInset`, `safeMinSize`, `densityBehavior`).
 
-## 10. Naming direction
+## F) Output / expected report
 
-Preferowane nazwy logiczne:
-
-```text
-submeta/frame_part/astrolabe/corner_tl_01
-submeta/frame_part/astrolabe/edge_top_01
-submeta/frame_part/astrolabe/ornament_top_center_01
-submeta/slot_frame/astrolabe/base_01
-submeta/resonance_socket/sacred/base_01
-submeta/bridge_line/sacred/base_01
-hud/frame_part/minimal/corner_tl_01
-hud/sequence_marker/minimal/base_01
-card_state/r1/active_accent_01
-card_state/ds/active_accent_01
-card_state/new/pulse_layer_01
-card_state/seen/stable_layer_01
-```
-
-## 11. Acceptance checklist
-
-Pass jest akceptowalny dopiero gdy:
-
-- nie ma full-frame overlayów jako głównego deliverable;
-- corners/edges/ornaments da się składać niezależnie;
-- base i accent layers są rozdzielone;
-- SVG nie zawiera bitmap, base64 ani fontów;
-- source SVG nie ma ciężkich baked effects;
-- minimalny zestaw A/B/C jest kompletny.
+Raport po passie ma zawierać:
+1. Executive summary.
+2. File key + URL.
+3. Listę stron i listę komponentów (z podziałem na rodziny).
+4. Potwierdzenie rozdziału `static_base` / `accent` / `state_layer`.
+5. Potwierdzenie zakazów technicznych (no raster/base64/fonts, no heavy baked effects).
+6. Status komponentów: `review_ready`, `evidence`, `needs_cleanup`.
+7. Czego nie wykonano (np. runtime integration, eksport SVG, FrameComposer).
+8. Następny krok: SVG export validation i manifest/pipeline update.
