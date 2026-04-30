@@ -15,7 +15,7 @@
 | `docs/current/systems/PRG_SYSTEM.md` | KANON strukturalny | semantyka PRG i relacje do RUN | zawsze przy osi PRG | „do strojenia”, ale nadal bazowy |
 | `docs/current/systems/ECONOMY_SYSTEM.md` | KANON | granice ekonomii RP i kosztów | przy decyzjach o slotach/kuźni/magazynie | nie mieszać z visual |
 | `docs/current/ui/UI_WORLD.md` | KANON | rola SUB-META/HUD/META w UI | zawsze | spina system i prezentację |
-| `docs/current/ui/SUB_META_V2_WIREFRAME_SPEC.md` | ROBOCZY spec | aktualny model layoutu v2 (kompozycja) | każda sesja layoutowa | to nie jest final visual style |
+| `docs/legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md` | LEGACY / history evidence | historyczny model layoutu v2 (kompozycja); nie jest current source-of-truth | kontekst migracji / audit | finalny entrypoint: `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` |
 | `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` | ROBOCZY kontrakt | anchor/rect handoff, stable IDs | każda sesja implementacyjno-layoutowa | kontrakt techniczny layoutu |
 | `docs/current/ui/SUB_META_V2_LAYOUT_TOKENS.md` | ROBOCZY kontrakt | tokens v0.7, normalized centers/sizes/connectors | każda sesja token/layout | podstawowe dane do spójności |
 | `docs/current/visual/README.md` | KIERUNEK | mapa visual i statusy | zawsze przy visual | filtruje co jest evidence |

@@ -2,7 +2,7 @@
 > Obszar: visual layout / mount contract / anchors
 > Źródło prawdy: TAK roboczo dla przyszłego pozycjonowania visual layer
 > Ostatnia aktualizacja: 2026-04-29
-> Powiązane dokumenty: FRAME_COMPOSER_SPEC.md, SUB_META_V2_BOX_AUDIT.md, ../ui/SUB_META_V2_LAYOUT_SPEC.md, ../visual/SVG_ASSET_STANDARDS.md
+> Powiązane dokumenty: FRAME_COMPOSER_SPEC.md, SUB_META_V2_BOX_AUDIT.md, ../ui/SUB_META_V2_MASTER_SPEC.md (dawny layout spec w docs/legacy/ui/), ../visual/SVG_ASSET_STANDARDS.md
 
 # Center-based positioning spec
 

@@ -2,7 +2,7 @@
 > Obszar: SUB-META v2 / Layout Tokens v0.7
 > Źródło prawdy: NIE (repo-only contract data do future FrameComposer)
 > Ostatnia aktualizacja: 2026-04-29
-> Powiązane dokumenty: SUB_META_V2_FRAMECOMPOSER_CONTRACT.md, SUB_META_V2_WIREFRAME_SPEC.md, UI_WORLD.md, ../systems/SUB_META_SYSTEM.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md
+> Powiązane dokumenty: SUB_META_V2_FRAMECOMPOSER_CONTRACT.md, SUB_META_V2_MASTER_SPEC.md (dawny wireframe spec przeniesiony do docs/legacy/ui/), UI_WORLD.md, ../systems/SUB_META_SYSTEM.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md
 
 # SUB-META v2 Layout Tokens v0.7 — normalized contract data
 

@@ -4,7 +4,7 @@
 > Obszar: visual / Figma / modular frame kit / SUB-META v2
 > Zrodlo prawdy: TAK dla evidence passu v0.3; NIE dla runtime asset manifestu
 > Data: 2026-04-29
-> Powiazane dokumenty: MODULAR_FRAME_KIT.md, SVG_ASSET_STANDARDS.md, FIGMA_WORKFLOW.md, ../technical/FRAME_COMPOSER_SPEC.md, ../technical/CENTER_BASED_POSITIONING_SPEC.md, ../ui/SUB_META_V2_LAYOUT_SPEC.md
+> Powiazane dokumenty: MODULAR_FRAME_KIT.md, SVG_ASSET_STANDARDS.md, FIGMA_WORKFLOW.md, ../technical/FRAME_COMPOSER_SPEC.md, ../technical/CENTER_BASED_POSITIONING_SPEC.md, ../ui/SUB_META_V2_MASTER_SPEC.md (dawny layout spec przeniesiony do docs/legacy/ui/)
 
 ## 1. Executive summary
 

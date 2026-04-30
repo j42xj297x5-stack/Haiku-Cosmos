@@ -31,7 +31,7 @@ To nie jest kanon mechaniczny. To jest **harness pamięci projektowej**: co czyt
 
 ### B) Technical layout mandatory
 
-8. `docs/current/ui/SUB_META_V2_WIREFRAME_SPEC.md` — **ROBOCZY / SPEC WIREFRAME** — Composition v0.5 i semantyka stref; uwaga: to struktura, nie final styl artystyczny.
+8. `docs/legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md` — **LEGACY / HISTORY** — dawny spec composition v0.5 i semantyki stref; nie jest current source-of-truth (zastąpiony przez `docs/current/ui/SUB_META_V2_MASTER_SPEC.md`).
 9. `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` — **ROBOCZY / KONTRAKT** — anchor/rect handoff v0.6 i stable IDs; uwaga: obowiązuje separacja rectów.
 10. `docs/current/ui/SUB_META_V2_LAYOUT_TOKENS.md` — **ROBOCZY / KONTRAKT** — tokens v0.7, normalized centers/sizes/connectors; uwaga: traktuj jako aktualne dane layoutowe.
 

@@ -2,7 +2,7 @@
 > Obszar: SUB-META v2 / FrameComposer Layout Contract v0.6
 > Źródło prawdy: NIE (spec implementacyjny repo-only, zgodny z kanonem systemowym)
 > Ostatnia aktualizacja: 2026-04-29
-> Powiązane dokumenty: SUB_META_V2_WIREFRAME_SPEC.md, UI_WORLD.md, ../systems/SUB_META_SYSTEM.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../technical/CENTER_BASED_POSITIONING_SPEC.md
+> Powiązane dokumenty: SUB_META_V2_MASTER_SPEC.md (dawny wireframe spec przeniesiony do docs/legacy/ui/), UI_WORLD.md, ../systems/SUB_META_SYSTEM.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../technical/CENTER_BASED_POSITIONING_SPEC.md
 
 # SUB-META v2 FrameComposer Layout Contract v0.6 — anchor/rect handoff
 

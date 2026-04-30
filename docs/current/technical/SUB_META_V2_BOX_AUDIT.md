@@ -2,7 +2,7 @@
 > Obszar: SUB-META / audit layoutu i kontraktu stref
 > Źródło prawdy: NIE (audit roboczy pod przyszły pass projektowy)
 > Ostatnia aktualizacja: 2026-04-29
-> Powiązane dokumenty: ../systems/SUB_META_SYSTEM.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../ui/UI_WORLD.md, ../technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md, ../ui/SUB_META_V2_LAYOUT_SPEC.md, ../technical/CENTER_BASED_POSITIONING_SPEC.md
+> Powiązane dokumenty: ../systems/SUB_META_SYSTEM.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../ui/UI_WORLD.md, ../technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md, ../ui/SUB_META_V2_MASTER_SPEC.md (dawny layout spec w docs/legacy/ui/), ../technical/CENTER_BASED_POSITIONING_SPEC.md
 
 # SUB-META v2 — audit obecnego boxu
 
