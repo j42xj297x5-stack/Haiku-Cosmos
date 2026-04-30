@@ -13,6 +13,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 ### 1) maps
 - `maps/PROJECT_INDEX.md` - **KANON** - główny indeks aktualnego kanonu i statusów dokumentów.
 - `maps/DEPENDENCY_MAP.md` - **KANON** - kanoniczna mapa relacji między systemami, dokumentami i orientacyjnymi obszarami runtime.
+- `README_ARCHITECT.md` - **ARCHITECT MEMORY / CURRENT** - skondensowany start rozmowy dla ChatGPT-architekta (entrypoint pamięci, nie zastępuje pełnego SoT).
 
 ### 2) systems
 - `systems/CARDS_SYSTEM.md` - **KANON** - system kart, sekwencji i DS.

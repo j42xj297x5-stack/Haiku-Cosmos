@@ -12,11 +12,14 @@
 
 ## 2. Kolejność czytania
 
+0. (dla pracy z ChatGPT-architektem) `docs/current/README_ARCHITECT.md` jako skondensowany start memory,
 1. `README.md` w root,
 2. `docs/README.md`,
 3. `docs/current/README.md`,
 4. `docs/current/maps/PROJECT_INDEX.md`,
 5. `docs/current/maps/DEPENDENCY_MAP.md`.
+
+`README_ARCHITECT.md` przyspiesza start rozmowy, ale pełne dokumenty kanoniczne pozostają source-of-truth.
 
 
 ## 2A. Szybkie ścieżki czytania wg typu zadania
