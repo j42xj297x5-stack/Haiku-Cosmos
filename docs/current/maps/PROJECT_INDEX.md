@@ -94,3 +94,10 @@ Kanon jest mapowany warstwowo przez:
 - `SUB_META_V2_MASTER_SPEC.md` jest głównym roboczym dokumentem layout/design handoff dla SUB-META v2.
 - Pozostały stack SUB-META v2 (`LAYOUT_SPEC`, `WIREFRAME_SPEC`, `LAYOUT_TOKENS`, `FRAMECOMPOSER_CONTRACT`, `MEMORY_PACK`) pozostaje jako input history/spec-history i kandydat do scalenia/legacy po review (bez usuwania plików na tym etapie).
 - Dokumenty evidence Figma (`SUB_META_FIGMA_*`) oraz manifesty legacy/evidence (`MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) nie są aktywnym produkcyjnym source-of-truth dla runtime.
+
+
+## Aktualizacja workflow visual (2026-04-30)
+
+- `VISUAL_EXECUTION_GUIDE.md` obsluguje wariant **Inkscape-first + Figma fitting/review**.
+- `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest current dla zadan Figma, ale nie zastepuje recznego Inkscape design pass.
+- `SVG_ASSET_STANDARDS.md` pozostaje obowiazkowym standardem wykonawczym dla obu sciezek.

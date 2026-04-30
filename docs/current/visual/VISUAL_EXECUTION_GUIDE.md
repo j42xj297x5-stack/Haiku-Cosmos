@@ -167,3 +167,25 @@ Po tym przewodniku logiczna kolejność to:
 3. osobny `SUB_META_V2_MASTER_SPEC`,
 4. osobny cleanup FrameComposer contract,
 5. dopiero potem migracja zastąpionych dokumentów do `docs/legacy/`.
+
+
+## Inkscape-first workflow
+
+Aktualny workflow wykonawczy wspiera tryb **Inkscape-first**.
+
+- **Inkscape** jest glownym narzedziem projektowania ornamentow, ramek i czystych krzywych SVG.
+- **Figma** jest passsem nastepnym: fitting/review/composition (crop, alignment, bounds, layout board).
+- Nie nalezy zakladac, ze wszystkie assety powstaja od zera w Figmie.
+- Dla obu sciezek (Inkscape-first oraz Figma-generated) obowiazuja `SVG_ASSET_STANDARDS.md`: `viewBox`, transparent background, clean layers/groups, brak bitmap/base64/fontow, brak baked heavy glow, przygotowanie pod tinting i anchor metadata.
+
+### Zalecana sciezka pracy
+
+1. `visual/README.md`
+2. `VISUAL_EXECUTION_GUIDE.md`
+3. core visual docs (`ART_DIRECTION.md`, `KOSMOLOGIA_WIZUALNA.md`, `BIBLIOTEKA_MATERIALOW.md`, + dokument domenowy np. `MODULAR_FRAME_KIT.md`)
+4. `SVG_ASSET_STANDARDS.md`
+5. Inkscape design pass
+6. SVG cleanup/export
+7. Figma fitting/review pass
+8. manifest/pipeline update
+9. optional FrameComposer/runtime pass jako osobny etap

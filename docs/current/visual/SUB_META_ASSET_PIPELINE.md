@@ -90,3 +90,19 @@ assets/
 - Ten dokument nie zmienia mechaniki kart, RP, sekwencji ani PRG.
 - Ten dokument nie uruchamia runtime integration.
 - Ten dokument porzadkuje pipeline dokumentacyjny przed kolejnym realnym passem Figma/SVG.
+
+
+## Pipeline wariant: Inkscape-first + Figma fitting/review
+
+Pipeline CURRENT nie wymusza Figma-first. Dopuszczona i wspierana jest sciezka Inkscape-first:
+
+1. Inkscape source creation (ornaments/frame parts/clean curves),
+2. SVG cleanup (warstwy, grupy, bounds, metadata, brak bitmap/base64/fontow),
+3. Figma fitting/review (crop, fit, alignment, layout board),
+4. validation (`SVG_ASSET_STANDARDS.md`),
+5. manifest update,
+6. preview board/review board update,
+7. production_candidate marking (po review),
+8. runtime integration jako osobny pass.
+
+Ta sciezka nie zmienia mechaniki i nie uruchamia runtime integration w tym samym kroku dokumentacyjnym.

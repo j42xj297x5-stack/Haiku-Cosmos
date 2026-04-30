@@ -109,3 +109,19 @@ Raport po zadaniu Figma powinien zawierac:
 6. czego nie wykonano;
 7. ryzyka / ograniczenia;
 8. nastepny krok.
+
+
+## Figma as fitting board after Inkscape
+
+Ten dokument wspiera wariant, w ktorym Figma **nie jest glownym narzedziem kreacji**.
+
+Wariant Inkscape-first -> Figma fitting obejmuje:
+
+1. import SVG z Inkscape do Figmy,
+2. crop/fit/check bounds i alignment,
+3. weryfikacje anchorow/mount points w kontekscie layout boardu,
+4. testowanie komponentow w layout boardzie i review kompozycji,
+5. brak redesignu stylu, chyba ze jest to jawnie zlecone,
+6. export/review dopiero po walidacji zgodnosci ze `SVG_ASSET_STANDARDS.md`.
+
+`MODULAR_FRAME_KIT_FIGMA_PROMPT.md` pozostaje aktywny dla zadan Figma-generated lub Figma-fitting, ale nie wymusza Figma-first dla recznie rysowanych assetow Inkscape.
