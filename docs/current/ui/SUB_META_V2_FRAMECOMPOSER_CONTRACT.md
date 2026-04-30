@@ -1,14 +1,18 @@
-> Status: ROBOCZY / HANDOFF TECHNICZNY
+> Status: ROBOCZY / APPENDIX TECHNICZNY (SUB-META)
 > Obszar: SUB-META v2 / FrameComposer Layout Contract v0.6
-> Źródło prawdy: NIE (spec implementacyjny repo-only, zgodny z kanonem systemowym)
-> Ostatnia aktualizacja: 2026-04-29
+> Źródło prawdy: TAK, jako SUB-META-specific appendix/handoff; nadrzędny kontrakt techniczny jest w `../technical/FRAME_COMPOSER_SPEC.md`; NIE, dla runtime implementation
+> Ostatnia aktualizacja: 2026-04-30
 > Powiązane dokumenty: SUB_META_V2_MASTER_SPEC.md (dawny wireframe spec przeniesiony do docs/legacy/ui/), UI_WORLD.md, ../systems/SUB_META_SYSTEM.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../technical/CENTER_BASED_POSITIONING_SPEC.md
 
 # SUB-META v2 FrameComposer Layout Contract v0.6 — anchor/rect handoff
 
 ## 1. Zakres i cel
 
-Ten dokument jest **repo-only handoffem layout/contract** dla przyszłej implementacji SUB-META v2 przez FrameComposer/SVG/Figma workflow.
+Ten dokument jest **SUB-META-specific appendix/handoffem layout/contract** dla przyszłej implementacji SUB-META v2 przez FrameComposer/SVG workflow.
+
+Kontrakt ogólny (active technical contract) utrzymuje `docs/current/technical/FRAME_COMPOSER_SPEC.md`. Ten plik trzyma wyłącznie szczegóły SUB-META v2 anchor/rect handoff, zgodne z `SUB_META_V2_MASTER_SPEC.md`.
+
+Naming aliasing v0.6/v0.7 jest przejściowy i powinien być traktowany jako warstwa kompatybilności opisana w master spec; nie jest to runtime implementation.
 
 Poza zakresem:
 - runtime integration,

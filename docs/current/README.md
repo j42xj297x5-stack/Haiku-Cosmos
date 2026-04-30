@@ -30,7 +30,9 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `ui/SUB_META_MEMORY_PACK.md` - **HANDOFF / ROBOCZY / SPEC-HISTORY INPUT** - pomocniczy handoff, nie główny master spec layoutu.
 
 > Uwaga: `SUB_META_V2_LAYOUT_SPEC.md` i `SUB_META_V2_WIREFRAME_SPEC.md` zostały przeniesione do `docs/legacy/ui/` jako historyczne (zastąpione przez `SUB_META_V2_MASTER_SPEC.md`).
-> `SUB_META_V2_LAYOUT_TOKENS.md` i `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` pozostają w `docs/current/ui/` jako aktywne technical/appendix candidates.
+> `FRAME_COMPOSER_SPEC.md` jest aktywnym technical contractem dla future FrameComposer handoff.
+> `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` i `SUB_META_V2_LAYOUT_TOKENS.md` pozostają appendiksami SUB-META/data.
+> Ten cleanup kontraktu nie zmienia runtime implementation.
 
 ### 4) visual
 - `visual/README.md` - **KIERUNEK** - mapa czytania dokumentów wizualnych.

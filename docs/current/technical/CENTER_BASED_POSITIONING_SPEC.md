@@ -1,7 +1,7 @@
 > Status: ROBOCZY / KONTRAKT TECHNICZNY VISUAL LAYOUT
 > Obszar: visual layout / mount contract / anchors
-> Źródło prawdy: TAK roboczo dla przyszłego pozycjonowania visual layer
-> Ostatnia aktualizacja: 2026-04-29
+> Źródło prawdy: TAK, jako ogólny standard center-based positioning dla visual layout; NIE, jako samodzielny SUB-META layout source-of-truth
+> Ostatnia aktualizacja: 2026-04-30
 > Powiązane dokumenty: FRAME_COMPOSER_SPEC.md, SUB_META_V2_BOX_AUDIT.md, ../ui/SUB_META_V2_MASTER_SPEC.md (dawny layout spec w docs/legacy/ui/), ../visual/SVG_ASSET_STANDARDS.md
 
 # Center-based positioning spec
@@ -9,6 +9,12 @@
 ## 1. Cel
 
 Ustalić wspólny standard pozycjonowania warstwy visual (assety, ramki, ornamenty, linie, sockety) oparty o środek montażu, a nie o ręczne korekty lewy-górny narożnik.
+
+## 1A. Relacja do innych dokumentow
+
+- Standard center-based z tego dokumentu jest konsumowany przez `FRAME_COMPOSER_SPEC.md`.
+- SUB-META v2 handoff (`SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` i `SUB_META_V2_LAYOUT_TOKENS.md`) stosuje ten standard jako wspolna baze pozycji i anchorow.
+- Ten dokument nie jest samodzielnym master spec SUB-META.
 
 ## 2. Canonical model elementu visual
 

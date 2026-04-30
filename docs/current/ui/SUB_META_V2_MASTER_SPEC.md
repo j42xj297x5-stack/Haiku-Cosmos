@@ -329,3 +329,10 @@ Uwaga porządkowa:
 3. Właściwy pass Figma/SVG oparty o master spec + visual pipeline.
 4. FrameComposer contract cleanup.
 5. Runtime integration pass.
+
+
+## Nota: FrameComposer handoff hierarchy
+
+- active technical contract: `docs/current/technical/FRAME_COMPOSER_SPEC.md`;
+- SUB-META appendix: `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`;
+- normalized data appendix: `SUB_META_V2_LAYOUT_TOKENS.md`.

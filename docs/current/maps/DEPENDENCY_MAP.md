@@ -34,7 +34,7 @@
 1. Warstwa map jak wyżej
 2. `docs/current/ui/UI_WORLD.md`
 3. `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` jako główny roboczy master spec layout/design handoff
-4. aktywny stack pomocniczy SUB-META v2: `SUB_META_V2_LAYOUT_TOKENS.md`, `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`, `SUB_META_MEMORY_PACK.md`
+4. aktywny stack pomocniczy SUB-META v2: `FRAME_COMPOSER_SPEC.md` (active technical contract), `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (SUB-META appendix), `SUB_META_V2_LAYOUT_TOKENS.md` (normalized appendix), `SUB_META_MEMORY_PACK.md`
 5. history/spec-history (legacy): `docs/legacy/ui/SUB_META_V2_LAYOUT_SPEC.md`, `docs/legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md`
 6. `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` i `SUB_META_V2_BOX_AUDIT.md`
 
@@ -66,7 +66,7 @@
 - `docs/current/systems/I18N_SYSTEM.md` (KANON STRUKTURALNY / DO WDROŻENIA)
 - `docs/current/ui/UI_WORLD.md`
 - `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT)
-- aktywny stack pomocniczy SUB-META v2: `SUB_META_V2_LAYOUT_TOKENS.md`, `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`, `SUB_META_MEMORY_PACK.md`
+- aktywny stack pomocniczy SUB-META v2: `FRAME_COMPOSER_SPEC.md` (active technical contract), `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (SUB-META appendix), `SUB_META_V2_LAYOUT_TOKENS.md` (normalized appendix), `SUB_META_MEMORY_PACK.md`
 - legacy/history po migracji: `docs/legacy/ui/SUB_META_V2_LAYOUT_SPEC.md`, `docs/legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md` (zastąpione przez `SUB_META_V2_MASTER_SPEC.md`)
 
 ## 4. KIERUNEK visual
