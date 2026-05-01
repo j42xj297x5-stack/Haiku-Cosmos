@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "kitId": "modular_frame_kit_v01",
+  "source": {
+    "tool": "Figma MCP exportAsync",
+    "figmaFileKey": "1KsSouDlvB24HznqRPXUf5",
+    "figmaFileName": "Haiku Cosmos \u2014 Modular Frame Kit v0.1"
+  },
+  "status": "exported_review_ready",
+  "runtimeIntegration": "not_integrated",
+  "assetCount": 35,
+  "validation": {
+    "viewBox": "pass",
+    "embeddedRaster": "pass",
+    "embeddedFonts": "pass",
+    "bakedFilters": "pass"
+  },
+  "assets": [
+    {
+      "logicalName": "submeta.frame.corner.tl.astrolabe_01",
+      "path": "assets/visual/submeta/svg/frame_parts/corners/submeta_frame_corner_tl_astrolabe_01.svg",
+      "layer": "submeta",
+      "type": "corner",
+      "position": "tl",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.frame.corner.tr.astrolabe_01",
+      "path": "assets/visual/submeta/svg/frame_parts/corners/submeta_frame_corner_tr_astrolabe_01.svg",
+      "layer": "submeta",
+      "type": "corner",
+      "position": "tr",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.frame.corner.bl.astrolabe_01",
+      "path": "assets/visual/submeta/svg/frame_parts/corners/submeta_frame_corner_bl_astrolabe_01.svg",
+      "layer": "submeta",
+      "type": "corner",
+      "position": "bl",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.frame.corner.br.astrolabe_01",
+      "path": "assets/visual/submeta/svg/frame_parts/corners/submeta_frame_corner_br_astrolabe_01.svg",
+      "layer": "submeta",
+      "type": "corner",
+      "position": "br",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.frame.edge.top_thin.astrolabe_01",
+      "path": "assets/visual/submeta/svg/frame_parts/edges/submeta_frame_edge_top_thin_astrolabe_01.svg",
+      "layer": "submeta",
+      "type": "edge",
+      "position": "top",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.frame.edge.bottom_thin.astrolabe_01",
+      "path": "assets/visual/submeta/svg/frame_parts/edges/submeta_frame_edge_bottom_thin_astrolabe_01.svg",
+      "layer": "submeta",
+      "type": "edge",
+      "position": "bottom",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.frame.edge.left_thin.astrolabe_01",
+      "path": "assets/visual/submeta/svg/frame_parts/edges/submeta_frame_edge_left_thin_astrolabe_01.svg",
+      "layer": "submeta",
+      "type": "edge",
+      "position": "left",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.frame.edge.right_thin.astrolabe_01",
+      "path": "assets/visual/submeta/svg/frame_parts/edges/submeta_frame_edge_right_thin_astrolabe_01.svg",
+      "layer": "submeta",
+      "type": "edge",
+      "position": "right",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.frame.center_ornament.top.astrolabe_01",
+      "path": "assets/visual/submeta/svg/frame_parts/center_ornaments/submeta_frame_ornament_top_center_astrolabe_01.svg",
+      "layer": "submeta",
+      "type": "center_ornament",
+      "position": "top_center",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.frame.center_ornament.bottom.astrolabe_01",
+      "path": "assets/visual/submeta/svg/frame_parts/center_ornaments/submeta_frame_ornament_bottom_center_astrolabe_01.svg",
+      "layer": "submeta",
+      "type": "center_ornament",
+      "position": "bottom_center",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.frame.separator.altar_scale_01",
+      "path": "assets/visual/submeta/svg/frame_parts/separators/submeta_frame_separator_altar_scale_01.svg",
+      "layer": "submeta",
+      "type": "separator",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.slot_frame.r1_socket_01",
+      "path": "assets/visual/submeta/svg/frame_parts/slot_frames/submeta_slot_frame_r1_socket_01.svg",
+      "layer": "submeta",
+      "type": "slot_frame",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.resonance_node.r2_socket_01",
+      "path": "assets/visual/submeta/svg/frame_parts/resonance_nodes/submeta_resonance_node_r2_socket_01.svg",
+      "layer": "submeta",
+      "type": "resonance_node",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "submeta.bridge_line.resonance_01",
+      "path": "assets/visual/submeta/svg/frame_parts/bridges/submeta_bridge_line_resonance_01.svg",
+      "layer": "submeta",
+      "type": "bridge",
+      "style": "astrolabe",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.frame.corner.tl.minimal_01",
+      "path": "assets/visual/hud/svg/frame_parts/corners/hud_frame_corner_tl_minimal_01.svg",
+      "layer": "hud",
+      "type": "corner",
+      "position": "tl",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.frame.corner.tr.minimal_01",
+      "path": "assets/visual/hud/svg/frame_parts/corners/hud_frame_corner_tr_minimal_01.svg",
+      "layer": "hud",
+      "type": "corner",
+      "position": "tr",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.frame.corner.bl.minimal_01",
+      "path": "assets/visual/hud/svg/frame_parts/corners/hud_frame_corner_bl_minimal_01.svg",
+      "layer": "hud",
+      "type": "corner",
+      "position": "bl",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.frame.corner.br.minimal_01",
+      "path": "assets/visual/hud/svg/frame_parts/corners/hud_frame_corner_br_minimal_01.svg",
+      "layer": "hud",
+      "type": "corner",
+      "position": "br",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.frame.edge.top.minimal_01",
+      "path": "assets/visual/hud/svg/frame_parts/edges/hud_frame_edge_top_minimal_01.svg",
+      "layer": "hud",
+      "type": "edge",
+      "position": "top",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.frame.edge.bottom.minimal_01",
+      "path": "assets/visual/hud/svg/frame_parts/edges/hud_frame_edge_bottom_minimal_01.svg",
+      "layer": "hud",
+      "type": "edge",
+      "position": "bottom",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.frame.edge.left.minimal_01",
+      "path": "assets/visual/hud/svg/frame_parts/edges/hud_frame_edge_left_minimal_01.svg",
+      "layer": "hud",
+      "type": "edge",
+      "position": "left",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.frame.edge.right.minimal_01",
+      "path": "assets/visual/hud/svg/frame_parts/edges/hud_frame_edge_right_minimal_01.svg",
+      "layer": "hud",
+      "type": "edge",
+      "position": "right",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.sequence_marker.r1_01",
+      "path": "assets/visual/hud/svg/frame_parts/sequence_markers/hud_sequence_marker_r1_01.svg",
+      "layer": "hud",
+      "type": "sequence_marker",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.sequence_marker.r2_01",
+      "path": "assets/visual/hud/svg/frame_parts/sequence_markers/hud_sequence_marker_r2_01.svg",
+      "layer": "hud",
+      "type": "sequence_marker",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.sequence_marker.aa_01",
+      "path": "assets/visual/hud/svg/frame_parts/sequence_markers/hud_sequence_marker_aa_01.svg",
+      "layer": "hud",
+      "type": "sequence_marker",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.sequence_marker.aaa_01",
+      "path": "assets/visual/hud/svg/frame_parts/sequence_markers/hud_sequence_marker_aaa_01.svg",
+      "layer": "hud",
+      "type": "sequence_marker",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.rp_mini_frame_01",
+      "path": "assets/visual/hud/svg/frame_parts/rp/hud_rp_mini_frame_01.svg",
+      "layer": "hud",
+      "type": "rp_frame",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.button.submeta_frame_01",
+      "path": "assets/visual/hud/svg/frame_parts/buttons/hud_button_submeta_frame_01.svg",
+      "layer": "hud",
+      "type": "button_frame",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "hud.button.back_frame_01",
+      "path": "assets/visual/hud/svg/frame_parts/buttons/hud_button_back_frame_01.svg",
+      "layer": "hud",
+      "type": "button_frame",
+      "style": "minimal",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "cards.state_accent.r1_slot_active_01",
+      "path": "assets/visual/cards/svg/state_accents/card_state_r1_slot_active_accent_01.svg",
+      "layer": "cards",
+      "type": "state_accent",
+      "state": "active",
+      "style": "r1",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "cards.state_accent.ds_slot_active_01",
+      "path": "assets/visual/cards/svg/state_accents/card_state_ds_slot_active_accent_01.svg",
+      "layer": "cards",
+      "type": "state_accent",
+      "state": "active",
+      "style": "ds",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "cards.state_accent.new_card_pulse_01",
+      "path": "assets/visual/cards/svg/state_accents/card_state_new_card_pulse_layer_01.svg",
+      "layer": "cards",
+      "type": "state_accent",
+      "state": "new",
+      "style": "pulse",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "cards.state_accent.seen_card_stable_01",
+      "path": "assets/visual/cards/svg/state_accents/card_state_seen_card_stable_layer_01.svg",
+      "layer": "cards",
+      "type": "state_accent",
+      "state": "seen",
+      "style": "stable",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "cards.state_accent.locked_slot_01",
+      "path": "assets/visual/cards/svg/state_accents/card_state_locked_slot_accent_01.svg",
+      "layer": "cards",
+      "type": "state_accent",
+      "state": "locked",
+      "style": "muted",
+      "status": "v0.1_exported"
+    },
+    {
+      "logicalName": "cards.state_accent.selected_slot_01",
+      "path": "assets/visual/cards/svg/state_accents/card_state_selected_slot_accent_01.svg",
+      "layer": "cards",
+      "type": "state_accent",
+      "state": "selected",
+      "style": "accent",
+      "status": "v0.1_exported"
+    }
+  ]
+}

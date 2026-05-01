@@ -3,7 +3,7 @@
 > Status: KIERUNEK / RESET PO AUDYCIE
 > Obszar: visual / assets / Figma / SVG / HUD / SUB-META
 > Źródło prawdy: TAK, dla kierunku nowego modular frame kit
-> Ostatnia aktualizacja: 2026-04-29
+> Ostatnia aktualizacja: 2026-05-01
 > Nie obejmuje: mechaniki, sekwencji, kosztów RP, implementacji FrameComposer
 
 ## 1. Decyzja po audycie
@@ -215,6 +215,24 @@ Asset count: `35` SVG:
 Runtime integration: `not_integrated`.
 
 Legacy `style_correction_2026_04` pozostaje evidence w `assets/visual/legacy/` i nie jest produkcyjnym source-of-truth.
+
+## 8a. SUB-META main frame v01 export + runtime candidate
+
+2026-05-01: dla glownej ramki SUB-META aktywny jest osobny segmented kit `submeta_main_frame_v01`.
+
+Manifest: `assets/visual/submeta/submeta_main_frame_v01_manifest.json`.
+
+Asset count: `16` SVG:
+
+- `4` corners;
+- `4` center ornaments;
+- `8` connector segments.
+
+Runtime integration: `submeta_root_frame_segmented_composer`.
+
+Zasada konstrukcyjna: top/bottom/side lines sa segmentami laczacymi corner z center ornament. Nie sa jednym pelnym edge per side.
+
+Poprzedni astrolabe root frame z `modular_frame_kit_v01` zostal skopiowany jako legacy evidence do `assets/visual/legacy/submeta_frame_replaced_2026_05_01/`. HUD/card/slot/separator assets z `modular_frame_kit_v01` pozostaja w miejscu, poniewaz nie sa zastapione przez ten pass.
 
 ## 9. Static preview board
 

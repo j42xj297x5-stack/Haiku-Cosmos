@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Haiku Cosmos - SUB-META Main Frame v01 Preview</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #05060a;
+      --panel: #0d1018;
+      --line: rgba(255, 255, 255, 0.14);
+      --text: rgba(255, 255, 255, 0.9);
+      --muted: rgba(255, 255, 255, 0.62);
+      --accent: #ffcc00;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% 0%, #151b29 0, var(--bg) 44%);
+      color: var(--text);
+      font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 36px;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .meta {
+      margin: 4px 0 0;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    .preview {
+      border: 1px solid var(--line);
+      background: rgba(5, 6, 10, 0.86);
+      padding: 12px;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 10px;
+      color: var(--muted);
+    }
+
+    .preview-title {
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #05060a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    pre {
+      margin: 18px 0 0;
+      padding: 12px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>SUB-META Main Frame v01</h1>
+        <p class="meta">16 SVG assets, segmented connector structure, accepted corner bleed.</p>
+      </div>
+      <div class="meta">status: runtime_candidate</div>
+    </header>
+
+    <section class="grid" aria-label="SUB-META main frame previews">
+      <div class="preview">
+        <div class="preview-header">
+          <span class="preview-title">Clean</span>
+          <span>corners + ornaments + connector segments</span>
+        </div>
+        <canvas id="cleanCanvas" width="960" height="540"></canvas>
+      </div>
+
+      <div class="preview">
+        <div class="preview-header">
+          <span class="preview-title">Debug</span>
+          <span>frameLineRect, contentSafeRect, pivots, centers, segment joins</span>
+        </div>
+        <canvas id="debugCanvas" width="960" height="540"></canvas>
+      </div>
+    </section>
+
+    <pre id="statusPanel">loading...</pre>
+  </main>
+
+  <script src="/hc.visual_assets.js"></script>
+  <script src="/hc.frame_composer.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var manifestUrl = "/assets/visual/submeta/submeta_main_frame_v01_manifest.json";
+      var targetRect = { x: 0, y: 0, w: 960, h: 540 };
+      var layoutParams = {
+        lineRectInset: { x: 80, y: 45 },
+        contentSafeInset: { x: 46, y: 36 }
+      };
+      var partMap = {
+        corners: {
+          tl: "submeta.frame.corner.tl.main_01",
+          tr: "submeta.frame.corner.tr.main_01",
+          bl: "submeta.frame.corner.bl.main_01",
+          br: "submeta.frame.corner.br.main_01"
+        },
+        ornaments: {
+          topCenter: "submeta.frame.ornament.top_center.main_01",
+          bottomCenter: "submeta.frame.ornament.bottom_center.main_01",
+          leftCenter: "submeta.frame.ornament.left_center.main_01",
+          rightCenter: "submeta.frame.ornament.right_center.main_01"
+        },
+        segments: {
+          topLeft: "submeta.frame.edge.top_left_segment.main_01",
+          topRight: "submeta.frame.edge.top_right_segment.main_01",
+          bottomLeft: "submeta.frame.edge.bottom_left_segment.main_01",
+          bottomRight: "submeta.frame.edge.bottom_right_segment.main_01",
+          leftTop: "submeta.frame.edge.left_top_segment.main_01",
+          leftBottom: "submeta.frame.edge.left_bottom_segment.main_01",
+          rightTop: "submeta.frame.edge.right_top_segment.main_01",
+          rightBottom: "submeta.frame.edge.right_bottom_segment.main_01"
+        }
+      };
+
+      function collectParts() {
+        return [
+          partMap.corners.tl,
+          partMap.corners.tr,
+          partMap.corners.bl,
+          partMap.corners.br,
+          partMap.ornaments.topCenter,
+          partMap.ornaments.bottomCenter,
+          partMap.ornaments.leftCenter,
+          partMap.ornaments.rightCenter,
+          partMap.segments.topLeft,
+          partMap.segments.topRight,
+          partMap.segments.bottomLeft,
+          partMap.segments.bottomRight,
+          partMap.segments.leftTop,
+          partMap.segments.leftBottom,
+          partMap.segments.rightTop,
+          partMap.segments.rightBottom
+        ];
+      }
+
+      function paintBackground(ctx) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.fillStyle = "#05060a";
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      }
+
+      function renderCanvas(canvas, debug) {
+        var ctx = canvas.getContext("2d");
+        var layout = window.HC.FrameComposer.computeSubmetaMainFrameV01Layout(targetRect, layoutParams);
+        paintBackground(ctx);
+        var drawSummary = window.HC.FrameComposer.drawSegmentedFrameParts(
+          ctx,
+          window.HC.VisualAssets,
+          layout,
+          partMap,
+          { alpha: 0.96 }
+        );
+        if (debug) {
+          window.HC.FrameComposer.drawDebug(ctx, layout, {
+            showRect: false,
+            showLineRect: true,
+            showContentSafeRect: true,
+            showBounds: true,
+            showAnchors: true,
+            showEdgeLineAnchors: false,
+            showSegmentJoinPoints: true
+          });
+        }
+        return { drawSummary: drawSummary, layout: layout };
+      }
+
+      function printStatus(payload) {
+        document.getElementById("statusPanel").textContent = JSON.stringify(payload, null, 2);
+      }
+
+      async function run() {
+        if (!window.HC || !window.HC.VisualAssets || !window.HC.FrameComposer) {
+          printStatus({ ok: false, error: "HC.VisualAssets / HC.FrameComposer unavailable" });
+          return;
+        }
+
+        var requested = collectParts();
+        var manifestResult = await window.HC.VisualAssets.loadManifest(manifestUrl);
+        var preloadResult = await window.HC.VisualAssets.preload(requested);
+        var clean = renderCanvas(document.getElementById("cleanCanvas"), false);
+        var debug = renderCanvas(document.getElementById("debugCanvas"), true);
+
+        printStatus({
+          ok: manifestResult.ok && preloadResult.failed === 0,
+          manifestUrl: manifestResult.url,
+          assetCount: requested.length,
+          manifestAssetCount: manifestResult.assetCount,
+          preload: preloadResult,
+          cleanDraw: clean.drawSummary,
+          debugDraw: debug.drawSummary,
+          acceptedBleed: true,
+          frameLineRect: clean.layout.frameLineRect,
+          contentSafeRect: clean.layout.contentSafeRect,
+          segmentJoinCount: clean.layout.debug.segmentJoinPoints.length
+        });
+      }
+
+      run().catch(function (error) {
+        printStatus({ ok: false, error: String(error && error.message ? error.message : error) });
+      });
+    })();
+  </script>
+</body>
+</html>

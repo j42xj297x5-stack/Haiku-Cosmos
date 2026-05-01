@@ -3,7 +3,7 @@
 > Status: STANDARD PIPELINE / CURRENT
 > Obszar: visual assets (SUB-META / HUD / cards) - Figma -> SVG -> validation -> manifest -> review
 > Źródło prawdy: TAK, dla organizacji przyszlych visual assets i przeplywu wykonawczego. NIE, dla mechaniki. NIE, dla runtime integration.
-> Ostatnia aktualizacja: 2026-04-30
+> Ostatnia aktualizacja: 2026-05-01
 > Powiązane dokumenty: `VISUAL_EXECUTION_GUIDE.md`, `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`, `SVG_ASSET_STANDARDS.md`, `SUB_META_COMPONENTS.md`, `MODULAR_FRAME_KIT_ASSET_MANIFEST.md`, `SUB_META_FIGMA_ASSET_PASS_01.md`, `SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md`, `SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md`
 
 ## 1. Rola dokumentu
@@ -46,6 +46,20 @@ Nie jest to dokument do:
 - **Legacy**: historyczne eksporty i audyty (np. `assets/visual/legacy/...`).
 
 Figma evidence docs i legacy exports **nie sa aktywnym production kit** oraz **nie sa runtime source-of-truth**.
+
+## 3a. Current runtime candidate: SUB-META main frame v01
+
+2026-05-01: accepted segmented edge structure from Figma was exported and integrated as a runtime candidate for `submeta.root_frame`.
+
+- Source: Figma `r8qnYkRWULXAQ8wungoepR`, page `06_SEGMENTED_EDGE_FIX`, frame `FRAME_REVIEW_SEGMENTED_STRUCTURE_CLEAN`.
+- Manifest: `assets/visual/submeta/submeta_main_frame_v01_manifest.json`.
+- SVG directory: `assets/visual/submeta/svg/main_frame_v01/`.
+- Preview: `assets/visual/preview/submeta_main_frame_v01_preview.html`.
+- Legacy evidence: `assets/visual/legacy/submeta_frame_replaced_2026_05_01/`.
+
+The active structure is `4` corners + `4` center ornaments + `8` connector segments. Top/bottom/side lines are connector segments between corners and center ornaments, not one full edge per side.
+
+Runtime integration is intentionally narrow: only the SUB-META root frame uses this kit. Cards, RP costs, sequence logic, PRG behavior, slot mechanics and state layers are unchanged.
 
 ## 4. Zasady aktualizacji manifestu po przyszlym passie
 

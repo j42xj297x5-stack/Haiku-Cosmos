@@ -336,44 +336,38 @@ const CardEngine = (() => {
   const SUB_META_COUNT_PAD = 8;
   const FRAME_COMPOSER_SUBMETA_ROOT_ENABLED = true;
   const FRAME_COMPOSER_SUBMETA_ROOT_DEBUG = false;
-  const FRAME_COMPOSER_SUBMETA_ROOT_MANIFEST_URL = "/assets/visual/modular_frame_kit_v01_manifest.json";
+  const FRAME_COMPOSER_SUBMETA_ROOT_MANIFEST_URL = "/assets/visual/submeta/submeta_main_frame_v01_manifest.json";
   const FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_X = 44;
   const FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_Y = 54;
   const FRAME_COMPOSER_SUBMETA_ROOT_LAYOUT_OVERRIDES = {
-    cornerSize: 68,
-    edgeThickness: 24,
     lineRectInset: {
       x: FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_X,
       y: FRAME_COMPOSER_SUBMETA_ROOT_VISUAL_OUTSET_Y
     },
-    anchors: {
-      cornerAnchorOffset: { x: 42, y: 54 },
-      edgeLineInset: 10,
-      cornerJoinInset: 46
-    },
-    scales: {
-      topOrnament: 0.62,
-      bottomOrnament: 0.72
-    },
-    topOrnamentOffsetY: -38,
-    bottomOrnamentOffsetY: 10
+    contentSafeInset: { x: 42, y: 42 }
   };
   const FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP = {
     corners: {
-      tl: "submeta.frame.corner.tl.astrolabe_01",
-      tr: "submeta.frame.corner.tr.astrolabe_01",
-      bl: "submeta.frame.corner.bl.astrolabe_01",
-      br: "submeta.frame.corner.br.astrolabe_01"
+      tl: "submeta.frame.corner.tl.main_01",
+      tr: "submeta.frame.corner.tr.main_01",
+      bl: "submeta.frame.corner.bl.main_01",
+      br: "submeta.frame.corner.br.main_01"
     },
-    edges: {
-      top: "submeta.frame.edge.top_thin.astrolabe_01",
-      bottom: "submeta.frame.edge.bottom_thin.astrolabe_01",
-      left: "submeta.frame.edge.left_thin.astrolabe_01",
-      right: "submeta.frame.edge.right_thin.astrolabe_01"
+    segments: {
+      topLeft: "submeta.frame.edge.top_left_segment.main_01",
+      topRight: "submeta.frame.edge.top_right_segment.main_01",
+      bottomLeft: "submeta.frame.edge.bottom_left_segment.main_01",
+      bottomRight: "submeta.frame.edge.bottom_right_segment.main_01",
+      leftTop: "submeta.frame.edge.left_top_segment.main_01",
+      leftBottom: "submeta.frame.edge.left_bottom_segment.main_01",
+      rightTop: "submeta.frame.edge.right_top_segment.main_01",
+      rightBottom: "submeta.frame.edge.right_bottom_segment.main_01"
     },
     ornaments: {
-      topCenter: "submeta.frame.center_ornament.top.astrolabe_01",
-      bottomCenter: "submeta.frame.center_ornament.bottom.astrolabe_01"
+      topCenter: "submeta.frame.ornament.top_center.main_01",
+      bottomCenter: "submeta.frame.ornament.bottom_center.main_01",
+      leftCenter: "submeta.frame.ornament.left_center.main_01",
+      rightCenter: "submeta.frame.ornament.right_center.main_01"
     }
   };
   const FRAME_COMPOSER_SUBMETA_ROOT_PARTS = [
@@ -381,12 +375,18 @@ const CardEngine = (() => {
     FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.corners.tr,
     FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.corners.bl,
     FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.corners.br,
-    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.edges.top,
-    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.edges.bottom,
-    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.edges.left,
-    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.edges.right,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.segments.topLeft,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.segments.topRight,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.segments.bottomLeft,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.segments.bottomRight,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.segments.leftTop,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.segments.leftBottom,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.segments.rightTop,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.segments.rightBottom,
     FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.ornaments.topCenter,
-    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.ornaments.bottomCenter
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.ornaments.bottomCenter,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.ornaments.leftCenter,
+    FRAME_COMPOSER_SUBMETA_ROOT_PART_MAP.ornaments.rightCenter
   ];
   const subMetaRootFrameVisualState = {
     requested: false,
@@ -4441,7 +4441,10 @@ const CardEngine = (() => {
 
     subMetaRootFrameVisualState.requested = true;
     subMetaRootFrameVisualState.preloadStatus = "loading_manifest";
-    const manifestReady = typeof visualAssets.isReady === "function" && visualAssets.isReady();
+    const currentManifest = typeof visualAssets.getManifest === "function" ? visualAssets.getManifest() : null;
+    const manifestReady = typeof visualAssets.isReady === "function"
+      && visualAssets.isReady()
+      && currentManifest?.kitId === "submeta_main_frame_v01";
     const manifestPromise = manifestReady
       ? Promise.resolve({ ok: true, manifestLoaded: true, skipped: true })
       : visualAssets.loadManifest(FRAME_COMPOSER_SUBMETA_ROOT_MANIFEST_URL);
@@ -4523,8 +4526,8 @@ const CardEngine = (() => {
 
     const { visualAssets, frameComposer } = getSubMetaVisualRuntime();
     if (!visualAssets || !frameComposer
-      || typeof frameComposer.computeSubmetaAstrolabeLayout !== "function"
-      || typeof frameComposer.drawFrameParts !== "function") {
+      || typeof frameComposer.computeSubmetaMainFrameV01Layout !== "function"
+      || typeof frameComposer.drawSegmentedFrameParts !== "function") {
       requestSubMetaRootFrameAssets();
       subMetaRootFrameVisualState.rootFrameDrawn = false;
       subMetaRootFrameVisualState.fallbackUsed = true;
@@ -4545,11 +4548,11 @@ const CardEngine = (() => {
       return false;
     }
 
-    const frameLayout = frameComposer.computeSubmetaAstrolabeLayout(
+    const frameLayout = frameComposer.computeSubmetaMainFrameV01Layout(
       visualRect,
       FRAME_COMPOSER_SUBMETA_ROOT_LAYOUT_OVERRIDES
     );
-    const summary = frameComposer.drawFrameParts(
+    const summary = frameComposer.drawSegmentedFrameParts(
       ctx,
       visualAssets,
       frameLayout,

@@ -7,6 +7,7 @@ Katalog na wektorowe komponenty SUB-META eksportowane z Figmy.
 
 ## Rodziny
 
+- `main_frame_v01/` - active runtime candidate for segmented SUB-META root frame (16 SVGs)
 - `frames/`
 - `lines/`
 - `ornaments/`

@@ -3,7 +3,7 @@
 > Status: ROBOCZY / AKTYWNY KONTRAKT TECHNICZNY
 > Obszar: FrameComposer / SVG modular layout / anchors / rects
 > Zrodlo prawdy: TAK, dla ogolnego kontraktu technicznego przyszlego FrameComposera; NIE, dla mechaniki; NIE, dla runtime implementation juz wykonanego; NIE, dla finalnych assetow visual
-> Ostatnia aktualizacja: 2026-04-30
+> Ostatnia aktualizacja: 2026-05-01
 > Powiazane dokumenty: ../ui/SUB_META_V2_MASTER_SPEC.md, ../ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md, ../ui/SUB_META_V2_LAYOUT_TOKENS.md, CENTER_BASED_POSITIONING_SPEC.md, ../visual/SVG_ASSET_STANDARDS.md, ../visual/SUB_META_ASSET_PIPELINE.md
 
 
@@ -451,9 +451,9 @@ Extraction pass v0.1:
 - FrameComposer nadal nie liczy layoutu SUB-META i nie powinien przejmowac tej odpowiedzialnosci;
 - production SUB-META FrameComposer integration pozostaje `not_integrated`.
 
-## 14. Runtime probe: SUB-META root frame behind flag
+## 14. Runtime path: SUB-META root frame behind flag
 
-Status na 2026-04-28: pierwszy runtime visual probe jest wlaczony za flaga w `cards.js`.
+Status na 2026-05-01: `submeta.root_frame` uzywa segmented main frame v01 za flaga w `cards.js`.
 
 Zakres probe:
 
@@ -476,22 +476,34 @@ renderSubMetaOverlay
   -> getSubMetaLayout()
   -> HC.SubMetaLayout.computeAnchors(layout)
   -> submeta.root_frame rect
-  -> HC.FrameComposer.computeSubmetaAstrolabeLayout(rect)
-  -> HC.FrameComposer.drawFrameParts(ctx, HC.VisualAssets, frameLayout, partMap)
+  -> HC.FrameComposer.computeSubmetaMainFrameV01Layout(rect)
+  -> HC.FrameComposer.drawSegmentedFrameParts(ctx, HC.VisualAssets, frameLayout, partMap)
 ```
 
-`HC.VisualAssets` laduje manifest `/assets/visual/modular_frame_kit_v01_manifest.json` i preloaduje tylko 10 assetow root frame: 4 corners, 4 edges i 2 center ornaments.
+`HC.VisualAssets` laduje manifest `/assets/visual/submeta/submeta_main_frame_v01_manifest.json` i preloaduje 16 assetow root frame: 4 corners, 4 center ornaments i 8 connector segments.
+
+Poprzedni astrolabe path (`computeSubmetaAstrolabeLayout`, `drawFrameParts`) zostaje w kodzie jako sandbox/reference compatibility, ale nie jest aktywnym SUB-META root frame path.
 
 Fallback:
 
 - jesli flaga jest `false`, uzywany jest stary render;
 - jesli `HC.VisualAssets`, `HC.FrameComposer` albo `HC.SubMetaLayout` sa niedostepne, uzywany jest stary render;
 - jesli manifest/preload nie sa gotowe w pierwszej klatce, render przechodzi fallbackiem i probe probuje narysowac frame w kolejnych klatkach po zakonczeniu preload;
-- jesli `drawFrameParts` nie narysuje pelnego zestawu root frame, stary fallback zostaje zachowany.
+- jesli `drawSegmentedFrameParts` nie narysuje pelnego zestawu root frame, stary fallback zostaje zachowany.
 
-Ten probe nie oznacza pelnej produkcyjnej integracji SUB-META. To minimalny, odwracalny test runtime dla jednego mount pointu.
+Ten path nie oznacza pelnej produkcyjnej integracji SUB-META. To minimalna integracja runtime dla jednego mount pointu. Ramki slotow, panele wewnetrzne, depth/relief, live-coloring, animation hooks i raster shadow/glow pass pozostaja przyszlymi krokami.
 
 ## 15. v0.1 implementation status
+
+Status na 2026-05-01 (SUB-META main frame v01 export/runtime pass):
+
+- `HC.VisualAssets` default manifest wskazuje `assets/visual/submeta/submeta_main_frame_v01_manifest.json`;
+- `HC.FrameComposer` ma osobne funkcje `computeSubmetaMainFrameV01Layout()` i `drawSegmentedFrameParts()` dla 16-czesciowej struktury segmented edge;
+- `cards.js` uzywa segmented part map: 4 corners, 4 center ornaments, 8 connector segments;
+- fallback proceduralny SUB-META root frame pozostaje aktywny, jesli manifest/preload/draw nie przejdzie;
+- mechanika kart, RP, sekwencje i PRG behavior nie zostaly zmienione;
+- dodano preview `assets/visual/preview/submeta_main_frame_v01_preview.html`;
+- status assetow: `runtime_candidate`, nie finalny raster/glow/shadow production pass.
 
 Status na 2026-04-28 (repo-only infrastructure pass):
 

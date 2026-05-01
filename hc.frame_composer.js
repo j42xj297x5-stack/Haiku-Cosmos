@@ -414,6 +414,311 @@
     return computeFrameLayout(options);
   }
 
+  var SUBMETA_MAIN_FRAME_V01_REFERENCE = {
+    frameLineRect: { w: 1600, h: 900 },
+    corners: {
+      tl: {
+        size: { w: 213.775, h: 199.365 },
+        pivot: { x: 14.347, y: 12.805 },
+        horizontalJoin: { x: 213.183, y: 12.805 },
+        verticalJoin: { x: 14.347, y: 192.36 }
+      },
+      tr: {
+        size: { w: 213.775, h: 199.365 },
+        pivot: { x: 199.259, y: 12.805 },
+        horizontalJoin: { x: 0.422, y: 12.805 },
+        verticalJoin: { x: 199.259, y: 192.36 }
+      },
+      bl: {
+        size: { w: 213.775, h: 199.365 },
+        pivot: { x: 14.346, y: 186.56 },
+        horizontalJoin: { x: 213.183, y: 186.56 },
+        verticalJoin: { x: 14.346, y: 7.005 }
+      },
+      br: {
+        size: { w: 213.775, h: 199.365 },
+        pivot: { x: 199.429, y: 186.56 },
+        horizontalJoin: { x: 0.592, y: 186.56 },
+        verticalJoin: { x: 199.429, y: 7.005 }
+      }
+    },
+    ornaments: {
+      topCenter: {
+        size: { w: 323.452, h: 81.125 },
+        center: { x: 160.233, y: 36.863 },
+        leftJoin: { x: 26.972, y: 36.863 },
+        rightJoin: { x: 293.494, y: 36.863 }
+      },
+      bottomCenter: {
+        size: { w: 397.823, h: 43.518 },
+        center: { x: 198.621, y: 14.077 },
+        leftJoin: { x: 32.632, y: 14.077 },
+        rightJoin: { x: 364.609, y: 14.077 }
+      },
+      leftCenter: {
+        size: { w: 52.158, h: 257.516 },
+        center: { x: 26.079, y: 131.045 },
+        topJoin: { x: 26.079, y: 4.586 },
+        bottomJoin: { x: 26.079, y: 257.503 }
+      },
+      rightCenter: {
+        size: { w: 52.158, h: 257.516 },
+        center: { x: 26.079, y: 131.045 },
+        topJoin: { x: 26.079, y: 4.586 },
+        bottomJoin: { x: 26.079, y: 257.503 }
+      }
+    },
+    segmentSources: {
+      top: {
+        size: { w: 324.279, h: 14.335 },
+        lineStart: { x: 24.194, y: 1.354 },
+        lineEnd: { x: 300.085, y: 1.354 }
+      },
+      bottom: {
+        size: { w: 324.279, h: 14.529 },
+        lineStart: { x: 68.932, y: 6.986 },
+        lineEnd: { x: 252.139, y: 6.986 }
+      },
+      vertical: {
+        size: { w: 23.685, h: 388.188 },
+        lineStart: { x: 11.784, y: 11.595 },
+        lineEnd: { x: 11.784, y: 375.621 }
+      }
+    }
+  };
+
+  function getDefaultSubmetaMainFrameV01Options(rect) {
+    return {
+      rect: resolveRect(rect),
+      lineRectInset: { x: 0, y: 0 },
+      contentSafeInset: null,
+      referenceFrameLineRect: SUBMETA_MAIN_FRAME_V01_REFERENCE.frameLineRect,
+      showCenterOrnaments: true
+    };
+  }
+
+  function placeAssetByAnchor(part, anchor, target, scale) {
+    return {
+      x: target.x - anchor.x * scale,
+      y: target.y - anchor.y * scale,
+      w: part.size.w * scale,
+      h: part.size.h * scale,
+      scale: scale,
+      anchorX: target.x,
+      anchorY: target.y,
+      anchorLocalX: anchor.x,
+      anchorLocalY: anchor.y
+    };
+  }
+
+  function localToWorld(box, point, scale) {
+    return {
+      x: box.x + point.x * scale,
+      y: box.y + point.y * scale
+    };
+  }
+
+  function buildHorizontalSegment(source, start, end, scaleY) {
+    var lineLength = clampMin(source.lineEnd.x - source.lineStart.x, 1);
+    var targetLength = clampMin(end.x - start.x, 1);
+    var scaleX = targetLength / lineLength;
+    return {
+      x: start.x - source.lineStart.x * scaleX,
+      y: start.y - source.lineStart.y * scaleY,
+      w: source.size.w * scaleX,
+      h: source.size.h * scaleY,
+      stretchAxis: "x",
+      scaleX: scaleX,
+      scaleY: scaleY,
+      lineStartX: start.x,
+      lineEndX: end.x,
+      lineY: start.y
+    };
+  }
+
+  function buildVerticalSegment(source, start, end, scaleX) {
+    var lineLength = clampMin(source.lineEnd.y - source.lineStart.y, 1);
+    var targetLength = clampMin(end.y - start.y, 1);
+    var scaleY = targetLength / lineLength;
+    return {
+      x: start.x - source.lineStart.x * scaleX,
+      y: start.y - source.lineStart.y * scaleY,
+      w: source.size.w * scaleX,
+      h: source.size.h * scaleY,
+      stretchAxis: "y",
+      scaleX: scaleX,
+      scaleY: scaleY,
+      lineX: start.x,
+      lineStartY: start.y,
+      lineEndY: end.y
+    };
+  }
+
+  function computeSubmetaMainFrameV01Layout(rect, overrides) {
+    var base = getDefaultSubmetaMainFrameV01Options(rect);
+    var patch = overrides && typeof overrides === "object" ? overrides : {};
+    var targetRect = resolveRect(patch.rect || rect || base.rect);
+    var inset = resolveLineRectInset(
+      patch.lineRectInset || patch.frameLineInsetX !== undefined || patch.frameLineInsetY !== undefined
+        ? patch
+        : base,
+      base.lineRectInset.x,
+      base.lineRectInset.y
+    );
+    var frameLineRect = computeFrameLineRect(targetRect, inset);
+    var refLineRect = SUBMETA_MAIN_FRAME_V01_REFERENCE.frameLineRect;
+    var scaleX = frameLineRect.w / refLineRect.w;
+    var scaleY = frameLineRect.h / refLineRect.h;
+    var uniformScale = Number.isFinite(patch.uniformScale)
+      ? clampMin(patch.uniformScale, 0.01)
+      : clampMin(Math.min(scaleX, scaleY), 0.01);
+    var centerX = frameLineRect.x + frameLineRect.w / 2;
+    var centerY = frameLineRect.y + frameLineRect.h / 2;
+    var ref = SUBMETA_MAIN_FRAME_V01_REFERENCE;
+
+    var corners = {
+      tl: placeAssetByAnchor(ref.corners.tl, ref.corners.tl.pivot, { x: frameLineRect.x, y: frameLineRect.y }, uniformScale),
+      tr: placeAssetByAnchor(ref.corners.tr, ref.corners.tr.pivot, { x: frameLineRect.x + frameLineRect.w, y: frameLineRect.y }, uniformScale),
+      bl: placeAssetByAnchor(ref.corners.bl, ref.corners.bl.pivot, { x: frameLineRect.x, y: frameLineRect.y + frameLineRect.h }, uniformScale),
+      br: placeAssetByAnchor(ref.corners.br, ref.corners.br.pivot, { x: frameLineRect.x + frameLineRect.w, y: frameLineRect.y + frameLineRect.h }, uniformScale)
+    };
+
+    var ornaments = {
+      topCenter: placeAssetByAnchor(ref.ornaments.topCenter, ref.ornaments.topCenter.center, { x: centerX, y: frameLineRect.y }, uniformScale),
+      bottomCenter: placeAssetByAnchor(ref.ornaments.bottomCenter, ref.ornaments.bottomCenter.center, { x: centerX, y: frameLineRect.y + frameLineRect.h }, uniformScale),
+      leftCenter: placeAssetByAnchor(ref.ornaments.leftCenter, ref.ornaments.leftCenter.center, { x: frameLineRect.x, y: centerY }, uniformScale),
+      rightCenter: placeAssetByAnchor(ref.ornaments.rightCenter, ref.ornaments.rightCenter.center, { x: frameLineRect.x + frameLineRect.w, y: centerY }, uniformScale)
+    };
+
+    if (patch.showCenterOrnaments === false) {
+      ornaments.topCenter.hidden = true;
+      ornaments.bottomCenter.hidden = true;
+      ornaments.leftCenter.hidden = true;
+      ornaments.rightCenter.hidden = true;
+    }
+
+    var joins = {
+      cornerTlHorizontal: localToWorld(corners.tl, ref.corners.tl.horizontalJoin, uniformScale),
+      cornerTrHorizontal: localToWorld(corners.tr, ref.corners.tr.horizontalJoin, uniformScale),
+      cornerBlHorizontal: localToWorld(corners.bl, ref.corners.bl.horizontalJoin, uniformScale),
+      cornerBrHorizontal: localToWorld(corners.br, ref.corners.br.horizontalJoin, uniformScale),
+      cornerTlVertical: localToWorld(corners.tl, ref.corners.tl.verticalJoin, uniformScale),
+      cornerTrVertical: localToWorld(corners.tr, ref.corners.tr.verticalJoin, uniformScale),
+      cornerBlVertical: localToWorld(corners.bl, ref.corners.bl.verticalJoin, uniformScale),
+      cornerBrVertical: localToWorld(corners.br, ref.corners.br.verticalJoin, uniformScale),
+      ornamentTopLeft: localToWorld(ornaments.topCenter, ref.ornaments.topCenter.leftJoin, uniformScale),
+      ornamentTopRight: localToWorld(ornaments.topCenter, ref.ornaments.topCenter.rightJoin, uniformScale),
+      ornamentBottomLeft: localToWorld(ornaments.bottomCenter, ref.ornaments.bottomCenter.leftJoin, uniformScale),
+      ornamentBottomRight: localToWorld(ornaments.bottomCenter, ref.ornaments.bottomCenter.rightJoin, uniformScale),
+      ornamentLeftTop: localToWorld(ornaments.leftCenter, ref.ornaments.leftCenter.topJoin, uniformScale),
+      ornamentLeftBottom: localToWorld(ornaments.leftCenter, ref.ornaments.leftCenter.bottomJoin, uniformScale),
+      ornamentRightTop: localToWorld(ornaments.rightCenter, ref.ornaments.rightCenter.topJoin, uniformScale),
+      ornamentRightBottom: localToWorld(ornaments.rightCenter, ref.ornaments.rightCenter.bottomJoin, uniformScale)
+    };
+
+    var segments = {
+      topLeft: buildHorizontalSegment(ref.segmentSources.top, joins.cornerTlHorizontal, joins.ornamentTopLeft, uniformScale),
+      topRight: buildHorizontalSegment(ref.segmentSources.top, joins.ornamentTopRight, joins.cornerTrHorizontal, uniformScale),
+      bottomLeft: buildHorizontalSegment(ref.segmentSources.bottom, joins.cornerBlHorizontal, joins.ornamentBottomLeft, uniformScale),
+      bottomRight: buildHorizontalSegment(ref.segmentSources.bottom, joins.ornamentBottomRight, joins.cornerBrHorizontal, uniformScale),
+      leftTop: buildVerticalSegment(ref.segmentSources.vertical, joins.cornerTlVertical, joins.ornamentLeftTop, uniformScale),
+      leftBottom: buildVerticalSegment(ref.segmentSources.vertical, joins.ornamentLeftBottom, joins.cornerBlVertical, uniformScale),
+      rightTop: buildVerticalSegment(ref.segmentSources.vertical, joins.cornerTrVertical, joins.ornamentRightTop, uniformScale),
+      rightBottom: buildVerticalSegment(ref.segmentSources.vertical, joins.ornamentRightBottom, joins.cornerBrVertical, uniformScale)
+    };
+
+    var contentSafeInset = patch.contentSafeInset
+      ? asPoint(patch.contentSafeInset, 0, 0)
+      : { x: 84 * uniformScale, y: 64 * uniformScale };
+    var contentSafeRect = {
+      x: frameLineRect.x + contentSafeInset.x,
+      y: frameLineRect.y + contentSafeInset.y,
+      w: clampMin(frameLineRect.w - contentSafeInset.x * 2, 1),
+      h: clampMin(frameLineRect.h - contentSafeInset.y * 2, 1)
+    };
+
+    var anchorPoints = [
+      { id: "corner.tl", type: "corner", x: frameLineRect.x, y: frameLineRect.y },
+      { id: "corner.tr", type: "corner", x: frameLineRect.x + frameLineRect.w, y: frameLineRect.y },
+      { id: "corner.bl", type: "corner", x: frameLineRect.x, y: frameLineRect.y + frameLineRect.h },
+      { id: "corner.br", type: "corner", x: frameLineRect.x + frameLineRect.w, y: frameLineRect.y + frameLineRect.h },
+      { id: "ornament.top_center", type: "ornament", x: centerX, y: frameLineRect.y },
+      { id: "ornament.bottom_center", type: "ornament", x: centerX, y: frameLineRect.y + frameLineRect.h },
+      { id: "ornament.left_center", type: "ornament", x: frameLineRect.x, y: centerY },
+      { id: "ornament.right_center", type: "ornament", x: frameLineRect.x + frameLineRect.w, y: centerY }
+    ];
+    var segmentJoinPoints = [
+      { id: "top_left.start", x: joins.cornerTlHorizontal.x, y: joins.cornerTlHorizontal.y },
+      { id: "top_left.end", x: joins.ornamentTopLeft.x, y: joins.ornamentTopLeft.y },
+      { id: "top_right.start", x: joins.ornamentTopRight.x, y: joins.ornamentTopRight.y },
+      { id: "top_right.end", x: joins.cornerTrHorizontal.x, y: joins.cornerTrHorizontal.y },
+      { id: "bottom_left.start", x: joins.cornerBlHorizontal.x, y: joins.cornerBlHorizontal.y },
+      { id: "bottom_left.end", x: joins.ornamentBottomLeft.x, y: joins.ornamentBottomLeft.y },
+      { id: "bottom_right.start", x: joins.ornamentBottomRight.x, y: joins.ornamentBottomRight.y },
+      { id: "bottom_right.end", x: joins.cornerBrHorizontal.x, y: joins.cornerBrHorizontal.y },
+      { id: "left_top.start", x: joins.cornerTlVertical.x, y: joins.cornerTlVertical.y },
+      { id: "left_top.end", x: joins.ornamentLeftTop.x, y: joins.ornamentLeftTop.y },
+      { id: "left_bottom.start", x: joins.ornamentLeftBottom.x, y: joins.ornamentLeftBottom.y },
+      { id: "left_bottom.end", x: joins.cornerBlVertical.x, y: joins.cornerBlVertical.y },
+      { id: "right_top.start", x: joins.cornerTrVertical.x, y: joins.cornerTrVertical.y },
+      { id: "right_top.end", x: joins.ornamentRightTop.x, y: joins.ornamentRightTop.y },
+      { id: "right_bottom.start", x: joins.ornamentRightBottom.x, y: joins.ornamentRightBottom.y },
+      { id: "right_bottom.end", x: joins.cornerBrVertical.x, y: joins.cornerBrVertical.y }
+    ];
+    var boundingBoxes = [
+      asBounds("segment.top_left", "segment", segments.topLeft),
+      asBounds("segment.top_right", "segment", segments.topRight),
+      asBounds("segment.bottom_left", "segment", segments.bottomLeft),
+      asBounds("segment.bottom_right", "segment", segments.bottomRight),
+      asBounds("segment.left_top", "segment", segments.leftTop),
+      asBounds("segment.left_bottom", "segment", segments.leftBottom),
+      asBounds("segment.right_top", "segment", segments.rightTop),
+      asBounds("segment.right_bottom", "segment", segments.rightBottom),
+      asBounds("corner.tl", "corner", corners.tl),
+      asBounds("corner.tr", "corner", corners.tr),
+      asBounds("corner.bl", "corner", corners.bl),
+      asBounds("corner.br", "corner", corners.br),
+      asBounds("ornament.top_center", "ornament", ornaments.topCenter),
+      asBounds("ornament.bottom_center", "ornament", ornaments.bottomCenter),
+      asBounds("ornament.left_center", "ornament", ornaments.leftCenter),
+      asBounds("ornament.right_center", "ornament", ornaments.rightCenter)
+    ];
+
+    return {
+      rect: targetRect,
+      frameLineRect: frameLineRect,
+      contentSafeRect: contentSafeRect,
+      corners: corners,
+      ornaments: ornaments,
+      segments: segments,
+      debug: {
+        targetRect: targetRect,
+        lineRect: {
+          x: frameLineRect.x,
+          y: frameLineRect.y,
+          w: frameLineRect.w,
+          h: frameLineRect.h,
+          centerX: centerX,
+          centerY: centerY,
+          insetX: frameLineRect.insetX,
+          insetY: frameLineRect.insetY
+        },
+        contentSafeRect: contentSafeRect,
+        anchorPoints: anchorPoints,
+        segmentJoinPoints: segmentJoinPoints,
+        edgeLineAnchors: segmentJoinPoints,
+        boundingBoxes: boundingBoxes,
+        scale: {
+          referenceW: refLineRect.w,
+          referenceH: refLineRect.h,
+          scaleX: scaleX,
+          scaleY: scaleY,
+          uniformScale: uniformScale
+        }
+      }
+    };
+  }
+
   function drawDebug(ctx, layout, options) {
     if (!ctx || typeof ctx.save !== "function" || !layout) return false;
 
@@ -421,8 +726,10 @@
     var showRect = cfg.showRect !== false;
     var showAnchors = cfg.showAnchors !== false;
     var showLineRect = cfg.showLineRect !== false;
+    var showContentSafeRect = cfg.showContentSafeRect !== false;
     var showBounds = cfg.showBounds !== false;
     var showEdgeLineAnchors = cfg.showEdgeLineAnchors !== false;
+    var showSegmentJoinPoints = cfg.showSegmentJoinPoints !== false;
 
     ctx.save();
     try {
@@ -441,10 +748,20 @@
         if (typeof ctx.setLineDash === "function") ctx.setLineDash([]);
       }
 
+      if (showContentSafeRect && layout.debug && layout.debug.contentSafeRect) {
+        ctx.strokeStyle = cfg.contentSafeRectColor || "rgba(120, 206, 170, 0.35)";
+        ctx.lineWidth = cfg.contentSafeRectWidth || 1;
+        var contentSafe = layout.debug.contentSafeRect;
+        if (typeof ctx.setLineDash === "function") ctx.setLineDash([3, 4]);
+        ctx.strokeRect(contentSafe.x, contentSafe.y, contentSafe.w, contentSafe.h);
+        if (typeof ctx.setLineDash === "function") ctx.setLineDash([]);
+      }
+
       if (showBounds && layout.debug && Array.isArray(layout.debug.boundingBoxes)) {
         var boxColors = {
           corner: cfg.cornerBoxColor || "rgba(205, 132, 255, 0.5)",
           edge: cfg.edgeBoxColor || "rgba(90, 200, 255, 0.35)",
+          segment: cfg.segmentBoxColor || "rgba(90, 200, 255, 0.35)",
           ornament: cfg.ornamentBoxColor || "rgba(120, 206, 170, 0.42)"
         };
         ctx.lineWidth = cfg.boxWidth || 1;
@@ -477,6 +794,16 @@
             (cfg.edgeAnchorHalfSize || 2) * 2,
             (cfg.edgeAnchorHalfSize || 2) * 2
           );
+        }
+      }
+
+      if (showSegmentJoinPoints && layout.debug && Array.isArray(layout.debug.segmentJoinPoints)) {
+        ctx.fillStyle = cfg.segmentJoinColor || "rgba(255, 209, 13, 0.95)";
+        for (var k = 0; k < layout.debug.segmentJoinPoints.length; k += 1) {
+          var joinPoint = layout.debug.segmentJoinPoints[k];
+          ctx.beginPath();
+          ctx.arc(joinPoint.x, joinPoint.y, cfg.segmentJoinRadius || 2, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
 
@@ -521,13 +848,55 @@
     return summary;
   }
 
+  function drawSegmentedFrameParts(ctx, visualAssets, layout, partMap, options) {
+    if (!ctx || !visualAssets || !layout || !partMap) return false;
+
+    var summary = { drawn: 0, missing: 0, failed: 0, total: 0 };
+    var map = partMap;
+
+    function drawPart(logicalName, box) {
+      if (!logicalName || !box || box.hidden) {
+        summary.missing += 1;
+        return;
+      }
+      summary.total += 1;
+      var ok = !!visualAssets.drawImage(ctx, logicalName, box.x, box.y, box.w, box.h, options);
+      if (ok) summary.drawn += 1;
+      else summary.failed += 1;
+    }
+
+    drawPart(map.segments && map.segments.topLeft, layout.segments && layout.segments.topLeft);
+    drawPart(map.segments && map.segments.topRight, layout.segments && layout.segments.topRight);
+    drawPart(map.segments && map.segments.bottomLeft, layout.segments && layout.segments.bottomLeft);
+    drawPart(map.segments && map.segments.bottomRight, layout.segments && layout.segments.bottomRight);
+    drawPart(map.segments && map.segments.leftTop, layout.segments && layout.segments.leftTop);
+    drawPart(map.segments && map.segments.leftBottom, layout.segments && layout.segments.leftBottom);
+    drawPart(map.segments && map.segments.rightTop, layout.segments && layout.segments.rightTop);
+    drawPart(map.segments && map.segments.rightBottom, layout.segments && layout.segments.rightBottom);
+
+    drawPart(map.corners && map.corners.tl, layout.corners && layout.corners.tl);
+    drawPart(map.corners && map.corners.tr, layout.corners && layout.corners.tr);
+    drawPart(map.corners && map.corners.bl, layout.corners && layout.corners.bl);
+    drawPart(map.corners && map.corners.br, layout.corners && layout.corners.br);
+
+    drawPart(map.ornaments && map.ornaments.topCenter, layout.ornaments && layout.ornaments.topCenter);
+    drawPart(map.ornaments && map.ornaments.bottomCenter, layout.ornaments && layout.ornaments.bottomCenter);
+    drawPart(map.ornaments && map.ornaments.leftCenter, layout.ornaments && layout.ornaments.leftCenter);
+    drawPart(map.ornaments && map.ornaments.rightCenter, layout.ornaments && layout.ornaments.rightCenter);
+
+    return summary;
+  }
+
   root.HC.FrameComposer = {
-    version: "0.1.0",
+    version: "0.2.0",
     status: "layout_ready",
     computeFrameLayout: computeFrameLayout,
     getDefaultSubmetaAstrolabeOptions: getDefaultSubmetaAstrolabeOptions,
     computeSubmetaAstrolabeLayout: computeSubmetaAstrolabeLayout,
+    getDefaultSubmetaMainFrameV01Options: getDefaultSubmetaMainFrameV01Options,
+    computeSubmetaMainFrameV01Layout: computeSubmetaMainFrameV01Layout,
     drawDebug: drawDebug,
-    drawFrameParts: drawFrameParts
+    drawFrameParts: drawFrameParts,
+    drawSegmentedFrameParts: drawSegmentedFrameParts
   };
 })(typeof window !== "undefined" ? window : globalThis);

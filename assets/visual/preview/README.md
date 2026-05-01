@@ -52,6 +52,24 @@ Scope:
 - computes pure layout and draws one test frame + debug anchors on canvas;
 - does not use `cards.js` and does not integrate with production SUB-META rendering.
 
+## SUB-META main frame v01 preview
+
+Open:
+
+```text
+http://localhost:8123/assets/visual/preview/submeta_main_frame_v01_preview.html
+```
+
+Scope:
+
+- loads `assets/visual/submeta/submeta_main_frame_v01_manifest.json`;
+- preloads the accepted 16-part segmented SUB-META root frame kit;
+- draws clean and debug variants with `HC.FrameComposer.computeSubmetaMainFrameV01Layout()`;
+- shows frameLineRect, contentSafeRect, corner pivots, ornament centers and segment join points;
+- documents accepted corner bleed.
+
+Status: `runtime_candidate` preview for the SUB-META root frame only.
+
 
 ## SUB-META v2 wireframe preview
 

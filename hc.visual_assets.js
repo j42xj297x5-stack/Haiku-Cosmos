@@ -4,7 +4,7 @@
 
   root.HC = root.HC || {};
 
-  var DEFAULT_MANIFEST_URL = "assets/visual/modular_frame_kit_v01_manifest.json";
+  var DEFAULT_MANIFEST_URL = "assets/visual/submeta/submeta_main_frame_v01_manifest.json";
   var manifest = null;
   var assetsByName = new Map();
   var imageCache = new Map();

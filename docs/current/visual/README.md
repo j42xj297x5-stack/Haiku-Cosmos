@@ -3,7 +3,7 @@
 > Status: KIERUNEK
 > Obszar: mapa kierunku wizualnego
 > Źródło prawdy: TAK, dla kolejności czytania i ról dokumentów wizualnych
-> Ostatnia aktualizacja: 2026-04-30
+> Ostatnia aktualizacja: 2026-05-01
 > Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
 
 ## 1. Cel katalogu
@@ -133,6 +133,20 @@ Zakres:
 - metadata `haiku.framekit.v03` dla center-based positioning, anchors, mount sizes, bleed i rect contract.
 
 Nie wykonano eksportu SVG do repo, runtime integration, Implement Design ani Code Connect.
+
+## 7a. Active SUB-META main frame v01
+
+2026-05-01: zaakceptowany board Figma `06_SEGMENTED_EDGE_FIX / FRAME_REVIEW_SEGMENTED_STRUCTURE_CLEAN` zostal wyeksportowany i podpiety jako runtime candidate dla glownej ramki SUB-META.
+
+- Figma file key: `r8qnYkRWULXAQ8wungoepR`
+- aktywny manifest: `assets/visual/submeta/submeta_main_frame_v01_manifest.json`
+- SVG: `assets/visual/submeta/svg/main_frame_v01/`
+- preview: `assets/visual/preview/submeta_main_frame_v01_preview.html`
+- legacy evidence poprzedniego root frame: `assets/visual/legacy/submeta_frame_replaced_2026_05_01/`
+
+Model ramki jest segmentowany: `4` corners, `4` center ornaments i `8` connector segments. Nie wolno upraszczac go do jednego pelnego edge per side.
+
+Status: `runtime_candidate`. Walidacja SVG przeszla podstawowe checki (viewBox, brak bitmap/base64/fontow/filtrow/markerow technicznych), ale traced vectors, zaakceptowany corner bleed i brak raster shadow/glow pass nadal wymagaja visual review w aplikacji.
 
 ## 8. Czego nie robić
 
