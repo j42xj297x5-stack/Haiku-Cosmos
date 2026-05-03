@@ -37,10 +37,10 @@
 1. Warstwa map jak wyżej
 2. `docs/current/ui/UI_WORLD.md`
 3. `docs/current/ui/HUD_SYSTEM.md` (roboczy kierunek RUN HUD v2)
-3. `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` jako główny roboczy master spec layout/design handoff
-4. aktywny stack pomocniczy SUB-META v2: `FRAME_COMPOSER_SPEC.md` (active technical contract), `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (SUB-META appendix), `SUB_META_V2_LAYOUT_TOKENS.md` (normalized appendix), `SUB_META_MEMORY_PACK.md`
-5. history/spec-history (legacy): `docs/legacy/ui/SUB_META_V2_LAYOUT_SPEC.md`, `docs/legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md`
-6. `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` i `SUB_META_V2_BOX_AUDIT.md`
+4. `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` jako główny roboczy master spec layout/design handoff
+5. aktywny stack pomocniczy SUB-META v2: `FRAME_COMPOSER_SPEC.md` (active technical contract), `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (SUB-META appendix), `SUB_META_V2_LAYOUT_TOKENS.md` (normalized appendix), `SUB_META_MEMORY_PACK.md`
+6. history/spec-history (legacy): `docs/legacy/ui/SUB_META_V2_LAYOUT_SPEC.md`, `docs/legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md`
+7. `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` i `SUB_META_V2_BOX_AUDIT.md`
 
 ### C) Zadania visual / SVG / Figma
 1. `docs/current/visual/README.md`
@@ -104,6 +104,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` (roboczy audyt obecnego layoutu SUB-META i kontraktu mount points)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md`
 - `docs/current/technical/LIVE_VALIDATION_PACK.md`
+- `docs/current/technical/HUD_V2_RUNTIME_CONTRACT.md` (roboczy kontrakt implementacyjny HUD v2: mapowanie runtime, view-model, etapowanie bez zmiany mechaniki)
 - `docs/current/visual/FIGMA_FRAME_CUTTING_GUIDE.md` (roboczy standard wykonawczy Figma frame cutting)
 - `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (evidence przebiegu Figma i runtime review)
 - `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` (evidence Figma cleanup + derived modular frame/ornament kit v0.2)

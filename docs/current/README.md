@@ -71,6 +71,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `technical/SUB_META_V2_BOX_AUDIT.md` - **ROBOCZY / EVIDENCE** - audyt stref i boxów SUB-META v2.
 - `technical/IMPLEMENTATION_TRACKER.md` - **ROBOCZY** - tracker wdrożenia.
 - `technical/LIVE_VALIDATION_PACK.md` - **ROBOCZY / EVIDENCE** - pakiet walidacji live.
+- `technical/HUD_V2_RUNTIME_CONTRACT.md` - **ROBOCZY / KONTRAKT TECHNICZNY HUD v2** - mapowanie runtime HUD/sekwencji i plan etapowej implementacji.
 
 ### 6) workflow / handoff (poza `current/`)
 - `../handoff/README.md` - **HANDOFF** - krótkie przekazania stanu po większych zmianach.

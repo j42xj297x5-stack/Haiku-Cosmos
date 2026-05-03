@@ -77,6 +77,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/technical/CENTER_BASED_POSITIONING_SPEC.md` (ROBOCZY / KONTRAKT TECHNICZNY VISUAL LAYOUT)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md` (ROBOCZY)
 - `docs/current/technical/LIVE_VALIDATION_PACK.md` (ROBOCZY)
+- `docs/current/technical/HUD_V2_RUNTIME_CONTRACT.md` (ROBOCZY / KONTRAKT TECHNICZNY HUD v2)
 
 ## Zasady użycia indeksu
 
