@@ -36,6 +36,7 @@
 ### B) Zadania UI / HUD / SUB-META
 1. Warstwa map jak wyżej
 2. `docs/current/ui/UI_WORLD.md`
+3. `docs/current/ui/HUD_SYSTEM.md` (roboczy kierunek RUN HUD v2)
 3. `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` jako główny roboczy master spec layout/design handoff
 4. aktywny stack pomocniczy SUB-META v2: `FRAME_COMPOSER_SPEC.md` (active technical contract), `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (SUB-META appendix), `SUB_META_V2_LAYOUT_TOKENS.md` (normalized appendix), `SUB_META_MEMORY_PACK.md`
 5. history/spec-history (legacy): `docs/legacy/ui/SUB_META_V2_LAYOUT_SPEC.md`, `docs/legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md`
@@ -127,6 +128,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `ECONOMY_SYSTEM.md` definiuje RP i koszty.
 - `SUB_META_SYSTEM.md` definiuje strukturę konfiguracji kart w SUB-META.
 - `UI_WORLD.md` definiuje sposób prezentacji HUD, SUB-META i META.
+- `HUD_SYSTEM.md` definiuje roboczy kierunek RUN HUD v2: romby sekwencji, mikrodecyzje i dolne sloty kart specjalnych/eventowych.
 
 ### Visual / assets
 

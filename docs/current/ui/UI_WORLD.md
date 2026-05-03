@@ -37,6 +37,10 @@ SUB-META i META:
 
 ## 2. RUN HUD (w trakcie gry)
 
+> Aktualizacja 2026-05-03: stary model czterech prawych prostokątów DR jako liczników magazynu jest **zdeprecjonowany jako główny kierunek**.
+> Roboczym źródłem kierunku RUN HUD v2 jest `HUD_SYSTEM.md` (prawy panel rombów sekwencji + dolne sloty kart specjalnych/eventowych).
+
+
 RUN HUD jest **minimalistyczny** i **nie zasłania świata**.
 
 ### 2.1. RP — Punkty Rezonansu
@@ -56,7 +60,8 @@ RP są:
 
 W prawym górnym rogu:
 
-- cztery wąskie pionowe prostokąty z licznikami,
+- [DEPRECATED jako kierunek HUD] cztery wąskie pionowe prostokąty z licznikami,
+- [HUD v2] kierunek zastępczy: cztery pionowe wyciągnięte romby kolorów opisane w `HUD_SYSTEM.md`,
 - kolejność od góry:
   1) 🔴 czerwony
   2) 🟡 żółty

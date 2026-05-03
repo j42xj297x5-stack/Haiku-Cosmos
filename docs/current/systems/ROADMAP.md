@@ -268,3 +268,10 @@ Event:
 ## Status dokumentu
 WERSJA ROBOCZA / ROZWOJOWA  
 Data: 2026-01
+
+
+## Etapy robocze po 2026-05-03 (HUD v2 / sloty / trwałość)
+
+- HUD v2 (prawy panel rombów sekwencji + mikrodecyzje) — **DO ZAPROJEKTOWANIA / DO ZAIMPLEMENTOWANIA**.
+- Dolny panel 3 slotów kart specjalnych/eventowych (pinning z SUB-META) — **DO ZAPROJEKTOWANIA / DO ZAIMPLEMENTOWANIA**.
+- System trwałości i stabilizacji kart slotowanych (`R2->R1`, `R3->R2`, `R4->R3`) — **DO ZAPROJEKTOWANIA / DO ZAIMPLEMENTOWANIA**.

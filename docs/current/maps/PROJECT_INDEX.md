@@ -37,6 +37,7 @@ Kanon jest mapowany warstwowo przez:
 ## UI / flow
 
 - `docs/current/ui/UI_WORLD.md` (KANON)
+- `docs/current/ui/HUD_SYSTEM.md` (ROBOCZY / KIERUNEK HUD v2)
 - `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT)
 - `docs/current/ui/SUB_META_V2_LAYOUT_TOKENS.md` (ROBOCZY / SPEC-HISTORY INPUT)
 - `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (ROBOCZY / SPEC-HISTORY INPUT)

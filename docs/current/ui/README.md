@@ -5,6 +5,10 @@
 
 > Uwaga migracyjna: `SUB_META_V2_LAYOUT_SPEC.md` i `SUB_META_V2_WIREFRAME_SPEC.md` zostały przeniesione do `docs/legacy/ui/` jako historyczne (zastąpione przez master spec).
 
+## RUN HUD
+
+- `HUD_SYSTEM.md` — roboczy kierunek RUN HUD v2 (prawy panel rombów sekwencji + dolne sloty kart specjalnych/eventowych).
+
 ## Dokument nadrzędny SUB-META v2
 
 - `SUB_META_V2_MASTER_SPEC.md` — główny roboczy master spec UI/layout dla SUB-META v2.
