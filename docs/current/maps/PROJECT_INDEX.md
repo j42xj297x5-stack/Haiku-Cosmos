@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa projektu / indeks dokumentacji aktualnej
 > Źródło prawdy: TAK
-> Ostatnia aktualizacja: 2026-04-30
+> Ostatnia aktualizacja: 2026-05-01
 > Powiązane dokumenty: ../../README.md, ../README.md, DEPENDENCY_MAP.md
 
 ## Rola dokumentu
@@ -60,6 +60,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` (EVIDENCE / HISTORY / REVIEW)
 - `docs/current/visual/SUB_META_FIGMA_BRIEF.md` (BRIEF POMOCNICZY / KONTEKSTOWY, czytać po guide + current prompt)
 - `docs/current/visual/FIGMA_WORKFLOW.md` (KIERUNEK / WORKFLOW)
+- `docs/current/visual/FIGMA_FRAME_CUTTING_GUIDE.md` (ROBOCZY / STANDARD WYKONAWCZY) - standard cięcia ramek w Figmie na modularne części SVG
 - `docs/current/visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` (REFERENCE TEMPLATE / POMOCNICZY, NIE CURRENT EXECUTION)
 - `docs/current/visual/SUB_META_LINE_ORNAMENT_LIBRARY.md` (KIERUNEK / BIBLIOTEKA POMOCNICZA)
 
@@ -102,4 +103,5 @@ Kanon jest mapowany warstwowo przez:
 - `VISUAL_EXECUTION_GUIDE.md` obsluguje wariant **raster-first -> Inkscape layered master -> optional Figma fitting/review**.
 - Sciezka visual dopuszcza decyzje po zlozeniu ramki glownej: merged asset albo modular export do Figma fitting/anchors.
 - `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest current dla zadan Figma i nie jest wymagany dla raster-first/Inkscape-only design pass.
+- `FIGMA_FRAME_CUTTING_GUIDE.md` jest obowiązkowy dla recut/cutting ramek w Figmie; uzupełnia `FIGMA_WORKFLOW.md`, `MODULAR_FRAME_KIT.md` i `SVG_ASSET_STANDARDS.md`, ale nie jest kanonem mechaniki, runtime implementation ani finalnym manifestem assetów.
 - `SVG_ASSET_STANDARDS.md` pozostaje obowiazkowym standardem, gdy assety trafiaja do repo/production-candidate flow.

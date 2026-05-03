@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa aktualnej dokumentacji
 > Źródło prawdy: TAK, dla struktury i statusów dokumentów w `docs/current/`
-> Ostatnia aktualizacja: 2026-04-30
+> Ostatnia aktualizacja: 2026-05-01
 > Powiązane dokumenty: maps/PROJECT_INDEX.md, maps/DEPENDENCY_MAP.md, ../README.md, ../../README.md
 
 Ten katalog zawiera aktualną dokumentację projektu.
@@ -45,6 +45,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `visual/SUB_META_ASSET_PIPELINE.md` - **KIERUNEK** - docelowa organizacja aktywnych assetów.
 - `visual/SVG_ASSET_STANDARDS.md` - **ROBOCZY** - standard wykonawczy SVG/raster.
 - `visual/FIGMA_WORKFLOW.md` - **KIERUNEK** - workflow pracy Figma/Codex.
+- `visual/FIGMA_FRAME_CUTTING_GUIDE.md` - **ROBOCZY / STANDARD WYKONAWCZY** - standard wykonawczy cięcia ramek w Figmie.
 - `visual/MODULAR_FRAME_KIT_FIGMA_PROMPT.md` - **KIERUNEK** - prompt wykonawczy pod kolejne passy.
 - `visual/SUB_META_FIGMA_BRIEF.md` - **KIERUNEK** - brief Figma dla SUB-META.
 - `visual/SUB_META_FIGMA_PROMPT_TEMPLATE.md` - **KIERUNEK** - starszy template promptowy.

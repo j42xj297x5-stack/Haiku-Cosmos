@@ -6,8 +6,8 @@
 > - TAK, dla kolejności pracy i zasad wykonawczych visual pipeline,
 > - NIE, dla kanonu mechaniki,
 > - NIE, dla finalnych assetów.
-> Ostatnia aktualizacja: 2026-04-30
-> Powiązane dokumenty: README.md, ART_DIRECTION.md, KOSMOLOGIA_WIZUALNA.md, BIBLIOTEKA_MATERIALOW.md, MODULAR_FRAME_KIT.md, SVG_ASSET_STANDARDS.md, SUB_META_ASSET_PIPELINE.md, SUB_META_COMPONENTS.md, FIGMA_WORKFLOW.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
+> Ostatnia aktualizacja: 2026-05-01
+> Powiązane dokumenty: README.md, ART_DIRECTION.md, KOSMOLOGIA_WIZUALNA.md, BIBLIOTEKA_MATERIALOW.md, MODULAR_FRAME_KIT.md, SVG_ASSET_STANDARDS.md, SUB_META_ASSET_PIPELINE.md, SUB_META_COMPONENTS.md, FIGMA_WORKFLOW.md, FIGMA_FRAME_CUTTING_GUIDE.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
 
 ## 1. Cel dokumentu
 
@@ -37,8 +37,9 @@ Dokument **nie zastępuje** rdzenia kierunku artystycznego (`ART_DIRECTION`, `KO
 
 ### C) Figma
 1. `FIGMA_WORKFLOW.md`
-2. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`
-3. `SUB_META_FIGMA_*` i `MODULAR_FRAME_KIT_ASSET_MANIFEST.md` wyłącznie jako evidence/history/review
+2. `FIGMA_FRAME_CUTTING_GUIDE.md` - obowiązkowo dla cięcia ramek, recut, cleanup i modular frame parts
+3. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`
+4. `SUB_META_FIGMA_*` i `MODULAR_FRAME_KIT_ASSET_MANIFEST.md` wyłącznie jako evidence/history/review
 
 ### D) SUB-META layout visual
 1. stack `docs/current/ui/SUB_META_V2_*`
@@ -61,6 +62,7 @@ Dokument **nie zastępuje** rdzenia kierunku artystycznego (`ART_DIRECTION`, `KO
 ### Standard wykonawczy / pipeline
 - `MODULAR_FRAME_KIT.md`
 - `SVG_ASSET_STANDARDS.md`
+- `FIGMA_FRAME_CUTTING_GUIDE.md`
 - `SUB_META_ASSET_PIPELINE.md`
 - `SUB_META_COMPONENTS.md`
 
@@ -105,6 +107,9 @@ Checklist skrótowa:
 - Figma służy do projektowania źródłowych komponentów i review.
 - Export SVG przechodzi walidację wykonawczą.
 - Figma evidence nie jest automatycznie production source-of-truth.
+- Przy cięciu/recut ramek w Figmie obowiązuje `FIGMA_FRAME_CUTTING_GUIDE.md`.
+- Maski i crop są dopuszczalne do review/fitting, ale nie jako finalne production cutting.
+- Finalne części SVG muszą mieć osobne export frames i anchor metadata pod FrameComposer/SVG.
 - Prompt wykonawczy ma być oddzielony od evidence.
 - Starsze prompt templates traktuj jako pomocnicze, nie jako aktualną instrukcję, jeśli ten guide i aktywne standardy je zastępują.
 - Nie mieszaj traced vector bases z produkcyjnym kitem bez cleanupu.
@@ -128,6 +133,9 @@ Zakazane praktyki:
 - nieczytelne nazwy warstw,
 - hardcoded kolory tam, gdzie wymagany jest runtime tinting,
 - traktowanie evidence jako finalnego kanonu,
+- ukryta pełna rama pod maską jako finalny SVG,
+- losowe crop boxy dla narożników,
+- edge zawierający corner lub ornament bez jawnej decyzji,
 - projektowanie SUB-META jak zwykłego inventory UI,
 - generic fantasy frame,
 - agresywny neon sci-fi,

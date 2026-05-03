@@ -16,7 +16,7 @@ Katalog `docs/current/visual/` zawiera aktualny kierunek wizualny Haiku Cosmos i
 1. `docs/current/visual/README.md`
 2. `VISUAL_EXECUTION_GUIDE.md`
 3. core visual direction: `ART_DIRECTION.md`, `KOSMOLOGIA_WIZUALNA.md`, `BIBLIOTEKA_MATERIALOW.md`
-4. odpowiedni standard/pipeline zależnie od zadania (`MODULAR_FRAME_KIT.md`, `SVG_ASSET_STANDARDS.md`, `SUB_META_ASSET_PIPELINE.md`, `SUB_META_COMPONENTS.md`, `FIGMA_WORKFLOW.md`)
+4. odpowiedni standard/pipeline zależnie od zadania (`MODULAR_FRAME_KIT.md`, `SVG_ASSET_STANDARDS.md`, `SUB_META_ASSET_PIPELINE.md`, `SUB_META_COMPONENTS.md`, `FIGMA_WORKFLOW.md`, `FIGMA_FRAME_CUTTING_GUIDE.md`)
 
 ## 2. Minimalna kolejność czytania
 
@@ -34,9 +34,12 @@ Przy pracach nad SUB-META, HUD, ramkami, slotami, ornamentami, glifami, liniami 
 7. `SUB_META_ASSET_PIPELINE.md`
 8. `SVG_ASSET_STANDARDS.md`
 9. `FIGMA_WORKFLOW.md` - tylko przed użyciem Figma
-10. `SUB_META_FIGMA_ASSET_PASS_01.md` - evidence historycznego passu
-11. `SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` - evidence cleanup + derived kit v0.2
-12. `SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` - evidence style correction + living ritual line v0.3
+10. `FIGMA_FRAME_CUTTING_GUIDE.md` - obowiązkowo przy Figma cutting/recut/cleanup ramek, modular frame parts, corner/edge/ornament cutting
+11. `SUB_META_FIGMA_ASSET_PASS_01.md` - evidence historycznego passu
+12. `SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` - evidence cleanup + derived kit v0.2
+13. `SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` - evidence style correction + living ritual line v0.3
+
+Dla zadań Figma związanych z cięciem ramek czytaj wprost: `docs/current/visual/README.md` -> `VISUAL_EXECUTION_GUIDE.md` -> `MODULAR_FRAME_KIT.md` -> `SVG_ASSET_STANDARDS.md` -> `FIGMA_WORKFLOW.md` -> `FIGMA_FRAME_CUTTING_GUIDE.md`.
 
 ## 3. Rola dokumentów
 
@@ -50,6 +53,7 @@ Przy pracach nad SUB-META, HUD, ramkami, slotami, ornamentami, glifami, liniami 
 - `SUB_META_COMPONENTS.md` - katalog komponentow i statusow (planned/review/production_candidate/evidence_only).
 - `SUB_META_ASSET_PIPELINE.md` - aktywny pipeline wykonawczy (CURRENT): wariant Figma oraz wariant raster-first/Inkscape-first, oba konczace sie walidacja SVG i osobnym runtime pass.
 - `SVG_ASSET_STANDARDS.md` - roboczy standard wykonawczy SVG/frame parts, anchor metadata, naming, density i raster pipeline, w tym pass center-based dla SUB-META v2.
+- `FIGMA_FRAME_CUTTING_GUIDE.md` - roboczy standard wykonawczy cięcia ramek w Figmie na modularne części SVG: corners, edges i ornaments; bez masek/crop jako finalnego cięcia, bez ukrytych pełnych ramek, z czystymi export frames i anchor metadata pod FrameComposer/SVG.
 - `SUB_META_FIGMA_ASSET_PASS_01.md` - evidence/history/review (nie production source-of-truth).
 - `SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` - evidence passu Figma MCP cleanup + derived modular frame/ornament kit v0.2.
 - `SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` - evidence passu Figma MCP style correction + source re-cut v0.3, przywracajacego zywa rytualna linie przy zachowaniu modularnosci.

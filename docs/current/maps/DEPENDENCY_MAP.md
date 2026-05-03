@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa zależności projektu
 > Źródło prawdy: TAK, dla relacji między dokumentami/systemami
-> Ostatnia aktualizacja: 2026-04-30
+> Ostatnia aktualizacja: 2026-05-01
 > Powiązane dokumenty: PROJECT_INDEX.md, ../README.md, ../../../AGENTS.md
 
 ## 1. Cel dokumentu
@@ -48,8 +48,12 @@
 4. zaleznie od zadania: `MODULAR_FRAME_KIT.md`, `SVG_ASSET_STANDARDS.md`, `SUB_META_ASSET_PIPELINE.md`
 5. raster reference generation (poza repo) + Inkscape vectorization/layered master
 6. `FIGMA_WORKFLOW.md` jako optional fitting/review/composition pass po eksporcie ramki lub elementow
-7. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jako aktualny prompt dla zadan Figma (nie dotyczy raster-first/Inkscape-only design pass)
-8. dokumenty Figma evidence (`SUB_META_FIGMA_*`, `MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) czytaj wylacznie jako history/review, nie aktywna produkcje/source-of-truth
+7. `FIGMA_FRAME_CUTTING_GUIDE.md` obowiązkowo przy Figma cutting/recut/cleanup ramek i SVG frame parts
+8. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jako aktualny prompt dla zadan Figma (nie dotyczy raster-first/Inkscape-only design pass)
+9. dokumenty Figma evidence (`SUB_META_FIGMA_*`, `MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) czytaj wylacznie jako history/review, nie aktywna produkcje/source-of-truth
+
+Dla zadan Figma zwiazanych z cieciem ramek czytaj: `docs/current/visual/README.md` -> `VISUAL_EXECUTION_GUIDE.md` -> `MODULAR_FRAME_KIT.md` -> `SVG_ASSET_STANDARDS.md` -> `FIGMA_WORKFLOW.md` -> `FIGMA_FRAME_CUTTING_GUIDE.md`.
+Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG frame parts musza byc modularne, miec osobne export frames oraz anchor/metadata zgodne z FrameComposer/SVG.
 
 ### D) Zadania technical / runtime / evidence
 1. Warstwa map jak wyżej
@@ -99,6 +103,7 @@
 - `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` (roboczy audyt obecnego layoutu SUB-META i kontraktu mount points)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md`
 - `docs/current/technical/LIVE_VALIDATION_PACK.md`
+- `docs/current/visual/FIGMA_FRAME_CUTTING_GUIDE.md` (roboczy standard wykonawczy Figma frame cutting)
 - `docs/current/visual/SUB_META_FIGMA_ASSET_PASS_01.md` (evidence przebiegu Figma i runtime review)
 - `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md` (evidence Figma cleanup + derived modular frame/ornament kit v0.2)
 - `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md` (evidence Figma style correction + living ritual line v0.3)
@@ -130,6 +135,7 @@
 - `VISUAL_EXECUTION_GUIDE.md` prowadzi execution visual/SVG/Figma.
 - `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` jest aktualnym promptem wykonawczym (CURRENT).
 - `FIGMA_WORKFLOW.md` opisuje proces od guide do walidacji SVG i osobnego runtime passu.
+- `FIGMA_FRAME_CUTTING_GUIDE.md` jest praktycznym standardem dla recut/cutting ramek w Figmie i uzupelnia `FIGMA_WORKFLOW.md`, `MODULAR_FRAME_KIT.md` oraz `SVG_ASSET_STANDARDS.md`; nie jest kanonem mechaniki, runtime implementation ani finalnym manifestem assetow.
 - `SUB_META_ASSET_PIPELINE.md` jest aktywnym pipeline wykonawczym (CURRENT) od direction/context do production-candidate marking; runtime integration pozostaje osobnym pass.
 - `SVG_ASSET_STANDARDS.md` jest standardem wykonawczym SVG (walidacja, naming, warstwy, granice rasterowe).
 - `SUB_META_COMPONENTS.md` jest katalogiem komponentow i statusow.
@@ -158,6 +164,7 @@
 ## 8. Ostrzeżenia
 
 - Dokumenty visual nie zmieniają mechaniki kart, sekwencji, kosztów RP ani PRG behavior.
+- Maski/crop w Figmie nie sa finalnym cieciem produkcyjnym; ukryta pelna rama pod maska nie jest poprawnym SVG frame part.
 - Obecne SVG `style_correction_2026_04` nie są kanonem i nie są bazą dla FrameComposera.
 - Nowe ramki v0.1 powstaly od zera w Figmie jako modular parts i zostaly wyeksportowane do `assets/visual/...`; runtime integration pozostaje future pass.
 - Derived kit v0.2 powstal w Figmie jako evidence/design source; nie jest jeszcze aktywnym asset manifestem runtime.

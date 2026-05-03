@@ -5,6 +5,7 @@ Obszar: visual / Figma / SVG / modular frame cutting
 Źródło prawdy: TAK roboczo dla sposobu cięcia ramek w Figmie; NIE dla mechaniki; NIE dla runtime implementation
 Powiązane dokumenty:
 - docs/current/visual/VISUAL_EXECUTION_GUIDE.md
+- docs/current/visual/FIGMA_WORKFLOW.md
 - docs/current/visual/MODULAR_FRAME_KIT.md
 - docs/current/visual/SVG_ASSET_STANDARDS.md
 - docs/current/visual/SUB_META_ASSET_PIPELINE.md

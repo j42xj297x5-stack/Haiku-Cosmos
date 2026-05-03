@@ -3,8 +3,8 @@
 > Status: KIERUNEK / WORKFLOW WYKONAWCZY
 > Obszar: Figma / Codex / visual asset workflow
 > Zrodlo prawdy: TAK, dla pracy Codexa z Figma; NIE, dla mechaniki i runtime
-> Ostatnia aktualizacja: 2026-04-28
-> Powiazane dokumenty: README.md, MODULAR_FRAME_KIT.md, MODULAR_FRAME_KIT_FIGMA_PROMPT.md, SUB_META_ASSET_PIPELINE.md, SUB_META_COMPONENTS.md
+> Ostatnia aktualizacja: 2026-05-01
+> Powiazane dokumenty: README.md, MODULAR_FRAME_KIT.md, MODULAR_FRAME_KIT_FIGMA_PROMPT.md, FIGMA_FRAME_CUTTING_GUIDE.md, SUB_META_ASSET_PIPELINE.md, SUB_META_COMPONENTS.md
 
 ## 1. Cel dokumentu
 
@@ -34,15 +34,18 @@ Figma nie jest zrodlem:
 3. core visual docs: `ART_DIRECTION.md`, `KOSMOLOGIA_WIZUALNA.md`, `BIBLIOTEKA_MATERIALOW.md`
 4. `MODULAR_FRAME_KIT.md`
 5. `SVG_ASSET_STANDARDS.md`
-6. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`
-7. Figma work / review
-8. SVG export validation
-9. manifest / pipeline update
-10. osobny technical/runtime pass
+6. `FIGMA_FRAME_CUTTING_GUIDE.md` - obowiązkowo przy cięciu/recut/cleanup ramek i modular frame parts
+7. `MODULAR_FRAME_KIT_FIGMA_PROMPT.md`
+8. Figma work / review
+9. SVG export validation
+10. manifest / pipeline update
+11. osobny technical/runtime pass
 
 Dodatkowe zasady:
 - dokumenty Figma evidence to historia/review, nie automatyczne źródło produkcyjne;
 - traced vector bases nie mogą wejść do production kit bez cleanupu;
+- maski/crop służą do review lub fittingu, nie jako finalne production cutting;
+- finalne SVG frame parts muszą mieć osobne export frames i anchor metadata pod FrameComposer/SVG;
 - eksport SVG wymaga walidacji zgodnej z `SVG_ASSET_STANDARDS.md`.
 
 ## 3. Podzial pipeline
