@@ -25,6 +25,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 
 ### 3) ui
 - `ui/UI_WORLD.md` - **KANON** - nadrzędny kontrakt UI/HUD/SUB-META/META.
+- `ui/HUD_SYSTEM.md` - **ROBOCZY / KIERUNEK HUD v2** - roboczy kierunek prawego panelu sekwencji, aktywacji i mikrodecyzji RUN.
 - `ui/SUB_META_V2_MASTER_SPEC.md` - **ROBOCZY / MASTER SPEC UI-LAYOUT** - nadrzędny roboczy dokument SUB-META v2 dla layout/design handoff.
 - `ui/SUB_META_V2_LAYOUT_TOKENS.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.

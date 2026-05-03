@@ -170,3 +170,15 @@ System RP jest bezpośrednim odzwierciedleniem:
 ---
 
 11 stycznia 2026
+
+
+## 8. Rozdział decyzji: karta vs combo RP (HUD v2, robocze)
+
+Kierunek do synchronizacji z HUD v2 (`../ui/HUD_SYSTEM.md`):
+
+- Gracz wybiera między materializacją karty sekwencyjnej a utrzymaniem ciągu/combo.
+- Zebranie karty sekwencyjnej `R2/R3/R4` nie wypłaca dodatkowego combo punktowego za ten poziom.
+- Jeśli gracz kontynuuje i sekwencja zostaje przerwana, wypłacana jest tylko premia combo oraz częściowe karty `R1` zgodnie z poziomem przerwania.
+- Finalne liczby i formuły balansu pozostają **DO STROJENIA**.
+
+To jest kierunek roboczy i wymaga osobnego passu runtime/balance.

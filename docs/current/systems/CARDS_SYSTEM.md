@@ -20,7 +20,9 @@ Jeżeli implementacja gry lub inne dokumenty są z nim sprzeczne —
 3. Wzmacnianie kart odbywa się wyłącznie w META (KUŹNIA).
 4. Tylko karty **R1** mogą być aktywowane w RUN.
 5. Karty **R2 / R3 / R4** są kartami sekwencyjnymi i systemowymi (nieaktywne w RUN).
-6. Sekwencje są procesem **ryzyka**: gracz decyduje, czy iść wyżej, czy przerwać.
+6. W HUD v2 (`../ui/HUD_SYSTEM.md`) karty R2/R3/R4 mogą mieć mikroprzycisk „Zbierz”, ale nadal nie są aktywowane jako efekty RUN.
+7. Model decyzji HUD v2 wymaga osobnej synchronizacji runtime.
+8. Sekwencje są procesem **ryzyka**: gracz decyduje, czy iść wyżej, czy przerwać.
 
 ---
 

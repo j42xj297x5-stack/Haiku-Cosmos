@@ -200,3 +200,17 @@ SUB META jest:
 ---
 
 11 stycznia 2026
+
+## 9. Trwałość i stabilizacja kart w slotach (robocze, HUD/SUB-META sync)
+
+Roboczy kierunek trwałości kart osadzonych w slotach:
+
+- karta włożona do slotu ma określony czas działania,
+- karty osadzonej nie da się wyjąć przed wygaśnięciem,
+- wyższy tier daje dłuższą żywotność (**wartości DO STROJENIA**),
+- `R2` stabilizuje `R1`,
+- `R3` stabilizuje `R2`,
+- `R4` stabilizuje `R3`,
+- jeśli karta stabilizująca wygaśnie, przestaje stabilizować niższą kartę.
+
+Sekcja jest robocza i wymaga dalszej synchronizacji z runtime i balansem.
