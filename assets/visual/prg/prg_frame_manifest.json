@@ -1,6 +1,6 @@
 {
-  "sourceFile": "svg/PRG-ramka-archive.svg",
-  "generatedAt": "2026-05-15T07:24:31Z",
+  "sourceFile": "svg/PRG-frame.svg",
+  "generatedAt": "2026-05-15T07:33:30Z",
   "outputDir": "assets/visual/prg/svg/frame_parts",
   "extractionMode": "clipPath",
   "anchorMatchingPolicy": "name_first_strict_anchor_count_v3",
@@ -85,7 +85,7 @@
         },
         "join_u": {
           "x": 10.3213,
-          "y": 0.0001,
+          "y": 1.0584,
           "sourceName": "corner-ld-u"
         }
       },
@@ -165,7 +165,7 @@
           "y": 16.6389
         },
         "join_l": {
-          "x": -0.0,
+          "x": 0.0,
           "y": 16.6389,
           "sourceName": "corner-ru-l"
         },
@@ -218,7 +218,7 @@
           "sourceName": "ornament-u-l"
         },
         "join_r": {
-          "x": 40.0796,
+          "x": 40.0795,
           "y": 16.6374,
           "sourceName": "ornament-u-r"
         }
@@ -441,11 +441,19 @@
         "pivot": {
           "x": 4.5939,
           "y": 7.6994
+        },
+        "join_l": {
+          "x": 0.0,
+          "y": 7.6994,
+          "sourceName": "line-hru-l"
+        },
+        "join_r": {
+          "x": 9.1877,
+          "y": 7.6994,
+          "sourceName": "line-hru-r"
         }
       },
-      "warnings": [
-        "missing_join_anchor_count:2"
-      ],
+      "warnings": [],
       "expectedJoinAnchors": 2
     },
     {
@@ -574,9 +582,7 @@
           "sourceName": "line-vru-d"
         }
       },
-      "warnings": [
-        "Rejected extra anchors: line-vru-r"
-      ],
+      "warnings": [],
       "expectedJoinAnchors": 2
     },
     {
