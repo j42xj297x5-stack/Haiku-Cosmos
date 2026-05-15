@@ -28,6 +28,7 @@
   let cfgScenarioPreset = null;
   let cfgScenarioLabel = null;
   let runtimeOverlayCompact = true;
+  let runtimeOverlayTab = "session";
   let runtimeOverlayLastRenderMs = 0;
   let fpsAcc = 0;
   let fpsFrames = 0;
@@ -322,6 +323,29 @@
       debugConfigPanel = document.getElementById("debugConfigPanel");
       runtimeDebugOverlay = document.getElementById("runtimeDebugOverlay");
       runtimeDebugOverlayBody = document.getElementById("runtimeDebugOverlayBody");
+      if (runtimeDebugOverlayBody) {
+        runtimeDebugOverlayBody.addEventListener("click", (event) => {
+          const tabBtn = event.target && event.target.closest ? event.target.closest("[data-debug-tab]") : null;
+          if (!tabBtn) return;
+          runtimeOverlayTab = tabBtn.getAttribute("data-debug-tab") === "prg" ? "prg" : "session";
+        });
+        runtimeDebugOverlayBody.addEventListener("change", (event) => {
+          const target = event.target;
+          const cfg = window.HC?.Session?.debugConfig?.visual?.prgFrameProbe;
+          if (!cfg || !target || !target.id) return;
+          const boolMap = {
+            dbgPrgEnabled: "enabled",
+            dbgPrgGoldTint: "goldTint",
+            dbgPrgOverlay: "showOverlay",
+            dbgPrgBounds: "showBounds",
+            dbgPrgAnchors: "showAnchors",
+            dbgPrgLabels: "showLabels",
+            dbgPrgMetadata: "showMetadata",
+          };
+          if (boolMap[target.id]) cfg[boolMap[target.id]] = !!target.checked;
+          if (target.id === "dbgPrgMode") cfg.mode = String(target.value || "sourceCutRectFitProbe");
+        });
+      }
       btnDebugOverlayToggle = document.getElementById("btnDebugOverlayToggle");
       btnDebugSelectFolder = document.getElementById("btnDebugSelectFolder");
       btnDebugFinalizeSession = document.getElementById("btnDebugFinalizeSession");
@@ -512,6 +536,50 @@
 
   function renderRuntimeOverlayHtml(snap, compact) {
     if (!snap) return `<div class="overlay-row"><span class="k">status</span><span class="v">no snapshot</span></div>`;
+    const tabsHtml = `
+      <section class="overlay-section">
+        <div class="overlay-actions">
+          <button class="overlay-btn" data-debug-tab="session" type="button">Session / Logi</button>
+          <button class="overlay-btn" data-debug-tab="prg" type="button">PRG frame</button>
+        </div>
+      </section>
+    `;
+    if (runtimeOverlayTab === "prg") {
+      const cfg = snap.visual?.prgFrameProbe || window.HC?.Session?.debugConfig?.visual?.prgFrameProbe || {};
+      const status = window.HC?.PrgFrameProbe?.getStatus ? window.HC.PrgFrameProbe.getStatus() : null;
+      const mode = String(cfg.mode || "sourceCutRectFitProbe");
+      const modeOptions = [
+        `<option value="sourceCutRectFitProbe"${mode === "sourceCutRectFitProbe" ? " selected" : ""}>sourceCutRectFitProbe</option>`,
+        `<option value="frameLineAnchors"${mode === "frameLineAnchors" ? " selected" : ""}>frameLineAnchorsCandidate</option>`,
+        `<option value="compare" disabled>compare (not implemented)</option>`
+      ].join("");
+      return `${tabsHtml}
+        <section class="overlay-section">
+          <h4>PRG frame</h4>
+          <div class="overlay-grid">
+            <label><input id="dbgPrgEnabled" type="checkbox"${cfg.enabled ? " checked" : ""}> Enable PRG frame probe</label>
+            <label><input id="dbgPrgGoldTint" type="checkbox"${cfg.goldTint !== false ? " checked" : ""}> Temporary gold tint</label>
+            <label><input id="dbgPrgOverlay" type="checkbox"${cfg.showOverlay !== false ? " checked" : ""}> Show debug overlay</label>
+            <label><input id="dbgPrgBounds" type="checkbox"${cfg.showBounds !== false ? " checked" : ""}> Show part bounds</label>
+            <label><input id="dbgPrgAnchors" type="checkbox"${cfg.showAnchors !== false ? " checked" : ""}> Show anchors / join points</label>
+            <label><input id="dbgPrgLabels" type="checkbox"${cfg.showLabels !== false ? " checked" : ""}> Show labels</label>
+            <label><input id="dbgPrgMetadata" type="checkbox"${cfg.showMetadata !== false ? " checked" : ""}> Show metadata readiness</label>
+            <label>Probe mode <select id="dbgPrgMode">${modeOptions}</select></label>
+          </div>
+        </section>
+        <section class="overlay-section">
+          <h4>Status</h4>
+          <div class="overlay-grid">${renderRows([
+            ["probe", cfg.enabled ? "ON" : "OFF"],
+            ["current mode", mode],
+            ["manifest loaded", status?.manifestLoaded ? "yes" : "no"],
+            ["assets loaded/failed", `${status?.assetsLoaded ?? 0}/${status?.assetsFailed ?? 0}`],
+            ["metadata loaded", status?.metadataLoaded ? "yes" : "no"],
+            ["readyForFrameLineAnchors", status?.readyForFrameLineAnchors ? "yes" : "no"],
+            ["warnings", Array.isArray(status?.warnings) ? (status.warnings.join(" | ") || "-") : "-"],
+          ])}</div>
+        </section>`;
+    }
     const seq = snap.sequence || {};
     const cards = snap.economy?.cards || {};
     const wc = snap.worldCounts || {};
@@ -618,6 +686,6 @@
         </section>
       `);
     }
-    return sections.join("");
+    return `${tabsHtml}${sections.join("")}`;
   }
 })();

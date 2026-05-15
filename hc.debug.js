@@ -204,10 +204,26 @@
       .filter(Boolean);
   }
 
+  function createDefaultPrgFrameProbeConfig() {
+    return {
+      enabled: false,
+      mode: "sourceCutRectFitProbe",
+      goldTint: true,
+      showOverlay: true,
+      showBounds: true,
+      showAnchors: true,
+      showLabels: true,
+      showMetadata: true,
+    };
+  }
+
   function createDebugConfig(mode, partial = {}) {
     const isDebug = mode === "debug";
     const initialCards = { ...DEFAULT_INITIAL_CARDS, ...(partial.initialCards || {}) };
     const initialWorldState = { ...DEFAULT_INITIAL_WORLD_STATE, ...(partial.initialWorldState || {}) };
+    const defaultProbe = createDefaultPrgFrameProbeConfig();
+    const visualCfg = partial.visual || {};
+    const prgProbePartial = visualCfg.prgFrameProbe || {};
     return {
       enabled: isDebug,
       mode: isDebug ? "debug" : "normal",
@@ -228,6 +244,18 @@
       thresholdOverrides: {
         asteroidToPlanet: partial.thresholdOverrides?.asteroidToPlanet == null ? null : clampInt(partial.thresholdOverrides.asteroidToPlanet, 0),
         planetToStar: partial.thresholdOverrides?.planetToStar == null ? null : clampInt(partial.thresholdOverrides.planetToStar, 0),
+      },
+      visual: {
+        prgFrameProbe: {
+          enabled: prgProbePartial.enabled === true,
+          mode: typeof prgProbePartial.mode === "string" ? prgProbePartial.mode : defaultProbe.mode,
+          goldTint: prgProbePartial.goldTint !== false,
+          showOverlay: prgProbePartial.showOverlay !== false,
+          showBounds: prgProbePartial.showBounds !== false,
+          showAnchors: prgProbePartial.showAnchors !== false,
+          showLabels: prgProbePartial.showLabels !== false,
+          showMetadata: prgProbePartial.showMetadata !== false,
+        },
       },
     };
   }
@@ -1319,6 +1347,9 @@
         },
         lastByCategory,
         recentEvents: recent.slice(-10),
+        visual: {
+          prgFrameProbe: this.debugConfig?.visual?.prgFrameProbe || null,
+        },
       };
     }
   };

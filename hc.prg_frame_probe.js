@@ -245,15 +245,17 @@
           ctx.restore();
         }
       }
-      if (opts.debugOverlay !== false) {
+      if (opts.debugOverlay !== false && (opts.showBounds !== false || opts.showLabels !== false || opts.showAnchors !== false)) {
         ctx.save();
         ctx.strokeStyle = "rgba(255,215,0,0.75)";
         ctx.lineWidth = 1;
-        ctx.strokeRect(x + 0.5, y + 0.5, Math.max(0, w - 1), Math.max(0, h - 1));
-        ctx.fillStyle = "rgba(255,220,140,0.95)";
-        ctx.font = "10px ui-monospace, monospace";
-        ctx.fillText(part.file || part.id, x + 2, y + 10);
-        if (part.anchors) {
+        if (opts.showBounds !== false) ctx.strokeRect(x + 0.5, y + 0.5, Math.max(0, w - 1), Math.max(0, h - 1));
+        if (opts.showLabels !== false) {
+          ctx.fillStyle = "rgba(255,220,140,0.95)";
+          ctx.font = "10px ui-monospace, monospace";
+          ctx.fillText(part.file || part.id, x + 2, y + 10);
+        }
+        if (opts.showAnchors !== false && part.anchors) {
           Object.keys(part.anchors).forEach((k) => {
             const a = part.anchors[k];
             if (!a || !finite(a.x) || !finite(a.y)) return;
@@ -278,11 +280,13 @@
       ctx.font = "11px ui-monospace, monospace";
       ctx.fillText(`PRG probe loaded=${state.loaded} failed=${state.failed} dpr=${(root.devicePixelRatio || 1).toFixed(2)}`, prgRect.x, prgRect.y - 8);
       const md = layout.metadataDiagnostics || buildMetadataDiagnostics(state.assets, state.layoutMetadata);
-      const mdStatus = state.layoutMetadataStatus === "ready" && md.loaded ? "yes" : "no";
-      const statusLine = Object.keys(md.statusCounts).sort().map((k) => `${k}:${md.statusCounts[k]}`).join(" ");
-      ctx.fillText(`metadata loaded=${mdStatus} parts=${md.partsCount} readyForFrameLineAnchors=${md.readyForFrameLineAnchors ? "yes" : "no"}`, prgRect.x, prgRect.y + prgRect.h + 14);
-      ctx.fillText(`metadataStatus ${statusLine || "none"}`, prgRect.x, prgRect.y + prgRect.h + 28);
-      if (md.missingRequiredFields.length) ctx.fillText(`missing fields ${md.missingRequiredFields.length}`, prgRect.x, prgRect.y + prgRect.h + 42);
+      if (opts.showMetadata !== false) {
+        const mdStatus = state.layoutMetadataStatus === "ready" && md.loaded ? "yes" : "no";
+        const statusLine = Object.keys(md.statusCounts).sort().map((k) => `${k}:${md.statusCounts[k]}`).join(" ");
+        ctx.fillText(`metadata loaded=${mdStatus} parts=${md.partsCount} readyForFrameLineAnchors=${md.readyForFrameLineAnchors ? "yes" : "no"}`, prgRect.x, prgRect.y + prgRect.h + 14);
+        ctx.fillText(`metadataStatus ${statusLine || "none"}`, prgRect.x, prgRect.y + prgRect.h + 28);
+        if (md.missingRequiredFields.length) ctx.fillText(`missing fields ${md.missingRequiredFields.length}`, prgRect.x, prgRect.y + prgRect.h + 42);
+      }
       if (warnings.length) ctx.fillText(`WARN ${warnings.join(",")}`, prgRect.x, prgRect.y + prgRect.h + 56);
       ctx.restore();
     }
@@ -295,6 +299,19 @@
     draw,
     computeLayout,
     getState: function () { return state; },
+    getStatus: function () {
+      const md = buildMetadataDiagnostics(state.assets, state.layoutMetadata);
+      return {
+        manifestLoaded: state.status === "ready" || state.status === "loading_assets",
+        metadataLoaded: state.layoutMetadataStatus === "ready" && md.loaded,
+        assetsLoaded: state.loaded,
+        assetsFailed: state.failed,
+        readyForFrameLineAnchors: md.readyForFrameLineAnchors,
+        warnings: state.warnings.slice(-8),
+        currentMode: DEFAULTS.mode,
+        fallbackMode: "sourceCutRectFitProbe"
+      };
+    },
     defaults: Object.assign({}, DEFAULTS)
   };
 })(typeof window !== "undefined" ? window : globalThis);
