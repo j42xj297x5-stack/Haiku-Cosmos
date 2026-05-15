@@ -508,7 +508,8 @@
         CE.render(window.ctx, view.w, view.h);
       }
 
-      if (runtimeDebugOverlay && !runtimeDebugOverlay.hidden && nowMs - runtimeOverlayLastRenderMs > 120) {
+      const activeInRuntimeOverlay = !!(runtimeDebugOverlayBody && document.activeElement && runtimeDebugOverlayBody.contains(document.activeElement));
+      if (runtimeDebugOverlay && !runtimeDebugOverlay.hidden && !activeInRuntimeOverlay && nowMs - runtimeOverlayLastRenderMs > 120) {
         runtimeOverlayLastRenderMs = nowMs;
         const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
         if (runtimeDebugOverlayBody) runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
@@ -525,6 +526,13 @@
 
   function renderRows(rows) {
     return rows.map((row) => `<div class="overlay-row"><span class="k">${row[0]}</span><span class="v">${row[1]}</span></div>`).join("");
+  }
+
+  function renderPrgCheckboxRow(id, label, checked) {
+    return `<div class="overlay-checkbox-row">
+      <input id="${id}" class="overlay-checkbox" type="checkbox"${checked ? " checked" : ""}>
+      <label for="${id}" class="overlay-checkbox-label">${label}</label>
+    </div>`;
   }
 
   function summarizeEvent(event) {
@@ -557,14 +565,14 @@
         <section class="overlay-section">
           <h4>PRG frame</h4>
           <div class="overlay-grid">
-            <label><input id="dbgPrgEnabled" type="checkbox"${cfg.enabled ? " checked" : ""}> Enable PRG frame probe</label>
-            <label><input id="dbgPrgGoldTint" type="checkbox"${cfg.goldTint !== false ? " checked" : ""}> Temporary gold tint</label>
-            <label><input id="dbgPrgOverlay" type="checkbox"${cfg.showOverlay !== false ? " checked" : ""}> Show debug overlay</label>
-            <label><input id="dbgPrgBounds" type="checkbox"${cfg.showBounds !== false ? " checked" : ""}> Show part bounds</label>
-            <label><input id="dbgPrgAnchors" type="checkbox"${cfg.showAnchors !== false ? " checked" : ""}> Show anchors / join points</label>
-            <label><input id="dbgPrgLabels" type="checkbox"${cfg.showLabels !== false ? " checked" : ""}> Show labels</label>
-            <label><input id="dbgPrgMetadata" type="checkbox"${cfg.showMetadata !== false ? " checked" : ""}> Show metadata readiness</label>
-            <label>Probe mode <select id="dbgPrgMode">${modeOptions}</select></label>
+            ${renderPrgCheckboxRow("dbgPrgEnabled", "Enable PRG frame probe", cfg.enabled)}
+            ${renderPrgCheckboxRow("dbgPrgGoldTint", "Temporary gold tint", cfg.goldTint !== false)}
+            ${renderPrgCheckboxRow("dbgPrgOverlay", "Show debug overlay", cfg.showOverlay !== false)}
+            ${renderPrgCheckboxRow("dbgPrgBounds", "Show part bounds", cfg.showBounds !== false)}
+            ${renderPrgCheckboxRow("dbgPrgAnchors", "Show anchors / join points", cfg.showAnchors !== false)}
+            ${renderPrgCheckboxRow("dbgPrgLabels", "Show labels", cfg.showLabels !== false)}
+            ${renderPrgCheckboxRow("dbgPrgMetadata", "Show metadata readiness", cfg.showMetadata !== false)}
+            <label class="overlay-select-row" for="dbgPrgMode">Probe mode <select id="dbgPrgMode">${modeOptions}</select></label>
           </div>
         </section>
         <section class="overlay-section">
