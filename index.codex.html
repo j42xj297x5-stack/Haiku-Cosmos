@@ -195,6 +195,31 @@
       font-size: 11px;
     }
     .overlay-grid { display: grid; gap: 6px; }
+    .overlay-checkbox-row {
+      display: grid;
+      grid-template-columns: 16px 1fr;
+      align-items: center;
+      gap: 8px;
+      min-height: 24px;
+      padding: 2px 0;
+    }
+    .overlay-checkbox {
+      margin: 0;
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    .overlay-checkbox-label {
+      cursor: pointer;
+      user-select: none;
+    }
+    .overlay-select-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 8px;
+      min-height: 24px;
+    }
     .overlay-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
     .overlay-row .k { opacity: 0.75; }
     .overlay-row .v { text-align: right; }
