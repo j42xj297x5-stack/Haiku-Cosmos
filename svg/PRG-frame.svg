@@ -9,7 +9,7 @@
    id="svg1"
    xml:space="preserve"
    inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
-   sodipodi:docname="PRG-ramka-archive.svg"
+   sodipodi:docname="PRG-frame.svg"
    inkscape:export-filename="PRG-ramka-archive-ink.svg"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96"
@@ -28,9 +28,9 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      showguides="true"
-     inkscape:zoom="32"
-     inkscape:cx="414.70312"
-     inkscape:cy="102.375"
+     inkscape:zoom="0.5"
+     inkscape:cx="231"
+     inkscape:cy="736"
      inkscape:window-width="1124"
      inkscape:window-height="1000"
      inkscape:window-x="787"
@@ -310,7 +310,7 @@
        inkscape:label="line-hru-r" /><circle
        style="fill:none;stroke:#002afe;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
        id="path19-9-2-2-2-8-1-2-2-1-9-2"
-       cx="179.63817"
+       cx="179.6382"
        cy="26.023626"
        r="0.1"
        inkscape:label="corner-ru-l" /><circle
@@ -473,13 +473,14 @@
        style="fill:none;stroke:#002afe;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
        id="path19-9-2-2-2-8-1-2-2-1-9-1-1-46-7"
        cx="86.658691"
-       cy="334.48294"
+       cy="335.54129"
        r="0.1"
        inkscape:label="corner-ld-u" /></g><g
      inkscape:groupmode="layer"
      id="layer3"
      inkscape:label="kotwice-srodki"
-     transform="translate(-61.316796)"><circle
+     transform="translate(-61.316796)"
+     inkscape:highlight-color="#57ee3b"><circle
        style="fill:none;stroke:#fe0000;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
        id="path19-1-6"
        cx="150.4166"
