@@ -6,7 +6,7 @@
   const DEFAULTS = {
     manifestUrl: "/assets/visual/prg/prg_frame_manifest.json",
     assetBaseUrl: "/assets/visual/prg/svg/frame_parts/",
-    mode: "sourceCutRectFitProbe",
+    mode: "frameRectHeightMountProbe",
     debugGoldTint: "#d4af37",
     tintAlpha: 0.88,
     layoutMetadataUrl: "/assets/visual/prg/prg_frame_layout_metadata.json"
@@ -43,7 +43,9 @@
     const requestedMode = typeof opts.mode === "string" ? opts.mode : DEFAULTS.mode;
     const warnings = [];
     const assets = Array.isArray(manifest && manifest.assets) ? manifest.assets : [];
-    const mode = requestedMode === "frameLineAnchors" ? "frameLineAnchors" : "sourceCutRectFitProbe";
+    const mode = requestedMode === "frameLineAnchors"
+      ? "frameLineAnchors"
+      : (requestedMode === "frameRectHeightMountProbe" ? "frameRectHeightMountProbe" : "sourceCutRectFitProbe");
 
     if (!isValidRect(targetRect)) {
       warnings.push("invalid rect: targetRect");
@@ -87,11 +89,25 @@
     const maxY = Math.max.apply(null, validRects.map((r) => r.y + r.h));
     const srcW = Math.max(1, maxX - minX);
     const srcH = Math.max(1, maxY - minY);
-    const scale = Math.min(targetRect.w / srcW, targetRect.h / srcH);
-    const mountW = srcW * scale;
-    const mountH = srcH * scale;
+    const baseScale = targetRect.h / srcH;
+    const mountW = srcW * baseScale;
+    const mountH = srcH * baseScale;
     const mountX = targetRect.x + (targetRect.w - mountW) / 2;
-    const mountY = targetRect.y + (targetRect.h - mountH) / 2;
+    const mountY = targetRect.y;
+    const frameLineRect = { x: targetRect.x, y: targetRect.y, w: targetRect.w, h: targetRect.h };
+
+    function inferRole(asset, file) {
+      const meta = layoutMetadata && layoutMetadata.parts && layoutMetadata.parts[file];
+      if (meta && typeof meta.role === "string") return meta.role;
+      const id = String(asset && (asset.id || file || "")).toLowerCase();
+      if (id.includes("corner")) return "corner";
+      if (id.includes("line_h") && id.includes("d")) return "edge_bottom";
+      if (id.includes("line_h")) return "edge_top";
+      if (id.includes("line_vr")) return "edge_right";
+      if (id.includes("line_vl")) return "edge_left";
+      if (id.includes("center") || id.includes("ornament")) return "ornament_center";
+      return "unknown";
+    }
 
     const parts = assets.map((asset, index) => {
       const id = asset && (asset.id || asset.file || `part_${index}`);
@@ -106,10 +122,30 @@
         partWarnings.push("invalid sourceCutRect");
         return { id, file: asset && asset.file, asset, sourceCutRect, destRect: null, anchors: null, warnings: partWarnings, outsideTarget: false };
       }
-      const x = mountX + (sx - minX) * scale;
-      const y = mountY + (sy - minY) * scale;
-      const w = sw * scale;
-      const h = sh * scale;
+      const file = asset && asset.file;
+      const role = inferRole(asset, file);
+      const isTopEdge = role === "edge_top";
+      const isBottomEdge = role === "edge_bottom";
+      const isLeftEdge = role === "edge_left" || (file && /line_vl/i.test(file));
+      const isRightEdge = role === "edge_right" || (file && /line_vr/i.test(file));
+      const xFit = mountX + (sx - minX) * baseScale;
+      const yFit = mountY + (sy - minY) * baseScale;
+      const wFit = sw * baseScale;
+      const hFit = sh * baseScale;
+      let x = xFit;
+      let y = yFit;
+      let w = wFit;
+      let h = hFit;
+      if (isTopEdge || isBottomEdge) {
+        x = frameLineRect.x;
+        w = frameLineRect.w;
+      }
+      if (isLeftEdge || isRightEdge) {
+        y = frameLineRect.y;
+        h = frameLineRect.h;
+        if (isRightEdge) x = frameLineRect.x + frameLineRect.w - wFit;
+        if (isLeftEdge) x = frameLineRect.x;
+      }
       if (!finite(x) || !finite(y) || !finite(w) || !finite(h) || w <= 0 || h <= 0) partWarnings.push("NaN/zero size");
       const outsideTarget = x + w < targetRect.x || y + h < targetRect.y || x > targetRect.x + targetRect.w || y > targetRect.y + targetRect.h;
       if (outsideTarget) partWarnings.push("outside target rect");
@@ -119,18 +155,19 @@
       if (srcAnchors) {
         Object.keys(srcAnchors).forEach((key) => {
           const a = srcAnchors[key] || {};
-          anchors[key] = { x: x + toNum(a.x || 0) * scale, y: y + toNum(a.y || 0) * scale };
+          anchors[key] = { x: x + toNum(a.x || 0) * baseScale, y: y + toNum(a.y || 0) * baseScale };
         });
       }
-      return { id, file: asset && asset.file, asset, sourceCutRect, destRect: { x, y, w, h }, anchors, warnings: partWarnings, outsideTarget };
+      return { id, file: asset && asset.file, role, asset, sourceCutRect, destRect: { x, y, w, h }, anchors, warnings: partWarnings, outsideTarget };
     });
 
     return {
-      mode: "sourceCutRectFitProbe",
+      mode: mode === "frameRectHeightMountProbe" ? "frameRectHeightMountProbe" : "sourceCutRectFitProbe",
       requestedMode,
       fallbackMode: mode === "frameLineAnchors" ? "sourceCutRectFitProbe" : null,
       targetRect,
-      bounds: { minX, minY, maxX, maxY, srcW, srcH, scale, mountX, mountY, mountW, mountH },
+      frameLineRect,
+      bounds: { minX, minY, maxX, maxY, srcW, srcH, baseScale, mountX, mountY, mountW, mountH },
       center: { x: targetRect.x + targetRect.w / 2, y: targetRect.y + targetRect.h / 2 },
       parts,
       warnings,
@@ -250,10 +287,10 @@
         ctx.strokeStyle = "rgba(255,215,0,0.75)";
         ctx.lineWidth = 1;
         if (opts.showBounds !== false) ctx.strokeRect(x + 0.5, y + 0.5, Math.max(0, w - 1), Math.max(0, h - 1));
-        if (opts.showLabels !== false) {
+        if (opts.showLabels === true) {
           ctx.fillStyle = "rgba(255,220,140,0.95)";
           ctx.font = "10px ui-monospace, monospace";
-          ctx.fillText(part.file || part.id, x + 2, y + 10);
+          ctx.fillText(`${part.role || "part"}:${part.file || part.id}`, x + 2, y + 10);
         }
         if (opts.showAnchors !== false && part.anchors) {
           Object.keys(part.anchors).forEach((k) => {
@@ -272,6 +309,10 @@
       ctx.strokeStyle = "rgba(0,255,255,0.85)";
       ctx.lineWidth = 1.25;
       ctx.strokeRect(prgRect.x + 0.5, prgRect.y + 0.5, prgRect.w - 1, prgRect.h - 1);
+      if (layout.frameLineRect) {
+        ctx.strokeStyle = "rgba(255, 80, 80, 0.9)";
+        ctx.strokeRect(layout.frameLineRect.x + 0.5, layout.frameLineRect.y + 0.5, layout.frameLineRect.w - 1, layout.frameLineRect.h - 1);
+      }
       ctx.beginPath();
       ctx.moveTo(layout.center.x - 7, layout.center.y); ctx.lineTo(layout.center.x + 7, layout.center.y);
       ctx.moveTo(layout.center.x, layout.center.y - 7); ctx.lineTo(layout.center.x, layout.center.y + 7);
@@ -279,22 +320,25 @@
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.font = "11px ui-monospace, monospace";
       ctx.fillText(`PRG probe loaded=${state.loaded} failed=${state.failed} dpr=${(root.devicePixelRatio || 1).toFixed(2)}`, prgRect.x, prgRect.y - 8);
+      if (layout.bounds && finite(layout.bounds.baseScale)) {
+        ctx.fillText(`baseScale=${layout.bounds.baseScale.toFixed(4)} mode=${layout.mode}`, prgRect.x, prgRect.y + prgRect.h + 14);
+      }
       const md = layout.metadataDiagnostics || buildMetadataDiagnostics(state.assets, state.layoutMetadata);
       if (opts.showMetadata !== false) {
         const mdStatus = state.layoutMetadataStatus === "ready" && md.loaded ? "yes" : "no";
         const statusLine = Object.keys(md.statusCounts).sort().map((k) => `${k}:${md.statusCounts[k]}`).join(" ");
-        ctx.fillText(`metadata loaded=${mdStatus} parts=${md.partsCount} readyForFrameLineAnchors=${md.readyForFrameLineAnchors ? "yes" : "no"}`, prgRect.x, prgRect.y + prgRect.h + 14);
-        ctx.fillText(`metadataStatus ${statusLine || "none"}`, prgRect.x, prgRect.y + prgRect.h + 28);
-        if (md.missingRequiredFields.length) ctx.fillText(`missing fields ${md.missingRequiredFields.length}`, prgRect.x, prgRect.y + prgRect.h + 42);
+        ctx.fillText(`metadata loaded=${mdStatus} parts=${md.partsCount} readyForFrameLineAnchors=${md.readyForFrameLineAnchors ? "yes" : "no"}`, prgRect.x, prgRect.y + prgRect.h + 28);
+        ctx.fillText(`metadataStatus ${statusLine || "none"}`, prgRect.x, prgRect.y + prgRect.h + 42);
+        if (md.missingRequiredFields.length) ctx.fillText(`missing fields ${md.missingRequiredFields.length}`, prgRect.x, prgRect.y + prgRect.h + 56);
       }
-      if (warnings.length) ctx.fillText(`WARN ${warnings.join(",")}`, prgRect.x, prgRect.y + prgRect.h + 56);
+      if (warnings.length) ctx.fillText(`WARN ${warnings.join(",")}`, prgRect.x, prgRect.y + prgRect.h + 70);
       ctx.restore();
     }
     return layout;
   }
 
   root.HC.PrgFrameProbe = {
-    version: "0.2.0-probe",
+    version: "0.3.0-probe",
     requestAssets,
     draw,
     computeLayout,
