@@ -4518,17 +4518,42 @@ const CardEngine = (() => {
     };
   }
 
+
+  function getPrgFrameProbeConfig() {
+    const sessionCfg = window.HC?.Session?.debugConfig?.visual?.prgFrameProbe;
+    if (sessionCfg && typeof sessionCfg === "object") return sessionCfg;
+    const worldCfg = window.HC?.getWorld?.()?.debug?.visual?.prgFrameProbe;
+    if (worldCfg && typeof worldCfg === "object") return worldCfg;
+    if (HC_DEBUG_PRG_FRAME_PROBE) {
+      return {
+        enabled: true,
+        mode: "sourceCutRectFitProbe",
+        goldTint: true,
+        showOverlay: true,
+        showBounds: true,
+        showAnchors: true,
+        showLabels: true,
+        showMetadata: true,
+      };
+    }
+    return null;
+  }
   function drawPrgFrameRuntimeProbe(ctx, prgRect) {
-    if (!HC_DEBUG_PRG_FRAME_PROBE || !ctx || !prgRect) return;
+    const probeCfg = getPrgFrameProbeConfig();
+    if (!probeCfg || probeCfg.enabled !== true || !ctx || !prgRect) return;
     const probe = (typeof window !== "undefined" && window.HC && window.HC.PrgFrameProbe)
       ? window.HC.PrgFrameProbe
       : null;
     if (!probe || typeof probe.draw !== "function") return;
     probe.draw(ctx, prgRect, {
-      mode: "sourceCutRectFitProbe",
-      debugGoldTint: "#d4af37",
-      temporaryPrgFrameTint: "#d4af37",
-      debugOverlay: true,
+      mode: probeCfg.mode || "sourceCutRectFitProbe",
+      debugGoldTint: probeCfg.goldTint === false ? null : "#d4af37",
+      temporaryPrgFrameTint: probeCfg.goldTint === false ? null : "#d4af37",
+      debugOverlay: probeCfg.showOverlay !== false,
+      showBounds: probeCfg.showBounds !== false,
+      showAnchors: probeCfg.showAnchors !== false,
+      showLabels: probeCfg.showLabels !== false,
+      showMetadata: probeCfg.showMetadata !== false,
       tintAlpha: 0.88
     });
   }
