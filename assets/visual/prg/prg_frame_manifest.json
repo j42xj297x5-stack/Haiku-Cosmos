@@ -1,0 +1,767 @@
+{
+  "sourceFile": "svg/PRG-ramka-archive.svg",
+  "generatedAt": "2026-05-15T07:24:31Z",
+  "outputDir": "assets/visual/prg/svg/frame_parts",
+  "extractionMode": "clipPath",
+  "anchorMatchingPolicy": "name_first_strict_anchor_count_v3",
+  "assetCount": 17,
+  "assets": [
+    {
+      "id": "corner_lu",
+      "logicalName": "corner_lu",
+      "file": "corner_lu.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 76.333336,
+        "y": 9.3814602,
+        "w": 44.857525,
+        "h": 44.815365,
+        "name": "corner-lu"
+      },
+      "viewBox": "0 0 44.8575 44.8154",
+      "anchorType": "corner",
+      "anchorPoint": {
+        "x": 10.3254,
+        "y": 16.6422
+      },
+      "anchorOffset": {
+        "x": -12.1034,
+        "y": -5.7655
+      },
+      "stretchAxis": "none",
+      "anchors": {
+        "pivot": {
+          "x": 10.3254,
+          "y": 16.6422
+        },
+        "join_r": {
+          "x": 44.8575,
+          "y": 16.6422,
+          "sourceName": "corner-lu-r"
+        },
+        "join_d": {
+          "x": 10.3254,
+          "y": 44.8154,
+          "sourceName": "corner-lu-d"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "corner_ld",
+      "logicalName": "corner_ld",
+      "file": "corner_ld.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 76.337379,
+        "y": 334.48288,
+        "w": 44.754242,
+        "h": 44.81636,
+        "name": "corner-ld"
+      },
+      "viewBox": "0 0 44.7542 44.8164",
+      "anchorType": "corner",
+      "anchorPoint": {
+        "x": 10.3213,
+        "y": 28.1564
+      },
+      "anchorOffset": {
+        "x": -12.0558,
+        "y": 5.7482
+      },
+      "stretchAxis": "none",
+      "anchors": {
+        "pivot": {
+          "x": 10.3213,
+          "y": 28.1564
+        },
+        "join_r": {
+          "x": 44.7539,
+          "y": 28.1564,
+          "sourceName": "corner-ld-r"
+        },
+        "join_u": {
+          "x": 10.3213,
+          "y": 0.0001,
+          "sourceName": "corner-ld-u"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "corner_rd",
+      "logicalName": "corner_rd",
+      "file": "corner_rd.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 179.85011,
+        "y": 334.53207,
+        "w": 44.372002,
+        "h": 44.762356,
+        "name": "corner-rd"
+      },
+      "viewBox": "0 0 44.372 44.7624",
+      "anchorType": "corner",
+      "anchorPoint": {
+        "x": 34.3432,
+        "y": 28.1072
+      },
+      "anchorOffset": {
+        "x": 12.1572,
+        "y": 5.7261
+      },
+      "stretchAxis": "none",
+      "anchors": {
+        "pivot": {
+          "x": 34.3432,
+          "y": 28.1072
+        },
+        "join_u": {
+          "x": 34.3432,
+          "y": 0.0,
+          "sourceName": "corner-rd-u"
+        },
+        "join_l": {
+          "x": 0.0,
+          "y": 28.1072,
+          "sourceName": "corner-rd-l"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "corner_ru",
+      "logicalName": "corner_ru",
+      "file": "corner_ru.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 179.6382,
+        "y": 9.384757,
+        "w": 44.583054,
+        "h": 44.811615,
+        "name": "corner-ru"
+      },
+      "viewBox": "0 0 44.5831 44.8116",
+      "anchorType": "corner",
+      "anchorPoint": {
+        "x": 34.5551,
+        "y": 16.6389
+      },
+      "anchorOffset": {
+        "x": 12.2636,
+        "y": -5.7669
+      },
+      "stretchAxis": "none",
+      "anchors": {
+        "pivot": {
+          "x": 34.5551,
+          "y": 16.6389
+        },
+        "join_l": {
+          "x": -0.0,
+          "y": 16.6389,
+          "sourceName": "corner-ru-l"
+        },
+        "join_d": {
+          "x": 34.5551,
+          "y": 44.8116,
+          "sourceName": "corner-ru-d"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "ornament_u",
+      "logicalName": "ornament_u",
+      "file": "ornament_u.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 130.37096,
+        "y": 9.3862743,
+        "w": 40.079571,
+        "h": 31.520903,
+        "name": "ornament-u"
+      },
+      "viewBox": "0 0 40.0796 31.5209",
+      "anchorType": "center",
+      "anchorPoint": {
+        "x": 20.0456,
+        "y": 16.6374
+      },
+      "anchorOffset": {
+        "x": 0.0059,
+        "y": 0.8769
+      },
+      "stretchAxis": "none",
+      "anchors": {
+        "pivot": {
+          "x": 20.0456,
+          "y": 16.6374
+        },
+        "join_d": {
+          "x": 20.0456,
+          "y": 31.521,
+          "sourceName": "ornament-u-d"
+        },
+        "join_l": {
+          "x": 0.0116,
+          "y": 16.6374,
+          "sourceName": "ornament-u-l"
+        },
+        "join_r": {
+          "x": 40.0796,
+          "y": 16.6374,
+          "sourceName": "ornament-u-r"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 3
+    },
+    {
+      "id": "ornament_d",
+      "logicalName": "ornament_d",
+      "file": "ornament_d.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 130.3826,
+        "y": 347.83047,
+        "w": 40.067993,
+        "h": 31.463943,
+        "name": "ornament-d"
+      },
+      "viewBox": "0 0 40.068 31.4639",
+      "anchorType": "center",
+      "anchorPoint": {
+        "x": 20.034,
+        "y": 14.8088
+      },
+      "anchorOffset": {
+        "x": 0.0,
+        "y": -0.9231
+      },
+      "stretchAxis": "none",
+      "anchors": {
+        "pivot": {
+          "x": 20.034,
+          "y": 14.8088
+        },
+        "join_r": {
+          "x": 40.068,
+          "y": 14.8088,
+          "sourceName": "ornament-d-r"
+        },
+        "join_u": {
+          "x": 20.034,
+          "y": 0.0,
+          "sourceName": "ornament-d-u"
+        },
+        "join_l": {
+          "x": 0.0,
+          "y": 14.8088,
+          "sourceName": "ornament-d-l"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 3
+    },
+    {
+      "id": "ornament_l",
+      "logicalName": "ornament_l",
+      "file": "ornament_l.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 76.337379,
+        "y": 182.01216,
+        "w": 18.500916,
+        "h": 25.502405,
+        "name": "ornament-l"
+      },
+      "viewBox": "0 0 18.5009 25.5024",
+      "anchorType": "center",
+      "anchorPoint": {
+        "x": 10.3213,
+        "y": 12.5836
+      },
+      "anchorOffset": {
+        "x": 1.0709,
+        "y": -0.1676
+      },
+      "stretchAxis": "none",
+      "anchors": {
+        "pivot": {
+          "x": 10.3213,
+          "y": 12.5836
+        },
+        "join_r": {
+          "x": 18.5016,
+          "y": 12.5836,
+          "sourceName": "ornament-l-r"
+        },
+        "join_d": {
+          "x": 10.3213,
+          "y": 25.5025,
+          "sourceName": "ornament-l-d"
+        },
+        "join_u": {
+          "x": 10.3213,
+          "y": 0.0,
+          "sourceName": "ornament-l-u"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 3
+    },
+    {
+      "id": "ornament_r",
+      "logicalName": "ornament_r",
+      "file": "ornament_r.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 206.26579,
+        "y": 181.84827,
+        "w": 17.954748,
+        "h": 25.499037,
+        "name": "ornament-r"
+      },
+      "viewBox": "0 0 17.9547 25.499",
+      "anchorType": "center",
+      "anchorPoint": {
+        "x": 7.9275,
+        "y": 12.7474
+      },
+      "anchorOffset": {
+        "x": -1.0499,
+        "y": -0.0021
+      },
+      "stretchAxis": "none",
+      "anchors": {
+        "pivot": {
+          "x": 7.9275,
+          "y": 12.7474
+        },
+        "join_l": {
+          "x": 0.0,
+          "y": 12.7495,
+          "sourceName": "ornament-r-l"
+        },
+        "join_u": {
+          "x": 7.9275,
+          "y": -0.0041,
+          "sourceName": "ornament-r-u"
+        },
+        "join_d": {
+          "x": 7.9275,
+          "y": 25.499,
+          "sourceName": "ornament-r-d"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 3
+    },
+    {
+      "id": "line_hlu",
+      "logicalName": "line_hlu",
+      "file": "line_hlu.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 121.19086,
+        "y": 18.926313,
+        "w": 9.1877098,
+        "h": 13.593323,
+        "name": "line-hlu"
+      },
+      "viewBox": "0 0 9.1877 13.5933",
+      "anchorType": "edge",
+      "anchorPoint": {
+        "x": 4.5939,
+        "y": 7.1015
+      },
+      "anchorOffset": {
+        "x": -0.0,
+        "y": 0.3048
+      },
+      "stretchAxis": "x",
+      "anchors": {
+        "pivot": {
+          "x": 4.5939,
+          "y": 7.1015
+        },
+        "join_l": {
+          "x": 0.0,
+          "y": 7.0973,
+          "sourceName": "line-hlu-l"
+        },
+        "join_r": {
+          "x": 9.1877,
+          "y": 7.0973,
+          "sourceName": "line-hlu-r"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "line_hru",
+      "logicalName": "line_hru",
+      "file": "line_hru.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 170.45045,
+        "y": 18.324268,
+        "w": 9.1877098,
+        "h": 13.593323,
+        "name": "line-hru"
+      },
+      "viewBox": "0 0 9.1877 13.5933",
+      "anchorType": "edge",
+      "anchorPoint": {
+        "x": 4.5939,
+        "y": 7.6994
+      },
+      "anchorOffset": {
+        "x": 0.0,
+        "y": 0.9027
+      },
+      "stretchAxis": "x",
+      "anchors": {
+        "pivot": {
+          "x": 4.5939,
+          "y": 7.6994
+        }
+      },
+      "warnings": [
+        "missing_join_anchor_count:2"
+      ],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "line_vlu",
+      "logicalName": "line_vlu",
+      "file": "line_vlu.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 76.337379,
+        "y": 54.196854,
+        "w": 18.543831,
+        "h": 127.81532,
+        "name": "line-vlu"
+      },
+      "viewBox": "0 0 18.5438 127.8153",
+      "anchorType": "edge",
+      "anchorPoint": {
+        "x": 10.3213,
+        "y": 63.2096
+      },
+      "anchorOffset": {
+        "x": 1.0494,
+        "y": -0.6981
+      },
+      "stretchAxis": "y",
+      "anchors": {
+        "pivot": {
+          "x": 10.3213,
+          "y": 63.2096
+        },
+        "join_d": {
+          "x": 10.3213,
+          "y": 127.8153,
+          "sourceName": "line-vlu-d"
+        },
+        "join_u": {
+          "x": 10.3213,
+          "y": 0.0,
+          "sourceName": "line-vlu-u"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "line_vld",
+      "logicalName": "line_vld",
+      "file": "line_vld.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 76.337379,
+        "y": 207.51457,
+        "w": 18.501682,
+        "h": 126.96831,
+        "name": "line-vld"
+      },
+      "viewBox": "0 0 18.5017 126.9683",
+      "anchorType": "edge",
+      "anchorPoint": {
+        "x": 10.3213,
+        "y": 60.8481
+      },
+      "anchorOffset": {
+        "x": 1.0705,
+        "y": -2.6361
+      },
+      "stretchAxis": "y",
+      "anchors": {
+        "pivot": {
+          "x": 10.3213,
+          "y": 60.8481
+        },
+        "join_d": {
+          "x": 10.3213,
+          "y": 126.9684,
+          "sourceName": "line-vld-d"
+        },
+        "join_u": {
+          "x": 10.3213,
+          "y": 0.0001,
+          "sourceName": "line-vld-u"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "line_vru",
+      "logicalName": "line_vru",
+      "file": "line_vru.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 206.26585,
+        "y": 54.196468,
+        "w": 17.954617,
+        "h": 127.64761,
+        "name": "line-vru"
+      },
+      "viewBox": "0 0 17.9546 127.6476",
+      "anchorType": "edge",
+      "anchorPoint": {
+        "x": 7.9275,
+        "y": 63.1352
+      },
+      "anchorOffset": {
+        "x": -1.0498,
+        "y": -0.6886
+      },
+      "stretchAxis": "y",
+      "anchors": {
+        "pivot": {
+          "x": 7.9275,
+          "y": 63.1352
+        },
+        "join_u": {
+          "x": 7.9275,
+          "y": -0.0001,
+          "sourceName": "line-vru-u"
+        },
+        "join_d": {
+          "x": 7.9275,
+          "y": 127.6477,
+          "sourceName": "line-vru-d"
+        }
+      },
+      "warnings": [
+        "Rejected extra anchors: line-vru-r"
+      ],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "line_vrd",
+      "logicalName": "line_vrd",
+      "file": "line_vrd.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 206.26784,
+        "y": 207.34935,
+        "w": 17.952232,
+        "h": 127.18272,
+        "name": "line-vrd"
+      },
+      "viewBox": "0 0 17.9522 127.1827",
+      "anchorType": "edge",
+      "anchorPoint": {
+        "x": 7.9255,
+        "y": 61.0385
+      },
+      "anchorOffset": {
+        "x": -1.0506,
+        "y": -2.5529
+      },
+      "stretchAxis": "y",
+      "anchors": {
+        "pivot": {
+          "x": 7.9255,
+          "y": 61.0385
+        },
+        "join_u": {
+          "x": 7.9255,
+          "y": -0.002,
+          "sourceName": "line-vrd-u"
+        },
+        "join_d": {
+          "x": 7.9255,
+          "y": 127.1827,
+          "sourceName": "line-vrd-d"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "line_hld",
+      "logicalName": "line_hld",
+      "file": "line_hld.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 121.09127,
+        "y": 356.86441,
+        "w": 9.2910557,
+        "h": 11.499852,
+        "name": "line-hld"
+      },
+      "viewBox": "0 0 9.2911 11.4999",
+      "anchorType": "edge",
+      "anchorPoint": {
+        "x": 4.6955,
+        "y": 5.7499
+      },
+      "anchorOffset": {
+        "x": 0.0499,
+        "y": -0.0
+      },
+      "stretchAxis": "x",
+      "anchors": {
+        "pivot": {
+          "x": 4.6955,
+          "y": 5.7499
+        },
+        "join_r": {
+          "x": 9.2913,
+          "y": 5.7749,
+          "sourceName": "line-hld-r"
+        },
+        "join_l": {
+          "x": 0.0004,
+          "y": 5.7749,
+          "sourceName": "line-hld-l"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "line_hrd",
+      "logicalName": "line_hrd",
+      "file": "line_hrd.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 170.45059,
+        "y": 355.87317,
+        "w": 9.3995209,
+        "h": 13.922643,
+        "name": "line-hrd"
+      },
+      "viewBox": "0 0 9.3995 13.9226",
+      "anchorType": "edge",
+      "anchorPoint": {
+        "x": 4.6998,
+        "y": 6.7661
+      },
+      "anchorOffset": {
+        "x": 0.0,
+        "y": -0.1952
+      },
+      "stretchAxis": "x",
+      "anchors": {
+        "pivot": {
+          "x": 4.6998,
+          "y": 6.7661
+        },
+        "join_r": {
+          "x": 9.3995,
+          "y": 6.7661,
+          "sourceName": "line-hrd-r"
+        },
+        "join_l": {
+          "x": 0.0,
+          "y": 6.7661,
+          "sourceName": "line-hrd-l"
+        }
+      },
+      "warnings": [],
+      "expectedJoinAnchors": 2
+    },
+    {
+      "id": "center",
+      "logicalName": "center",
+      "file": "center.svg",
+      "type": "frame_part",
+      "status": "static_base",
+      "sourceCutRect": {
+        "x": 94.838982,
+        "y": 40.930695,
+        "w": 111.43444,
+        "h": 306.89978,
+        "name": "center"
+      },
+      "viewBox": "0 0 111.4344 306.8998",
+      "anchorType": "center",
+      "anchorPoint": {
+        "x": 55.5776,
+        "y": 153.665
+      },
+      "anchorOffset": {
+        "x": -0.1396,
+        "y": 0.2151
+      },
+      "stretchAxis": "none",
+      "anchors": {
+        "pivot": {
+          "x": 55.5776,
+          "y": 153.665
+        },
+        "join_u": {
+          "x": 55.5776,
+          "y": -0.0235,
+          "sourceName": "fill-center-u"
+        },
+        "join_l": {
+          "x": 0.0,
+          "y": 153.665,
+          "sourceName": "fill-center-l"
+        },
+        "join_r": {
+          "x": 111.4268,
+          "y": 153.6671,
+          "sourceName": "fill-center-r"
+        },
+        "join_d": {
+          "x": 55.5776,
+          "y": 306.8998,
+          "sourceName": "fill-center-d"
+        }
+      },
+      "warnings": [
+        "Center pivot via inside-rect fallback"
+      ],
+      "expectedJoinAnchors": 4
+    }
+  ]
+}

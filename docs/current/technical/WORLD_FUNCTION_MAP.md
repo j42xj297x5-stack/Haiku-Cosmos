@@ -47,7 +47,7 @@
 **Źródła:** `index.codex.html`, `game.boot.js`
 
 1) Ładowanie skryptów (kolejność w `index.codex.html`):
-- `cards.js` → `hc.core.js` → `hc.util.js` → `hc.world.js` → `hc.view_input.js` → `hc.camera.js` → `hc.comets.js` → `hc.meteors.js` → `hc.render.js` → `hc.collisions.js` → `hc.asteroids.js` → `hc.planets.js` → `hc.stars_epoch.js` → `hc.ui_debug.js` → `game.boot.js`.
+- `cards.js` → `hc.hud_v2.js` → `hc.core.js` → `hc.util.js` → `hc.world.js` → `hc.view_input.js` → `hc.camera.js` → `hc.comets.js` → `hc.meteors.js` → `hc.render.js` → `hc.collisions.js` → `hc.asteroids.js` → `hc.planets.js` → `hc.stars_epoch.js` → `hc.ui_debug.js` → `game.boot.js`.
 
 2) Boot (IIFE w `game.boot.js`):
 - Tworzy `canvas/ctx`, `View`, `Input`, `Camera` oraz helpery globalne (`rand`, `clamp`, `screenToWorld`, `getWorldViewBounds`, itp.).
