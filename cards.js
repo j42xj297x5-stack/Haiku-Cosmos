@@ -4527,12 +4527,12 @@ const CardEngine = (() => {
     if (HC_DEBUG_PRG_FRAME_PROBE) {
       return {
         enabled: true,
-        mode: "sourceCutRectFitProbe",
+        mode: "frameRectHeightMountProbe",
         goldTint: true,
         showOverlay: true,
         showBounds: true,
         showAnchors: true,
-        showLabels: true,
+        showLabels: false,
         showMetadata: true,
       };
     }
@@ -4546,7 +4546,7 @@ const CardEngine = (() => {
       : null;
     if (!probe || typeof probe.draw !== "function") return;
     probe.draw(ctx, prgRect, {
-      mode: probeCfg.mode || "sourceCutRectFitProbe",
+      mode: probeCfg.mode || "frameRectHeightMountProbe",
       debugGoldTint: probeCfg.goldTint === false ? null : "#d4af37",
       temporaryPrgFrameTint: probeCfg.goldTint === false ? null : "#d4af37",
       debugOverlay: probeCfg.showOverlay !== false,
