@@ -192,3 +192,13 @@ Kontrakt mapowania:
 
 Ten dokument nie implementuje HUD v2 i nie zmienia runtime behavior.
 To przygotowanie pod przyszły patch implementacyjny.
+
+
+## 10. Etap 1 status (2026-05-03)
+
+- Status: **implemented (partial)**.
+- Dodano runtime adapter `hc.hud_v2.js` z API `HC.HUDV2.buildViewModel(World, CardEngine, nowMs)`.
+- Adapter jest render-agnostic i read-only wobec `World`/`CardEngine` (bez akcji, eventów i mutacji `cardsPool`).
+- `specialSlots[3]` są placeholderami: `empty`, `locked`, `unavailable`.
+- Ograniczenie: runtime ma pojedynczy `World.pendingCard`/`pendingCardUntilMs`, więc rozdział collect-ready R2/R3/R4 jest semantyczny (per `kind`) bez osobnych kanałów per-tier/per-kolor.
+- Ograniczenie: `pendingCard` jest centralnym decision window contractem; pełna ekstrakcja pod per-row mikrodecyzje wymaga osobnego passu runtime.
