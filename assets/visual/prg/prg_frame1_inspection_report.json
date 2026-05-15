@@ -1,0 +1,125 @@
+{
+  "svgPath": "svg/PRG-frame1.svg",
+  "summary": {
+    "hasInkscapeNamespace": true,
+    "hasInkscapeLabel": true,
+    "hasFigmaLikeNames": false,
+    "hasImageTag": false,
+    "hasBase64": false,
+    "hasHiddenGroups": false,
+    "groupCount": 5,
+    "geometryElementCount": 75,
+    "sourceLabelRequested": null,
+    "sourceLabelFound": false,
+    "sourceIdRequested": null,
+    "sourceIdFound": false
+  },
+  "warnings": [
+    "Wykryto inkscape:label rozne od id; Plain SVG moze utracic nazwy robocze warstw."
+  ],
+  "topGroupsByGeometry": [
+    {
+      "depth": 0,
+      "path": "svg:svg1",
+      "tag": "svg",
+      "element_id": "svg1",
+      "label": null,
+      "groupmode": null,
+      "transform": null,
+      "display": null,
+      "visibility": null,
+      "opacity": null,
+      "hidden": false,
+      "direct_geometry_count": 0,
+      "recursive_geometry_count": 75,
+      "bbox_estimate": {
+        "min": 178.1996,
+        "max": 395.24609
+      }
+    },
+    {
+      "depth": 1,
+      "path": "svg:svg1/g:layer4",
+      "tag": "g",
+      "element_id": "layer4",
+      "label": "punkty zaczepienia",
+      "groupmode": "layer",
+      "transform": "translate(-61.316796)",
+      "display": null,
+      "visibility": null,
+      "opacity": null,
+      "hidden": false,
+      "direct_geometry_count": 40,
+      "recursive_geometry_count": 40,
+      "bbox_estimate": null
+    },
+    {
+      "depth": 1,
+      "path": "svg:svg1/g:layer2",
+      "tag": "g",
+      "element_id": "layer2",
+      "label": "ciecie",
+      "groupmode": "layer",
+      "transform": "translate(-61.316796)",
+      "display": null,
+      "visibility": null,
+      "opacity": null,
+      "hidden": false,
+      "direct_geometry_count": 17,
+      "recursive_geometry_count": 17,
+      "bbox_estimate": null
+    },
+    {
+      "depth": 1,
+      "path": "svg:svg1/g:layer3",
+      "tag": "g",
+      "element_id": "layer3",
+      "label": "kotwice-srodki",
+      "groupmode": "layer",
+      "transform": "translate(-61.316796)",
+      "display": null,
+      "visibility": null,
+      "opacity": null,
+      "hidden": false,
+      "direct_geometry_count": 17,
+      "recursive_geometry_count": 17,
+      "bbox_estimate": null
+    },
+    {
+      "depth": 1,
+      "path": "svg:svg1/g:layer1",
+      "tag": "g",
+      "element_id": "layer1",
+      "label": "grafika",
+      "groupmode": "layer",
+      "transform": "translate(-61.316796)",
+      "display": null,
+      "visibility": null,
+      "opacity": null,
+      "hidden": false,
+      "direct_geometry_count": 1,
+      "recursive_geometry_count": 1,
+      "bbox_estimate": null
+    }
+  ],
+  "keywordCandidates": [
+    {
+      "depth": 1,
+      "path": "svg:svg1/g:layer1",
+      "tag": "g",
+      "element_id": "layer1",
+      "label": "grafika",
+      "groupmode": "layer",
+      "transform": "translate(-61.316796)",
+      "display": null,
+      "visibility": null,
+      "opacity": null,
+      "hidden": false,
+      "direct_geometry_count": 1,
+      "recursive_geometry_count": 1,
+      "bbox_estimate": null
+    }
+  ],
+  "sourceLabelMatches": [],
+  "sourceIdMatches": []
+}
