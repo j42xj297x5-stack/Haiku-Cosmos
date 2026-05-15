@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "prg_frame_cut_order_map_v0.1",
+  "sourceFile": "svg/PRG-plain.svg",
+  "plainLayerMapping": {
+    "layer1": "grafika",
+    "layer2": "ciecie",
+    "layer3": "kotwice-srodki",
+    "layer4": "punkty-zaczepienia"
+  },
+  "parts": [
+    {"index": 1, "role": "ornament_l", "outputFile": "ornament_l.svg", "cutRectPlainId": "rect12", "centerPlainId": "path19-1-6-8", "joinAnchorNames": ["ornament-l-u", "ornament-l-r", "ornament-l-d"]},
+    {"index": 2, "role": "ornament_u", "outputFile": "ornament_u.svg", "cutRectPlainId": "rect11", "centerPlainId": "path19-4", "joinAnchorNames": ["ornament-u-l", "ornament-u-d", "ornament-u-r"]},
+    {"index": 3, "role": "ornament_r", "outputFile": "ornament_r.svg", "cutRectPlainId": "rect12-6", "centerPlainId": "path19-1", "joinAnchorNames": ["ornament-r-u", "ornament-r-l", "ornament-r-d"]},
+    {"index": 4, "role": "ornament_d", "outputFile": "ornament_d.svg", "cutRectPlainId": "rect11-1", "centerPlainId": "path19", "joinAnchorNames": ["ornament-d-l", "ornament-d-u", "ornament-d-r"]},
+    {"index": 5, "role": "corner_lu", "outputFile": "corner_lu.svg", "cutRectPlainId": "rect10", "centerPlainId": "path19-6-6", "joinAnchorNames": ["corner-lu-d", "corner-lu-r"]},
+    {"index": 6, "role": "corner_ru", "outputFile": "corner_ru.svg", "cutRectPlainId": "rect10-8", "centerPlainId": "path19-6", "joinAnchorNames": ["corner-ru-l", "corner-ru-d"]},
+    {"index": 7, "role": "corner_ld", "outputFile": "corner_ld.svg", "cutRectPlainId": "rect10-2", "centerPlainId": "path19-9", "joinAnchorNames": ["corner-ld-u", "corner-ld-r"]},
+    {"index": 8, "role": "corner_rd", "outputFile": "corner_rd.svg", "cutRectPlainId": "rect10-2-2", "centerPlainId": "path19-9-2", "joinAnchorNames": ["corner-rd-l", "corner-rd-u"]},
+    {"index": 9, "role": "line_hlu", "outputFile": "line_hlu.svg", "cutRectPlainId": "rect13", "centerPlainId": "path19-9-2-2", "joinAnchorNames": ["line-hlu-l", "line-hlu-r"]},
+    {"index": 10, "role": "line_hru", "outputFile": "line_hru.svg", "cutRectPlainId": "rect13-1", "centerPlainId": "path19-9-2-2-9", "joinAnchorNames": ["line-hru-l", "line-hru-r"]},
+    {"index": 11, "role": "line_hld", "outputFile": "line_hld.svg", "cutRectPlainId": "rect8", "centerPlainId": "path19-9-2-2", "joinAnchorNames": ["line-hld-l", "line-hld-r"]},
+    {"index": 12, "role": "line_hrd", "outputFile": "line_hrd.svg", "cutRectPlainId": "rect9", "centerPlainId": "path19-9-2-1", "joinAnchorNames": ["line-hrd-l", "line-hrd-r"]},
+    {"index": 13, "role": "line_vlu", "outputFile": "line_vlu.svg", "cutRectPlainId": "rect14", "centerPlainId": "path19-1-0-2-0", "joinAnchorNames": ["line-vlu-u", "line-vlu-d"]},
+    {"index": 14, "role": "line_vru", "outputFile": "line_vru.svg", "cutRectPlainId": "rect16", "centerPlainId": "path19-1-0-2-1", "joinAnchorNames": ["line-vru-u", "line-vru-d"]},
+    {"index": 15, "role": "line_vld", "outputFile": "line_vld.svg", "cutRectPlainId": "rect15", "centerPlainId": "path19-1-0-2", "joinAnchorNames": ["line-vld-u", "line-vld-d"]},
+    {"index": 16, "role": "line_vrd", "outputFile": "line_vrd.svg", "cutRectPlainId": "rect17", "centerPlainId": "path19-1-0", "joinAnchorNames": ["line-vrd-u", "line-vrd-d"]},
+    {"index": 17, "role": "fill_center", "outputFile": "fill_center.svg", "cutRectPlainId": "rect20", "centerPlainId": "path19-1-6", "joinAnchorNames": ["fill-center-l", "fill-center-u", "fill-center-r", "fill-center-d"]}
+  ]
+}
