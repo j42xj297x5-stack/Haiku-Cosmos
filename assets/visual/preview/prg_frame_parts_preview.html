@@ -21,14 +21,24 @@
     .thumb-wrap { position:relative; background:#0b1020; border:1px solid #4b5563; border-radius:6px; height:200px; overflow:hidden; }
     .thumb-wrap img, .thumb-wrap svg { position:absolute; inset:0; width:100%; height:100%; }
     .thumb-wrap img { object-fit:contain; }
+    .checker-bg { background-color:#f8fafc; background-image: linear-gradient(45deg,#d1d5db 25%, transparent 25%), linear-gradient(-45deg,#d1d5db 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #d1d5db 75%), linear-gradient(-45deg, transparent 75%, #d1d5db 75%); background-size:18px 18px; background-position:0 0,0 9px,9px -9px,-9px 0; }
+    .force-contrast { filter: invert(1) brightness(1.35) contrast(1.35); }
     .overlay text { font-size:6px; fill:#f9fafb; paint-order:stroke; stroke:#000; stroke-width:0.8; }
     .pivot { fill:#ef4444; } .join { fill:#3b82f6; }
     .bounds { fill:none; stroke:#94a3b8; stroke-width:0.8; stroke-dasharray:2 2; }
     .assembly-wrap { position:relative; height:680px; background:#0b1020; border:1px solid #4b5563; border-radius:8px; overflow:hidden; }
     .assembly-wrap img, .assembly-wrap svg { position:absolute; }
     .diag li { margin-bottom:6px; }
+    .diag.small { font-size:12px; color:var(--muted); margin-top:8px; }
     .hidden { display:none !important; }
     .badge { display:inline-block; padding:4px 8px; background:#065f46; color:#d1fae5; border-radius:999px; font-size:12px; }
+    .status { font-weight:600; }
+    .status.pending { color:#fbbf24; }
+    .status.loaded { color:#34d399; }
+    .status.failed { color:#f87171; }
+    .status.warning { color:#f59e0b; }
+    .fallback { position:absolute; inset:0; padding:8px; font-size:11px; line-height:1.2; white-space:normal; overflow:auto; border:1px dashed #f87171; background:rgba(127,29,29,0.9); color:#fee2e2; }
+    .fallback.warning { border-color:#f59e0b; background:rgba(120,53,15,0.9); color:#fef3c7; }
   </style>
 </head>
 <body>
@@ -42,6 +52,8 @@
         <label><input type="checkbox" id="showJoins" checked /> show join anchors</label>
         <label><input type="checkbox" id="showLabels" checked /> show labels</label>
         <label><input type="checkbox" id="lightBg" /> dark background / light background</label>
+        <label><input type="checkbox" id="forceContrast" /> force contrast / invert SVG preview</label>
+        <label><input type="checkbox" id="checkerBg" /> checker background</label>
         <label><input type="checkbox" id="toggleAssembly" checked /> show assembly</label>
         <label><input type="checkbox" id="toggleGrid" checked /> show grid</label>
       </div>
@@ -853,9 +865,36 @@
       showJoins: document.getElementById('showJoins'),
       showLabels: document.getElementById('showLabels'),
       lightBg: document.getElementById('lightBg'),
+      forceContrast: document.getElementById('forceContrast'),
+      checkerBg: document.getElementById('checkerBg'),
       toggleAssembly: document.getElementById('toggleAssembly'),
       toggleGrid: document.getElementById('toggleGrid')
     };
+    const ASSET_BASE = '../prg/svg/frame_parts/';
+    const assetDiag = new Map();
+
+    function initAssetDiag(asset, resolvedUrl) {
+      if (assetDiag.has(asset.id)) return assetDiag.get(asset.id);
+      const row = {
+        id: asset.id,
+        file: asset.file,
+        resolvedUrl,
+        status: 'pending',
+        naturalWidth: null,
+        naturalHeight: null,
+        srcEndsWithFile: resolvedUrl.endsWith(asset.file),
+        onerror: false,
+        warning: null
+      };
+      assetDiag.set(asset.id, row);
+      return row;
+    }
+
+    function setAssetDiag(asset, patch) {
+      const row = initAssetDiag(asset, new URL(ASSET_BASE + asset.file, window.location.href).href);
+      Object.assign(row, patch);
+      diagnostics();
+    }
 
     function setHeader() {
       const el = document.getElementById('header');
@@ -904,7 +943,9 @@
       grid.innerHTML = '';
       manifest.assets.forEach(asset => {
         const warn = (asset.warnings || []).join(', ') || 'none';
-        const joins = (asset.anchors || []).filter(a => a.kind === 'join').length;
+        const joins = Object.keys(asset.anchors || {}).filter(k => k.startsWith('join_')).length;
+        const resolvedUrl = new URL(ASSET_BASE + asset.file, window.location.href).href;
+        initAssetDiag(asset, resolvedUrl);
         const card = document.createElement('article');
         card.className = 'asset-card';
         card.innerHTML = `
@@ -917,9 +958,46 @@
             warnings: ${warn}
           </div>
           <div class="thumb-wrap">
-            <img src="../prg/svg/frame_parts/${asset.file}" alt="${asset.logicalName}" />
+            <img src="${ASSET_BASE + asset.file}" alt="${asset.logicalName}" />
             ${overlay(asset)}
           </div>`;
+        const wrap = card.querySelector('.thumb-wrap');
+        const img = wrap.querySelector('img');
+        if (ids.forceContrast.checked) img.classList.add('force-contrast');
+        if (ids.checkerBg.checked) wrap.classList.add('checker-bg');
+        const fallback = document.createElement('div');
+        fallback.className = 'fallback hidden';
+        wrap.appendChild(fallback);
+        const diagMeta = document.createElement('div');
+        diagMeta.className = 'diag small';
+        wrap.after(diagMeta);
+        const updateCardDiag = () => {
+          const d = assetDiag.get(asset.id);
+          const wh = d.naturalWidth == null ? 'n/a' : `${d.naturalWidth}×${d.naturalHeight}`;
+          const cls = d.warning ? 'warning' : d.status;
+          diagMeta.innerHTML = `
+            <div><span class="status ${cls}">${d.warning || d.status}</span></div>
+            <div>resolved URL: ${d.resolvedUrl}</div>
+            <div>natural size: ${wh}</div>
+            <div>src ends with file: ${d.srcEndsWithFile ? 'yes' : 'no'}</div>
+            <div>onerror: ${d.onerror ? 'yes' : 'no'}</div>`;
+          if (d.status === 'failed' || d.warning) {
+            fallback.className = `fallback ${d.warning ? 'warning' : ''}`;
+            fallback.innerHTML = `<b>${d.warning ? 'SVG warning' : 'SVG load failed'}</b><br>${asset.file}<br>${d.resolvedUrl}`;
+          } else {
+            fallback.className = 'fallback hidden';
+          }
+        };
+        updateCardDiag();
+        img.addEventListener('load', () => {
+          const warning = (img.naturalWidth === 0 || img.naturalHeight === 0) ? 'loaded_zero_natural_size' : null;
+          setAssetDiag(asset, { status: 'loaded', naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, warning });
+          updateCardDiag();
+        });
+        img.addEventListener('error', () => {
+          setAssetDiag(asset, { status: 'failed', onerror: true, naturalWidth: img.naturalWidth || 0, naturalHeight: img.naturalHeight || 0 });
+          updateCardDiag();
+        });
         grid.appendChild(card);
       });
     }
@@ -927,6 +1005,7 @@
     function buildAssembly() {
       const stage = document.getElementById('assembly');
       stage.innerHTML = '';
+      if (ids.checkerBg.checked) stage.classList.add('checker-bg'); else stage.classList.remove('checker-bg');
       const rects = manifest.assets.map(a => a.sourceCutRect);
       const minX = Math.min(...rects.map(r=>r.x));
       const minY = Math.min(...rects.map(r=>r.y));
@@ -940,7 +1019,8 @@
       manifest.assets.forEach(asset => {
         const r = asset.sourceCutRect;
         const img = document.createElement('img');
-        img.src = `../prg/svg/frame_parts/${asset.file}`;
+        img.src = `${ASSET_BASE + asset.file}`;
+        if (ids.forceContrast.checked) img.classList.add('force-contrast');
         img.style.left = `${ox + (r.x-minX)*s}px`;
         img.style.top = `${oy + (r.y-minY)*s}px`;
         img.style.width = `${r.width*s}px`;
@@ -970,9 +1050,21 @@
       out.push('Center pivot fallback: Center pivot via inside-rect fallback (informational, non-blocking).');
       manifest.assets.forEach(a => {
         const expected = expectedByType[a.type] ?? (a.logicalName === 'center' ? 5 : null);
-        const actual = (a.anchors || []).length;
+        const actual = Object.keys(a.anchors || {}).length;
         out.push(`${a.logicalName}: expected anchors ${expected ?? 'n/a'}, actual ${actual} ${expected===actual ? '✅' : '⚠️'}`);
       });
+      const rows = Array.from(assetDiag.values());
+      const loaded = rows.filter(r => r.status === 'loaded').length;
+      const failed = rows.filter(r => r.status === 'failed').length;
+      const pending = rows.filter(r => r.status === 'pending').length;
+      const firstAsset = manifest.assets[0];
+      const firstUrl = firstAsset ? new URL(ASSET_BASE + firstAsset.file, window.location.href).href : 'n/a';
+      const failedList = rows.filter(r => r.status === 'failed').map(r => `${r.file} (${r.resolvedUrl})`);
+      out.push(`Path diagnostics:`);
+      out.push(`base HTML location: ${window.location.href}`);
+      out.push(`sample first asset path: ${firstUrl}`);
+      out.push(`load counters: loaded=${loaded}, failed=${failed}, pending=${pending}`);
+      out.push(`failed assets: ${failedList.length ? failedList.join(' | ') : 'none'}`);
       list.innerHTML = out.map(x => `<li>${x}</li>`).join('');
     }
 
