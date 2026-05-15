@@ -1,6 +1,6 @@
 {
   "sourceFile": "svg/PRG-frame1.svg",
-  "generatedAt": "2026-05-15T07:33:30Z",
+  "generatedAt": "2026-05-15T18:01:24Z",
   "outputDir": "assets/visual/prg/svg/frame_parts",
   "extractionMode": "clipPath",
   "anchorMatchingPolicy": "name_first_strict_anchor_count_v3",
@@ -13,11 +13,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 76.333336,
-        "y": 9.3814602,
+        "x": 15.01654,
+        "y": 9.38146,
         "w": 44.857525,
         "h": 44.815365,
-        "name": "corner-lu"
+        "id": "rect10",
+        "label": "corner-lu"
       },
       "viewBox": "0 0 44.8575 44.8154",
       "anchorType": "corner",
@@ -56,11 +57,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 76.337379,
-        "y": 334.48288,
-        "w": 44.754242,
-        "h": 44.81636,
-        "name": "corner-ld"
+        "x": 118.321404,
+        "y": 9.384757,
+        "w": 44.583054,
+        "h": 44.811615,
+        "id": "rect10-8",
+        "label": "corner-ru"
       },
       "viewBox": "0 0 44.7542 44.8164",
       "anchorType": "corner",
@@ -99,11 +101,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 179.85011,
-        "y": 334.53207,
-        "w": 44.372002,
-        "h": 44.762356,
-        "name": "corner-rd"
+        "x": 69.054164,
+        "y": 9.386274,
+        "w": 40.079571,
+        "h": 31.520903,
+        "id": "rect11",
+        "label": "ornament-u"
       },
       "viewBox": "0 0 44.372 44.7624",
       "anchorType": "corner",
@@ -142,11 +145,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 179.6382,
-        "y": 9.384757,
-        "w": 44.583054,
-        "h": 44.811615,
-        "name": "corner-ru"
+        "x": 109.133654,
+        "y": 18.324268,
+        "w": 9.18771,
+        "h": 13.593323,
+        "id": "rect13-1",
+        "label": "line-hru"
       },
       "viewBox": "0 0 44.5831 44.8116",
       "anchorType": "corner",
@@ -185,11 +189,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 130.37096,
-        "y": 9.3862743,
-        "w": 40.079571,
-        "h": 31.520903,
-        "name": "ornament-u"
+        "x": 59.874064,
+        "y": 18.926313,
+        "w": 9.18771,
+        "h": 13.593323,
+        "id": "rect13",
+        "label": "line-hlu"
       },
       "viewBox": "0 0 40.0796 31.5209",
       "anchorType": "center",
@@ -233,11 +238,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 130.3826,
-        "y": 347.83047,
-        "w": 40.067993,
-        "h": 31.463943,
-        "name": "ornament-d"
+        "x": 33.522186,
+        "y": 40.930695,
+        "w": 111.43444,
+        "h": 306.89978,
+        "id": "rect20",
+        "label": "center"
       },
       "viewBox": "0 0 40.068 31.4639",
       "anchorType": "center",
@@ -281,11 +287,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 76.337379,
-        "y": 182.01216,
-        "w": 18.500916,
-        "h": 25.502405,
-        "name": "ornament-l"
+        "x": 144.949054,
+        "y": 54.196468,
+        "w": 17.954617,
+        "h": 127.64761,
+        "id": "rect16",
+        "label": "line-vru"
       },
       "viewBox": "0 0 18.5009 25.5024",
       "anchorType": "center",
@@ -329,11 +336,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 206.26579,
-        "y": 181.84827,
-        "w": 17.954748,
-        "h": 25.499037,
-        "name": "ornament-r"
+        "x": 15.020583,
+        "y": 54.196854,
+        "w": 18.543831,
+        "h": 127.81532,
+        "id": "rect14",
+        "label": "line-vlu"
       },
       "viewBox": "0 0 17.9547 25.499",
       "anchorType": "center",
@@ -377,11 +385,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 121.19086,
-        "y": 18.926313,
-        "w": 9.1877098,
-        "h": 13.593323,
-        "name": "line-hlu"
+        "x": 144.948994,
+        "y": 181.84827,
+        "w": 17.954748,
+        "h": 25.499037,
+        "id": "rect12-6",
+        "label": "ornament-r"
       },
       "viewBox": "0 0 9.1877 13.5933",
       "anchorType": "edge",
@@ -420,11 +429,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 170.45045,
-        "y": 18.324268,
-        "w": 9.1877098,
-        "h": 13.593323,
-        "name": "line-hru"
+        "x": 15.020583,
+        "y": 182.01216,
+        "w": 18.500916,
+        "h": 25.502405,
+        "id": "rect12",
+        "label": "ornament-l"
       },
       "viewBox": "0 0 9.1877 13.5933",
       "anchorType": "edge",
@@ -463,11 +473,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 76.337379,
-        "y": 54.196854,
-        "w": 18.543831,
-        "h": 127.81532,
-        "name": "line-vlu"
+        "x": 144.951044,
+        "y": 207.34935,
+        "w": 17.952232,
+        "h": 127.18272,
+        "id": "rect17",
+        "label": "line-vrd"
       },
       "viewBox": "0 0 18.5438 127.8153",
       "anchorType": "edge",
@@ -506,11 +517,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 76.337379,
+        "x": 15.020583,
         "y": 207.51457,
         "w": 18.501682,
         "h": 126.96831,
-        "name": "line-vld"
+        "id": "rect15",
+        "label": "line-vld"
       },
       "viewBox": "0 0 18.5017 126.9683",
       "anchorType": "edge",
@@ -549,11 +561,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 206.26585,
-        "y": 54.196468,
-        "w": 17.954617,
-        "h": 127.64761,
-        "name": "line-vru"
+        "x": 15.020583,
+        "y": 334.48288,
+        "w": 44.754242,
+        "h": 44.81636,
+        "id": "rect10-2",
+        "label": "corner-ld"
       },
       "viewBox": "0 0 17.9546 127.6476",
       "anchorType": "edge",
@@ -592,11 +605,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 206.26784,
-        "y": 207.34935,
-        "w": 17.952232,
-        "h": 127.18272,
-        "name": "line-vrd"
+        "x": 118.533314,
+        "y": 334.53207,
+        "w": 44.372002,
+        "h": 44.762356,
+        "id": "rect10-2-2",
+        "label": "corner-rd"
       },
       "viewBox": "0 0 17.9522 127.1827",
       "anchorType": "edge",
@@ -635,11 +649,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 121.09127,
-        "y": 356.86441,
-        "w": 9.2910557,
-        "h": 11.499852,
-        "name": "line-hld"
+        "x": 69.065804,
+        "y": 347.83047,
+        "w": 40.067993,
+        "h": 31.463943,
+        "id": "rect11-1",
+        "label": "ornament-d"
       },
       "viewBox": "0 0 9.2911 11.4999",
       "anchorType": "edge",
@@ -678,11 +693,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 170.45059,
+        "x": 109.133794,
         "y": 355.87317,
-        "w": 9.3995209,
+        "w": 9.399521,
         "h": 13.922643,
-        "name": "line-hrd"
+        "id": "rect19",
+        "label": "line-hrd"
       },
       "viewBox": "0 0 9.3995 13.9226",
       "anchorType": "edge",
@@ -721,11 +737,12 @@
       "type": "frame_part",
       "status": "static_base",
       "sourceCutRect": {
-        "x": 94.838982,
-        "y": 40.930695,
-        "w": 111.43444,
-        "h": 306.89978,
-        "name": "center"
+        "x": 59.774474,
+        "y": 356.86441,
+        "w": 9.291056,
+        "h": 11.499852,
+        "id": "rect18",
+        "label": "line-hld"
       },
       "viewBox": "0 0 111.4344 306.8998",
       "anchorType": "center",
@@ -771,5 +788,12 @@
     }
   ],
   "sourceName": "PRG-frame1.svg",
-  "status": "review_probe"
+  "status": "runtime_probe_recut_review",
+  "sourceLayerId": "layer1",
+  "sourceLayerLabel": "grafika",
+  "cutLayerId": "layer2",
+  "cutLayerLabel": "ciecie",
+  "notes": [
+    "Rect-to-file mapping used geometric order (top-to-bottom, left-to-right). Review in runtime probe."
+  ]
 }

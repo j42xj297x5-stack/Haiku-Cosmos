@@ -1,7 +1,7 @@
 {
   "schemaVersion": "prg_frame_layout_metadata_v0.1",
   "sourceManifest": "assets/visual/prg/prg_frame_manifest.json",
-  "status": "runtime_probe_metadata",
+  "status": "runtime_probe_recut_review",
   "layoutContract": {
     "intendedMode": "frameLineAnchors",
     "coordinateSpace": "asset-local-viewBox",
@@ -385,5 +385,8 @@
         "anchorOffset mirrored from manifest anchorOffset."
       ]
     }
-  }
+  },
+  "notes": [
+    "Recut based on layer1:grafika + layer2:ciecie (source-space viewBox)."
+  ]
 }
