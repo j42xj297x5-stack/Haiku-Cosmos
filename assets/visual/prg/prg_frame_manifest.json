@@ -1,5 +1,5 @@
 {
-  "sourceFile": "svg/PRG-frame.svg",
+  "sourceFile": "svg/PRG-frame1.svg",
   "generatedAt": "2026-05-15T07:33:30Z",
   "outputDir": "assets/visual/prg/svg/frame_parts",
   "extractionMode": "clipPath",
@@ -769,5 +769,7 @@
       ],
       "expectedJoinAnchors": 4
     }
-  ]
+  ],
+  "sourceName": "PRG-frame1.svg",
+  "status": "review_probe"
 }
