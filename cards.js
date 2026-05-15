@@ -398,19 +398,6 @@ const CardEngine = (() => {
     lastLogKey: ""
   };
   const HC_DEBUG_PRG_FRAME_PROBE = !!(typeof window !== "undefined" && window.HC_DEBUG_PRG_FRAME_PROBE);
-  const PRG_FRAME_PROBE_MANIFEST_URL = "/assets/visual/prg/prg_frame_manifest.json";
-  const PRG_FRAME_PROBE_ASSET_BASE = "/assets/visual/prg/svg/frame_parts/";
-  const debugGoldTint = "#d4af37";
-  const temporaryPrgFrameTint = debugGoldTint;
-  const prgFrameProbeState = {
-    requested: false,
-    status: "idle",
-    assets: [],
-    imageById: new Map(),
-    loaded: 0,
-    failed: 0,
-    warnings: []
-  };
   const SUB_META_SLOT_COLORS = {
     forma: "red",
     intencja: "yellow",
@@ -4531,102 +4518,19 @@ const CardEngine = (() => {
     };
   }
 
-  function requestPrgFrameProbeAssets() {
-    if (!HC_DEBUG_PRG_FRAME_PROBE || prgFrameProbeState.requested || typeof fetch !== "function" || typeof Image === "undefined") return;
-    prgFrameProbeState.requested = true;
-    prgFrameProbeState.status = "loading_manifest";
-    fetch(PRG_FRAME_PROBE_MANIFEST_URL, { cache: "no-store" })
-      .then((resp) => (resp && resp.ok ? resp.json() : null))
-      .then((manifest) => {
-        const assets = Array.isArray(manifest?.assets) ? manifest.assets : [];
-        prgFrameProbeState.assets = assets;
-        prgFrameProbeState.status = "loading_assets";
-        assets.forEach((asset) => {
-          const img = new Image();
-          img.onload = () => { prgFrameProbeState.loaded += 1; };
-          img.onerror = () => {
-            prgFrameProbeState.failed += 1;
-            prgFrameProbeState.warnings.push(`failed:${asset.file}`);
-          };
-          img.src = `${PRG_FRAME_PROBE_ASSET_BASE}${asset.file}`;
-          prgFrameProbeState.imageById.set(asset.id, img);
-        });
-      })
-      .catch((error) => {
-        prgFrameProbeState.status = "error";
-        prgFrameProbeState.warnings.push(String(error && (error.message || error)));
-      });
-  }
-
-  function drawProbeTintedPart(ctx, img, x, y, w, h) {
-    ctx.drawImage(img, x, y, w, h);
-    ctx.save();
-    ctx.globalCompositeOperation = "source-atop";
-    ctx.globalAlpha = 0.88;
-    ctx.fillStyle = temporaryPrgFrameTint;
-    ctx.fillRect(x, y, w, h);
-    ctx.restore();
-  }
-
   function drawPrgFrameRuntimeProbe(ctx, prgRect) {
     if (!HC_DEBUG_PRG_FRAME_PROBE || !ctx || !prgRect) return;
-    requestPrgFrameProbeAssets();
-    const assets = prgFrameProbeState.assets;
-    if (!assets.length) return;
-    const allRects = assets.map((a) => a.sourceCutRect).filter(Boolean);
-    const minX = Math.min(...allRects.map((r) => Number(r.x)));
-    const minY = Math.min(...allRects.map((r) => Number(r.y)));
-    const maxX = Math.max(...allRects.map((r) => Number(r.x) + Number(r.w)));
-    const maxY = Math.max(...allRects.map((r) => Number(r.y) + Number(r.h)));
-    const srcW = Math.max(1, maxX - minX);
-    const srcH = Math.max(1, maxY - minY);
-    const scale = Math.min(prgRect.w / srcW, prgRect.h / srcH);
-    const mountW = srcW * scale;
-    const mountH = srcH * scale;
-    const mountX = prgRect.x + (prgRect.w - mountW) / 2;
-    const mountY = prgRect.y + (prgRect.h - mountH) / 2;
-    const centerX = prgRect.x + prgRect.w / 2;
-    const centerY = prgRect.y + prgRect.h / 2;
-    const warnings = [];
-    assets.forEach((asset) => {
-      const r = asset.sourceCutRect || {};
-      const w = Number(r.w) * scale;
-      const h = Number(r.h) * scale;
-      const x = mountX + (Number(r.x) - minX) * scale;
-      const y = mountY + (Number(r.y) - minY) * scale;
-      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) warnings.push(`size:${asset.id}`);
-      if (x + w < prgRect.x || y + h < prgRect.y || x > prgRect.x + prgRect.w || y > prgRect.y + prgRect.h) warnings.push(`outside:${asset.id}`);
-      const img = prgFrameProbeState.imageById.get(asset.id);
-      if (img && img.complete && img.naturalWidth > 0) drawProbeTintedPart(ctx, img, x, y, w, h);
-      ctx.save();
-      ctx.strokeStyle = "rgba(255,215,0,0.75)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 0.5, y + 0.5, Math.max(0, w - 1), Math.max(0, h - 1));
-      ctx.fillStyle = "rgba(255,220,140,0.95)";
-      ctx.font = "10px ui-monospace, monospace";
-      ctx.fillText(asset.file, x + 2, y + 10);
-      const anchors = asset.anchors || {};
-      Object.keys(anchors).forEach((key) => {
-        const a = anchors[key];
-        const ax = x + Number(a.x || 0) * scale;
-        const ay = y + Number(a.y || 0) * scale;
-        ctx.fillRect(ax - 1, ay - 1, 3, 3);
-      });
-      ctx.restore();
+    const probe = (typeof window !== "undefined" && window.HC && window.HC.PrgFrameProbe)
+      ? window.HC.PrgFrameProbe
+      : null;
+    if (!probe || typeof probe.draw !== "function") return;
+    probe.draw(ctx, prgRect, {
+      mode: "sourceCutRectFitProbe",
+      debugGoldTint: "#d4af37",
+      temporaryPrgFrameTint: "#d4af37",
+      debugOverlay: true,
+      tintAlpha: 0.88
     });
-    ctx.save();
-    ctx.strokeStyle = "rgba(0,255,255,0.85)";
-    ctx.lineWidth = 1.25;
-    ctx.strokeRect(prgRect.x + 0.5, prgRect.y + 0.5, prgRect.w - 1, prgRect.h - 1);
-    ctx.beginPath();
-    ctx.moveTo(centerX - 7, centerY); ctx.lineTo(centerX + 7, centerY);
-    ctx.moveTo(centerX, centerY - 7); ctx.lineTo(centerX, centerY + 7);
-    ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.font = "11px ui-monospace, monospace";
-    ctx.fillText(`PRG probe loaded=${prgFrameProbeState.loaded} failed=${prgFrameProbeState.failed} dpr=${(window.devicePixelRatio || 1).toFixed(2)}`, prgRect.x, prgRect.y - 8);
-    if (warnings.length) ctx.fillText(`WARN ${warnings.join(",")}`, prgRect.x, prgRect.y + prgRect.h + 14);
-    ctx.restore();
   }
 
   function drawSubMetaRootFrameWithComposer(ctx, layout) {
