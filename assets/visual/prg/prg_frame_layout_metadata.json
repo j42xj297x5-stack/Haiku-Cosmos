@@ -1,0 +1,389 @@
+{
+  "schemaVersion": "prg_frame_layout_metadata_v0.1",
+  "sourceManifest": "assets/visual/prg/prg_frame_manifest.json",
+  "status": "runtime_probe_metadata",
+  "layoutContract": {
+    "intendedMode": "frameLineAnchors",
+    "coordinateSpace": "asset-local-viewBox",
+    "targetSpace": "runtime-canvas-css-px",
+    "notes": [
+      "Heuristic pass for runtime probe readiness only; not production FrameComposer layout truth."
+    ]
+  },
+  "parts": {
+    "corner_lu.svg": {
+      "role": "corner_tl",
+      "anchorType": "corner",
+      "anchorOffset": {
+        "x": -12.1034,
+        "y": -5.7655
+      },
+      "lineInset": 0,
+      "cornerRun": 44.8154,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 44.8575,
+        "h": 44.8154
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "corner_ld.svg": {
+      "role": "corner_bl",
+      "anchorType": "corner",
+      "anchorOffset": {
+        "x": -12.0558,
+        "y": 5.7482
+      },
+      "lineInset": 0,
+      "cornerRun": 44.7542,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 44.7542,
+        "h": 44.8164
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "corner_rd.svg": {
+      "role": "corner_br",
+      "anchorType": "corner",
+      "anchorOffset": {
+        "x": 12.1572,
+        "y": 5.7261
+      },
+      "lineInset": 0,
+      "cornerRun": 44.372,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 44.372,
+        "h": 44.7624
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "corner_ru.svg": {
+      "role": "corner_tr",
+      "anchorType": "corner",
+      "anchorOffset": {
+        "x": 12.2636,
+        "y": -5.7669
+      },
+      "lineInset": 0,
+      "cornerRun": 44.5831,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 44.5831,
+        "h": 44.8116
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "ornament_u.svg": {
+      "role": "ornament_center",
+      "anchorType": "center",
+      "anchorOffset": {
+        "x": 0.0059,
+        "y": 0.8769
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 40.0796,
+        "h": 31.5209
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "ornament_d.svg": {
+      "role": "ornament_center",
+      "anchorType": "center",
+      "anchorOffset": {
+        "x": 0.0,
+        "y": -0.9231
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 40.068,
+        "h": 31.4639
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "ornament_l.svg": {
+      "role": "ornament_center",
+      "anchorType": "center",
+      "anchorOffset": {
+        "x": 1.0709,
+        "y": -0.1676
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 18.5009,
+        "h": 25.5024
+      },
+      "densityBehavior": "small",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "ornament_r.svg": {
+      "role": "ornament_center",
+      "anchorType": "center",
+      "anchorOffset": {
+        "x": -1.0499,
+        "y": -0.0021
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 17.9547,
+        "h": 25.499
+      },
+      "densityBehavior": "small",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "line_hlu.svg": {
+      "role": "edge_top",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": -0.0,
+        "y": 0.3048
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "x",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 9.1877,
+        "h": 13.5933
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "line_hru.svg": {
+      "role": "edge_top",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 0.0,
+        "y": 0.9027
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "x",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 9.1877,
+        "h": 13.5933
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "line_vlu.svg": {
+      "role": "edge_left",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 1.0494,
+        "y": -0.6981
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "y",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 18.5438,
+        "h": 127.8153
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "line_vld.svg": {
+      "role": "edge_left",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 1.0705,
+        "y": -2.6361
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "y",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 18.5017,
+        "h": 126.9683
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "line_vru.svg": {
+      "role": "edge_left",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": -1.0498,
+        "y": -0.6886
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "y",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 17.9546,
+        "h": 127.6476
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "line_vrd.svg": {
+      "role": "edge_left",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": -1.0506,
+        "y": -2.5529
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "y",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 17.9522,
+        "h": 127.1827
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "line_hld.svg": {
+      "role": "edge_bottom",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 0.0499,
+        "y": -0.0
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "x",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 9.2911,
+        "h": 11.4999
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "line_hrd.svg": {
+      "role": "edge_bottom",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 0.0,
+        "y": -0.1952
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "x",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 9.3995,
+        "h": 13.9226
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    },
+    "center.svg": {
+      "role": "ornament_center",
+      "anchorType": "center",
+      "anchorOffset": {
+        "x": -0.1396,
+        "y": 0.2151
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 111.4344,
+        "h": 306.8998
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "derived_from_join_anchors",
+      "notes": [
+        "safeMinSize estimated from sourceCutRect dimensions.",
+        "anchorOffset mirrored from manifest anchorOffset."
+      ]
+    }
+  }
+}
