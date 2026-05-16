@@ -9,7 +9,8 @@
     mode: "frameRectHeightMountProbe",
     debugGoldTint: "#d4af37",
     tintAlpha: 0.88,
-    layoutMetadataUrl: "/assets/visual/prg/prg_frame_layout_metadata.json"
+    layoutMetadataUrl: "/assets/visual/prg/prg_frame_layout_metadata.json",
+    stretchFillCenterToTargetWidth: true
   };
 
   const state = {
@@ -57,6 +58,8 @@
     }
 
     const diagnostics = buildMetadataDiagnostics(assets, layoutMetadata);
+    const stretchFillCenterToTargetWidth = opts.stretchFillCenterToTargetWidth !== false;
+    let fillCenterProbeInfo = null;
 
     if (mode === "frameLineAnchors") {
       if (!diagnostics.loaded) {
@@ -167,7 +170,24 @@
       if (role === "ornament_r") { x = xRight; y = frameLineRect.y + (frameLineRect.h - hFit) * 0.5; }
       if (role === "ornament_u") { x = frameLineRect.x + (frameLineRect.w - wFit) * 0.5; y = yTop; }
       if (role === "ornament_d") { x = frameLineRect.x + (frameLineRect.w - wFit) * 0.5; y = yBottom; }
-      if (role === "fill_center") { x = frameLineRect.x + (frameLineRect.w - wFit) * 0.5; y = frameLineRect.y + (frameLineRect.h - hFit) * 0.5; }
+      if (role === "fill_center") {
+        if (stretchFillCenterToTargetWidth) {
+          x = targetRect.x;
+          y = frameLineRect.y + (frameLineRect.h - hFit) * 0.5;
+          w = targetRect.w;
+          h = hFit;
+          fillCenterProbeInfo = {
+            mode: "x-only-full-target-width",
+            naturalSize: { w: sw, h: sh },
+            fittedSizeBeforeStretch: { w: wFit, h: hFit },
+            destRect: { x, y, w, h }
+          };
+          warnings.push("fill_center_x_stretch_probe");
+        } else {
+          x = frameLineRect.x + (frameLineRect.w - wFit) * 0.5;
+          y = frameLineRect.y + (frameLineRect.h - hFit) * 0.5;
+        }
+      }
       if (isTopLeftEdge || isTopRightEdge || isBottomLeftEdge || isBottomRightEdge) {
         y = (isTopLeftEdge || isTopRightEdge) ? yTop : yBottom;
         const leftCap = Math.max(1, frameLineRect.w * 0.5 - wFit * 0.5);
@@ -205,7 +225,8 @@
       center: { x: targetRect.x + targetRect.w / 2, y: targetRect.y + targetRect.h / 2 },
       parts,
       warnings,
-      metadataDiagnostics: diagnostics
+      metadataDiagnostics: diagnostics,
+      fillCenterProbeInfo
     };
   }
 
@@ -369,6 +390,12 @@
       if (state.firstResolvedAssetUrl) ctx.fillText(`assetUrl=${state.firstResolvedAssetUrl}`, prgRect.x, prgRect.y + prgRect.h + 98);
       if (layout.bounds && finite(layout.bounds.baseScale)) {
         ctx.fillText(`baseScale=${layout.bounds.baseScale.toFixed(4)} mode=${layout.mode}`, prgRect.x, prgRect.y + prgRect.h + 14);
+      }
+      if (layout.fillCenterProbeInfo) {
+        const fc = layout.fillCenterProbeInfo;
+        const d = fc.destRect;
+        ctx.fillText(`fill_center stretch=${fc.mode} natural=${fc.naturalSize.w.toFixed(2)}x${fc.naturalSize.h.toFixed(2)}`, prgRect.x, prgRect.y + prgRect.h + 126);
+        ctx.fillText(`fill_center destRect x=${d.x.toFixed(2)} y=${d.y.toFixed(2)} w=${d.w.toFixed(2)} h=${d.h.toFixed(2)}`, prgRect.x, prgRect.y + prgRect.h + 140);
       }
       const md = layout.metadataDiagnostics || buildMetadataDiagnostics(state.assets, state.layoutMetadata);
       if (opts.showMetadata !== false) {
