@@ -10,7 +10,8 @@
     debugGoldTint: "#d4af37",
     tintAlpha: 0.88,
     layoutMetadataUrl: "/assets/visual/prg/prg_frame_layout_metadata.json",
-    stretchFillCenterToTargetWidth: true
+    stretchFillCenterToTargetWidth: true,
+    fillCenterMode: "rotate_left_fit_width"
   };
 
   const state = {
@@ -58,6 +59,7 @@
     }
 
     const diagnostics = buildMetadataDiagnostics(assets, layoutMetadata);
+    const fillCenterMode = typeof opts.fillCenterMode === "string" ? opts.fillCenterMode : DEFAULTS.fillCenterMode;
     const stretchFillCenterToTargetWidth = opts.stretchFillCenterToTargetWidth !== false;
     let fillCenterProbeInfo = null;
 
@@ -171,7 +173,29 @@
       if (role === "ornament_u") { x = frameLineRect.x + (frameLineRect.w - wFit) * 0.5; y = yTop; }
       if (role === "ornament_d") { x = frameLineRect.x + (frameLineRect.w - wFit) * 0.5; y = yBottom; }
       if (role === "fill_center") {
-        if (stretchFillCenterToTargetWidth) {
+        if (fillCenterMode === "rotate_left_fit_width") {
+          const rotatedNaturalWidth = sh;
+          const rotatedNaturalHeight = sw;
+          const scale = rotatedNaturalWidth > 0 ? targetRect.w / rotatedNaturalWidth : 1;
+          const destW = targetRect.w;
+          const destH = rotatedNaturalHeight * scale;
+          const centerX = targetRect.x + targetRect.w * 0.5;
+          const centerY = targetRect.y + targetRect.h * 0.5;
+          x = centerX - destW * 0.5;
+          y = centerY - destH * 0.5;
+          w = destW;
+          h = destH;
+          fillCenterProbeInfo = {
+            mode: "fill_center_rotate_left_fit_width_probe",
+            naturalSize: { w: sw, h: sh },
+            rotatedNaturalSize: { w: rotatedNaturalWidth, h: rotatedNaturalHeight },
+            scale,
+            center: { x: centerX, y: centerY },
+            destRect: { x, y, w, h },
+            rotationRad: -Math.PI / 2
+          };
+          warnings.push("fill_center_rotated_left_fit_width_probe");
+        } else if (stretchFillCenterToTargetWidth) {
           x = targetRect.x;
           y = frameLineRect.y + (frameLineRect.h - hFit) * 0.5;
           w = targetRect.w;
@@ -331,14 +355,27 @@
     const opts = Object.assign({}, DEFAULTS, options || {});
     requestAssets(opts);
     if (!state.assets.length) return null;
-    const layout = computeLayout({ assets: state.assets }, prgRect, { mode: opts.mode }, state.layoutMetadata);
+    const layout = computeLayout({ assets: state.assets }, prgRect, { mode: opts.mode, fillCenterMode: opts.fillCenterMode }, state.layoutMetadata);
 
     layout.parts.forEach((part) => {
       if (!part.destRect) return;
       const { x, y, w, h } = part.destRect;
       const img = state.imageById.get(part.id);
       if (img && img.complete && img.naturalWidth > 0) {
-        ctx.drawImage(img, x, y, w, h);
+        const useRotateLeftProbe = part.role === "fill_center"
+          && layout.fillCenterProbeInfo
+          && layout.fillCenterProbeInfo.mode === "fill_center_rotate_left_fit_width_probe";
+        if (useRotateLeftProbe) {
+          const centerX = x + w * 0.5;
+          const centerY = y + h * 0.5;
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate(-Math.PI / 2);
+          ctx.drawImage(img, -h * 0.5, -w * 0.5, h, w);
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, x, y, w, h);
+        }
         if (opts.debugGoldTint || opts.temporaryPrgFrameTint) {
           ctx.save();
           ctx.globalCompositeOperation = "source-atop";
@@ -394,8 +431,13 @@
       if (layout.fillCenterProbeInfo) {
         const fc = layout.fillCenterProbeInfo;
         const d = fc.destRect;
-        ctx.fillText(`fill_center stretch=${fc.mode} natural=${fc.naturalSize.w.toFixed(2)}x${fc.naturalSize.h.toFixed(2)}`, prgRect.x, prgRect.y + prgRect.h + 126);
-        ctx.fillText(`fill_center destRect x=${d.x.toFixed(2)} y=${d.y.toFixed(2)} w=${d.w.toFixed(2)} h=${d.h.toFixed(2)}`, prgRect.x, prgRect.y + prgRect.h + 140);
+        ctx.fillText(`fill_center mode=${fc.mode} natural=${fc.naturalSize.w.toFixed(2)}x${fc.naturalSize.h.toFixed(2)}`, prgRect.x, prgRect.y + prgRect.h + 126);
+        if (fc.rotatedNaturalSize) {
+          ctx.fillText(`fill_center rotatedNatural=${fc.rotatedNaturalSize.w.toFixed(2)}x${fc.rotatedNaturalSize.h.toFixed(2)} scale=${finite(fc.scale) ? fc.scale.toFixed(4) : "n/a"}`, prgRect.x, prgRect.y + prgRect.h + 140);
+          ctx.strokeStyle = "rgba(0, 255, 120, 0.95)";
+          ctx.strokeRect(d.x + 0.5, d.y + 0.5, Math.max(0, d.w - 1), Math.max(0, d.h - 1));
+        }
+        ctx.fillText(`fill_center destRect x=${d.x.toFixed(2)} y=${d.y.toFixed(2)} w=${d.w.toFixed(2)} h=${d.h.toFixed(2)}`, prgRect.x, prgRect.y + prgRect.h + 154);
       }
       const md = layout.metadataDiagnostics || buildMetadataDiagnostics(state.assets, state.layoutMetadata);
       if (opts.showMetadata !== false) {
