@@ -209,11 +209,11 @@
       enabled: false,
       mode: "sourceCutRectFitProbe",
       goldTint: true,
-      showOverlay: true,
-      showBounds: true,
-      showAnchors: true,
-      showLabels: true,
-      showMetadata: true,
+      showOverlay: false,
+      showBounds: false,
+      showAnchors: false,
+      showLabels: false,
+      showMetadata: false,
     };
   }
 
@@ -250,11 +250,11 @@
           enabled: prgProbePartial.enabled === true,
           mode: typeof prgProbePartial.mode === "string" ? prgProbePartial.mode : defaultProbe.mode,
           goldTint: prgProbePartial.goldTint !== false,
-          showOverlay: prgProbePartial.showOverlay !== false,
-          showBounds: prgProbePartial.showBounds !== false,
-          showAnchors: prgProbePartial.showAnchors !== false,
-          showLabels: prgProbePartial.showLabels !== false,
-          showMetadata: prgProbePartial.showMetadata !== false,
+          showOverlay: prgProbePartial.showOverlay === true,
+          showBounds: prgProbePartial.showBounds === true,
+          showAnchors: prgProbePartial.showAnchors === true,
+          showLabels: prgProbePartial.showLabels === true,
+          showMetadata: prgProbePartial.showMetadata === true,
         },
       },
     };

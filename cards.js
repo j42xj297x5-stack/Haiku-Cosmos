@@ -4529,11 +4529,11 @@ const CardEngine = (() => {
         enabled: true,
         mode: "frameRectHeightMountProbe",
         goldTint: true,
-        showOverlay: true,
-        showBounds: true,
-        showAnchors: true,
+        showOverlay: false,
+        showBounds: false,
+        showAnchors: false,
         showLabels: false,
-        showMetadata: true,
+        showMetadata: false,
       };
     }
     return null;
@@ -4549,11 +4549,11 @@ const CardEngine = (() => {
       mode: probeCfg.mode || "frameRectHeightMountProbe",
       debugGoldTint: probeCfg.goldTint === false ? null : "#d4af37",
       temporaryPrgFrameTint: probeCfg.goldTint === false ? null : "#d4af37",
-      debugOverlay: probeCfg.showOverlay !== false,
-      showBounds: probeCfg.showBounds !== false,
-      showAnchors: probeCfg.showAnchors !== false,
-      showLabels: probeCfg.showLabels !== false,
-      showMetadata: probeCfg.showMetadata !== false,
+      debugOverlay: probeCfg.showOverlay === true,
+      showBounds: probeCfg.showBounds === true,
+      showAnchors: probeCfg.showAnchors === true,
+      showLabels: probeCfg.showLabels === true,
+      showMetadata: probeCfg.showMetadata === true,
       tintAlpha: 0.88
     });
   }

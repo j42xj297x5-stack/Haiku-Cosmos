@@ -567,11 +567,11 @@
           <div class="overlay-grid">
             ${renderPrgCheckboxRow("dbgPrgEnabled", "Enable PRG frame probe", cfg.enabled)}
             ${renderPrgCheckboxRow("dbgPrgGoldTint", "Temporary gold tint", cfg.goldTint !== false)}
-            ${renderPrgCheckboxRow("dbgPrgOverlay", "Show debug overlay", cfg.showOverlay !== false)}
-            ${renderPrgCheckboxRow("dbgPrgBounds", "Show part bounds", cfg.showBounds !== false)}
-            ${renderPrgCheckboxRow("dbgPrgAnchors", "Show anchors / join points", cfg.showAnchors !== false)}
-            ${renderPrgCheckboxRow("dbgPrgLabels", "Show labels", cfg.showLabels !== false)}
-            ${renderPrgCheckboxRow("dbgPrgMetadata", "Show metadata readiness", cfg.showMetadata !== false)}
+            ${renderPrgCheckboxRow("dbgPrgOverlay", "Show debug overlay", cfg.showOverlay === true)}
+            ${renderPrgCheckboxRow("dbgPrgBounds", "Show part bounds", cfg.showBounds === true)}
+            ${renderPrgCheckboxRow("dbgPrgAnchors", "Show anchors / join points", cfg.showAnchors === true)}
+            ${renderPrgCheckboxRow("dbgPrgLabels", "Show labels", cfg.showLabels === true)}
+            ${renderPrgCheckboxRow("dbgPrgMetadata", "Show metadata readiness", cfg.showMetadata === true)}
             <label class="overlay-select-row" for="dbgPrgMode">Probe mode <select id="dbgPrgMode">${modeOptions}</select></label>
           </div>
         </section>
