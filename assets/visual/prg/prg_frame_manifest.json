@@ -1,341 +1,482 @@
 {
+  "schemaVersion": "prg_frame_manifest_v0.2",
   "sourceFile": "svg/PRG-plain.svg",
+  "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+  "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+  "sourceGeometry": "layer1/path1",
   "sourceGeometryLayer": "layer1/path1",
   "cutLayer": "layer2",
   "centerLayer": "layer3",
   "anchorLayer": "layer4",
   "assetCount": 17,
-  "generatedAt": "2026-05-15T18:56:12Z",
-  "status": "review/runtime_probe_recut",
+  "generatedAt": "2026-05-16T00:00:00+02:00",
+  "status": "figma_cut_review",
+  "cutMethod": "Figma staging boolean/intersect/flatten; local SVG files written with equivalent vector path boolean intersection against mapped layer2 rectangles.",
   "assets": [
     {
       "index": 1,
+      "id": "ornament_l",
       "file": "ornament_l.svg",
       "role": "ornament_l",
-      "sourceCutRect": {
-        "x": 76.333336,
-        "y": 9.3814602,
-        "w": 44.857525,
-        "h": 44.815365,
-        "id": "rect10"
-      },
       "cutRectPlainId": "rect12",
       "centerPlainId": "path19-1-6-8",
       "joinAnchors": [
-        "line-hlu-l",
-        "line-hlu-r",
-        "ornament-u-d"
+        "ornament-l-u",
+        "ornament-l-r",
+        "ornament-l-d"
       ],
-      "status": "review/runtime_probe_recut"
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect12",
+      "sourceCutRect": {
+        "x": 76.3374,
+        "y": 182.0122,
+        "w": 18.5009,
+        "h": 25.5024,
+        "id": "rect12"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     },
     {
       "index": 2,
+      "id": "ornament_u",
       "file": "ornament_u.svg",
       "role": "ornament_u",
-      "sourceCutRect": {
-        "x": 76.337379,
-        "y": 334.48288,
-        "w": 44.754242,
-        "h": 44.81636,
-        "id": "rect10-2"
-      },
       "cutRectPlainId": "rect11",
       "centerPlainId": "path19-4",
       "joinAnchors": [
-        "fill-center-u",
-        "fill-center-l",
-        "ornament-l-r"
+        "ornament-u-l",
+        "ornament-u-d",
+        "ornament-u-r"
       ],
-      "status": "review/runtime_probe_recut"
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect11",
+      "sourceCutRect": {
+        "x": 130.371,
+        "y": 9.3863,
+        "w": 40.0796,
+        "h": 31.5209,
+        "id": "rect11"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     },
     {
       "index": 3,
+      "id": "ornament_r",
       "file": "ornament_r.svg",
       "role": "ornament_r",
-      "sourceCutRect": {
-        "x": 179.85011,
-        "y": 334.53207,
-        "w": 44.372002,
-        "h": 44.762356,
-        "id": "rect10-2-2"
-      },
       "cutRectPlainId": "rect12-6",
       "centerPlainId": "path19-1",
       "joinAnchors": [
-        "fill-center-r",
+        "ornament-r-u",
         "ornament-r-l",
-        "ornament-u-l"
+        "ornament-r-d"
       ],
-      "status": "review/runtime_probe_recut"
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect12-6",
+      "sourceCutRect": {
+        "x": 206.2658,
+        "y": 181.8483,
+        "w": 17.9547,
+        "h": 25.499,
+        "id": "rect12-6"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     },
     {
       "index": 4,
+      "id": "ornament_d",
       "file": "ornament_d.svg",
       "role": "ornament_d",
-      "sourceCutRect": {
-        "x": 179.6382,
-        "y": 9.384757,
-        "w": 44.583054,
-        "h": 44.811615,
-        "id": "rect10-8"
-      },
       "cutRectPlainId": "rect11-1",
       "centerPlainId": "path19",
       "joinAnchors": [
-        "ornament-u-r",
-        "line-hru-l",
-        "line-hru-r"
+        "ornament-d-l",
+        "ornament-d-u",
+        "ornament-d-r"
       ],
-      "status": "review/runtime_probe_recut"
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect11-1",
+      "sourceCutRect": {
+        "x": 130.3826,
+        "y": 347.8305,
+        "w": 40.068,
+        "h": 31.4639,
+        "id": "rect11-1"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     },
     {
       "index": 5,
+      "id": "corner_lu",
       "file": "corner_lu.svg",
       "role": "corner_lu",
-      "sourceCutRect": {
-        "x": 130.37096,
-        "y": 9.3862743,
-        "w": 40.079571,
-        "h": 31.520903,
-        "id": "rect11"
-      },
       "cutRectPlainId": "rect10",
       "centerPlainId": "path19-6-6",
+      "joinAnchors": [
+        "corner-lu-d",
+        "corner-lu-r"
+      ],
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect10",
+      "sourceCutRect": {
+        "x": 76.3333,
+        "y": 9.3815,
+        "w": 44.8575,
+        "h": 44.8154,
+        "id": "rect10"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
+    },
+    {
+      "index": 6,
+      "id": "corner_ru",
+      "file": "corner_ru.svg",
+      "role": "corner_ru",
+      "cutRectPlainId": "rect10-8",
+      "centerPlainId": "path19-6",
       "joinAnchors": [
         "corner-ru-l",
         "corner-ru-d"
       ],
-      "status": "review/runtime_probe_recut"
-    },
-    {
-      "index": 6,
-      "file": "corner_ru.svg",
-      "role": "corner_ru",
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect10-8",
       "sourceCutRect": {
-        "x": 130.3826,
-        "y": 347.83047,
-        "w": 40.067993,
-        "h": 31.463943,
-        "id": "rect11-1"
+        "x": 179.6382,
+        "y": 9.3848,
+        "w": 44.5831,
+        "h": 44.8116,
+        "id": "rect10-8"
       },
-      "cutRectPlainId": "rect10-8",
-      "centerPlainId": "path19-6",
-      "joinAnchors": [
-        "line-vld-d",
-        "line-vld-u"
-      ],
-      "status": "review/runtime_probe_recut"
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     },
     {
       "index": 7,
+      "id": "corner_ld",
       "file": "corner_ld.svg",
       "role": "corner_ld",
-      "sourceCutRect": {
-        "x": 76.337379,
-        "y": 182.01216,
-        "w": 18.500916,
-        "h": 25.502405,
-        "id": "rect12"
-      },
       "cutRectPlainId": "rect10-2",
       "centerPlainId": "path19-9",
       "joinAnchors": [
-        "ornament-l-d",
-        "ornament-l-u"
+        "corner-ld-u",
+        "corner-ld-r"
       ],
-      "status": "review/runtime_probe_recut"
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect10-2",
+      "sourceCutRect": {
+        "x": 76.3374,
+        "y": 334.4829,
+        "w": 44.7542,
+        "h": 44.8164,
+        "id": "rect10-2"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     },
     {
       "index": 8,
+      "id": "corner_rd",
       "file": "corner_rd.svg",
       "role": "corner_rd",
-      "sourceCutRect": {
-        "x": 206.26579,
-        "y": 181.84827,
-        "w": 17.954748,
-        "h": 25.499037,
-        "id": "rect12-6"
-      },
       "cutRectPlainId": "rect10-2-2",
       "centerPlainId": "path19-9-2",
       "joinAnchors": [
-        "line-vlu-d",
-        "line-vlu-u"
+        "corner-rd-l",
+        "corner-rd-u"
       ],
-      "status": "review/runtime_probe_recut"
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect10-2-2",
+      "sourceCutRect": {
+        "x": 179.8501,
+        "y": 334.5321,
+        "w": 44.372,
+        "h": 44.7624,
+        "id": "rect10-2-2"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     },
     {
       "index": 9,
+      "id": "line_hlu",
       "file": "line_hlu.svg",
       "role": "line_hlu",
-      "sourceCutRect": {
-        "x": 121.19086,
-        "y": 18.926313,
-        "w": 9.1877098,
-        "h": 13.593323,
-        "id": "rect13"
-      },
       "cutRectPlainId": "rect13",
       "centerPlainId": "path19-9-2-2",
       "joinAnchors": [
-        "corner-lu-r",
-        "corner-lu-d"
+        "line-hlu-l",
+        "line-hlu-r"
       ],
-      "status": "review/runtime_probe_recut"
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect13",
+      "sourceCutRect": {
+        "x": 121.1909,
+        "y": 18.9263,
+        "w": 9.1877,
+        "h": 13.5933,
+        "id": "rect13"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     },
     {
       "index": 10,
+      "id": "line_hru",
       "file": "line_hru.svg",
       "role": "line_hru",
-      "sourceCutRect": {
-        "x": 170.45045,
-        "y": 18.324268,
-        "w": 9.1877098,
-        "h": 13.593323,
-        "id": "rect13-1"
-      },
       "cutRectPlainId": "rect13-1",
       "centerPlainId": "path19-9-2-2-9",
+      "joinAnchors": [
+        "line-hru-l",
+        "line-hru-r"
+      ],
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect13-1",
+      "sourceCutRect": {
+        "x": 170.4504,
+        "y": 18.3243,
+        "w": 9.1877,
+        "h": 13.5933,
+        "id": "rect13-1"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "missing_center_plain_id_in_source_and_figma",
+      "status": "figma_cut_review"
+    },
+    {
+      "index": 11,
+      "id": "line_hld",
+      "file": "line_hld.svg",
+      "role": "line_hld",
+      "cutRectPlainId": "rect8",
+      "centerPlainId": "path19-9-2-2",
+      "joinAnchors": [
+        "line-hld-l",
+        "line-hld-r"
+      ],
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect18",
+      "sourceCutRect": {
+        "x": 121.0913,
+        "y": 356.8644,
+        "w": 9.2911,
+        "h": 11.4999,
+        "id": "rect18"
+      },
+      "cutRectSourceStatus": "figma_layer2_id_missing_used_available_counterpart",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
+    },
+    {
+      "index": 12,
+      "id": "line_hrd",
+      "file": "line_hrd.svg",
+      "role": "line_hrd",
+      "cutRectPlainId": "rect9",
+      "centerPlainId": "path19-9-2-1",
+      "joinAnchors": [
+        "line-hrd-l",
+        "line-hrd-r"
+      ],
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect19",
+      "sourceCutRect": {
+        "x": 170.4506,
+        "y": 355.8732,
+        "w": 9.3995,
+        "h": 13.9226,
+        "id": "rect19"
+      },
+      "cutRectSourceStatus": "figma_layer2_id_missing_used_available_counterpart",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
+    },
+    {
+      "index": 13,
+      "id": "line_vlu",
+      "file": "line_vlu.svg",
+      "role": "line_vlu",
+      "cutRectPlainId": "rect14",
+      "centerPlainId": "path19-1-0-2-0",
+      "joinAnchors": [
+        "line-vlu-u",
+        "line-vlu-d"
+      ],
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect14",
+      "sourceCutRect": {
+        "x": 76.3374,
+        "y": 54.1969,
+        "w": 18.5438,
+        "h": 127.8153,
+        "id": "rect14"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
+    },
+    {
+      "index": 14,
+      "id": "line_vru",
+      "file": "line_vru.svg",
+      "role": "line_vru",
+      "cutRectPlainId": "rect16",
+      "centerPlainId": "path19-1-0-2-1",
       "joinAnchors": [
         "line-vru-u",
         "line-vru-d"
       ],
-      "status": "review/runtime_probe_recut"
-    },
-    {
-      "index": 11,
-      "file": "line_hld.svg",
-      "role": "line_hld",
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect16",
       "sourceCutRect": {
-        "x": 76.337379,
-        "y": 54.196854,
-        "w": 18.543831,
-        "h": 127.81532,
-        "id": "rect14"
+        "x": 206.2659,
+        "y": 54.1965,
+        "w": 17.9546,
+        "h": 127.6476,
+        "id": "rect16"
       },
-      "cutRectPlainId": "rect8",
-      "centerPlainId": "path19-9-2-2",
-      "joinAnchors": [
-        "ornament-r-u",
-        "ornament-r-d"
-      ],
-      "status": "review/runtime_probe_recut"
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     },
     {
-      "index": 12,
-      "file": "line_hrd.svg",
-      "role": "line_hrd",
+      "index": 15,
+      "id": "line_vld",
+      "file": "line_vld.svg",
+      "role": "line_vld",
+      "cutRectPlainId": "rect15",
+      "centerPlainId": "path19-1-0-2",
+      "joinAnchors": [
+        "line-vld-u",
+        "line-vld-d"
+      ],
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect15",
       "sourceCutRect": {
-        "x": 76.337379,
-        "y": 207.51457,
-        "w": 18.501682,
-        "h": 126.96831,
+        "x": 76.3374,
+        "y": 207.5146,
+        "w": 18.5017,
+        "h": 126.9683,
         "id": "rect15"
       },
-      "cutRectPlainId": "rect9",
-      "centerPlainId": "path19-9-2-1",
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
+    },
+    {
+      "index": 16,
+      "id": "line_vrd",
+      "file": "line_vrd.svg",
+      "role": "line_vrd",
+      "cutRectPlainId": "rect17",
+      "centerPlainId": "path19-1-0",
       "joinAnchors": [
         "line-vrd-u",
         "line-vrd-d"
       ],
-      "status": "review/runtime_probe_recut"
-    },
-    {
-      "index": 13,
-      "file": "line_vlu.svg",
-      "role": "line_vlu",
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect17",
       "sourceCutRect": {
-        "x": 206.26585,
-        "y": 54.196468,
-        "w": 17.954617,
-        "h": 127.64761,
-        "id": "rect16"
-      },
-      "cutRectPlainId": "rect14",
-      "centerPlainId": "path19-1-0-2-0",
-      "joinAnchors": [
-        "corner-rd-u",
-        "corner-rd-l"
-      ],
-      "status": "review/runtime_probe_recut"
-    },
-    {
-      "index": 14,
-      "file": "line_vru.svg",
-      "role": "line_vru",
-      "sourceCutRect": {
-        "x": 206.26784,
-        "y": 207.34935,
-        "w": 17.952232,
-        "h": 127.18272,
+        "x": 206.2678,
+        "y": 207.3493,
+        "w": 17.9522,
+        "h": 127.1827,
         "id": "rect17"
       },
-      "cutRectPlainId": "rect16",
-      "centerPlainId": "path19-1-0-2-1",
-      "joinAnchors": [
-        "line-hrd-r",
-        "line-hrd-l"
-      ],
-      "status": "review/runtime_probe_recut"
-    },
-    {
-      "index": 15,
-      "file": "line_vld.svg",
-      "role": "line_vld",
-      "sourceCutRect": {
-        "x": 121.09127,
-        "y": 356.86441,
-        "w": 9.2910557,
-        "h": 11.499852,
-        "id": "rect18"
-      },
-      "cutRectPlainId": "rect15",
-      "centerPlainId": "path19-1-0-2",
-      "joinAnchors": [
-        "ornament-d-r",
-        "ornament-d-u"
-      ],
-      "status": "review/runtime_probe_recut"
-    },
-    {
-      "index": 16,
-      "file": "line_vrd.svg",
-      "role": "line_vrd",
-      "sourceCutRect": {
-        "x": 170.45059,
-        "y": 355.87317,
-        "w": 9.3995209,
-        "h": 13.922643,
-        "id": "rect19"
-      },
-      "cutRectPlainId": "rect17",
-      "centerPlainId": "path19-1-0",
-      "joinAnchors": [
-        "fill-center-d",
-        "ornament-d-l"
-      ],
-      "status": "review/runtime_probe_recut"
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     },
     {
       "index": 17,
+      "id": "fill_center",
       "file": "fill_center.svg",
       "role": "fill_center",
-      "sourceCutRect": {
-        "x": 94.838982,
-        "y": 40.930695,
-        "w": 111.43444,
-        "h": 306.89978,
-        "id": "rect20"
-      },
       "cutRectPlainId": "rect20",
       "centerPlainId": "path19-1-6",
       "joinAnchors": [
-        "line-hld-r",
-        "line-hld-l",
-        "corner-ld-r",
-        "corner-ld-u"
+        "fill-center-l",
+        "fill-center-u",
+        "fill-center-r",
+        "fill-center-d"
       ],
-      "status": "review/runtime_probe_recut"
+      "sourceFile": "svg/PRG-plain.svg",
+      "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+      "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+      "sourceGeometry": "layer1/path1",
+      "usedFigmaCutNodeName": "rect20",
+      "sourceCutRect": {
+        "x": 94.839,
+        "y": 40.9307,
+        "w": 111.4344,
+        "h": 306.8998,
+        "id": "rect20"
+      },
+      "cutRectSourceStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id",
+      "status": "figma_cut_review"
     }
   ]
 }

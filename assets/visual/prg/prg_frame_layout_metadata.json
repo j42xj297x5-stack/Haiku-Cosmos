@@ -1,220 +1,691 @@
 {
-  "schemaVersion": "prg_frame_layout_metadata_v0.1",
+  "schemaVersion": "prg_frame_layout_metadata_v0.2",
   "sourceManifest": "assets/visual/prg/prg_frame_manifest.json",
-  "metadataStatus": "manual_order_mapping",
+  "sourceFile": "svg/PRG-plain.svg",
+  "figmaFile": "https://www.figma.com/design/OYISMOGajBrTHtQt7GJ9zQ/prg-dla-figmy?node-id=0-1&p=f&t=d2Fz28T8krC2myaw-0",
+  "figmaStagingPage": "CODX_PRG_PHYSICAL_CUTS_2026_05_16",
+  "metadataStatus": "manual_order_mapping_figma_cut",
+  "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
   "notes": [
-    "Mapping based on designer-provided Inkscape layer order and PRG-plain.svg technical ids."
+    "Cut performed in Figma using designer-provided plain SVG order mapping."
   ],
   "parts": {
     "ornament_l.svg": {
       "role": "ornament_l",
+      "centerPlainId": "path19-1-6-8",
       "pivot": {
-        "x": 150.4166,
-        "y": 194.59572
+        "x": 86.6587,
+        "y": 194.5957
+      },
+      "center": {
+        "x": 86.6587,
+        "y": 194.5957
+      },
+      "localPivot": {
+        "x": 10.3213,
+        "y": 12.5836
       },
       "joinAnchors": [
-        "line-hlu-l",
-        "line-hlu-r",
-        "ornament-u-d"
+        "ornament-l-u",
+        "ornament-l-r",
+        "ornament-l-d"
       ],
-      "metadataStatus": "manual_order_mapping"
+      "cutRectPlainId": "rect12",
+      "usedFigmaCutNodeName": "rect12",
+      "anchorType": "center",
+      "anchorOffset": {
+        "x": 10.3213,
+        "y": 12.5836
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 18.5009,
+        "h": 25.5024
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
     "ornament_u.svg": {
       "role": "ornament_u",
+      "centerPlainId": "path19-4",
       "pivot": {
-        "x": 214.19331,
-        "y": 362.63931
+        "x": 150.4166,
+        "y": 26.0236
+      },
+      "center": {
+        "x": 150.4166,
+        "y": 26.0236
+      },
+      "localPivot": {
+        "x": 20.0456,
+        "y": 16.6374
       },
       "joinAnchors": [
-        "fill-center-u",
-        "fill-center-l",
-        "ornament-l-r"
+        "ornament-u-l",
+        "ornament-u-d",
+        "ornament-u-r"
       ],
-      "metadataStatus": "manual_order_mapping"
+      "cutRectPlainId": "rect11",
+      "usedFigmaCutNodeName": "rect11",
+      "anchorType": "center",
+      "anchorOffset": {
+        "x": 20.0456,
+        "y": 16.6374
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 40.0796,
+        "h": 31.5209
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
     "ornament_r.svg": {
       "role": "ornament_r",
+      "centerPlainId": "path19-1",
       "pivot": {
-        "x": 86.658691,
-        "y": 362.63931
+        "x": 214.1933,
+        "y": 194.5957
+      },
+      "center": {
+        "x": 214.1933,
+        "y": 194.5957
+      },
+      "localPivot": {
+        "x": 7.9275,
+        "y": 12.7474
       },
       "joinAnchors": [
-        "fill-center-r",
+        "ornament-r-u",
         "ornament-r-l",
-        "ornament-u-l"
+        "ornament-r-d"
       ],
-      "metadataStatus": "manual_order_mapping"
+      "cutRectPlainId": "rect12-6",
+      "usedFigmaCutNodeName": "rect12-6",
+      "anchorType": "center",
+      "anchorOffset": {
+        "x": 7.9275,
+        "y": 12.7474
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 17.9547,
+        "h": 25.499
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
     "ornament_d.svg": {
       "role": "ornament_d",
+      "centerPlainId": "path19",
       "pivot": {
-        "x": 214.19331,
-        "y": 26.023626
+        "x": 150.4166,
+        "y": 362.6393
+      },
+      "center": {
+        "x": 150.4166,
+        "y": 362.6393
+      },
+      "localPivot": {
+        "x": 20.034,
+        "y": 14.8088
       },
       "joinAnchors": [
-        "ornament-u-r",
-        "line-hru-l",
-        "line-hru-r"
+        "ornament-d-l",
+        "ornament-d-u",
+        "ornament-d-r"
       ],
-      "metadataStatus": "manual_order_mapping"
+      "cutRectPlainId": "rect11-1",
+      "usedFigmaCutNodeName": "rect11-1",
+      "anchorType": "center",
+      "anchorOffset": {
+        "x": 20.034,
+        "y": 14.8088
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 40.068,
+        "h": 31.4639
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
     "corner_lu.svg": {
       "role": "corner_lu",
+      "centerPlainId": "path19-6-6",
       "pivot": {
-        "x": 86.658691,
-        "y": 26.023626
+        "x": 86.6587,
+        "y": 26.0236
+      },
+      "center": {
+        "x": 86.6587,
+        "y": 26.0236
+      },
+      "localPivot": {
+        "x": 10.3254,
+        "y": 16.6422
+      },
+      "joinAnchors": [
+        "corner-lu-d",
+        "corner-lu-r"
+      ],
+      "cutRectPlainId": "rect10",
+      "usedFigmaCutNodeName": "rect10",
+      "anchorType": "corner",
+      "anchorOffset": {
+        "x": 10.3254,
+        "y": 16.6422
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 44.8575,
+        "h": 44.8154
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
+    },
+    "corner_ru.svg": {
+      "role": "corner_ru",
+      "centerPlainId": "path19-6",
+      "pivot": {
+        "x": 214.1933,
+        "y": 26.0236
+      },
+      "center": {
+        "x": 214.1933,
+        "y": 26.0236
+      },
+      "localPivot": {
+        "x": 34.5551,
+        "y": 16.6389
       },
       "joinAnchors": [
         "corner-ru-l",
         "corner-ru-d"
       ],
-      "metadataStatus": "manual_order_mapping"
-    },
-    "corner_ru.svg": {
-      "role": "corner_ru",
-      "pivot": {
-        "x": 214.19331,
-        "y": 194.59572
+      "cutRectPlainId": "rect10-8",
+      "usedFigmaCutNodeName": "rect10-8",
+      "anchorType": "corner",
+      "anchorOffset": {
+        "x": 34.5551,
+        "y": 16.6389
       },
-      "joinAnchors": [
-        "line-vld-d",
-        "line-vld-u"
-      ],
-      "metadataStatus": "manual_order_mapping"
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 44.5831,
+        "h": 44.8116
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
     "corner_ld.svg": {
       "role": "corner_ld",
+      "centerPlainId": "path19-9",
       "pivot": {
-        "x": 86.658691,
-        "y": 194.59572
+        "x": 86.6587,
+        "y": 362.6393
+      },
+      "center": {
+        "x": 86.6587,
+        "y": 362.6393
+      },
+      "localPivot": {
+        "x": 10.3213,
+        "y": 28.1564
       },
       "joinAnchors": [
-        "ornament-l-d",
-        "ornament-l-u"
+        "corner-ld-u",
+        "corner-ld-r"
       ],
-      "metadataStatus": "manual_order_mapping"
+      "cutRectPlainId": "rect10-2",
+      "usedFigmaCutNodeName": "rect10-2",
+      "anchorType": "corner",
+      "anchorOffset": {
+        "x": 10.3213,
+        "y": 28.1564
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 44.7542,
+        "h": 44.8164
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
     "corner_rd.svg": {
       "role": "corner_rd",
+      "centerPlainId": "path19-9-2",
       "pivot": {
-        "x": 150.4166,
-        "y": 362.63931
+        "x": 214.1933,
+        "y": 362.6393
+      },
+      "center": {
+        "x": 214.1933,
+        "y": 362.6393
+      },
+      "localPivot": {
+        "x": 34.3432,
+        "y": 28.1072
       },
       "joinAnchors": [
-        "line-vlu-d",
-        "line-vlu-u"
+        "corner-rd-l",
+        "corner-rd-u"
       ],
-      "metadataStatus": "manual_order_mapping"
+      "cutRectPlainId": "rect10-2-2",
+      "usedFigmaCutNodeName": "rect10-2-2",
+      "anchorType": "corner",
+      "anchorOffset": {
+        "x": 34.3432,
+        "y": 28.1072
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 44.372,
+        "h": 44.7624
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
     "line_hlu.svg": {
       "role": "line_hlu",
+      "centerPlainId": "path19-9-2-2",
       "pivot": {
-        "x": 150.4166,
-        "y": 26.023626
+        "x": 125.7867,
+        "y": 362.6143
+      },
+      "center": {
+        "x": 125.7867,
+        "y": 362.6143
+      },
+      "localPivot": {
+        "x": 4.5959,
+        "y": 343.688
       },
       "joinAnchors": [
-        "corner-lu-r",
-        "corner-lu-d"
+        "line-hlu-l",
+        "line-hlu-r"
       ],
-      "metadataStatus": "manual_order_mapping"
+      "cutRectPlainId": "rect13",
+      "usedFigmaCutNodeName": "rect13",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 4.5959,
+        "y": 343.688
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "x",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 9.1877,
+        "h": 13.5933
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
     "line_hru.svg": {
       "role": "line_hru",
+      "centerPlainId": "path19-9-2-2-9",
+      "pivot": null,
+      "center": null,
+      "localPivot": null,
+      "joinAnchors": [
+        "line-hru-l",
+        "line-hru-r"
+      ],
+      "cutRectPlainId": "rect13-1",
+      "usedFigmaCutNodeName": "rect13-1",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": null,
+        "y": null
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "x",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 9.1877,
+        "h": 13.5933
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "missing_center_plain_id_in_source_and_figma"
+    },
+    "line_hld.svg": {
+      "role": "line_hld",
+      "centerPlainId": "path19-9-2-2",
       "pivot": {
-        "x": 214.19331,
-        "y": 268.38785
+        "x": 125.7867,
+        "y": 362.6143
+      },
+      "center": {
+        "x": 125.7867,
+        "y": 362.6143
+      },
+      "localPivot": {
+        "x": 4.6955,
+        "y": 5.7499
+      },
+      "joinAnchors": [
+        "line-hld-l",
+        "line-hld-r"
+      ],
+      "cutRectPlainId": "rect8",
+      "usedFigmaCutNodeName": "rect18",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 4.6955,
+        "y": 5.7499
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "x",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 9.2911,
+        "h": 11.4999
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "figma_layer2_id_missing_used_available_counterpart",
+      "centerMappingStatus": "exact_layer3_id"
+    },
+    "line_hrd.svg": {
+      "role": "line_hrd",
+      "centerPlainId": "path19-9-2-1",
+      "pivot": {
+        "x": 175.1504,
+        "y": 362.6393
+      },
+      "center": {
+        "x": 175.1504,
+        "y": 362.6393
+      },
+      "localPivot": {
+        "x": 4.6998,
+        "y": 6.7661
+      },
+      "joinAnchors": [
+        "line-hrd-l",
+        "line-hrd-r"
+      ],
+      "cutRectPlainId": "rect9",
+      "usedFigmaCutNodeName": "rect19",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 4.6998,
+        "y": 6.7661
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "x",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 9.3995,
+        "h": 13.9226
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "figma_layer2_id_missing_used_available_counterpart",
+      "centerMappingStatus": "exact_layer3_id"
+    },
+    "line_vlu.svg": {
+      "role": "line_vlu",
+      "centerPlainId": "path19-1-0-2-0",
+      "pivot": {
+        "x": 86.6587,
+        "y": 117.4064
+      },
+      "center": {
+        "x": 86.6587,
+        "y": 117.4064
+      },
+      "localPivot": {
+        "x": 10.3213,
+        "y": 63.2096
+      },
+      "joinAnchors": [
+        "line-vlu-u",
+        "line-vlu-d"
+      ],
+      "cutRectPlainId": "rect14",
+      "usedFigmaCutNodeName": "rect14",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 10.3213,
+        "y": 63.2096
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "y",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 18.5438,
+        "h": 127.8153
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
+    },
+    "line_vru.svg": {
+      "role": "line_vru",
+      "centerPlainId": "path19-1-0-2-1",
+      "pivot": {
+        "x": 214.1933,
+        "y": 117.3317
+      },
+      "center": {
+        "x": 214.1933,
+        "y": 117.3317
+      },
+      "localPivot": {
+        "x": 7.9275,
+        "y": 63.1352
       },
       "joinAnchors": [
         "line-vru-u",
         "line-vru-d"
       ],
-      "metadataStatus": "manual_order_mapping"
+      "cutRectPlainId": "rect16",
+      "usedFigmaCutNodeName": "rect16",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 7.9275,
+        "y": 63.1352
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "y",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 17.9546,
+        "h": 127.6476
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
-    "line_hld.svg": {
-      "role": "line_hld",
+    "line_vld.svg": {
+      "role": "line_vld",
+      "centerPlainId": "path19-1-0-2",
       "pivot": {
-        "x": 86.658691,
-        "y": 268.36264
+        "x": 86.6587,
+        "y": 268.3626
+      },
+      "center": {
+        "x": 86.6587,
+        "y": 268.3626
+      },
+      "localPivot": {
+        "x": 10.3213,
+        "y": 60.8481
       },
       "joinAnchors": [
-        "ornament-r-u",
-        "ornament-r-d"
+        "line-vld-u",
+        "line-vld-d"
       ],
-      "metadataStatus": "manual_order_mapping"
+      "cutRectPlainId": "rect15",
+      "usedFigmaCutNodeName": "rect15",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 10.3213,
+        "y": 60.8481
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "y",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 18.5017,
+        "h": 126.9683
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
-    "line_hrd.svg": {
-      "role": "line_hrd",
+    "line_vrd.svg": {
+      "role": "line_vrd",
+      "centerPlainId": "path19-1-0",
       "pivot": {
-        "x": 214.19331,
-        "y": 117.33166
+        "x": 214.1933,
+        "y": 268.3879
+      },
+      "center": {
+        "x": 214.1933,
+        "y": 268.3879
+      },
+      "localPivot": {
+        "x": 7.9255,
+        "y": 61.0385
       },
       "joinAnchors": [
         "line-vrd-u",
         "line-vrd-d"
       ],
-      "metadataStatus": "manual_order_mapping"
-    },
-    "line_vlu.svg": {
-      "role": "line_vlu",
-      "pivot": {
-        "x": 86.658691,
-        "y": 117.40642
+      "cutRectPlainId": "rect17",
+      "usedFigmaCutNodeName": "rect17",
+      "anchorType": "edge",
+      "anchorOffset": {
+        "x": 7.9255,
+        "y": 61.0385
       },
-      "joinAnchors": [
-        "corner-rd-u",
-        "corner-rd-l"
-      ],
-      "metadataStatus": "manual_order_mapping"
-    },
-    "line_vru.svg": {
-      "role": "line_vru",
-      "pivot": {
-        "x": 175.15036,
-        "y": 362.63931
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "y",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 17.9522,
+        "h": 127.1827
       },
-      "joinAnchors": [
-        "line-hrd-r",
-        "line-hrd-l"
-      ],
-      "metadataStatus": "manual_order_mapping"
-    },
-    "line_vld.svg": {
-      "role": "line_vld",
-      "pivot": {
-        "x": 125.78673,
-        "y": 362.61432
-      },
-      "joinAnchors": [
-        "ornament-d-r",
-        "ornament-d-u"
-      ],
-      "metadataStatus": "manual_order_mapping"
-    },
-    "line_vrd.svg": {
-      "role": "line_vrd",
-      "pivot": {
-        "x": 175.04431,
-        "y": 26.023626
-      },
-      "joinAnchors": [
-        "fill-center-d",
-        "ornament-d-l"
-      ],
-      "metadataStatus": "manual_order_mapping"
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     },
     "fill_center.svg": {
       "role": "fill_center",
+      "centerPlainId": "path19-1-6",
       "pivot": {
-        "x": 125.78471,
-        "y": 26.027779
+        "x": 150.4166,
+        "y": 194.5957
+      },
+      "center": {
+        "x": 150.4166,
+        "y": 194.5957
+      },
+      "localPivot": {
+        "x": 55.5776,
+        "y": 153.665
       },
       "joinAnchors": [
-        "line-hld-r",
-        "line-hld-l",
-        "corner-ld-r",
-        "corner-ld-u"
+        "fill-center-l",
+        "fill-center-u",
+        "fill-center-r",
+        "fill-center-d"
       ],
-      "metadataStatus": "manual_order_mapping"
+      "cutRectPlainId": "rect20",
+      "usedFigmaCutNodeName": "rect20",
+      "anchorType": "rect",
+      "anchorOffset": {
+        "x": 55.5776,
+        "y": 153.665
+      },
+      "lineInset": 0,
+      "cornerRun": 0,
+      "stretchAxis": "none",
+      "defaultScale": 1,
+      "safeMinSize": {
+        "w": 111.4344,
+        "h": 306.8998
+      },
+      "densityBehavior": "medium",
+      "metadataStatus": "manual_order_mapping_figma_cut",
+      "note": "Cut performed in Figma using designer-provided plain SVG order mapping.",
+      "sourceMappingStatus": "exact_layer2_id",
+      "centerMappingStatus": "exact_layer3_id"
     }
   }
 }
