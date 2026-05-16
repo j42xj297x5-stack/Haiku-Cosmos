@@ -23,7 +23,11 @@
     lastManifestError: null,
     layoutMetadata: null,
     layoutMetadataStatus: "idle",
-    layoutMetadataError: null
+    layoutMetadataError: null,
+    manifestVersion: null,
+    cacheBustToken: null,
+    firstResolvedAssetUrl: null,
+    cacheBustActive: false
   };
 
   function toNum(value) { return Number(value); }
@@ -89,7 +93,7 @@
     const maxY = Math.max.apply(null, validRects.map((r) => r.y + r.h));
     const srcW = Math.max(1, maxX - minX);
     const srcH = Math.max(1, maxY - minY);
-    const baseScale = targetRect.h / srcH;
+    const baseScale = Math.min(targetRect.w / srcW, targetRect.h / srcH);
     const mountW = srcW * baseScale;
     const mountH = srcH * baseScale;
     const mountX = targetRect.x + (targetRect.w - mountW) / 2;
@@ -100,12 +104,23 @@
       const meta = layoutMetadata && layoutMetadata.parts && layoutMetadata.parts[file];
       if (meta && typeof meta.role === "string") return meta.role;
       const id = String(asset && (asset.id || file || "")).toLowerCase();
-      if (id.includes("corner")) return "corner";
-      if (id.includes("line_h") && id.includes("d")) return "edge_bottom";
-      if (id.includes("line_h")) return "edge_top";
-      if (id.includes("line_vr")) return "edge_right";
-      if (id.includes("line_vl")) return "edge_left";
-      if (id.includes("center") || id.includes("ornament")) return "ornament_center";
+      if (id.includes("corner_lu")) return "corner_lu";
+      if (id.includes("corner_ru")) return "corner_ru";
+      if (id.includes("corner_ld")) return "corner_ld";
+      if (id.includes("corner_rd")) return "corner_rd";
+      if (id.includes("line_hlu")) return "line_hlu";
+      if (id.includes("line_hru")) return "line_hru";
+      if (id.includes("line_hld")) return "line_hld";
+      if (id.includes("line_hrd")) return "line_hrd";
+      if (id.includes("line_vlu")) return "line_vlu";
+      if (id.includes("line_vru")) return "line_vru";
+      if (id.includes("line_vld")) return "line_vld";
+      if (id.includes("line_vrd")) return "line_vrd";
+      if (id.includes("ornament_l")) return "ornament_l";
+      if (id.includes("ornament_u")) return "ornament_u";
+      if (id.includes("ornament_r")) return "ornament_r";
+      if (id.includes("ornament_d")) return "ornament_d";
+      if (id.includes("fill_center")) return "fill_center";
       return "unknown";
     }
 
@@ -124,10 +139,14 @@
       }
       const file = asset && asset.file;
       const role = inferRole(asset, file);
-      const isTopEdge = role === "edge_top";
-      const isBottomEdge = role === "edge_bottom";
-      const isLeftEdge = role === "edge_left" || (file && /line_vl/i.test(file));
-      const isRightEdge = role === "edge_right" || (file && /line_vr/i.test(file));
+      const isTopLeftEdge = role === "line_hlu";
+      const isTopRightEdge = role === "line_hru";
+      const isBottomLeftEdge = role === "line_hld";
+      const isBottomRightEdge = role === "line_hrd";
+      const isLeftTopEdge = role === "line_vlu";
+      const isRightTopEdge = role === "line_vru";
+      const isLeftBottomEdge = role === "line_vld";
+      const isRightBottomEdge = role === "line_vrd";
       const xFit = mountX + (sx - minX) * baseScale;
       const yFit = mountY + (sy - minY) * baseScale;
       const wFit = sw * baseScale;
@@ -136,15 +155,30 @@
       let y = yFit;
       let w = wFit;
       let h = hFit;
-      if (isTopEdge || isBottomEdge) {
-        x = frameLineRect.x;
-        w = frameLineRect.w;
+      const xLeft = frameLineRect.x;
+      const xRight = frameLineRect.x + frameLineRect.w - wFit;
+      const yTop = frameLineRect.y;
+      const yBottom = frameLineRect.y + frameLineRect.h - hFit;
+      if (role === "corner_lu") { x = xLeft; y = yTop; }
+      if (role === "corner_ru") { x = xRight; y = yTop; }
+      if (role === "corner_ld") { x = xLeft; y = yBottom; }
+      if (role === "corner_rd") { x = xRight; y = yBottom; }
+      if (role === "ornament_l") { x = xLeft; y = frameLineRect.y + (frameLineRect.h - hFit) * 0.5; }
+      if (role === "ornament_r") { x = xRight; y = frameLineRect.y + (frameLineRect.h - hFit) * 0.5; }
+      if (role === "ornament_u") { x = frameLineRect.x + (frameLineRect.w - wFit) * 0.5; y = yTop; }
+      if (role === "ornament_d") { x = frameLineRect.x + (frameLineRect.w - wFit) * 0.5; y = yBottom; }
+      if (role === "fill_center") { x = frameLineRect.x + (frameLineRect.w - wFit) * 0.5; y = frameLineRect.y + (frameLineRect.h - hFit) * 0.5; }
+      if (isTopLeftEdge || isTopRightEdge || isBottomLeftEdge || isBottomRightEdge) {
+        y = (isTopLeftEdge || isTopRightEdge) ? yTop : yBottom;
+        const leftCap = Math.max(1, frameLineRect.w * 0.5 - wFit * 0.5);
+        x = (isTopLeftEdge || isBottomLeftEdge) ? frameLineRect.x : frameLineRect.x + frameLineRect.w - leftCap;
+        w = leftCap;
       }
-      if (isLeftEdge || isRightEdge) {
-        y = frameLineRect.y;
-        h = frameLineRect.h;
-        if (isRightEdge) x = frameLineRect.x + frameLineRect.w - wFit;
-        if (isLeftEdge) x = frameLineRect.x;
+      if (isLeftTopEdge || isRightTopEdge || isLeftBottomEdge || isRightBottomEdge) {
+        x = (isLeftTopEdge || isLeftBottomEdge) ? xLeft : xRight;
+        const topCap = Math.max(1, frameLineRect.h * 0.5 - hFit * 0.5);
+        y = (isLeftTopEdge || isRightTopEdge) ? frameLineRect.y : frameLineRect.y + frameLineRect.h - topCap;
+        h = topCap;
       }
       if (!finite(x) || !finite(y) || !finite(w) || !finite(h) || w <= 0 || h <= 0) partWarnings.push("NaN/zero size");
       const outsideTarget = x + w < targetRect.x || y + h < targetRect.y || x > targetRect.x + targetRect.w || y > targetRect.y + targetRect.h;
@@ -162,7 +196,7 @@
     });
 
     return {
-      mode: mode === "frameRectHeightMountProbe" ? "frameRectHeightMountProbe" : "sourceCutRectFitProbe",
+      mode: "runtime_probe_layout_v2",
       requestedMode,
       fallbackMode: mode === "frameLineAnchors" ? "sourceCutRectFitProbe" : null,
       targetRect,
@@ -220,18 +254,27 @@
     };
   }
 
+  function appendCacheBust(url, token) {
+    if (!url || !token) return url;
+    return url + (String(url).includes("?") ? "&" : "?") + "prgProbeVersion=" + encodeURIComponent(String(token));
+  }
+
   function requestAssets(options) {
     const opts = Object.assign({}, DEFAULTS, options || {});
     if (state.requested || typeof root.fetch !== "function" || typeof root.Image === "undefined") return;
     state.requested = true;
     state.status = "loading_manifest";
-    root.fetch(opts.manifestUrl, { cache: "no-store" })
+    const manifestUrl = appendCacheBust(opts.manifestUrl, Date.now());
+    root.fetch(manifestUrl, { cache: "no-store" })
       .then((resp) => (resp && resp.ok ? resp.json() : null))
       .then((manifest) => {
         state.status = "loading_assets";
         state.assets = Array.isArray(manifest && manifest.assets) ? manifest.assets : [];
+        state.manifestVersion = manifest && (manifest.generatedAt || manifest.updatedAt || manifest.version || null);
+        state.cacheBustToken = state.manifestVersion || Date.now();
+        state.cacheBustActive = true;
         state.layoutMetadataStatus = "loading";
-        root.fetch(opts.layoutMetadataUrl, { cache: "no-store" })
+        root.fetch(appendCacheBust(opts.layoutMetadataUrl, state.cacheBustToken), { cache: "no-store" })
           .then((resp) => (resp && resp.ok ? resp.json() : null))
           .then((json) => {
             state.layoutMetadata = json && typeof json === "object" ? json : null;
@@ -248,7 +291,9 @@
           const img = new root.Image();
           img.onload = () => { state.loaded += 1; };
           img.onerror = () => { state.failed += 1; state.warnings.push(`failed:${asset && asset.file}`); };
-          img.src = joinAssetUrl(opts.assetBaseUrl, asset && asset.file);
+          const resolvedAssetUrl = appendCacheBust(joinAssetUrl(opts.assetBaseUrl, asset && asset.file), state.cacheBustToken);
+          img.src = resolvedAssetUrl;
+          if (!state.firstResolvedAssetUrl) state.firstResolvedAssetUrl = resolvedAssetUrl;
           state.imageById.set(asset && asset.id, img);
         });
         state.status = "ready";
@@ -320,6 +365,8 @@
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.font = "11px ui-monospace, monospace";
       ctx.fillText(`PRG probe loaded=${state.loaded} failed=${state.failed} dpr=${(root.devicePixelRatio || 1).toFixed(2)}`, prgRect.x, prgRect.y - 8);
+      ctx.fillText(`manifestLoaded=${(state.status === "ready" || state.status === "loading_assets") ? "yes" : "no"} cacheBust=${state.cacheBustActive ? "yes" : "no"}`, prgRect.x, prgRect.y + prgRect.h + 84);
+      if (state.firstResolvedAssetUrl) ctx.fillText(`assetUrl=${state.firstResolvedAssetUrl}`, prgRect.x, prgRect.y + prgRect.h + 98);
       if (layout.bounds && finite(layout.bounds.baseScale)) {
         ctx.fillText(`baseScale=${layout.bounds.baseScale.toFixed(4)} mode=${layout.mode}`, prgRect.x, prgRect.y + prgRect.h + 14);
       }
@@ -331,14 +378,14 @@
         ctx.fillText(`metadataStatus ${statusLine || "none"}`, prgRect.x, prgRect.y + prgRect.h + 42);
         if (md.missingRequiredFields.length) ctx.fillText(`missing fields ${md.missingRequiredFields.length}`, prgRect.x, prgRect.y + prgRect.h + 56);
       }
-      if (warnings.length) ctx.fillText(`WARN ${warnings.join(",")}`, prgRect.x, prgRect.y + prgRect.h + 70);
+      if (warnings.length) ctx.fillText(`WARN ${warnings.join(",")}`, prgRect.x, prgRect.y + prgRect.h + 112);
       ctx.restore();
     }
     return layout;
   }
 
   root.HC.PrgFrameProbe = {
-    version: "0.3.0-probe",
+    version: "0.4.0-runtime_probe_layout_v2",
     requestAssets,
     draw,
     computeLayout,
@@ -353,7 +400,9 @@
         readyForFrameLineAnchors: md.readyForFrameLineAnchors,
         warnings: state.warnings.slice(-8),
         currentMode: DEFAULTS.mode,
-        fallbackMode: "sourceCutRectFitProbe"
+        fallbackMode: "sourceCutRectFitProbe",
+        firstResolvedAssetUrl: state.firstResolvedAssetUrl,
+        cacheBustActive: state.cacheBustActive
       };
     },
     defaults: Object.assign({}, DEFAULTS)
