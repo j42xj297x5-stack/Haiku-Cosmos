@@ -350,6 +350,50 @@
       });
   }
 
+
+
+  function createHorizontalFillCenterGradient(ctx, w) {
+    const gradient = ctx.createLinearGradient(0, 0, w, 0);
+    gradient.addColorStop(0, "#ff0000");
+    gradient.addColorStop(0.33333, "#ffd400");
+    gradient.addColorStop(0.66666, "#00b050");
+    gradient.addColorStop(1, "#0066ff");
+    return gradient;
+  }
+
+  function drawFillCenterGradientMasked(ctx, img, rect, rotateLeft) {
+    if (!ctx || !img || !rect) return false;
+    const offW = Math.max(1, Math.round(rect.w));
+    const offH = Math.max(1, Math.round(rect.h));
+    const offscreen = (typeof root.OffscreenCanvas === "function")
+      ? new root.OffscreenCanvas(offW, offH)
+      : (typeof root.document !== "undefined" ? root.document.createElement("canvas") : null);
+    if (!offscreen) return false;
+    if (offscreen.width !== offW) offscreen.width = offW;
+    if (offscreen.height !== offH) offscreen.height = offH;
+    const offCtx = offscreen.getContext("2d");
+    if (!offCtx) return false;
+    offCtx.clearRect(0, 0, offW, offH);
+
+    if (rotateLeft) {
+      offCtx.save();
+      offCtx.translate(offW * 0.5, offH * 0.5);
+      offCtx.rotate(-Math.PI / 2);
+      offCtx.drawImage(img, -offH * 0.5, -offW * 0.5, offH, offW);
+      offCtx.restore();
+    } else {
+      offCtx.drawImage(img, 0, 0, offW, offH);
+    }
+
+    offCtx.globalCompositeOperation = "source-in";
+    offCtx.fillStyle = createHorizontalFillCenterGradient(offCtx, offW);
+    offCtx.fillRect(0, 0, offW, offH);
+    offCtx.globalCompositeOperation = "source-over";
+
+    ctx.drawImage(offscreen, rect.x, rect.y, rect.w, rect.h);
+    return true;
+  }
+
   function draw(ctx, prgRect, options) {
     if (!ctx || !prgRect) return null;
     const opts = Object.assign({}, DEFAULTS, options || {});
@@ -365,7 +409,10 @@
         const useRotateLeftProbe = part.role === "fill_center"
           && layout.fillCenterProbeInfo
           && layout.fillCenterProbeInfo.mode === "fill_center_rotate_left_fit_width_probe";
-        if (useRotateLeftProbe) {
+        const isFillCenter = part.role === "fill_center" || part.file === "fill_center.svg";
+        if (isFillCenter) {
+          drawFillCenterGradientMasked(ctx, img, part.destRect, useRotateLeftProbe);
+        } else if (useRotateLeftProbe) {
           const centerX = x + w * 0.5;
           const centerY = y + h * 0.5;
           ctx.save();
@@ -376,7 +423,7 @@
         } else {
           ctx.drawImage(img, x, y, w, h);
         }
-        if (opts.debugGoldTint || opts.temporaryPrgFrameTint) {
+        if (!isFillCenter && (opts.debugGoldTint || opts.temporaryPrgFrameTint)) {
           ctx.save();
           ctx.globalCompositeOperation = "source-atop";
           ctx.globalAlpha = finite(opts.tintAlpha) ? opts.tintAlpha : DEFAULTS.tintAlpha;
@@ -428,6 +475,7 @@
       if (layout.bounds && finite(layout.bounds.baseScale)) {
         ctx.fillText(`baseScale=${layout.bounds.baseScale.toFixed(4)} mode=${layout.mode}`, prgRect.x, prgRect.y + prgRect.h + 14);
       }
+      ctx.fillText(`fill_center_gradient_probe=on gradientTarget=fill_only strokeUsed=false affectFrameParts=false`, prgRect.x, prgRect.y + prgRect.h + 168);
       if (layout.fillCenterProbeInfo) {
         const fc = layout.fillCenterProbeInfo;
         const d = fc.destRect;
@@ -454,7 +502,7 @@
   }
 
   root.HC.PrgFrameProbe = {
-    version: "0.4.0-runtime_probe_layout_v2",
+    version: "0.5.0-fill_center_gradient_probe",
     requestAssets,
     draw,
     computeLayout,
@@ -471,7 +519,11 @@
         currentMode: DEFAULTS.mode,
         fallbackMode: "sourceCutRectFitProbe",
         firstResolvedAssetUrl: state.firstResolvedAssetUrl,
-        cacheBustActive: state.cacheBustActive
+        cacheBustActive: state.cacheBustActive,
+        fill_center_gradient_probe: "on",
+        gradientTarget: "fill_only",
+        strokeUsed: false,
+        affectFrameParts: false
       };
     },
     defaults: Object.assign({}, DEFAULTS)
