@@ -22,7 +22,7 @@ audytów i synchronizacji dokumentacji z runtime.
 ## Status dokumentów
 
 - `WORLD_FUNCTION_MAP.md` — **ROBOCZY** (aktywna mapa techniczna orientacyjna; nie zastępuje pełnego audytu runtime)
-- `WORLD_RENDERING_MODEL.md` — **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** (audyt i plan migracji modelu renderingu świata pod adapter Three.js/WebGL z fallbackiem Canvas2D; zawiera kontrakt snapshotu renderera, etap 0.5 + adapter bootstrap contract Etapu 0.75 + status implementacji Etapów 1, 1.5 i 2)
+- `WORLD_RENDERING_MODEL.md` — **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** (audyt i plan migracji modelu renderingu świata pod adapter Three.js/WebGL z fallbackiem Canvas2D; zawiera kontrakt snapshotu renderera, etap 0.5 + adapter bootstrap contract Etapu 0.75 + status implementacji Etapów 1, 1.5, 2 oraz sanity pass Etapu 2.5)
 - `SEQUENCE_STATE_CONTRACT.md` — **ROBOCZY / KONTRAKT TECHNICZNY** (single source-of-truth sekwencji + zasady evidence timeline)
 - `IMPLEMENTATION_TRACKER.md` — **ROBOCZY** (tracker wdrożeń i obszarów do weryfikacji)
 - `LIVE_VALIDATION_PACK.md` — **ROBOCZY** (roboczy kontrakt walidacji runów i evidence)
@@ -47,3 +47,6 @@ audytów i synchronizacji dokumentacji z runtime.
 - Sequence core (3-hit, takeover, R-track, A-loop AA/AAA/DS) ma status PASS na testach i live evidence.
 - Decision-window matrix ma status TESTED AUTOMATED PASS (audyt potwierdzony).
 - HUD clarity pozostaje **NEXT / OUT_OF_SCOPE_UI_CLARITY** dla osobnego wątku UI.
+
+
+- 2026-05-17: `WORLD_RENDERING_MODEL.md` rozszerzono o status Etapu 2.75 (repo-controlled delivery point dla Three.js dependency, diagnostyka `threeDependencySource`, manualny fallback provisioning local vendor).
