@@ -237,6 +237,20 @@
       letter-spacing: 0.02em;
     }
     #runtimeDebugOverlay.compact .overlay-expanded-only { display: none; }
+    #runtimeDebugOverlay.collapsed {
+      width: auto;
+      max-height: none;
+      right: 12px;
+      bottom: 12px;
+      padding: 6px;
+      gap: 0;
+      background: rgba(8, 10, 18, 0.52);
+    }
+    #runtimeDebugOverlay.collapsed .overlay-actions,
+    #runtimeDebugOverlay.collapsed #runtimeDebugOverlayBody,
+    #runtimeDebugOverlay.collapsed #debugSessionNote {
+      display: none;
+    }
     .overlay-tail {
       list-style: none;
       margin: 0;
@@ -283,7 +297,7 @@
           <button id="btnDebugCopyPath" class="overlay-btn" type="button">Copy Path</button>
           <button id="btnExportEvidence" class="overlay-btn" type="button" data-debug-i18n="overlay.exportEvidence">Export evidence</button>
           <button id="btnMarkIssue" class="overlay-btn" type="button" data-debug-i18n="overlay.markIssue">Mark issue</button>
-          <button id="btnDebugOverlayToggle" class="overlay-btn" type="button" data-debug-i18n="overlay.expand">Expand</button>
+          <button id="btnDebugOverlayToggle" class="overlay-btn" type="button" title="Hide debug overlay" aria-label="Hide debug overlay" aria-expanded="true">DEBUG ▾</button>
         </div>
       </div>
       <textarea id="debugSessionNote" class="overlay-note" data-debug-i18n-placeholder="overlay.notePlaceholder" placeholder="Session note (optional)"></textarea>

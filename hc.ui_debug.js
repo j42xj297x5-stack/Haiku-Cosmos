@@ -18,6 +18,7 @@
   let runtimeDebugOverlay = null;
   let runtimeDebugOverlayBody = null;
   let btnDebugOverlayToggle = null;
+  let runtimeOverlayCollapsed = false;
   let btnDebugSelectFolder = null;
   let btnDebugFinalizeSession = null;
   let btnDebugCopyPath = null;
@@ -48,6 +49,8 @@
     "overlay.runtimeDebug": "Runtime Debug",
     "overlay.expand": "Expand",
     "overlay.compact": "Compact",
+    "overlay.debugExpanded": "DEBUG ▾",
+    "overlay.debugCollapsed": "DEBUG ▸",
     "overlay.exportEvidence": "Export evidence",
     "overlay.markIssue": "Mark issue",
     "overlay.notePlaceholder": "Session note (optional)",
@@ -288,6 +291,18 @@
     };
   }
 
+
+  function updateRuntimeOverlayCollapseUi() {
+    if (!runtimeDebugOverlay) return;
+    runtimeDebugOverlay.classList.toggle("collapsed", runtimeOverlayCollapsed);
+    if (btnDebugOverlayToggle) {
+      btnDebugOverlayToggle.textContent = runtimeOverlayCollapsed ? t("overlay.debugCollapsed") : t("overlay.debugExpanded");
+      btnDebugOverlayToggle.setAttribute("title", runtimeOverlayCollapsed ? "Show debug overlay" : "Hide debug overlay");
+      btnDebugOverlayToggle.setAttribute("aria-label", runtimeOverlayCollapsed ? "Show debug overlay" : "Hide debug overlay");
+      btnDebugOverlayToggle.setAttribute("aria-expanded", runtimeOverlayCollapsed ? "false" : "true");
+    }
+  }
+
   function applyStaticI18nText() {
     const nodes = document.querySelectorAll("[data-debug-i18n]");
     nodes.forEach((node) => {
@@ -370,9 +385,8 @@
 
       if (btnDebugOverlayToggle) {
         btnDebugOverlayToggle.addEventListener("click", () => {
-          runtimeOverlayCompact = !runtimeOverlayCompact;
-          if (runtimeDebugOverlay) runtimeDebugOverlay.classList.toggle("compact", runtimeOverlayCompact);
-          btnDebugOverlayToggle.textContent = runtimeOverlayCompact ? t("overlay.expand") : t("overlay.compact");
+          runtimeOverlayCollapsed = !runtimeOverlayCollapsed;
+          updateRuntimeOverlayCollapseUi();
         });
       }
       if (btnDebugSelectFolder) {
@@ -491,6 +505,8 @@
         });
       }
       applyDebugDefaultsToUi();
+      if (runtimeDebugOverlay) runtimeDebugOverlay.classList.toggle("compact", runtimeOverlayCompact);
+      updateRuntimeOverlayCollapseUi();
       updateScoreLabel(World, true);
     },
     applySessionMode(mode) {

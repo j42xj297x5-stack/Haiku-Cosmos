@@ -423,6 +423,7 @@ Status na **2026-05-17**: etap 1 został wdrożony jako minimalna infrastruktura
 Status na **2026-05-17**: Etap 1.5 został wdrożony jako warstwa debug/diagnostics, bez zmiany mechaniki i bez implementacji Three.js.
 
 - Dodano debug toggle `renderMode` (canvas2d/three) w istniejącym runtime debug overlay (bez nowego dużego panelu).
+- Dodano usability toggle debug overlay: klik nagłówka `DEBUG` zwija/rozwija panel bez resetu `renderMode`, ustawień debug ani diagnostics; funkcja służy testom canvas2d/three i obserwacji świata bez zasłaniania ekranu.
 - `canvas2d` pozostaje trybem domyślnym (`HC.RENDER_MODE = "canvas2d"` po starcie/odświeżeniu).
 - `three` pozostaje placeholderem: `requestedMode="three"`, `effectiveMode="canvas2d"`, `fallbackUsed=true`, `fallbackReason="three_not_implemented"`.
 - Rozdzielono diagnostycznie `requestedMode` od `effectiveMode` w `HC.WorldRenderer.getDiagnostics()`.
