@@ -136,7 +136,93 @@ Renderer świata nie powinien czytać bezpośrednio całego global state „na �
    - wizualizacja bounds/anchors,
    - diagnostyka warstw, draw calls, fallback state.
 
-## 8. Etapowanie migracji
+
+## 8. Render snapshot contract (Etap 0.5)
+
+### 8.1. Ogólna zasada snapshotu
+- Snapshot jest **read-only** dla renderera.
+- Renderer świata **nie mutuje** `World` ani żadnych struktur gameplay.
+- Snapshot jest budowany **przed renderem** i przekazywany do adaptera jako wejście.
+- Snapshot stanowi **granicę symulacja ↔ prezentacja**: update/mechanika po jednej stronie, draw/FX po drugiej.
+
+### 8.2. CameraSnapshot
+Minimalny kontrakt kamery dla renderera:
+- `center`: pozycja środka kamery w world-space (`x`, `y`),
+- `zoom`: aktualna skala,
+- `viewport`: szerokość/wysokość viewportu renderera,
+- `worldBounds`: aktualne granice widoku świata (`l`, `r`, `t`, `b`, `cx`, `cy`),
+- kompatybilność transformacji `screen↔world` z istniejącym `screenToWorld` / `getWorldViewBounds`.
+
+Uwaga krytyczna: CameraSnapshot musi pozostać spójny z inputem i hit-testem, żeby klik/drag trafiał w te same obiekty, które użytkownik widzi.
+
+### 8.3. WorldRenderSnapshot (top-level)
+Minimalna struktura wejścia renderera świata:
+- `meteors[]`
+- `comets[]`
+- `asteroids[]`
+- `planets[]`
+- `stars[]`
+- `prg`
+- `background`
+- `sequenceVisualSignals` (tylko jeśli potrzebne jako sygnały wizualne)
+- `debug`
+
+### 8.4. Object snapshot fields (minimum)
+Dla każdego typu obiektu (meteor/kometa/asteroida/planeta/gwiazda):
+- `id` lub inny stabilny `renderKey` (jeśli brak, temat do dopięcia przed etapem 1),
+- `kind` / `class` obiektu,
+- pozycja `x`, `y`,
+- `radius` i/lub `scale`,
+- `color` i/lub `colorKey`,
+- `velocity` / `direction` (jeśli renderer potrzebuje do smug/interpolacji/afterimage),
+- `visualWeight` (np. do glow/intensywności warstw),
+- `alpha` / `life` / `state` (jeśli istnieją w runtime i są potrzebne wizualnie),
+- `flags` / `state` wyłącznie jako **visual state**, bez przejmowania mechaniki.
+
+### 8.5. PRG snapshot
+Warstwa visual PRG może otrzymać:
+- `pointer` / world center,
+- `radius`,
+- aktywny tryb i oś kolorystyczną (`activeMode`, `colorAxis`),
+- `strength` / `intensity`,
+- `visualMood`.
+
+Kontrakt graniczny: PRG visual **nie decyduje** o zachowaniu obiektów — tylko reprezentuje aktualny stan mechaniki.
+
+### 8.6. Sequence/UI signals boundary
+Renderer świata może czytać tylko sygnały wizualne, np.:
+- resonance pulse,
+- flash / halo,
+- active color accents.
+
+Granica obowiązkowa:
+- brak rysowania HUD,
+- brak rysowania kart,
+- brak rysowania SUB-META/META.
+
+### 8.7. RenderSettings
+Minimalne ustawienia renderingu:
+- `qualityTier` (np. low/medium/high),
+- `enabledLayers`: background, dust, glow, objects, prg, debug,
+- `fallbackBehavior` (jak renderer reaguje na brak warstw/assetów/shaderów i kiedy przełącza tryb).
+
+### 8.8. DebugSettings
+Minimalny zakres debug overlay dla renderera świata:
+- world bounds,
+- world grid,
+- camera bounds,
+- object ids / render keys,
+- draw-call / perf info,
+- marker fallback mode (`canvas2d` vs `three`).
+
+### 8.9. Open questions przed Etapem 1
+- Czy snapshot builder powinien być osobnym modułem (np. `hc.world_render_snapshot.js`)?
+- Czy interfejs adaptera trzymać w `hc.world_renderer.js`?
+- Gdzie trzymać feature flag (`RENDER_MODE`) — config globalny, bootstrap, czy osobny runtime config?
+- Jak ładować Three.js: lokalnie/vendor czy CDN (dev-only)?
+- Czy canvas Three.js zastępuje obecny canvas świata, czy działa jako drugi canvas pod overlay UI?
+
+## 9. Etapowanie migracji
 
 - **Etap 0 — docs/audit**
   - audyt runtime i kontrakt dokumentacyjny (ten dokument).
@@ -170,7 +256,7 @@ Renderer świata nie powinien czytać bezpośrednio całego global state „na �
   - testy kompatybilności,
   - walidacja regressions i plan rollbacku.
 
-## 9. Ryzyka
+## 10. Ryzyka
 
 1. Rozjazd układów współrzędnych screen/world.
 2. Inny model kamery i projekcji vs. aktualne `screenToWorld`/`getWorldViewBounds`.
@@ -180,7 +266,7 @@ Renderer świata nie powinien czytać bezpośrednio całego global state „na �
 6. Kolejność renderowania i przezroczystości (alpha/blending/depth).
 7. Dependency/loading Three.js (bundle, cache, awarie ładowania, fallback path).
 
-## 10. Kryteria akceptacji przed implementacją runtime
+## 11. Kryteria akceptacji przed implementacją runtime
 
 Przed wejściem w implementację Three.js należy zatwierdzić:
 
@@ -207,6 +293,6 @@ Przed wejściem w implementację Three.js należy zatwierdzić:
 
 ---
 
-## 11. Nota audytowa: `tree.js` vs `Three.js`
+## 12. Nota audytowa: `tree.js` vs `Three.js`
 
 W ramach audytu repo nie znaleziono lokalnego modułu/pliku `tree.js` powiązanego z runtime renderingu świata. Kierunek dokumentu interpretuje więc „tree.js” jako bibliotekę **Three.js**.
