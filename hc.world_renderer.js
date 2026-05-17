@@ -109,6 +109,7 @@
   }
 
   function detectThreeDependency() {
+    const bridgeVersion = window.HC_THREE_BRIDGE_VERSION;
     const loadStatus = window.HC_THREE_LOAD_STATUS;
     const esmReady = window.HC_THREE_READY === true && window.HC_THREE;
     if (esmReady) {
@@ -119,6 +120,13 @@
         threeState.lastError = null;
         return dep;
       }
+    }
+
+    if (!bridgeVersion) {
+      threeState.hasDependency = false;
+      threeDependencySource = "bridge_missing";
+      threeState.lastError = null;
+      return null;
     }
 
     if (loadStatus === "loading") {
@@ -143,7 +151,7 @@
     }
 
     threeState.hasDependency = false;
-    threeDependencySource = loadStatus ? "local_vendor_esm_" + loadStatus : "missing";
+    threeDependencySource = loadStatus ? "local_vendor_esm_" + loadStatus : "local_vendor_esm_unknown";
     return null;
   }
 
@@ -197,7 +205,11 @@
         if (!initializedThree) {
           effectiveMode = "canvas2d";
           fallbackUsed = true;
-          fallbackReason = threeDependencySource === "local_vendor_esm_loading" ? "three_loading" : (threeDependencySource === "local_vendor_esm_failed" ? "three_load_failed" : "three_loading_or_missing");
+          fallbackReason = threeDependencySource === "bridge_missing"
+            ? "three_bridge_missing"
+            : (threeDependencySource === "local_vendor_esm_loading"
+              ? "three_loading"
+              : (threeDependencySource === "local_vendor_esm_failed" ? "three_load_failed" : "three_loading_or_missing"));
           fallbackCalls += 1;
           lastError = threeState.lastError || window.HC_THREE_LOAD_ERROR || null;
           if (!threeWarned && typeof console !== "undefined" && console.warn) {
