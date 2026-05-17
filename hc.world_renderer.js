@@ -1,4 +1,4 @@
-// HC world renderer adapter facade (Stage 1)
+// HC world renderer adapter facade (Stage 2 - minimal Three.js lifecycle)
 (function () {
   window.HC = window.HC || {};
 
@@ -12,6 +12,19 @@
   let renderCalls = 0;
   let fallbackCalls = 0;
   let threeWarned = false;
+  let threeModeActive = false;
+
+  const threeState = {
+    initialized: false,
+    hasDependency: false,
+    canvas: null,
+    renderer: null,
+    scene: null,
+    camera: null,
+    lastError: null,
+    renderCalls: 0,
+    resizeCalls: 0,
+  };
 
   function resetDiagnostics() {
     fallbackUsed = false;
@@ -20,7 +33,11 @@
     renderCalls = 0;
     fallbackCalls = 0;
     threeWarned = false;
+    threeModeActive = false;
     effectiveMode = "canvas2d";
+    threeState.lastError = null;
+    threeState.renderCalls = 0;
+    threeState.resizeCalls = 0;
   }
 
   function setMode(nextMode) {
@@ -50,7 +67,85 @@
   }
 
   function resize() {
-    // Stage 1: no-op, adapter contract only.
+    if (!threeState.initialized || !threeState.renderer || !threeState.camera || !threeState.canvas) return;
+    const view = (window.HC && window.HC.getView && window.HC.getView()) || window.View;
+    if (!view || !view.w || !view.h) return;
+
+    const dpr = Math.max(1, Number(view.dpr) || 1);
+    const cssW = Math.max(1, view.w / dpr);
+    const cssH = Math.max(1, view.h / dpr);
+    threeState.resizeCalls += 1;
+    threeState.canvas.style.width = cssW + "px";
+    threeState.canvas.style.height = cssH + "px";
+    threeState.renderer.setPixelRatio(dpr);
+    threeState.renderer.setSize(cssW, cssH, false);
+    if (threeState.camera.isPerspectiveCamera) {
+      threeState.camera.aspect = cssW / cssH;
+      threeState.camera.updateProjectionMatrix();
+    }
+  }
+
+  function ensureThreeCanvas() {
+    let canvas = document.getElementById("hc-three-world-canvas");
+    if (!canvas) {
+      canvas = document.createElement("canvas");
+      canvas.id = "hc-three-world-canvas";
+      canvas.setAttribute("aria-hidden", "true");
+      canvas.style.position = "fixed";
+      canvas.style.inset = "0";
+      canvas.style.width = "100vw";
+      canvas.style.height = "100vh";
+      canvas.style.pointerEvents = "none";
+      canvas.style.zIndex = "0";
+      canvas.style.display = "none";
+      const app = document.getElementById("app");
+      if (app && app.parentNode) app.parentNode.insertBefore(canvas, app);
+      else document.body.appendChild(canvas);
+    }
+    return canvas;
+  }
+
+  function detectThreeDependency() {
+    const dep = window.THREE;
+    threeState.hasDependency = !!(dep && dep.WebGLRenderer && dep.Scene && dep.PerspectiveCamera);
+    return dep;
+  }
+
+  function initThree() {
+    if (threeState.initialized) return true;
+    const THREE = detectThreeDependency();
+    if (!THREE) return false;
+    try {
+      const canvas = ensureThreeCanvas();
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+      camera.position.set(0, 0, 8);
+      scene.background = new THREE.Color(0x05070a);
+      canvas.style.display = "block";
+      threeState.canvas = canvas;
+      threeState.renderer = renderer;
+      threeState.scene = scene;
+      threeState.camera = camera;
+      threeState.initialized = true;
+      threeState.lastError = null;
+      resize();
+      return true;
+    } catch (err) {
+      threeState.lastError = err && err.message ? err.message : String(err);
+      return false;
+    }
+  }
+
+  function destroyThree() {
+    if (threeState.renderer && typeof threeState.renderer.dispose === "function") {
+      threeState.renderer.dispose();
+    }
+    if (threeState.canvas) threeState.canvas.style.display = "none";
+    threeState.renderer = null;
+    threeState.scene = null;
+    threeState.camera = null;
+    threeState.initialized = false;
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -58,22 +153,38 @@
     const snapshotVersion = renderSnapshot && renderSnapshot.version ? renderSnapshot.version : "1";
     try {
       if (requestedMode === "three") {
-        effectiveMode = "canvas2d";
-        fallbackUsed = true;
-        fallbackReason = "three_not_implemented";
-        lastError = null;
-        fallbackCalls += 1;
-        if (!threeWarned && typeof console !== "undefined" && console.warn) {
-          console.warn("[HC.WorldRenderer] Falling back to canvas2d: three mode is not implemented yet.", {
-            requestedMode,
-            effectiveMode,
-            fallbackReason,
-            snapshotVersion,
-          });
-          threeWarned = true;
+        const initializedThree = initThree();
+        if (!initializedThree) {
+          effectiveMode = "canvas2d";
+          fallbackUsed = true;
+          fallbackReason = "three_missing";
+          fallbackCalls += 1;
+          lastError = threeState.lastError;
+          if (!threeWarned && typeof console !== "undefined" && console.warn) {
+            console.warn("[HC.WorldRenderer] Falling back to canvas2d: Three dependency or adapter init is unavailable.", {
+              requestedMode,
+              effectiveMode,
+              fallbackReason,
+              snapshotVersion,
+            });
+            threeWarned = true;
+          }
+          callCanvasFallback(nowMs, dt);
+          return;
         }
-        callCanvasFallback(nowMs, dt);
+        threeModeActive = true;
+        effectiveMode = "three";
+        fallbackUsed = false;
+        fallbackReason = null;
+        lastError = null;
+        threeState.renderCalls += 1;
+        threeState.renderer.render(threeState.scene, threeState.camera);
         return;
+      }
+
+      if (threeModeActive) {
+        destroyThree();
+        threeModeActive = false;
       }
 
       effectiveMode = "canvas2d";
@@ -92,6 +203,7 @@
   }
 
   function destroy() {
+    destroyThree();
     initialized = false;
     resetDiagnostics();
   }
@@ -108,7 +220,16 @@
       renderCalls,
       fallbackCalls,
       snapshotVersion: "1",
-      hasThreeImplementation: false,
+      hasThreeImplementation: true,
+      hasThreeDependency: !!threeState.hasDependency,
+      threeInitialized: !!threeState.initialized,
+      threeCanvasPresent: !!threeState.canvas,
+      threeLastError: threeState.lastError,
+      threeRenderCalls: threeState.renderCalls,
+      threeResizeCalls: threeState.resizeCalls,
+      threeSceneReady: !!threeState.scene,
+      threeCameraReady: !!threeState.camera,
+      threeRendererReady: !!threeState.renderer,
     };
   }
 

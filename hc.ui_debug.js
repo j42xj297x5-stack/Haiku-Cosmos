@@ -633,6 +633,9 @@
           ["Renderer requested", rendererDiag?.requestedMode || "canvas2d"],
           ["Renderer effective", rendererDiag?.effectiveMode || "canvas2d"],
           ["Renderer fallback", rendererDiag?.fallbackReason || "none"],
+          ["Three dependency", rendererDiag?.hasThreeDependency ? "yes" : "no"],
+          ["Three initialized", rendererDiag?.threeInitialized ? "yes" : "no"],
+          ["Three canvas", rendererDiag?.threeCanvasPresent ? "yes" : "no"],
         ])}</div>
       </section>
     `);

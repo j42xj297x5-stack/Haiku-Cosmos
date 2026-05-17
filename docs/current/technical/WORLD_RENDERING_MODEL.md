@@ -431,3 +431,22 @@ Status na **2026-05-17**: Etap 1.5 został wdrożony jako warstwa debug/diagnost
 - Snapshot renderingu świata zawiera diagnostics (`version`, `objectCounts`, flagi dostępności kamery i worldBounds).
 - `worldBounds` w snapshot korzysta z helpera `getWorldViewBounds()` jeśli jest dostępny; przy błędzie/braku pozostaje fallback `null` z oznaczeniem źródła w diagnostics snapshotu.
 - Three.js nadal nie jest zaimplementowane (brak sceny, brak CDN, brak integracji runtime 3D).
+
+
+## 15. Etap 2 implementation status
+
+Status na **2026-05-17**: Etap 2 został wdrożony jako minimalny lifecycle adaptera Three.js, bez renderowania obiektów gameplay.
+
+- `HC.WorldRenderer` posiada aktywny lifecycle Three adaptera: `init`, `resize`, `render`, `destroy`, `getDiagnostics`.
+- Detekcja dependency działa przez `window.THREE`; loader zależności nie został wymuszony (brak CDN, brak nowego bundlera, brak vendor injection na siłę).
+- W trybie `requestedMode = "three"` adapter próbuje uruchomić pustą scenę (`Scene + PerspectiveCamera + WebGLRenderer`) i renderuje neutralne tło testowe.
+- Strategia canvas/layer: adapter tworzy osobny `canvas` (`#hc-three-world-canvas`) tylko dla Three mode; warstwa jest `pointer-events: none` i pozostaje pod overlay UI/debug.
+- W razie braku dependency lub błędu init/render następuje bezpieczny fallback do `canvas2d` (`fallbackReason: "three_missing"`) bez crasha runtime.
+- `HUD/SUB-META/META` pozostają poza rendererem świata; adapter świata nie przejmuje odpowiedzialności za te warstwy.
+- Obiekty gameplay (`meteory/asteroidy/planety/gwiazdy/komety`, PRG visuals) nadal **nie** są renderowane przez Three.js.
+
+### Warunki wejścia do Etapu 3
+
+1. Zatwierdzenie docelowego modelu dostarczania dependency Three.js (repo-controlled vendor lub bundler zgodny z polityką repo).
+2. Zdefiniowanie minimalnego mapowania pierwszej klasy obiektów świata (np. meteory) ze snapshotu na prymitywy/meshe Three.
+3. Utrzymanie kontraktu: brak zmian mechaniki, brak przenoszenia HUD/SUB-META/META do renderera świata, bezpieczny fallback Canvas2D przy każdej awarii.
