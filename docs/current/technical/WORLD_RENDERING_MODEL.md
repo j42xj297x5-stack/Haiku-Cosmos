@@ -497,3 +497,20 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
 
 
 - Bridge ESM (`hc.three_module_bridge.js`) zapisuje `HC_THREE_MODULE_URL` i wykonuje preflight `fetch()` przed `import()`, aby jednoznacznie odróżnić błąd HTTP (np. 404) od błędu ładowania modułu/MIME.
+
+## ESM bridge browser smoke fix (2026-05-17)
+
+- W środowisku przeglądarkowym wykryto przypadek: `fetch` do lokalnego vendora Three ESM zwracał HTTP 200, ale `import()` dynamiczny nadal kończył się błędem `Failed to fetch dynamically imported module`.
+- Dla stabilizacji smoke testu browser bridge został uproszczony do statycznego importu ESM z lokalnego vendora (`./vendor/three/three.module.min.js`) w `hc.three_module_bridge.js`.
+- Bridge publikuje `window.HC_THREE_BRIDGE_VERSION` (aktualnie `esm_static_import_v1`), żeby w DevTools szybko potwierdzić, że przeglądarka widzi najnowszy plik bridge (a nie cache).
+- `window.HC_THREE_MODULE_URL` pozostaje diagnostycznym źródłem canonical URL modułu.
+- Canvas2D fallback pozostaje obowiązkowy: nawet przy błędach ładowania/initializacji Three runtime musi umożliwiać dalszą grę przez `HC.Render`.
+
+### Smoke QA (cache / browser)
+
+1. Uruchom lokalny serwer z root repo (np. `python -m http.server 8123`).
+2. Otwórz `http://localhost:8123/index.codex.html`.
+3. W DevTools ustaw **Network → Disable cache**.
+4. Wykonaj twarde odświeżenie (`Ctrl+F5`).
+5. Sprawdź bezpośrednio URL vendora: `http://localhost:8123/vendor/three/three.module.min.js`.
+6. Zweryfikuj w konsoli: `window.HC_THREE_BRIDGE_VERSION`, `window.HC_THREE_MODULE_URL`, `window.HC_THREE_LOAD_STATUS`, `window.HC_THREE_READY`, `window.HC_THREE_SOURCE`, `window.HC_THREE_LOAD_ERROR`.
