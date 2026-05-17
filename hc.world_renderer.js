@@ -109,14 +109,41 @@
   }
 
   function detectThreeDependency() {
+    const loadStatus = window.HC_THREE_LOAD_STATUS;
+    const esmReady = window.HC_THREE_READY === true && window.HC_THREE;
+    if (esmReady) {
+      const dep = window.HC_THREE;
+      if (dep && dep.WebGLRenderer && dep.Scene && dep.PerspectiveCamera) {
+        threeState.hasDependency = true;
+        threeDependencySource = "local_vendor_esm";
+        threeState.lastError = null;
+        return dep;
+      }
+    }
+
+    if (loadStatus === "loading") {
+      threeState.hasDependency = false;
+      threeDependencySource = "local_vendor_esm_loading";
+      return null;
+    }
+
+    if (loadStatus === "failed") {
+      threeState.hasDependency = false;
+      threeDependencySource = "local_vendor_esm_failed";
+      threeState.lastError = window.HC_THREE_LOAD_ERROR || null;
+      return null;
+    }
+
     const dep = window.THREE;
     if (dep && dep.WebGLRenderer && dep.Scene && dep.PerspectiveCamera) {
       threeState.hasDependency = true;
-      threeDependencySource = window.HC_THREE_SOURCE === "local_vendor" ? "local_vendor" : "window.THREE";
+      threeDependencySource = "window.THREE_legacy";
+      threeState.lastError = null;
       return dep;
     }
+
     threeState.hasDependency = false;
-    threeDependencySource = "missing";
+    threeDependencySource = loadStatus ? "local_vendor_esm_" + loadStatus : "missing";
     return null;
   }
 
@@ -170,9 +197,9 @@
         if (!initializedThree) {
           effectiveMode = "canvas2d";
           fallbackUsed = true;
-          fallbackReason = "three_missing";
+          fallbackReason = threeDependencySource === "local_vendor_esm_loading" ? "three_loading" : (threeDependencySource === "local_vendor_esm_failed" ? "three_load_failed" : "three_loading_or_missing");
           fallbackCalls += 1;
-          lastError = threeState.lastError;
+          lastError = threeState.lastError || window.HC_THREE_LOAD_ERROR || null;
           if (!threeWarned && typeof console !== "undefined" && console.warn) {
             console.warn("[HC.WorldRenderer] Falling back to canvas2d: Three dependency or adapter init is unavailable.", {
               requestedMode,
@@ -258,6 +285,8 @@
       hasThreeImplementation: true,
       hasThreeDependency: !!threeState.hasDependency,
       threeDependencySource,
+      threeLoadStatus: window.HC_THREE_LOAD_STATUS || "missing",
+      threeLoadError: window.HC_THREE_LOAD_ERROR || null,
       threeInitialized: !!threeState.initialized,
       threeCanvasPresent: canvasDiag.present,
       threeCanvasVisible: canvasDiag.visible,

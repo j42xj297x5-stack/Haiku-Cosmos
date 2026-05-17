@@ -487,3 +487,10 @@ Status na **2026-05-17**: Etap 2.75 został wykonany jako repo-controlled integr
 ### Uwagi operacyjne (manual vendor provisioning)
 
 Jeśli `./vendor/three/three.min.js` nie jest jeszcze fizycznie dostarczony w repo (np. ograniczenia środowiska CI/sandbox), runtime zachowuje bezpieczny fallback i należy ręcznie dodać jeden stabilny build Three.js do wskazanej ścieżki bez modyfikacji pliku minifikowanego.
+
+## ESM vendor loading diagnostics (update 2026-05-17)
+
+- `hc.three_module_bridge.js` ustawia globalne statusy ładowania dependency Three ESM: `HC_THREE_LOAD_STATUS` (`loading`/`ready`/`failed`), `HC_THREE_READY`, `HC_THREE_SOURCE`, `HC_THREE_LOAD_ERROR`.
+- Local ESM vendor wymaga poprawnej ścieżki relatywnej do bridge (`./vendor/three/three.module.min.js`) i powinien być uruchamiany przez lokalny dev server.
+- Tryb `file://` może blokować import ESM; diagnostyka bridge zwraca wtedy czytelny błąd (`ESM Three vendor requires local dev server, not file://`).
+- Fallback `canvas2d` pozostaje obowiązkowy przy statusach `loading`/`failed`/`missing`; runtime nie może crashować przy braku Three.
