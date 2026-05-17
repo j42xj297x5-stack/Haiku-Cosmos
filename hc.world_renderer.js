@@ -13,6 +13,7 @@
   let fallbackCalls = 0;
   let threeWarned = false;
   let threeModeActive = false;
+  let threeDependencySource = "unknown";
 
   const threeState = {
     initialized: false,
@@ -38,6 +39,7 @@
     threeState.lastError = null;
     threeState.renderCalls = 0;
     threeState.resizeCalls = 0;
+    threeDependencySource = "unknown";
   }
 
   function setMode(nextMode) {
@@ -98,6 +100,7 @@
       canvas.style.pointerEvents = "none";
       canvas.style.zIndex = "0";
       canvas.style.display = "none";
+      canvas.style.visibility = "hidden";
       const app = document.getElementById("app");
       if (app && app.parentNode) app.parentNode.insertBefore(canvas, app);
       else document.body.appendChild(canvas);
@@ -107,8 +110,14 @@
 
   function detectThreeDependency() {
     const dep = window.THREE;
-    threeState.hasDependency = !!(dep && dep.WebGLRenderer && dep.Scene && dep.PerspectiveCamera);
-    return dep;
+    if (dep && dep.WebGLRenderer && dep.Scene && dep.PerspectiveCamera) {
+      threeState.hasDependency = true;
+      threeDependencySource = "window.THREE";
+      return dep;
+    }
+    threeState.hasDependency = false;
+    threeDependencySource = "missing";
+    return null;
   }
 
   function initThree() {
@@ -123,6 +132,7 @@
       camera.position.set(0, 0, 8);
       scene.background = new THREE.Color(0x05070a);
       canvas.style.display = "block";
+      canvas.style.visibility = "visible";
       threeState.canvas = canvas;
       threeState.renderer = renderer;
       threeState.scene = scene;
@@ -141,7 +151,10 @@
     if (threeState.renderer && typeof threeState.renderer.dispose === "function") {
       threeState.renderer.dispose();
     }
-    if (threeState.canvas) threeState.canvas.style.display = "none";
+    if (threeState.canvas) {
+      threeState.canvas.style.display = "none";
+      threeState.canvas.style.visibility = "hidden";
+    }
     threeState.renderer = null;
     threeState.scene = null;
     threeState.camera = null;
@@ -208,7 +221,29 @@
     resetDiagnostics();
   }
 
+
+  function getCanvasDiagnostics() {
+    const canvas = document.getElementById("hc-three-world-canvas");
+    if (!canvas) {
+      return {
+        present: false,
+        visible: false,
+        zIndex: "n/a",
+        pointerEvents: "n/a",
+      };
+    }
+    const styles = window.getComputedStyle ? window.getComputedStyle(canvas) : canvas.style;
+    const visible = styles.display !== "none" && styles.visibility !== "hidden" && Number(styles.opacity || 1) > 0;
+    return {
+      present: true,
+      visible,
+      zIndex: styles.zIndex || canvas.style.zIndex || "auto",
+      pointerEvents: styles.pointerEvents || canvas.style.pointerEvents || "auto",
+    };
+  }
+
   function getDiagnostics() {
+    const canvasDiag = getCanvasDiagnostics();
     return {
       requestedMode,
       effectiveMode,
@@ -222,8 +257,12 @@
       snapshotVersion: "1",
       hasThreeImplementation: true,
       hasThreeDependency: !!threeState.hasDependency,
+      threeDependencySource,
       threeInitialized: !!threeState.initialized,
-      threeCanvasPresent: !!threeState.canvas,
+      threeCanvasPresent: canvasDiag.present,
+      threeCanvasVisible: canvasDiag.visible,
+      threeCanvasZIndex: canvasDiag.zIndex,
+      threeCanvasPointerEvents: canvasDiag.pointerEvents,
       threeLastError: threeState.lastError,
       threeRenderCalls: threeState.renderCalls,
       threeResizeCalls: threeState.resizeCalls,

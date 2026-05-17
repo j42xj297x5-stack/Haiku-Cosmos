@@ -452,3 +452,22 @@ Status na **2026-05-17**: Etap 2 został wdrożony jako minimalny lifecycle adap
 1. Zatwierdzenie docelowego modelu dostarczania dependency Three.js (repo-controlled vendor lub bundler zgodny z polityką repo).
 2. Zdefiniowanie minimalnego mapowania pierwszej klasy obiektów świata (np. meteory) ze snapshotu na prymitywy/meshe Three.
 3. Utrzymanie kontraktu: brak zmian mechaniki, brak przenoszenia HUD/SUB-META/META do renderera świata, bezpieczny fallback Canvas2D przy każdej awarii.
+
+
+## 16. Etap 2.5 layer/dependency sanity status
+
+Status na **2026-05-17**: sanity pass warstwy renderera został wykonany bez wejścia w gameplay rendering Three.js.
+
+- **Dependency loading:** repo nie ma jeszcze zatwierdzonego, produkcyjnego wzorca podpięcia Three.js jako lokalnego vendora ani aktywnego bundlera dla tego runtime passu; adapter pozostaje przy detekcji `window.THREE`.
+- **Decyzja Etap 2.5:** nie dodawano dependency „na siłę”, nie użyto CDN jako production source-of-truth, nie wprowadzano refaktoru build systemu.
+- **Rekomendowana ścieżka dependency:** osobny krok projektowy: repo-controlled local vendor (lub formalnie zatwierdzony bundler), z jednoznacznym ownership wersji biblioteki.
+- **Realny status Three.js:** w runtime Three.js jest obecnie wykrywane (jeśli istnieje `window.THREE`), ale nie jest gwarantowanie dostarczane przez repo w tym etapie.
+- **Warstwa `#hc-three-world-canvas`:** tworzona lazy (tylko przy próbie wejścia w mode `three`), wymuszone `pointer-events: none`, diagnostyka widoczności/z-index/pointer-events, oraz jawne ukrywanie (`display: none`, `visibility: hidden`) po powrocie do `canvas2d`.
+- **Fallback i effective mode:** brak dependency lub błąd adaptera nadal prowadzi do bezpiecznego fallbacku na `canvas2d`; diagnostics rozróżnia `requestedMode` i `effectiveMode` oraz trzyma `fallbackReason`.
+- **Zakres bez zmian:** meteory, asteroidy, planety, gwiazdy, komety, PRG visuals oraz HUD/SUB-META/META nadal nie są renderowane przez Three.js.
+
+### Warunki wejścia do Etapu 3 (po sanity 2.5)
+
+1. Formalne zatwierdzenie strategii dependency loading (repo-controlled local vendor lub zatwierdzony bundler).
+2. Wpięcie dependency do repo zgodnie z wybraną strategią i aktualizacja `threeDependencySource` na ścieżkę produkcyjną (np. `local_vendor`).
+3. Pierwszy ograniczony pass gameplay-object mapping do Three (bez zmiany mechaniki), z utrzymaniem fallbacku Canvas2D i kontraktu overlay UI.
