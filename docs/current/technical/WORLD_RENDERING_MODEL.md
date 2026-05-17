@@ -405,3 +405,15 @@ Przed wejściem w implementację Three.js należy zatwierdzić:
 ## 13. Nota audytowa: `tree.js` vs `Three.js`
 
 W ramach audytu repo nie znaleziono lokalnego modułu/pliku `tree.js` powiązanego z runtime renderingu świata. Kierunek dokumentu interpretuje więc „tree.js” jako bibliotekę **Three.js**.
+
+
+## 10. Etap 1 implementation status
+
+Status na **2026-05-17**: etap 1 został wdrożony jako minimalna infrastruktura bez wdrażania Three.js i bez zmiany gameplay.
+
+- Dodano `hc.world_render_snapshot.js` z namespace `HC.WorldRenderSnapshot` i API `build(options)` tworzącym minimalny, defensywny snapshot danych renderingu świata.
+- Dodano `hc.world_renderer.js` z namespace `HC.WorldRenderer` i API: `init`, `resize`, `render`, `destroy`, `getDiagnostics`, `setMode`, `getMode`.
+- `renderMode` działa w trybach `"canvas2d" | "three"`, z domyślnym `canvas2d` i bezpiecznym fallbackiem do `HC.Render.frame(now, dt)`.
+- Tryb `three` pozostaje placeholderem diagnostycznym; implementacja Three.js nadal **nie** istnieje (`hasThreeImplementation: false`).
+- Boot flow używa snapshot buildera i adaptera tylko jako cienkiej fasady; przy braku adaptera/błędzie pozostaje legacy render path Canvas2D.
+- UI/HUD/SUB-META/META pozostają poza rendererem świata (bez przenoszenia odpowiedzialności do adaptera).
