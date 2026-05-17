@@ -33,7 +33,7 @@ console.log("[HC] game.boot.js loaded");
 (() => {
   // ---------- DOM ----------
   const canvas = document.getElementById("gameCanvas");
-  const ctx = canvas.getContext("2d", { alpha: false });
+  const ctx = canvas.getContext("2d", { alpha: true });
   window.HC = window.HC || {};
   if (!window.HC.RENDER_MODE) window.HC.RENDER_MODE = "canvas2d";
   // UI/DEBUG moved to hc.ui_debug.js
@@ -601,6 +601,24 @@ meteorCollisionFudge: 1.12,
   }
   bootState.cardBound = tryBindCardEngine();
 
+
+  function syncCanvasLayerMode() {
+    const rendererDiag = window.HC?.WorldRenderer?.getDiagnostics ? window.HC.WorldRenderer.getDiagnostics() : null;
+    const effectiveMode = rendererDiag?.effectiveMode || window.HC?.RENDER_MODE || "canvas2d";
+    if (effectiveMode === "three") {
+      canvas.style.background = "transparent";
+      canvas.style.opacity = "1";
+      canvas.style.visibility = "visible";
+      if (ctx && typeof ctx.clearRect === "function") {
+        ctx.clearRect(0, 0, View.w || canvas.width || 0, View.h || canvas.height || 0);
+      }
+    } else {
+      canvas.style.background = "#000";
+      canvas.style.opacity = "1";
+      canvas.style.visibility = "visible";
+    }
+  }
+
   let last = performance.now();
   let frameIndex = 0;
 
@@ -638,6 +656,8 @@ meteorCollisionFudge: 1.12,
     if (!renderedByAdapter && HC.Render && typeof HC.Render.frame === "function") {
       HC.Render.frame(now, dt);
     }
+
+    syncCanvasLayerMode();
 
     if (window.HC && window.HC.UI && window.HC.UI.update) {
       window.HC.UI.update(dt, now);
