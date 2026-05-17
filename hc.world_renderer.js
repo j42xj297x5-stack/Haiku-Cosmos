@@ -3,23 +3,34 @@
   window.HC = window.HC || {};
 
   const ALLOWED_MODES = { canvas2d: true, three: true };
-  let mode = "canvas2d";
+  let requestedMode = "canvas2d";
+  let effectiveMode = "canvas2d";
   let initialized = false;
   let fallbackUsed = false;
+  let fallbackReason = null;
   let lastError = null;
+  let renderCalls = 0;
+  let fallbackCalls = 0;
+  let threeWarned = false;
 
   function resetDiagnostics() {
     fallbackUsed = false;
+    fallbackReason = null;
     lastError = null;
+    renderCalls = 0;
+    fallbackCalls = 0;
+    threeWarned = false;
+    effectiveMode = "canvas2d";
   }
 
   function setMode(nextMode) {
-    mode = ALLOWED_MODES[nextMode] ? nextMode : "canvas2d";
-    return mode;
+    requestedMode = ALLOWED_MODES[nextMode] ? nextMode : "canvas2d";
+    if (window.HC) window.HC.RENDER_MODE = requestedMode;
+    return requestedMode;
   }
 
   function getMode() {
-    return mode;
+    return requestedMode;
   }
 
   function callCanvasFallback(nowMs, dt) {
@@ -43,24 +54,39 @@
   }
 
   function render(renderSnapshot, nowMs, dt) {
+    renderCalls += 1;
+    const snapshotVersion = renderSnapshot && renderSnapshot.version ? renderSnapshot.version : "1";
     try {
-      if (mode === "three") {
+      if (requestedMode === "three") {
+        effectiveMode = "canvas2d";
         fallbackUsed = true;
-        lastError = "three mode requested but implementation is not available";
-        if (typeof console !== "undefined" && console.warn) {
+        fallbackReason = "three_not_implemented";
+        lastError = null;
+        fallbackCalls += 1;
+        if (!threeWarned && typeof console !== "undefined" && console.warn) {
           console.warn("[HC.WorldRenderer] Falling back to canvas2d: three mode is not implemented yet.", {
-            mode,
-            snapshotVersion: renderSnapshot && renderSnapshot.version,
+            requestedMode,
+            effectiveMode,
+            fallbackReason,
+            snapshotVersion,
           });
+          threeWarned = true;
         }
         callCanvasFallback(nowMs, dt);
         return;
       }
 
+      effectiveMode = "canvas2d";
+      fallbackUsed = false;
+      fallbackReason = null;
+      lastError = null;
       callCanvasFallback(nowMs, dt);
     } catch (err) {
       fallbackUsed = true;
+      fallbackReason = "adapter_error";
+      fallbackCalls += 1;
       lastError = err && err.message ? err.message : String(err);
+      effectiveMode = "canvas2d";
       callCanvasFallback(nowMs, dt);
     }
   }
@@ -72,10 +98,16 @@
 
   function getDiagnostics() {
     return {
-      mode,
+      requestedMode,
+      effectiveMode,
+      mode: effectiveMode,
       fallbackUsed,
+      fallbackReason,
       lastError,
       initialized,
+      renderCalls,
+      fallbackCalls,
+      snapshotVersion: "1",
       hasThreeImplementation: false,
     };
   }

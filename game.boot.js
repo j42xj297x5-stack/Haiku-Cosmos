@@ -618,6 +618,7 @@ meteorCollisionFudge: 1.12,
         Camera,
         View,
         Input,
+        getWorldViewBounds,
         nowMs: now,
         dt,
       })
