@@ -301,6 +301,7 @@
       threeReady: window.HC_THREE_READY === true,
       threeSource: window.HC_THREE_SOURCE || null,
       threeModuleUrl: window.HC_THREE_MODULE_URL || null,
+      threeCoreUrl: window.HC_THREE_CORE_URL || null,
       threeLoadStatus: window.HC_THREE_LOAD_STATUS || "missing",
       threeLoadError: window.HC_THREE_LOAD_ERROR || null,
       threeInitialized: !!threeState.initialized,
