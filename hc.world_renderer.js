@@ -285,6 +285,7 @@
       hasThreeImplementation: true,
       hasThreeDependency: !!threeState.hasDependency,
       threeDependencySource,
+      threeModuleUrl: window.HC_THREE_MODULE_URL || null,
       threeLoadStatus: window.HC_THREE_LOAD_STATUS || "missing",
       threeLoadError: window.HC_THREE_LOAD_ERROR || null,
       threeInitialized: !!threeState.initialized,
