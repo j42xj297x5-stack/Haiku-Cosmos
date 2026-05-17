@@ -417,3 +417,17 @@ Status na **2026-05-17**: etap 1 został wdrożony jako minimalna infrastruktura
 - Tryb `three` pozostaje placeholderem diagnostycznym; implementacja Three.js nadal **nie** istnieje (`hasThreeImplementation: false`).
 - Boot flow używa snapshot buildera i adaptera tylko jako cienkiej fasady; przy braku adaptera/błędzie pozostaje legacy render path Canvas2D.
 - UI/HUD/SUB-META/META pozostają poza rendererem świata (bez przenoszenia odpowiedzialności do adaptera).
+
+## 14. Etap 1.5 validation/debug status
+
+Status na **2026-05-17**: Etap 1.5 został wdrożony jako warstwa debug/diagnostics, bez zmiany mechaniki i bez implementacji Three.js.
+
+- Dodano debug toggle `renderMode` (canvas2d/three) w istniejącym runtime debug overlay (bez nowego dużego panelu).
+- `canvas2d` pozostaje trybem domyślnym (`HC.RENDER_MODE = "canvas2d"` po starcie/odświeżeniu).
+- `three` pozostaje placeholderem: `requestedMode="three"`, `effectiveMode="canvas2d"`, `fallbackUsed=true`, `fallbackReason="three_not_implemented"`.
+- Rozdzielono diagnostycznie `requestedMode` od `effectiveMode` w `HC.WorldRenderer.getDiagnostics()`.
+- Potwierdzono ścieżkę render flow bez obowiązkowego podwójnego renderu: adapter renderuje świat, a bezpośredni fallback `HC.Render.frame(...)` uruchamia się tylko gdy adapter jest niedostępny lub rzuci wyjątek.
+- Rozszerzono diagnostics o: `renderCalls`, `fallbackCalls`, `snapshotVersion`, `fallbackReason`, `hasThreeImplementation`.
+- Snapshot renderingu świata zawiera diagnostics (`version`, `objectCounts`, flagi dostępności kamery i worldBounds).
+- `worldBounds` w snapshot korzysta z helpera `getWorldViewBounds()` jeśli jest dostępny; przy błędzie/braku pozostaje fallback `null` z oznaczeniem źródła w diagnostics snapshotu.
+- Three.js nadal nie jest zaimplementowane (brak sceny, brak CDN, brak integracji runtime 3D).

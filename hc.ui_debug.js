@@ -344,6 +344,14 @@
           };
           if (boolMap[target.id]) cfg[boolMap[target.id]] = !!target.checked;
           if (target.id === "dbgPrgMode") cfg.mode = String(target.value || "sourceCutRectFitProbe");
+          if (target.id === "dbgRendererMode") {
+            const nextMode = target.value === "three" ? "three" : "canvas2d";
+            window.HC = window.HC || {};
+            window.HC.RENDER_MODE = nextMode;
+            if (window.HC.WorldRenderer && typeof window.HC.WorldRenderer.setMode === "function") {
+              window.HC.WorldRenderer.setMode(nextMode);
+            }
+          }
         });
       }
       btnDebugOverlayToggle = document.getElementById("btnDebugOverlayToggle");
@@ -597,6 +605,13 @@
     const recent = Array.isArray(snap.recentEvents) ? snap.recentEvents.slice(-5) : [];
     const sections = [];
 
+    const rendererDiag = window.HC?.WorldRenderer?.getDiagnostics ? window.HC.WorldRenderer.getDiagnostics() : null;
+    const requestedMode = rendererDiag?.requestedMode || window.HC?.RENDER_MODE || "canvas2d";
+    const modeOptions = [
+      `<option value="canvas2d"${requestedMode === "canvas2d" ? " selected" : ""}>canvas2d</option>`,
+      `<option value="three"${requestedMode === "three" ? " selected" : ""}>three</option>`,
+    ].join("");
+
     sections.push(`
       <section class="overlay-section">
         <h4>${t("overlay.section.session")}</h4>
@@ -610,6 +625,14 @@
           ["backend", ls.mode || "-"],
           ["scenario", snap.scenarioLabel || "-"],
           ["buffer", snap.pendingLogBufferSize ?? 0],
+        ])}</div>
+        <div class="overlay-grid">
+          <label class="overlay-select-row" for="dbgRendererMode">Renderer: canvas2d / three <select id="dbgRendererMode">${modeOptions}</select></label>
+        </div>
+        <div class="overlay-grid">${renderRows([
+          ["Renderer requested", rendererDiag?.requestedMode || "canvas2d"],
+          ["Renderer effective", rendererDiag?.effectiveMode || "canvas2d"],
+          ["Renderer fallback", rendererDiag?.fallbackReason || "none"],
         ])}</div>
       </section>
     `);

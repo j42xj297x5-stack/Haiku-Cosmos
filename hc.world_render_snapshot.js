@@ -49,6 +49,21 @@
     const Camera = opts.Camera || {};
     const View = opts.View || {};
 
+    let worldBounds = null;
+    let worldBoundsSource = "fallback_null";
+    if (typeof opts.getWorldViewBounds === "function") {
+      try {
+        worldBounds = opts.getWorldViewBounds() || null;
+        worldBoundsSource = worldBounds ? "getWorldViewBounds" : "fallback_null";
+      } catch (_err) {
+        worldBounds = null;
+        worldBoundsSource = "getWorldViewBounds_error";
+      }
+    } else if (World.bounds && typeof World.bounds === "object") {
+      worldBounds = World.bounds;
+      worldBoundsSource = "world.bounds";
+    }
+
     const snapshot = {
       version: "world-render-snapshot-v1",
       nowMs: toNumber(opts.nowMs, 0),
@@ -63,7 +78,7 @@
           width: toNumber(View.w, 0),
           height: toNumber(View.h, 0),
         },
-        worldBounds: World.bounds || null,
+        worldBounds,
       },
       world: {
         meteors: mapCollection(World.meteors, "meteor"),
@@ -78,6 +93,23 @@
       },
       renderSettings: opts.renderSettings || null,
       debugSettings: opts.debugSettings || null,
+      diagnostics: {
+        version: "world-render-snapshot-v1",
+        objectCounts: {
+          meteors: pickArray(World.meteors).length,
+          comets: pickArray(World.comets).length,
+          asteroids: pickArray(World.asteroids).length,
+          planets: pickArray(World.planets).length,
+          stars: pickArray(World.stars).length,
+        },
+        cameraAvailability: {
+          hasCamera: !!opts.Camera,
+          hasView: !!opts.View,
+          hasWorldBounds: !!worldBounds,
+          worldBoundsSource,
+        },
+        hasWorldBounds: !!worldBounds,
+      },
     };
 
     return snapshot;
