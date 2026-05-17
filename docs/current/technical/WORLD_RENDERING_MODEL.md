@@ -554,3 +554,20 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
 - HUD, debug overlay, SUB-META i META pozostają warstwami overlay poza sceną Three.
 - Pozostałe obiekty świata (asteroidy, planety, gwiazdy, PRG) nadal nie są objęte passami Three w tym etapie.
 - Fallback do canvas2d pozostaje aktywnym i bezpiecznym mechanizmem pracy renderera.
+
+## Etap 3.1 meteor visibility calibration status (2026-05-17)
+
+- Diagnostyka potwierdziła, że pipeline Etapu 3 był częściowo poprawny: snapshot meteorów i mesh cache działały (liczby meteorów i meshy rosły), ale widoczność w scenie Three była niestabilna przez kalibrację mapowania kamera/skala/material.
+- Najważniejsze poprawki dotyczyły warstwy prezentacji, bez zmian mechaniki:
+  - kalibracja promienia meteorów przez stałe `THREE_METEOR_RADIUS_SCALE = 1.8` i `THREE_METEOR_MIN_RADIUS = 2.4`,
+  - wymuszenie czytelności materiału debugowego (`MeshBasicMaterial`, `DoubleSide`, `depthTest=false`, `depthWrite=false`, `opacity` fallback),
+  - poprawka mapowania kamery ortograficznej: gdy `worldBounds` nie są dostępne, bounds są liczone z `camera center + zoom + viewport`,
+  - pozycja kamery jest ustawiana na środek aktualnych bounds (`cx`,`cy`) zamiast stałego `(0,0)`.
+- Dodano diagnostykę first-sample dla Etapu 3.1:
+  - pierwszy meteor ze snapshotu (`firstMeteor`),
+  - pierwszy mesh (`firstMeteorMesh`: position + scale),
+  - `cameraBounds`, `rendererSize`, `sceneChildrenCount`,
+  - parametry kalibracji (`threeMeteorRadiusScale`, `threeMeteorMinRadius`).
+- Dodano prosty marker debug środka kamery (`threeDebugMarker`) do szybkiej walidacji, czy scena renderuje przewidywany obszar.
+- Zakres Three pozostaje ograniczony tylko do meteorów; asteroidy, planety, gwiazdy i PRG visual pozostają poza passami Three.
+- Fallback canvas2d (w tym HUD/SUB-META/META) pozostaje bez zmian funkcjonalnych i nadal jest obowiązkową ścieżką awaryjną.
