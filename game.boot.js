@@ -35,6 +35,7 @@ console.log("[HC] game.boot.js loaded");
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d", { alpha: false });
   window.HC = window.HC || {};
+  if (!window.HC.RENDER_MODE) window.HC.RENDER_MODE = "canvas2d";
   // UI/DEBUG moved to hc.ui_debug.js
 
   const CardEngine = window.CardEngine;
@@ -595,6 +596,9 @@ meteorCollisionFudge: 1.12,
   if (window.HC && window.HC.UI && window.HC.UI.init) {
     window.HC.UI.init();
   }
+  if (window.HC && window.HC.WorldRenderer && typeof window.HC.WorldRenderer.init === "function") {
+    window.HC.WorldRenderer.init({ mode: window.HC.RENDER_MODE || "canvas2d" });
+  }
   bootState.cardBound = tryBindCardEngine();
 
   let last = performance.now();
@@ -608,7 +612,32 @@ meteorCollisionFudge: 1.12,
 
     const dtWorld = World.paused ? 0 : dt;
     update(dtWorld, now);
-    if (HC.Render) HC.Render.frame(now, dt);
+    const renderSnapshot = (window.HC && window.HC.WorldRenderSnapshot && typeof window.HC.WorldRenderSnapshot.build === "function")
+      ? window.HC.WorldRenderSnapshot.build({
+        World,
+        Camera,
+        View,
+        Input,
+        nowMs: now,
+        dt,
+      })
+      : null;
+
+    let renderedByAdapter = false;
+    if (window.HC && window.HC.WorldRenderer && typeof window.HC.WorldRenderer.render === "function") {
+      try {
+        window.HC.WorldRenderer.render(renderSnapshot, now, dt);
+        renderedByAdapter = true;
+      } catch (err) {
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn("[HC] WorldRenderer render failed, falling back to HC.Render.frame", err);
+        }
+      }
+    }
+    if (!renderedByAdapter && HC.Render && typeof HC.Render.frame === "function") {
+      HC.Render.frame(now, dt);
+    }
+
     if (window.HC && window.HC.UI && window.HC.UI.update) {
       window.HC.UI.update(dt, now);
     }
