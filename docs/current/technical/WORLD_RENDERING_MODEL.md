@@ -582,3 +582,21 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
   - `mesh.position.x/y` pozostaje w world-space (`meteor.x`, `meteor.y`).
 - Dodano diagnostykę mapowania kamera↔świat (`cameraSnapshotCenter`, `cameraSnapshotZoom`, `cameraSnapshotWorldBounds`, `worldBoundsSource`, `threeCameraModel`, `meteorGroupChildrenCount`, `firstMeteorScreenEstimate`, `firstMeteorInCameraBounds`) oraz marker debug dla pozycji pierwszego meteoru.
 - Zakres fixu dotyczy wyłącznie warstwy renderingu Three świata; mechanika, fizyka, input, kolizje, ekonomia RP, HUD/SUB-META/META i logika kart pozostają poza Three i bez zmian.
+
+## Etap 3.1 canvas layer composition fix (2026-05-17)
+
+- Diagnostyka potwierdziła, że runtime Three działał (initialized + meteor meshes > 0), ale finalny obraz świata mógł pozostać niewidoczny przez kompozycję warstw canvas.
+- Główny problem: `gameCanvas` (warstwa 2D) mógł pozostać nad `hc-three-world-canvas` z nieprzezroczystym tłem/ostatnią czarną klatką, więc zasłaniał Three world.
+- Przyjęty model warstw dla trybu `three`:
+  - `hc-three-world-canvas` = world layer (pod spodem),
+  - `gameCanvas` = transparentny overlay 2D dla UI/input (nad warstwą Three),
+  - HUD/SUB-META/META/debug overlay pozostają poza sceną Three.
+- Implementacja fixu:
+  - `gameCanvas` jest czyszczony transparentnie (`ctx.clearRect(...)`) w każdej klatce, gdy `effectiveMode === "three"`,
+  - CSS `gameCanvas` jest przełączane na transparentne tło w trybie Three (bez black fill),
+  - w trybie `canvas2d` canvas wraca do normalnego czarnego tła i standardowego renderingu świata.
+- Rozszerzono diagnostykę renderera o dane kompozycji warstw:
+  - `canvasLayerMode` (`canvas2d` lub `three_with_transparent_2d_overlay`),
+  - style `gameCanvas` i `threeCanvas` (display/visibility/opacity/z-index/pointer-events),
+  - `layerProbe` z `document.elementFromPoint(center)` do szybkiej walidacji, który element leży na wierzchu.
+- Fallback `canvas2d` pozostał bez zmian kontraktowych i nadal jest ścieżką awaryjną.

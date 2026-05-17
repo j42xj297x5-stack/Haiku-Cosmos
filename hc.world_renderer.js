@@ -292,6 +292,7 @@
     try {
       const canvas = ensureThreeCanvas();
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+      renderer.setClearColor(0x071126, 1);
       const scene = new THREE.Scene();
       const camera = new THREE.OrthographicCamera(0, 1, 0, 1, 0.1, 1000);
       const meteorGroup = new THREE.Group();
@@ -409,23 +410,62 @@
     }
   }
 
+
+  function getGameCanvasDiagnostics() {
+    const canvas = document.getElementById("gameCanvas");
+    if (!canvas) return { present: false };
+    const styles = window.getComputedStyle ? window.getComputedStyle(canvas) : canvas.style;
+    return {
+      present: true,
+      display: styles.display || canvas.style.display || "block",
+      visibility: styles.visibility || canvas.style.visibility || "visible",
+      opacity: styles.opacity || canvas.style.opacity || "1",
+      zIndex: styles.zIndex || canvas.style.zIndex || "auto",
+      background: styles.backgroundColor || styles.background || canvas.style.background || "transparent",
+      pointerEvents: styles.pointerEvents || canvas.style.pointerEvents || "auto",
+      rect: { left: canvas.offsetLeft || 0, top: canvas.offsetTop || 0, width: canvas.clientWidth || 0, height: canvas.clientHeight || 0 },
+    };
+  }
+
+  function getLayerProbe() {
+    const view = (window.HC?.getView?.() || window.View || {});
+    const cx = Math.max(0, Math.floor((Number(view.w) || window.innerWidth || 0) / 2));
+    const cy = Math.max(0, Math.floor((Number(view.h) || window.innerHeight || 0) / 2));
+    const topEl = document.elementFromPoint ? document.elementFromPoint(cx, cy) : null;
+    const threeCanvas = document.getElementById("hc-three-world-canvas");
+    const gameCanvas = document.getElementById("gameCanvas");
+    return {
+      center: { x: cx, y: cy },
+      threeCanvasRect: threeCanvas ? { left: threeCanvas.offsetLeft || 0, top: threeCanvas.offsetTop || 0, width: threeCanvas.clientWidth || 0, height: threeCanvas.clientHeight || 0 } : null,
+      gameCanvasRect: gameCanvas ? { left: gameCanvas.offsetLeft || 0, top: gameCanvas.offsetTop || 0, width: gameCanvas.clientWidth || 0, height: gameCanvas.clientHeight || 0 } : null,
+      elementFromPointAtCenterTag: topEl?.tagName || null,
+      elementFromPointAtCenterId: topEl?.id || null,
+      elementFromPointAtCenterClass: topEl?.className || null,
+    };
+  }
+
   function getCanvasDiagnostics() {
     const canvas = document.getElementById("hc-three-world-canvas");
-    if (!canvas) return { present: false, visible: false, zIndex: "n/a", pointerEvents: "n/a" };
+    if (!canvas) return { present: false, visible: false, display: "none", visibility: "hidden", opacity: "0", zIndex: "n/a", pointerEvents: "n/a" };
     const styles = window.getComputedStyle ? window.getComputedStyle(canvas) : canvas.style;
     const visible = styles.display !== "none" && styles.visibility !== "hidden" && Number(styles.opacity || 1) > 0;
-    return { present: true, visible, zIndex: styles.zIndex || canvas.style.zIndex || "auto", pointerEvents: styles.pointerEvents || canvas.style.pointerEvents || "auto" };
+    return { present: true, visible, display: styles.display || canvas.style.display || "block", visibility: styles.visibility || canvas.style.visibility || "visible", opacity: styles.opacity || canvas.style.opacity || "1", zIndex: styles.zIndex || canvas.style.zIndex || "auto", pointerEvents: styles.pointerEvents || canvas.style.pointerEvents || "auto" };
   }
 
   function getDiagnostics() {
     const canvasDiag = getCanvasDiagnostics();
+    const gameCanvasDiag = getGameCanvasDiagnostics();
+    const layerProbe = getLayerProbe();
+    const canvasLayerMode = effectiveMode === "three" ? "three_with_transparent_2d_overlay" : "canvas2d";
     return {
       requestedMode, effectiveMode, mode: effectiveMode, fallbackUsed, fallbackReason, lastError, initialized, renderCalls, fallbackCalls, snapshotVersion: "1",
       hasThreeImplementation: true, hasThreeDependency: !!threeState.hasDependency, threeDependencySource, threeBridgeVersion: window.HC_THREE_BRIDGE_VERSION || null,
       threeReady: window.HC_THREE_READY === true, threeSource: window.HC_THREE_SOURCE || null, threeModuleUrl: window.HC_THREE_MODULE_URL || null,
       threeVendorUrls: Array.isArray(window.HC_THREE_VENDOR_URLS) ? window.HC_THREE_VENDOR_URLS.slice() : [], threeLoadStatus: window.HC_THREE_LOAD_STATUS || "missing",
       threeLoadError: window.HC_THREE_LOAD_ERROR || null, threeInitialized: !!threeState.initialized, threeCanvasPresent: canvasDiag.present,
-      threeCanvasVisible: canvasDiag.visible, threeCanvasZIndex: canvasDiag.zIndex, threeCanvasPointerEvents: canvasDiag.pointerEvents, threeLastError: threeState.lastError,
+      threeCanvasVisible: canvasDiag.visible, threeCanvasDisplay: canvasDiag.display, threeCanvasVisibility: canvasDiag.visibility, threeCanvasOpacity: canvasDiag.opacity, threeCanvasZIndex: canvasDiag.zIndex, threeCanvasPointerEvents: canvasDiag.pointerEvents, threeLastError: threeState.lastError,
+      gameCanvasDisplay: gameCanvasDiag.display || "missing", gameCanvasVisibility: gameCanvasDiag.visibility || "missing", gameCanvasOpacity: gameCanvasDiag.opacity || "missing", gameCanvasZIndex: gameCanvasDiag.zIndex || "missing", gameCanvasBackground: gameCanvasDiag.background || "missing", gameCanvasPointerEvents: gameCanvasDiag.pointerEvents || "missing",
+      canvasLayerMode, layerProbe,
       threeRenderCalls: threeState.renderCalls, threeResizeCalls: threeState.resizeCalls, threeSceneReady: !!threeState.scene, threeCameraReady: !!threeState.camera, threeRendererReady: !!threeState.renderer,
       threeMeteorRenderEnabled: !!threeState.threeMeteorRenderEnabled, threeMeteorCount: threeState.threeMeteorCount, threeMeteorMeshes: threeState.meteorMeshes.size,
       threeMeteorLastError: threeState.threeMeteorLastError, threeObjectRenderPasses: threeState.threeObjectRenderPasses.slice(),
