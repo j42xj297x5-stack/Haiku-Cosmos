@@ -1,4 +1,4 @@
-// HC world renderer adapter facade (Stage 2 - minimal Three.js lifecycle)
+// HC world renderer adapter facade (Stage 3 - minimal Three.js meteor pass)
 (function () {
   window.HC = window.HC || {};
 
@@ -25,6 +25,14 @@
     lastError: null,
     renderCalls: 0,
     resizeCalls: 0,
+    meteorGroup: null,
+    meteorGeometry: null,
+    meteorMaterials: new Map(),
+    meteorMeshes: new Map(),
+    threeMeteorRenderEnabled: true,
+    threeMeteorCount: 0,
+    threeMeteorLastError: null,
+    threeObjectRenderPasses: ["meteors"],
   };
 
   function resetDiagnostics() {
@@ -39,6 +47,8 @@
     threeState.lastError = null;
     threeState.renderCalls = 0;
     threeState.resizeCalls = 0;
+    threeState.threeMeteorCount = 0;
+    threeState.threeMeteorLastError = null;
     threeDependencySource = "unknown";
   }
 
@@ -54,9 +64,7 @@
 
   function callCanvasFallback(nowMs, dt) {
     const render = window.HC && window.HC.Render;
-    if (!render || typeof render.frame !== "function") {
-      throw new Error("HC.Render.frame is unavailable");
-    }
+    if (!render || typeof render.frame !== "function") throw new Error("HC.Render.frame is unavailable");
     render.frame(nowMs, dt);
   }
 
@@ -64,27 +72,7 @@
     initialized = true;
     resetDiagnostics();
     const opts = options || {};
-    const preferredMode = opts.mode || (window.HC && window.HC.RENDER_MODE);
-    setMode(preferredMode || "canvas2d");
-  }
-
-  function resize() {
-    if (!threeState.initialized || !threeState.renderer || !threeState.camera || !threeState.canvas) return;
-    const view = (window.HC && window.HC.getView && window.HC.getView()) || window.View;
-    if (!view || !view.w || !view.h) return;
-
-    const dpr = Math.max(1, Number(view.dpr) || 1);
-    const cssW = Math.max(1, view.w / dpr);
-    const cssH = Math.max(1, view.h / dpr);
-    threeState.resizeCalls += 1;
-    threeState.canvas.style.width = cssW + "px";
-    threeState.canvas.style.height = cssH + "px";
-    threeState.renderer.setPixelRatio(dpr);
-    threeState.renderer.setSize(cssW, cssH, false);
-    if (threeState.camera.isPerspectiveCamera) {
-      threeState.camera.aspect = cssW / cssH;
-      threeState.camera.updateProjectionMatrix();
-    }
+    setMode(opts.mode || (window.HC && window.HC.RENDER_MODE) || "canvas2d");
   }
 
   function ensureThreeCanvas() {
@@ -114,218 +102,197 @@
     const esmReady = window.HC_THREE_READY === true && window.HC_THREE;
     if (esmReady) {
       const dep = window.HC_THREE;
-      if (dep && dep.WebGLRenderer && dep.Scene && dep.PerspectiveCamera) {
+      if (dep && dep.WebGLRenderer && dep.Scene && dep.OrthographicCamera) {
         threeState.hasDependency = true;
         threeDependencySource = "local_vendor_esm";
         threeState.lastError = null;
         return dep;
       }
     }
-
-    if (!bridgeVersion) {
-      threeState.hasDependency = false;
-      threeDependencySource = "bridge_missing";
-      threeState.lastError = null;
-      return null;
-    }
-
-    if (loadStatus === "loading") {
-      threeState.hasDependency = false;
-      threeDependencySource = "local_vendor_esm_loading";
-      return null;
-    }
-
+    if (!bridgeVersion) { threeState.hasDependency = false; threeDependencySource = "bridge_missing"; return null; }
+    if (loadStatus === "loading") { threeState.hasDependency = false; threeDependencySource = "local_vendor_esm_loading"; return null; }
     if (loadStatus === "failed") {
       threeState.hasDependency = false;
       threeDependencySource = "local_vendor_esm_failed";
       threeState.lastError = window.HC_THREE_LOAD_ERROR || null;
       return null;
     }
-
     const dep = window.THREE;
-    if (dep && dep.WebGLRenderer && dep.Scene && dep.PerspectiveCamera) {
+    if (dep && dep.WebGLRenderer && dep.Scene && dep.OrthographicCamera) {
       threeState.hasDependency = true;
       threeDependencySource = "window.THREE_legacy";
       threeState.lastError = null;
       return dep;
     }
-
     threeState.hasDependency = false;
     threeDependencySource = loadStatus ? "local_vendor_esm_" + loadStatus : "local_vendor_esm_unknown";
     return null;
   }
 
+  function applyThreeCameraSnapshot(renderSnapshot) {
+    const cam = renderSnapshot?.camera || {};
+    const viewport = cam.viewport || {};
+    const width = Math.max(1, Number(viewport.width) || 1);
+    const height = Math.max(1, Number(viewport.height) || 1);
+    const bounds = cam.worldBounds || null;
+    let left = 0; let right = width; let top = 0; let bottom = height;
+    if (bounds && Number.isFinite(bounds.l) && Number.isFinite(bounds.r) && Number.isFinite(bounds.t) && Number.isFinite(bounds.b)) {
+      left = bounds.l; right = bounds.r; top = bounds.t; bottom = bounds.b;
+    }
+    threeState.camera.left = left;
+    threeState.camera.right = right;
+    threeState.camera.top = top;
+    threeState.camera.bottom = bottom;
+    threeState.camera.position.set(0, 0, 10);
+    threeState.camera.updateProjectionMatrix();
+  }
+
+  function resize(renderSnapshot) {
+    if (!threeState.initialized || !threeState.renderer || !threeState.camera || !threeState.canvas) return;
+    const view = renderSnapshot?.camera?.viewport || (window.HC?.getView?.() || window.View);
+    if (!view || !view.width && !view.w) return;
+    const w = Number(view.width || view.w) || 1;
+    const h = Number(view.height || view.h) || 1;
+    const dpr = Math.max(1, Number((window.HC?.getView?.() || window.View || {}).dpr) || 1);
+    const cssW = Math.max(1, w / dpr);
+    const cssH = Math.max(1, h / dpr);
+    threeState.resizeCalls += 1;
+    threeState.canvas.style.width = cssW + "px";
+    threeState.canvas.style.height = cssH + "px";
+    threeState.renderer.setPixelRatio(dpr);
+    threeState.renderer.setSize(cssW, cssH, false);
+    applyThreeCameraSnapshot(renderSnapshot || {});
+  }
+
+  function getMeteorMaterial(THREE, colorKey) {
+    const key = colorKey || "neutral";
+    const existing = threeState.meteorMaterials.get(key);
+    if (existing) return existing;
+    const colorMap = { red: 0xff6b6b, yellow: 0xffd166, green: 0x6ee7a8, blue: 0x7dbdff, neutral: 0xb6bfd2 };
+    const mat = new THREE.MeshBasicMaterial({ color: colorMap[key] || colorMap.neutral, transparent: true, opacity: 1.0 });
+    threeState.meteorMaterials.set(key, mat);
+    return mat;
+  }
+
   function initThree() {
     if (threeState.initialized) return true;
-    detectThreeDependency();
-    const THREE = window.HC_THREE || window.THREE;
-    if (!THREE || !THREE.WebGLRenderer || !THREE.Scene || !THREE.PerspectiveCamera) return false;
+    const THREE = detectThreeDependency() || window.HC_THREE || window.THREE;
+    if (!THREE || !THREE.WebGLRenderer || !THREE.Scene || !THREE.OrthographicCamera) return false;
     try {
       const canvas = ensureThreeCanvas();
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
       const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
-      camera.position.set(0, 0, 8);
+      const camera = new THREE.OrthographicCamera(0, 1, 0, 1, 0.1, 1000);
+      const meteorGroup = new THREE.Group();
+      scene.add(meteorGroup);
       scene.background = new THREE.Color(0x05070a);
       canvas.style.display = "block";
       canvas.style.visibility = "visible";
-      threeState.canvas = canvas;
-      threeState.renderer = renderer;
-      threeState.scene = scene;
-      threeState.camera = camera;
+      Object.assign(threeState, { canvas, renderer, scene, camera, meteorGroup, meteorGeometry: new THREE.CircleGeometry(1, 16) });
       threeState.initialized = true;
       threeState.lastError = null;
       resize();
       return true;
-    } catch (err) {
-      threeState.lastError = err && err.message ? err.message : String(err);
-      return false;
+    } catch (err) { threeState.lastError = err?.message || String(err); return false; }
+  }
+
+  function syncMeteorPass(renderSnapshot) {
+    const THREE = window.HC_THREE || window.THREE;
+    const meteors = Array.isArray(renderSnapshot?.world?.meteors) ? renderSnapshot.world.meteors : [];
+    threeState.threeMeteorCount = meteors.length;
+    const seen = new Set();
+    for (let i = 0; i < meteors.length; i += 1) {
+      const m = meteors[i] || {};
+      const key = String(m.renderKey || m.id || `meteor:${i}:${Math.round(m.x||0)}:${Math.round(m.y||0)}`);
+      seen.add(key);
+      let mesh = threeState.meteorMeshes.get(key);
+      const colorKey = String(m.colorKey || m.colorName || m.color || "neutral").toLowerCase();
+      if (!mesh) {
+        mesh = new THREE.Mesh(threeState.meteorGeometry, getMeteorMaterial(THREE, colorKey));
+        mesh.frustumCulled = false;
+        threeState.meteorGroup.add(mesh);
+        threeState.meteorMeshes.set(key, mesh);
+      } else {
+        mesh.material = getMeteorMaterial(THREE, colorKey);
+      }
+      const radius = Number(m.radius ?? m.r ?? m.size) || 2;
+      mesh.position.set(Number(m.x) || 0, Number(m.y) || 0, 0);
+      mesh.scale.set(radius, radius, 1);
+      mesh.material.opacity = Number.isFinite(m.alpha) ? m.alpha : 1;
+      mesh.visible = !m.flags?.dead;
+    }
+    for (const [key, mesh] of threeState.meteorMeshes.entries()) {
+      if (seen.has(key)) continue;
+      threeState.meteorGroup.remove(mesh);
+      if (mesh?.geometry && mesh.geometry !== threeState.meteorGeometry) mesh.geometry.dispose?.();
+      threeState.meteorMeshes.delete(key);
     }
   }
 
   function destroyThree() {
-    if (threeState.renderer && typeof threeState.renderer.dispose === "function") {
-      threeState.renderer.dispose();
-    }
-    if (threeState.canvas) {
-      threeState.canvas.style.display = "none";
-      threeState.canvas.style.visibility = "hidden";
-    }
-    threeState.renderer = null;
-    threeState.scene = null;
-    threeState.camera = null;
-    threeState.initialized = false;
+    if (threeState.renderer?.dispose) threeState.renderer.dispose();
+    threeState.meteorMeshes.forEach((mesh) => { threeState.meteorGroup?.remove(mesh); });
+    threeState.meteorMeshes.clear();
+    threeState.meteorMaterials.forEach((mat) => mat?.dispose?.());
+    threeState.meteorMaterials.clear();
+    threeState.meteorGeometry?.dispose?.();
+    if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, meteorGeometry: null, initialized: false });
   }
 
   function render(renderSnapshot, nowMs, dt) {
     renderCalls += 1;
-    const snapshotVersion = renderSnapshot && renderSnapshot.version ? renderSnapshot.version : "1";
     try {
       if (requestedMode === "three") {
-        const initializedThree = initThree();
-        if (!initializedThree) {
-          effectiveMode = "canvas2d";
-          fallbackUsed = true;
-          fallbackReason = threeDependencySource === "bridge_missing"
-            ? "three_bridge_missing"
-            : (threeDependencySource === "local_vendor_esm_loading"
-              ? "three_loading"
-              : (threeDependencySource === "local_vendor_esm_failed" ? "three_load_failed" : "three_loading_or_missing"));
-          fallbackCalls += 1;
-          lastError = threeState.lastError || window.HC_THREE_LOAD_ERROR || null;
-          if (!threeWarned && typeof console !== "undefined" && console.warn) {
-            console.warn("[HC.WorldRenderer] Falling back to canvas2d: Three dependency or adapter init is unavailable.", {
-              requestedMode,
-              effectiveMode,
-              fallbackReason,
-              snapshotVersion,
-            });
-            threeWarned = true;
-          }
-          callCanvasFallback(nowMs, dt);
-          return;
+        if (!initThree()) {
+          effectiveMode = "canvas2d"; fallbackUsed = true; fallbackReason = threeDependencySource.includes("loading") ? "three_loading" : "three_loading_or_missing"; fallbackCalls += 1;
+          lastError = threeState.lastError || window.HC_THREE_LOAD_ERROR || null; callCanvasFallback(nowMs, dt); return;
         }
-        threeModeActive = true;
-        effectiveMode = "three";
-        fallbackUsed = false;
-        fallbackReason = null;
-        lastError = null;
+        threeModeActive = true; effectiveMode = "three"; fallbackUsed = false; fallbackReason = null; lastError = null;
+        resize(renderSnapshot);
+        try {
+          if (threeState.threeMeteorRenderEnabled) syncMeteorPass(renderSnapshot || {});
+          threeState.threeMeteorLastError = null;
+        } catch (err) {
+          threeState.threeMeteorLastError = err?.message || String(err);
+          threeState.threeMeteorCount = 0;
+        }
         threeState.renderCalls += 1;
         threeState.renderer.render(threeState.scene, threeState.camera);
         return;
       }
-
-      if (threeModeActive) {
-        destroyThree();
-        threeModeActive = false;
-      }
-
-      effectiveMode = "canvas2d";
-      fallbackUsed = false;
-      fallbackReason = null;
-      lastError = null;
+      if (threeModeActive) { destroyThree(); threeModeActive = false; }
+      effectiveMode = "canvas2d"; fallbackUsed = false; fallbackReason = null; lastError = null;
       callCanvasFallback(nowMs, dt);
     } catch (err) {
-      fallbackUsed = true;
-      fallbackReason = "adapter_error";
-      fallbackCalls += 1;
-      lastError = err && err.message ? err.message : String(err);
-      effectiveMode = "canvas2d";
-      callCanvasFallback(nowMs, dt);
+      fallbackUsed = true; fallbackReason = "adapter_error"; fallbackCalls += 1; lastError = err?.message || String(err); effectiveMode = "canvas2d"; callCanvasFallback(nowMs, dt);
     }
   }
-
-  function destroy() {
-    destroyThree();
-    initialized = false;
-    resetDiagnostics();
-  }
-
 
   function getCanvasDiagnostics() {
     const canvas = document.getElementById("hc-three-world-canvas");
-    if (!canvas) {
-      return {
-        present: false,
-        visible: false,
-        zIndex: "n/a",
-        pointerEvents: "n/a",
-      };
-    }
+    if (!canvas) return { present: false, visible: false, zIndex: "n/a", pointerEvents: "n/a" };
     const styles = window.getComputedStyle ? window.getComputedStyle(canvas) : canvas.style;
     const visible = styles.display !== "none" && styles.visibility !== "hidden" && Number(styles.opacity || 1) > 0;
-    return {
-      present: true,
-      visible,
-      zIndex: styles.zIndex || canvas.style.zIndex || "auto",
-      pointerEvents: styles.pointerEvents || canvas.style.pointerEvents || "auto",
-    };
+    return { present: true, visible, zIndex: styles.zIndex || canvas.style.zIndex || "auto", pointerEvents: styles.pointerEvents || canvas.style.pointerEvents || "auto" };
   }
 
   function getDiagnostics() {
     const canvasDiag = getCanvasDiagnostics();
     return {
-      requestedMode,
-      effectiveMode,
-      mode: effectiveMode,
-      fallbackUsed,
-      fallbackReason,
-      lastError,
-      initialized,
-      renderCalls,
-      fallbackCalls,
-      snapshotVersion: "1",
-      hasThreeImplementation: true,
-      hasThreeDependency: !!threeState.hasDependency,
-      threeDependencySource,
-      threeBridgeVersion: window.HC_THREE_BRIDGE_VERSION || null,
-      threeReady: window.HC_THREE_READY === true,
-      threeSource: window.HC_THREE_SOURCE || null,
-      threeModuleUrl: window.HC_THREE_MODULE_URL || null,
-      threeVendorUrls: Array.isArray(window.HC_THREE_VENDOR_URLS) ? window.HC_THREE_VENDOR_URLS.slice() : [],
-      threeLoadStatus: window.HC_THREE_LOAD_STATUS || "missing",
-      threeLoadError: window.HC_THREE_LOAD_ERROR || null,
-      threeInitialized: !!threeState.initialized,
-      threeCanvasPresent: canvasDiag.present,
-      threeCanvasVisible: canvasDiag.visible,
-      threeCanvasZIndex: canvasDiag.zIndex,
-      threeCanvasPointerEvents: canvasDiag.pointerEvents,
-      threeLastError: threeState.lastError,
-      threeRenderCalls: threeState.renderCalls,
-      threeResizeCalls: threeState.resizeCalls,
-      threeSceneReady: !!threeState.scene,
-      threeCameraReady: !!threeState.camera,
-      threeRendererReady: !!threeState.renderer,
+      requestedMode, effectiveMode, mode: effectiveMode, fallbackUsed, fallbackReason, lastError, initialized, renderCalls, fallbackCalls, snapshotVersion: "1",
+      hasThreeImplementation: true, hasThreeDependency: !!threeState.hasDependency, threeDependencySource, threeBridgeVersion: window.HC_THREE_BRIDGE_VERSION || null,
+      threeReady: window.HC_THREE_READY === true, threeSource: window.HC_THREE_SOURCE || null, threeModuleUrl: window.HC_THREE_MODULE_URL || null,
+      threeVendorUrls: Array.isArray(window.HC_THREE_VENDOR_URLS) ? window.HC_THREE_VENDOR_URLS.slice() : [], threeLoadStatus: window.HC_THREE_LOAD_STATUS || "missing",
+      threeLoadError: window.HC_THREE_LOAD_ERROR || null, threeInitialized: !!threeState.initialized, threeCanvasPresent: canvasDiag.present,
+      threeCanvasVisible: canvasDiag.visible, threeCanvasZIndex: canvasDiag.zIndex, threeCanvasPointerEvents: canvasDiag.pointerEvents, threeLastError: threeState.lastError,
+      threeRenderCalls: threeState.renderCalls, threeResizeCalls: threeState.resizeCalls, threeSceneReady: !!threeState.scene, threeCameraReady: !!threeState.camera, threeRendererReady: !!threeState.renderer,
+      threeMeteorRenderEnabled: !!threeState.threeMeteorRenderEnabled, threeMeteorCount: threeState.threeMeteorCount, threeMeteorMeshes: threeState.meteorMeshes.size,
+      threeMeteorLastError: threeState.threeMeteorLastError, threeObjectRenderPasses: threeState.threeObjectRenderPasses.slice(),
     };
   }
 
-  window.HC.WorldRenderer = {
-    init,
-    resize,
-    render,
-    destroy,
-    getDiagnostics,
-    setMode,
-    getMode,
-  };
+  function destroy() { destroyThree(); initialized = false; resetDiagnostics(); }
+
+  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode };
 })();

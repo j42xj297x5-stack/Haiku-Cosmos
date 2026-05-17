@@ -15,7 +15,7 @@
     const radius = toNumber(body.r, toNumber(body.radius, undefined));
     const scale = toNumber(body.scale, undefined);
     return {
-      renderKey: body.renderKey || body.id || body._id || `${fallbackKind}:${index}`,
+      renderKey: body.renderKey || body.id || body._id || `${fallbackKind}:${index}:${Math.round(toNumber(body.x, 0))}:${Math.round(toNumber(body.y, 0))}`,
       id: body.id || body._id || null,
       kind: body.kind || body.type || fallbackKind,
       x: toNumber(body.x, 0),
@@ -26,6 +26,10 @@
       colorKey: body.colorKey || body.colorName || body.dominantKey || null,
       alpha: toNumber(body.alpha, undefined),
       state: body.state || body.phase || null,
+      velocity: {
+        vx: toNumber(body.vx, 0),
+        vy: toNumber(body.vy, 0),
+      },
       flags: {
         dead: !!body._dead,
         active: !!body.active,

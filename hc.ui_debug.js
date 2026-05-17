@@ -666,6 +666,8 @@
           ["Three initialized", rendererDiag?.threeInitialized ? "yes" : "no"],
           ["Three canvas", rendererDiag?.threeCanvasPresent ? "yes" : "no"],
           ["Three visible", rendererDiag?.threeCanvasVisible ? "yes" : "no"],
+          ["Three meteors", rendererDiag?.threeMeteorCount ?? 0],
+          ["Three meteor meshes", rendererDiag?.threeMeteorMeshes ?? 0],
         ])}</div>
       </section>
     `);
