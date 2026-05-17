@@ -40,6 +40,9 @@
       view.h = canvas.height;
       view.worldScale = Math.min(view.w, view.h);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (window.HC?.WorldRenderer?.resize) {
+        window.HC.WorldRenderer.resize(view);
+      }
     }
 
     function toCanvasCoords(e) {
