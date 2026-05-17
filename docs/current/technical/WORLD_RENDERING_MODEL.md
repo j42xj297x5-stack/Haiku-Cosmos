@@ -222,7 +222,116 @@ Minimalny zakres debug overlay dla renderera świata:
 - Jak ładować Three.js: lokalnie/vendor czy CDN (dev-only)?
 - Czy canvas Three.js zastępuje obecny canvas świata, czy działa jako drugi canvas pod overlay UI?
 
-## 9. Etapowanie migracji
+## 9. Adapter bootstrap contract (Etap 0.75)
+
+### 9.1. Cel adapter bootstrap contract
+Celem Etapu 0.75 jest zamknięcie decyzji architektonicznych otwartych po Etapie 0.5 i przygotowanie bezpiecznego wejścia w Etap 1 bez zmian mechaniki oraz bez zmian zachowania runtime gameplay.
+
+Kontrakt Etapu 0.75:
+- definiuje granicę snapshot builder ↔ renderer adapter,
+- definiuje minimalny interfejs renderera świata,
+- utrzymuje obowiązkowy fallback `canvas2d`,
+- utrzymuje separację świata RUN od overlay UI (HUD/SUB-META/META).
+
+### 9.2. Snapshot builder module
+Docelowy moduł: `hc.world_render_snapshot.js`.
+
+Rola modułu:
+- buduje **read-only** `RenderSnapshot` przed renderem,
+- jest granicą między symulacją a prezentacją,
+- nie mutuje `World`,
+- nie zmienia `CardEngine`,
+- nie liczy mechaniki (sekwencje/RP/PRG rules/collision/spawn),
+- normalizuje dane wejściowe dla renderera świata (`canvas2d` lub `three`).
+
+Status decyzji: moduł snapshot builder jest wymaganym elementem bootstrapu Etapu 1.
+
+### 9.3. Renderer adapter module
+Docelowy moduł: `hc.world_renderer.js`.
+
+Rola modułu:
+- definiuje neutralną fasadę renderera świata,
+- umożliwia przełączanie implementacji `canvas2d` / `three`,
+- nie zna mechaniki kart i nie dotyka `CardEngine` logic,
+- nie renderuje HUD/SUB-META/META.
+
+Warianty implementacji pod tym samym kontraktem:
+- `canvas2d` → adapter legacy oparty o obecny `HC.Render`,
+- `three` → przyszły `HC.ThreeWorldRenderer`.
+
+### 9.4. Minimal renderer interface
+Minimalny kontrakt adaptera renderera świata:
+- `init(options)`
+- `resize(viewport)`
+- `render(renderSnapshot, nowMs, dt)`
+- `destroy()`
+- `getDiagnostics()`
+
+Zasady interfejsu:
+- `render(...)` przyjmuje wyłącznie snapshot i parametry czasu,
+- brak side-effectów w warstwie mechaniki,
+- `getDiagnostics()` służy observability/debug (np. mode, layer state, fallback state).
+
+### 9.5. Render mode / feature flag
+Docelowy tryb:
+- `renderMode: "canvas2d" | "three"`
+
+Zasady:
+- default: `"canvas2d"`,
+- `"canvas2d"` używa obecnego `HC.Render` jako bezpiecznego fallbacku,
+- `"three"` używa przyszłego `HC.ThreeWorldRenderer`,
+- brak/niepoprawny tryb nie może blokować uruchomienia gry,
+- fallback `canvas2d` musi być dostępny na każdym etapie migracji.
+
+Rekomendowane lokalizacje flagi (do audytu w Etapie 1):
+- `HC.RENDER_MODE`,
+- `World.renderMode`,
+- runtime/debug config.
+
+Decyzja implementacyjna o finalnym miejscu flagi zostaje domknięta w Etapie 1 po krótkim audycie boot/runtime.
+
+### 9.6. Three.js loading strategy
+Decyzja kierunkowa:
+- docelowo Three.js jest ładowany lokalnie, jako repo-controlled dependency,
+- CDN jest dopuszczalny wyłącznie jako jawnie oznaczony fallback dev/prototype,
+- runtime production nie może zależeć od zewnętrznego CDN.
+
+Ryzyka adresowane przez strategię:
+- stabilność offline/dev,
+- kontrola wersjonowania i reprodukowalność,
+- cache invalidation i deterministyczność build/run,
+- różnice środowiskowe (lokalnie/CI/hosting),
+- kolejność ładowania skryptów w `index.codex.html` (szczególnie przy bootstrapie adaptera).
+
+### 9.7. Canvas/layer strategy
+Decyzja dla Etapu 1/2:
+- preferowany jest osobny canvas/layer dla Three.js **albo** kontrolowany world-render canvas pod overlay UI,
+- HUD/SUB-META/META pozostają nad warstwą świata,
+- overlay UI nie może zostać wciągnięty do Three.js,
+- fallback `canvas2d` pozostaje aktywną ścieżką.
+
+Finalne zastąpienie obecnego canvasu świata może zostać rozważone dopiero po walidacji Etapu 2/3.
+
+### 9.8. Fallback and rollback rules
+Reguły bezpieczeństwa migracji:
+- `canvas2d` jest zawsze ścieżką startową i rollbackową,
+- awaria inicjalizacji `three` automatycznie przełącza render na `canvas2d`,
+- brak assetu/warstwy/shadera nie może zatrzymać loopa gry,
+- rollback dotyczy wyłącznie warstwy renderingu świata (bez zmian mechaniki i UI overlay),
+- każda iteracja Etapu 1+ musi być odwracalna do stanu `canvas2d`.
+
+### 9.9. Etap 1 readiness checklist
+Warunki wejścia do Etapu 1:
+- [x] snapshot builder opisany,
+- [x] adapter interface opisany,
+- [x] `renderMode` opisany,
+- [x] fallback `canvas2d` opisany,
+- [x] Three.js loading strategy opisana,
+- [x] overlay boundary opisana,
+- [x] brak zmian w mechanice,
+- [x] brak przejęcia HUD/SUB-META/META przez renderer świata.
+
+## 10. Etapowanie migracji
 
 - **Etap 0 — docs/audit**
   - audyt runtime i kontrakt dokumentacyjny (ten dokument).
@@ -256,7 +365,7 @@ Minimalny zakres debug overlay dla renderera świata:
   - testy kompatybilności,
   - walidacja regressions i plan rollbacku.
 
-## 10. Ryzyka
+## 11. Ryzyka
 
 1. Rozjazd układów współrzędnych screen/world.
 2. Inny model kamery i projekcji vs. aktualne `screenToWorld`/`getWorldViewBounds`.
@@ -266,7 +375,7 @@ Minimalny zakres debug overlay dla renderera świata:
 6. Kolejność renderowania i przezroczystości (alpha/blending/depth).
 7. Dependency/loading Three.js (bundle, cache, awarie ładowania, fallback path).
 
-## 11. Kryteria akceptacji przed implementacją runtime
+## 12. Kryteria akceptacji przed implementacją runtime
 
 Przed wejściem w implementację Three.js należy zatwierdzić:
 
@@ -293,6 +402,6 @@ Przed wejściem w implementację Three.js należy zatwierdzić:
 
 ---
 
-## 12. Nota audytowa: `tree.js` vs `Three.js`
+## 13. Nota audytowa: `tree.js` vs `Three.js`
 
 W ramach audytu repo nie znaleziono lokalnego modułu/pliku `tree.js` powiązanego z runtime renderingu świata. Kierunek dokumentu interpretuje więc „tree.js” jako bibliotekę **Three.js**.
