@@ -98,6 +98,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/systems/ROADMAP.md`
 - `docs/current/technical/README.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
+- `docs/current/technical/WORLD_RENDERING_MODEL.md`
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (robocza architektura rozdzialu card mechanics vs card visuals / FrameComposer)
 - `docs/current/technical/FONT_SYSTEM_SPEC.md` (roboczy kontrakt font systemu UI/kart pod i18n)
 - `docs/current/technical/FRAME_COMPOSER_SPEC.md` (roboczy kontrakt layoutu modularnych SVG: anchorOffset, lineInset, ornamentScale)
@@ -155,6 +156,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 - `CARD_VISUAL_ARCHITECTURE.md` wyznacza przyszly rozdzial: `cards.js` jako mechanika, `hc.card_visuals.js` jako rysowanie kart, `hc.frame_composer.js` jako skladanie ramek i `hc.visual_assets.js` jako loader/cache assetow.
 - `FRAME_COMPOSER_SPEC.md` precyzuje kontrakt `hc.frame_composer.js`: `anchorOffset`, `lineInset`, `ornamentScale`, debug anchors oraz static/dynamic layers; zawiera tez status v0.1 implementation.
+- `WORLD_RENDERING_MODEL.md` definiuje roboczy kontrakt migracji renderingu świata (Three.js adapter + feature flag + fallback), bez zmian mechaniki/ekonomii/sekwencji/UI overlay.
 - `SUB_META_LAYOUT_ANCHOR_AUDIT.md` opisuje warstwe layout anchors, ktora przekazuje recty/mount points do przyszlego `HC.FrameComposer` zamiast hardcodowania layoutu w composerze.
 - `hc.submeta_layout.js` tworzy namespace `HC.SubMetaLayout`; `cards.js` korzysta z niego przez wrapper `getSubMetaLayout()` i zachowuje defensywny fallback.
 - `cards.js` ma minimalny runtime probe root frame: `FRAME_COMPOSER_SUBMETA_ROOT_ENABLED`, `HC.VisualAssets` preload i `HC.FrameComposer.drawFrameParts` tylko dla glownej ramy SUB-META.
