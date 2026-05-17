@@ -600,3 +600,79 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
   - style `gameCanvas` i `threeCanvas` (display/visibility/opacity/z-index/pointer-events),
   - `layerProbe` z `document.elementFromPoint(center)` do szybkiej walidacji, który element leży na wierzchu.
 - Fallback `canvas2d` pozostał bez zmian kontraktowych i nadal jest ścieżką awaryjną.
+
+## Etap 3.1 working checkpoint — Three meteor pass visible
+
+### A. Dependency model
+- Three.js jest lokalnym vendorem ESM.
+- Runtime nie używa CDN.
+- Legacy `three.min.js` nie jest kierunkiem tej migracji.
+- Minimalny runtime vendor set dla klasycznego WebGL:
+  - `vendor/three/three.module.min.js`
+  - `vendor/three/three.core.min.js`
+- WebGPU/TSL/nodes pozostają poza zakresem aktualnego etapu.
+
+### B. Bridge model
+- `hc.three_module_bridge.js` jest jedynym miejscem importu Three.
+- Bridge ustawia `HC_THREE`, `HC_THREE_READY`, `HC_THREE_SOURCE`.
+- Bridge version: `esm_vendor_probe_v4`.
+- Bridge wykonuje preflight vendor URLs przed importem modułu.
+
+### C. Renderer model
+- `HC.WorldRenderer` zarządza trybem `canvas2d | three`.
+- `canvas2d` pozostaje fallbackiem.
+- `three` używa osobnego canvas: `#hc-three-world-canvas`.
+- `gameCanvas` pozostaje transparentnym 2D overlayem dla UI/input w trybie three.
+
+### D. Snapshot model
+- Three render pass nie czyta `World` bezpośrednio.
+- Dane meteorów przechodzą przez `renderSnapshot.world.meteors`.
+- Snapshot jest granicą symulacja → prezentacja.
+
+### E. Current object coverage
+- Three renderuje obecnie tylko meteory.
+- Asteroidy, planety, gwiazdy, PRG ring/resonance effects nie są jeszcze renderowane przez Three.
+- HUD/SUB-META/META nie są przeniesione do Three.
+
+### F. Layer composition
+- Three world layer jest pod spodem.
+- `gameCanvas` działa jako transparentny 2D overlay UI/input nad Three.
+- Debug overlay DOM pozostaje nad całością.
+- `canvas2d` mode przywraca klasyczny `HC.Render.frame` path.
+
+### G. Manual QA result
+Manualny screen/test potwierdził:
+- `effectiveMode=three`,
+- `fallback=none`,
+- `Three visible=yes`,
+- meteory są widoczne,
+- debug overlay działa.
+
+## Plan kolejnych etapów po checkpointcie 3.1
+
+### Etap 4 — asteroidy render pass
+- Render asteroidów ze snapshotu.
+- Bez zmian mechaniki.
+- Cache meshów.
+- Podstawowa geometria/kolor.
+- Sprawdzenie obiektów powstających z kolizji.
+
+### Etap 5 — planety render pass
+- Planety gas/rocky.
+- Nadal snapshot-only.
+- Podstawowe materiały.
+- Bez finalnych shaderów.
+
+### Etap 6 — gwiazdy render pass
+- Rdzeń + proste halo.
+- Bez finalnych efektów premium.
+
+### Etap 7 — PRG / resonance layer
+- Osobny premium visual layer.
+- Ring, halo, resonance effects.
+- Bez zmiany PRG behavior.
+
+### Etap 8 — visual polish / performance
+- Instancing tam, gdzie potrzebne.
+- Glow/particles/shaders dopiero po stabilnym object coverage.
+- Fallback `canvas2d` pozostaje.
