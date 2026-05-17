@@ -673,9 +673,17 @@
           ["Three debug marker", rendererDiag?.threeDebugMarker?.visible ? "visible" : (rendererDiag?.threeDebugMarker?.enabled ? "enabled_hidden" : "off")],
           ["First meteor", rendererDiag?.firstMeteor ? JSON.stringify(rendererDiag.firstMeteor) : "none"],
           ["First mesh", rendererDiag?.firstMeteorMesh ? JSON.stringify(rendererDiag.firstMeteorMesh) : "none"],
+          ["First meteor screen est", rendererDiag?.firstMeteorScreenEstimate ? JSON.stringify(rendererDiag.firstMeteorScreenEstimate) : "none"],
+          ["First meteor in bounds", rendererDiag?.firstMeteorInCameraBounds == null ? "n/a" : (rendererDiag.firstMeteorInCameraBounds ? "true" : "false")],
+          ["Camera model", rendererDiag?.threeCameraModel || "unknown"],
+          ["Camera snapshot center", rendererDiag?.cameraSnapshotCenter ? JSON.stringify(rendererDiag.cameraSnapshotCenter) : "none"],
+          ["Camera snapshot zoom", rendererDiag?.cameraSnapshotZoom ?? "none"],
+          ["Camera snapshot bounds", rendererDiag?.cameraSnapshotWorldBounds ? JSON.stringify(rendererDiag.cameraSnapshotWorldBounds) : "none"],
+          ["World bounds source", rendererDiag?.worldBoundsSource || "unknown"],
           ["Camera bounds", rendererDiag?.cameraBounds ? JSON.stringify(rendererDiag.cameraBounds) : "none"],
           ["Renderer size", rendererDiag?.rendererSize ? JSON.stringify(rendererDiag.rendererSize) : "none"],
           ["Scene children", rendererDiag?.sceneChildrenCount ?? 0],
+          ["Meteor group children", rendererDiag?.meteorGroupChildrenCount ?? 0],
         ])}</div>
       </section>
     `);

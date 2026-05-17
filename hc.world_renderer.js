@@ -45,6 +45,15 @@
     firstMeshSample: null,
     cameraBounds: null,
     rendererSize: null,
+    threeCameraModel: "centered_viewport",
+    cameraSnapshotCenter: null,
+    cameraSnapshotZoom: null,
+    cameraSnapshotWorldBounds: null,
+    worldBoundsSource: "unknown",
+    meteorGroupChildrenCount: 0,
+    firstMeteorScreenEstimate: null,
+    firstMeteorInCameraBounds: null,
+    firstMeteorMarker: null,
   };
 
   function resetDiagnostics() {
@@ -62,6 +71,13 @@
     threeState.threeMeteorCount = 0;
     threeState.threeMeteorLastError = null;
     threeDependencySource = "unknown";
+    threeState.cameraSnapshotCenter = null;
+    threeState.cameraSnapshotZoom = null;
+    threeState.cameraSnapshotWorldBounds = null;
+    threeState.worldBoundsSource = "unknown";
+    threeState.firstMeteorScreenEstimate = null;
+    threeState.firstMeteorInCameraBounds = null;
+    threeState.meteorGroupChildrenCount = 0;
   }
 
   function setMode(nextMode) {
@@ -143,6 +159,7 @@
 
   function applyThreeCameraSnapshot(renderSnapshot) {
     const cam = renderSnapshot?.camera || {};
+    const diag = renderSnapshot?.diagnostics || {};
     const viewport = cam.viewport || {};
     const width = Math.max(1, Number(viewport.width) || 1);
     const height = Math.max(1, Number(viewport.height) || 1);
@@ -161,13 +178,18 @@
       top = cy - halfH;
       bottom = cy + halfH;
     }
+    threeState.threeCameraModel = "absolute_bounds";
+    threeState.cameraSnapshotCenter = { x: Number.isFinite(cam.centerX) ? cam.centerX : (Number.isFinite(cam.x) ? cam.x : 0), y: Number.isFinite(cam.centerY) ? cam.centerY : (Number.isFinite(cam.y) ? cam.y : 0) };
+    threeState.cameraSnapshotZoom = Math.max(0.001, Number(cam.zoom) || 1);
+    threeState.cameraSnapshotWorldBounds = bounds && Number.isFinite(bounds.l) ? { l: bounds.l, r: bounds.r, t: bounds.t, b: bounds.b } : null;
+    threeState.worldBoundsSource = diag.worldBoundsSource || diag.cameraAvailability?.worldBoundsSource || "unknown";
     threeState.camera.left = left;
     threeState.camera.right = right;
     threeState.camera.top = top;
     threeState.camera.bottom = bottom;
     const cx = (left + right) * 0.5;
     const cy = (top + bottom) * 0.5;
-    threeState.camera.position.set(cx, cy, 10);
+    threeState.camera.position.set(0, 0, 10);
     threeState.cameraBounds = { left, right, top, bottom, cx, cy };
     threeState.camera.updateProjectionMatrix();
     syncDebugMarkerPosition();
@@ -185,6 +207,42 @@
     marker.renderOrder = 9999;
     threeState.scene.add(marker);
     threeState.debugMarker = marker;
+  }
+
+
+  function createFirstMeteorMarker(THREE) {
+    if (threeState.firstMeteorMarker) return;
+    const marker = new THREE.Group();
+    const material = new THREE.LineBasicMaterial({ color: 0xff4d7a, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false });
+    const half = THREE_DEBUG_MARKER_SIZE * 0.35;
+    const pointsA = [new THREE.Vector3(-half, -half, 0), new THREE.Vector3(half, half, 0)];
+    const pointsB = [new THREE.Vector3(-half, half, 0), new THREE.Vector3(half, -half, 0)];
+    marker.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pointsA), material));
+    marker.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pointsB), material));
+    marker.renderOrder = 10000;
+    threeState.scene.add(marker);
+    threeState.firstMeteorMarker = marker;
+  }
+
+  function updateFirstMeteorDiagnostics() {
+    const first = threeState.firstMeteorSample;
+    const bounds = threeState.cameraBounds;
+    const viewport = { width: Number(threeState.renderer?.domElement?.width || 0), height: Number(threeState.renderer?.domElement?.height || 0) };
+    if (!first || !bounds) {
+      threeState.firstMeteorInCameraBounds = null;
+      threeState.firstMeteorScreenEstimate = null;
+      if (threeState.firstMeteorMarker) threeState.firstMeteorMarker.visible = false;
+      return;
+    }
+    const inBounds = first.x >= bounds.left && first.x <= bounds.right && first.y >= bounds.top && first.y <= bounds.bottom;
+    const sx = ((first.x - bounds.left) / Math.max(1e-6, bounds.right - bounds.left)) * viewport.width;
+    const sy = ((first.y - bounds.top) / Math.max(1e-6, bounds.bottom - bounds.top)) * viewport.height;
+    threeState.firstMeteorInCameraBounds = inBounds;
+    threeState.firstMeteorScreenEstimate = { x: sx, y: sy };
+    if (threeState.firstMeteorMarker) {
+      threeState.firstMeteorMarker.position.set(first.x, first.y, 2);
+      threeState.firstMeteorMarker.visible = !!threeState.debugMarkerEnabled;
+    }
   }
 
   function syncDebugMarkerPosition() {
@@ -243,6 +301,7 @@
       canvas.style.visibility = "visible";
       Object.assign(threeState, { canvas, renderer, scene, camera, meteorGroup, meteorGeometry: new THREE.CircleGeometry(1, 16) });
       createDebugMarker(THREE);
+      createFirstMeteorMarker(THREE);
       threeState.initialized = true;
       threeState.lastError = null;
       resize();
@@ -256,6 +315,7 @@
     threeState.threeMeteorCount = meteors.length;
     threeState.firstMeteorSample = null;
     threeState.firstMeshSample = null;
+    threeState.meteorGroupChildrenCount = 0;
     const seen = new Set();
     for (let i = 0; i < meteors.length; i += 1) {
       const m = meteors[i] || {};
@@ -299,6 +359,8 @@
       if (mesh?.geometry && mesh.geometry !== threeState.meteorGeometry) mesh.geometry.dispose?.();
       threeState.meteorMeshes.delete(key);
     }
+    threeState.meteorGroupChildrenCount = threeState.meteorGroup?.children?.length || 0;
+    updateFirstMeteorDiagnostics();
   }
 
   function destroyThree() {
@@ -310,7 +372,8 @@
     threeState.meteorGeometry?.dispose?.();
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, meteorGeometry: null, debugMarker: null, initialized: false, cameraBounds: null, rendererSize: null });
+    if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -374,6 +437,14 @@
       cameraBounds: threeState.cameraBounds,
       rendererSize: threeState.rendererSize,
       sceneChildrenCount: threeState.scene?.children?.length || 0,
+      meteorGroupChildrenCount: threeState.meteorGroupChildrenCount,
+      cameraSnapshotCenter: threeState.cameraSnapshotCenter,
+      cameraSnapshotZoom: threeState.cameraSnapshotZoom,
+      cameraSnapshotWorldBounds: threeState.cameraSnapshotWorldBounds,
+      worldBoundsSource: threeState.worldBoundsSource,
+      threeCameraModel: threeState.threeCameraModel,
+      firstMeteorScreenEstimate: threeState.firstMeteorScreenEstimate,
+      firstMeteorInCameraBounds: threeState.firstMeteorInCameraBounds,
     };
   }
 

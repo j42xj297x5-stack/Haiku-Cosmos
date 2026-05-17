@@ -99,6 +99,7 @@
       debugSettings: opts.debugSettings || null,
       diagnostics: {
         version: "world-render-snapshot-v1",
+        worldBoundsSource,
         objectCounts: {
           meteors: pickArray(World.meteors).length,
           comets: pickArray(World.comets).length,
