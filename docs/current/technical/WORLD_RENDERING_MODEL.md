@@ -533,3 +533,14 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
 - Oba pliki (`three.module.min.js` i `three.core.min.js`) muszą pochodzić z tej samej wersji Three.js.
 - CDN nie jest production source-of-truth dla dependency ładowanych przez bridge.
 - Fallback `canvas2d` pozostaje obowiązkowy przy każdym błędzie preflight/importu.
+
+## Three ESM vendor final build set
+
+- Pelny build Three.js jest lokalnie w `vendor/three/` (w tym `three.module*`, `three.core*`, `three.webgpu*`, `three.tsl*`, `three.webgpu.nodes*`).
+- Aktualny runtime HC dla WebGL lifecycle uzywa minimalnego lokalnego zestawu ESM:
+  - `vendor/three/three.module.min.js`
+  - `vendor/three/three.core.min.js`
+- `three.module.min.js` i `three.core.min.js` musza pochodzic z tej samej wersji builda Three.
+- Pliki WebGPU/TSL/nodes pozostaja poza zakresem obecnego etapu i nie sa czescia aktywnego runtime path.
+- Fallback `canvas2d` pozostaje obowiazkowy i musi dzialac przy braku gotowosci bridge/dependency.
+- Gameplay objects (meteory, asteroidy, planety, gwiazdy, PRG) nadal nie sa renderowane przez Three w tym etapie; aktywny jest jedynie bazowy lifecycle renderera.

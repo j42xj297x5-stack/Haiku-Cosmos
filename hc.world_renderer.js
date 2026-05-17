@@ -157,8 +157,9 @@
 
   function initThree() {
     if (threeState.initialized) return true;
-    const THREE = detectThreeDependency();
-    if (!THREE) return false;
+    detectThreeDependency();
+    const THREE = window.HC_THREE || window.THREE;
+    if (!THREE || !THREE.WebGLRenderer || !THREE.Scene || !THREE.PerspectiveCamera) return false;
     try {
       const canvas = ensureThreeCanvas();
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
@@ -301,7 +302,7 @@
       threeReady: window.HC_THREE_READY === true,
       threeSource: window.HC_THREE_SOURCE || null,
       threeModuleUrl: window.HC_THREE_MODULE_URL || null,
-      threeCoreUrl: window.HC_THREE_CORE_URL || null,
+      threeVendorUrls: Array.isArray(window.HC_THREE_VENDOR_URLS) ? window.HC_THREE_VENDOR_URLS.slice() : [],
       threeLoadStatus: window.HC_THREE_LOAD_STATUS || "missing",
       threeLoadError: window.HC_THREE_LOAD_ERROR || null,
       threeInitialized: !!threeState.initialized,
