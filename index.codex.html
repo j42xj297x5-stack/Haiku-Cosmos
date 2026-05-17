@@ -162,6 +162,15 @@
 
     #runtimeDebugOverlay {
       position: fixed;
+      top: 10px;
+      left: 10px;
+      color: rgba(245,247,255,0.95);
+      font: 11px/1.4 var(--hc-font-mono);
+      z-index: 9999;
+      pointer-events: none;
+    }
+    #runtimeDebugOverlayPanel {
+      position: fixed;
       right: 12px;
       bottom: 12px;
       width: min(360px, 42vw);
@@ -170,9 +179,6 @@
       border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.22);
       background: rgba(8, 10, 18, 0.74);
-      color: rgba(245,247,255,0.95);
-      font: 11px/1.4 var(--hc-font-mono);
-      z-index: 9999;
       pointer-events: auto;
       backdrop-filter: blur(8px);
       box-shadow: 0 4px 18px rgba(0,0,0,0.35);
@@ -236,20 +242,17 @@
       opacity: 0.85;
       letter-spacing: 0.02em;
     }
-    #runtimeDebugOverlay.compact .overlay-expanded-only { display: none; }
-    #runtimeDebugOverlay.collapsed {
-      width: auto;
-      max-height: none;
-      right: 12px;
-      bottom: 12px;
-      padding: 6px;
-      gap: 0;
-      background: rgba(8, 10, 18, 0.52);
-    }
-    #runtimeDebugOverlay.collapsed .overlay-actions,
-    #runtimeDebugOverlay.collapsed #runtimeDebugOverlayBody,
-    #runtimeDebugOverlay.collapsed #debugSessionNote {
+    #runtimeDebugOverlay.compact #runtimeDebugOverlayPanel .overlay-expanded-only { display: none; }
+    #runtimeDebugOverlay.collapsed #runtimeDebugOverlayPanel {
       display: none;
+    }
+    .overlay-debug-handle {
+      pointer-events: auto;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      padding: 3px 8px;
+      background: rgba(8, 10, 18, 0.72);
     }
     .overlay-tail {
       list-style: none;
@@ -289,6 +292,8 @@
       <button class="pill" id="btnSubMeta" type="button">META</button>
     </div>
     <aside id="runtimeDebugOverlay" hidden class="compact" aria-live="polite">
+      <button id="btnDebugOverlayToggle" class="overlay-btn overlay-debug-handle" type="button" title="Hide debug overlay" aria-label="Hide debug overlay" aria-expanded="true">DEBUG ▾</button>
+      <div id="runtimeDebugOverlayPanel">
       <div class="overlay-header">
         <span class="overlay-title" data-debug-i18n="overlay.runtimeDebug">Runtime Debug</span>
         <div class="overlay-actions">
@@ -297,11 +302,11 @@
           <button id="btnDebugCopyPath" class="overlay-btn" type="button">Copy Path</button>
           <button id="btnExportEvidence" class="overlay-btn" type="button" data-debug-i18n="overlay.exportEvidence">Export evidence</button>
           <button id="btnMarkIssue" class="overlay-btn" type="button" data-debug-i18n="overlay.markIssue">Mark issue</button>
-          <button id="btnDebugOverlayToggle" class="overlay-btn" type="button" title="Hide debug overlay" aria-label="Hide debug overlay" aria-expanded="true">DEBUG ▾</button>
-        </div>
+          </div>
       </div>
       <textarea id="debugSessionNote" class="overlay-note" data-debug-i18n-placeholder="overlay.notePlaceholder" placeholder="Session note (optional)"></textarea>
       <div id="runtimeDebugOverlayBody" class="overlay-grid"></div>
+      </div>
     </aside>
   </div>
 

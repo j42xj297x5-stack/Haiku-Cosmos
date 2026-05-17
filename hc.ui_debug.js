@@ -17,6 +17,7 @@
   let debugConfigPanel = null;
   let runtimeDebugOverlay = null;
   let runtimeDebugOverlayBody = null;
+  let runtimeDebugOverlayPanel = null;
   let btnDebugOverlayToggle = null;
   let runtimeOverlayCollapsed = false;
   let btnDebugSelectFolder = null;
@@ -295,6 +296,7 @@
   function updateRuntimeOverlayCollapseUi() {
     if (!runtimeDebugOverlay) return;
     runtimeDebugOverlay.classList.toggle("collapsed", runtimeOverlayCollapsed);
+    if (runtimeDebugOverlayPanel) runtimeDebugOverlayPanel.hidden = runtimeOverlayCollapsed;
     if (btnDebugOverlayToggle) {
       btnDebugOverlayToggle.textContent = runtimeOverlayCollapsed ? t("overlay.debugCollapsed") : t("overlay.debugExpanded");
       btnDebugOverlayToggle.setAttribute("title", runtimeOverlayCollapsed ? "Show debug overlay" : "Hide debug overlay");
@@ -338,6 +340,7 @@
       debugConfigPanel = document.getElementById("debugConfigPanel");
       runtimeDebugOverlay = document.getElementById("runtimeDebugOverlay");
       runtimeDebugOverlayBody = document.getElementById("runtimeDebugOverlayBody");
+      runtimeDebugOverlayPanel = document.getElementById("runtimeDebugOverlayPanel");
       if (runtimeDebugOverlayBody) {
         runtimeDebugOverlayBody.addEventListener("click", (event) => {
           const tabBtn = event.target && event.target.closest ? event.target.closest("[data-debug-tab]") : null;
@@ -384,7 +387,10 @@
       populateScenarioPresetSelect();
 
       if (btnDebugOverlayToggle) {
-        btnDebugOverlayToggle.addEventListener("click", () => {
+        btnDebugOverlayToggle.style.cursor = "pointer";
+        btnDebugOverlayToggle.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
           runtimeOverlayCollapsed = !runtimeOverlayCollapsed;
           updateRuntimeOverlayCollapseUi();
         });
