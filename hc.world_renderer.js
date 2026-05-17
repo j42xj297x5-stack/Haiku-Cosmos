@@ -112,7 +112,7 @@
     const dep = window.THREE;
     if (dep && dep.WebGLRenderer && dep.Scene && dep.PerspectiveCamera) {
       threeState.hasDependency = true;
-      threeDependencySource = "window.THREE";
+      threeDependencySource = window.HC_THREE_SOURCE === "local_vendor" ? "local_vendor" : "window.THREE";
       return dep;
     }
     threeState.hasDependency = false;

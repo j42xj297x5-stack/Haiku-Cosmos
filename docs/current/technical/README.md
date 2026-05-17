@@ -47,3 +47,6 @@ audytów i synchronizacji dokumentacji z runtime.
 - Sequence core (3-hit, takeover, R-track, A-loop AA/AAA/DS) ma status PASS na testach i live evidence.
 - Decision-window matrix ma status TESTED AUTOMATED PASS (audyt potwierdzony).
 - HUD clarity pozostaje **NEXT / OUT_OF_SCOPE_UI_CLARITY** dla osobnego wątku UI.
+
+
+- 2026-05-17: `WORLD_RENDERING_MODEL.md` rozszerzono o status Etapu 2.75 (repo-controlled delivery point dla Three.js dependency, diagnostyka `threeDependencySource`, manualny fallback provisioning local vendor).

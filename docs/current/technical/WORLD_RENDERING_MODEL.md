@@ -471,3 +471,19 @@ Status na **2026-05-17**: sanity pass warstwy renderera został wykonany bez wej
 1. Formalne zatwierdzenie strategii dependency loading (repo-controlled local vendor lub zatwierdzony bundler).
 2. Wpięcie dependency do repo zgodnie z wybraną strategią i aktualizacja `threeDependencySource` na ścieżkę produkcyjną (np. `local_vendor`).
 3. Pierwszy ograniczony pass gameplay-object mapping do Three (bez zmiany mechaniki), z utrzymaniem fallbacku Canvas2D i kontraktu overlay UI.
+
+## 17. Etap 2.75 dependency delivery status
+
+Status na **2026-05-17**: Etap 2.75 został wykonany jako repo-controlled integration point dla Three.js dependency, bez gameplay render pass w Three.js.
+
+- **Wybrany model delivery:** projekt działa jako runtime oparty o static HTML + script tags (bez bundlera i bez `package.json`), więc użyto lokalnego punktu podpięcia vendora: `./vendor/three/three.min.js` w `index.codex.html`.
+- **Ładowanie dependency:** script vendora jest ładowany przed `hc.world_renderer.js`, a następnie ładowany jest mały marker `hc.three_vendor_marker.js` ustawiający `window.HC_THREE_SOURCE = "local_vendor"` jeśli `window.THREE` istnieje.
+- **Diagnostyka source:** `HC.WorldRenderer` raportuje `threeDependencySource = "local_vendor"` gdy wykryje marker; bez markera i z obecnym `window.THREE` raportuje `"window.THREE"`; przy braku dependency raportuje `"missing"`.
+- **CDN policy:** CDN nie jest używany jako production source-of-truth w runtime. Repo utrzymuje lokalny, jawny punkt podpięcia zależności.
+- **Fallback contract:** przy braku local vendora lub błędzie inicjalizacji adapter nadal przechodzi bez crasha do `canvas2d` (`requestedMode` vs `effectiveMode` pozostaje rozdzielone w diagnostics).
+- **Zakres bez zmian:** gameplay objects (`meteory/asteroidy/planety/gwiazdy/PRG`) nadal nie są renderowane przez Three.js; HUD/SUB-META/META pozostają poza rendererem świata.
+- **Gate do Etapu 3:** pierwszy minimalny object render pass może ruszyć dopiero po manualnym smoke teście 2.75 (canvas2d -> three -> canvas2d + resize + diagnostics stability).
+
+### Uwagi operacyjne (manual vendor provisioning)
+
+Jeśli `./vendor/three/three.min.js` nie jest jeszcze fizycznie dostarczony w repo (np. ograniczenia środowiska CI/sandbox), runtime zachowuje bezpieczny fallback i należy ręcznie dodać jeden stabilny build Three.js do wskazanej ścieżki bez modyfikacji pliku minifikowanego.
