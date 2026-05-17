@@ -544,3 +544,13 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
 - Pliki WebGPU/TSL/nodes pozostaja poza zakresem obecnego etapu i nie sa czescia aktywnego runtime path.
 - Fallback `canvas2d` pozostaje obowiazkowy i musi dzialac przy braku gotowosci bridge/dependency.
 - Gameplay objects (meteory, asteroidy, planety, gwiazdy, PRG) nadal nie sa renderowane przez Three w tym etapie; aktywny jest jedynie bazowy lifecycle renderera.
+
+
+## Etap 3 meteor render pass status (2026-05-17)
+
+- Three world adapter renderuje teraz **meteory jako pierwszy gameplay object**.
+- Pass meteorów czyta wyłącznie `renderSnapshot.world.meteors` (bez bezpośredniego odczytu `World`).
+- Mechanika, fizyka, kolizje i input/hit-test pozostają poza Three (runtime gameplay bez zmian).
+- HUD, debug overlay, SUB-META i META pozostają warstwami overlay poza sceną Three.
+- Pozostałe obiekty świata (asteroidy, planety, gwiazdy, PRG) nadal nie są objęte passami Three w tym etapie.
+- Fallback do canvas2d pozostaje aktywnym i bezpiecznym mechanizmem pracy renderera.
