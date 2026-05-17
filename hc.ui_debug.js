@@ -668,6 +668,14 @@
           ["Three visible", rendererDiag?.threeCanvasVisible ? "yes" : "no"],
           ["Three meteors", rendererDiag?.threeMeteorCount ?? 0],
           ["Three meteor meshes", rendererDiag?.threeMeteorMeshes ?? 0],
+          ["Three radius scale", rendererDiag?.threeMeteorRadiusScale ?? "-"],
+          ["Three min radius", rendererDiag?.threeMeteorMinRadius ?? "-"],
+          ["Three debug marker", rendererDiag?.threeDebugMarker?.visible ? "visible" : (rendererDiag?.threeDebugMarker?.enabled ? "enabled_hidden" : "off")],
+          ["First meteor", rendererDiag?.firstMeteor ? JSON.stringify(rendererDiag.firstMeteor) : "none"],
+          ["First mesh", rendererDiag?.firstMeteorMesh ? JSON.stringify(rendererDiag.firstMeteorMesh) : "none"],
+          ["Camera bounds", rendererDiag?.cameraBounds ? JSON.stringify(rendererDiag.cameraBounds) : "none"],
+          ["Renderer size", rendererDiag?.rendererSize ? JSON.stringify(rendererDiag.rendererSize) : "none"],
+          ["Scene children", rendererDiag?.sceneChildrenCount ?? 0],
         ])}</div>
       </section>
     `);
