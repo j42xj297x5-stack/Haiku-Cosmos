@@ -87,6 +87,12 @@
   - FPS + HUD RP + slider MPS.
   - `CardEngine.render(ctx, view.w, view.h)` (HUD kart + SUB-META).
 
+**Notka migracyjna (Three adapter):**
+- Historycznie `HC.Render.frame` rysuje world na `canvas2d`.
+- Nowy adapter świata może przejąć world rendering w trybie `three`, bez zmiany pętli update.
+- `HC.UI.update` i `CardEngine.render` pozostają po renderze świata jako warstwa overlay UI.
+- Mechanika update loop i kolejność systemów pozostają bez zmian.
+
 ### 1.4 Reset RUN (HARD RESET)
 **Źródło:** `game.boot.js::resetWorld()` + wrapper w `hc.world.js`
 
