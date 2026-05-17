@@ -514,3 +514,11 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
 4. Wykonaj twarde odświeżenie (`Ctrl+F5`).
 5. Sprawdź bezpośrednio URL vendora: `http://localhost:8123/vendor/three/three.module.min.js`.
 6. Zweryfikuj w konsoli: `window.HC_THREE_BRIDGE_VERSION`, `window.HC_THREE_MODULE_URL`, `window.HC_THREE_LOAD_STATUS`, `window.HC_THREE_READY`, `window.HC_THREE_SOURCE`, `window.HC_THREE_LOAD_ERROR`.
+
+## ESM bridge diagnostics v3
+
+- Wariant ze statycznym importem (`import * as THREE from ...`) został odrzucony jako kontrakt bootstrapu, ponieważ przy błędzie importu kod bridge nie wykonuje się wcale i pola diagnostyczne pozostają `missing`.
+- Bridge v3 (`esm_dynamic_diagnostic_v3`) najpierw ustawia globalną diagnostykę (`HC_THREE_BRIDGE_VERSION`, `HC_THREE_MODULE_URL`, `HC_THREE_LOAD_STATUS=loading`, `HC_THREE_LOAD_ERROR`), a dopiero potem wykonuje preflight `fetch` i `dynamic import()`.
+- Debug renderera rozróżnia teraz stany: `bridge_missing`, `local_vendor_esm_loading`, `local_vendor_esm_failed`, `local_vendor_esm` (ready).
+- Local vendor ESM Three może wymagać pełnego zestawu plików z `build/` tej samej wersji (jeśli `three.module.min.js` zawiera importy względne, np. do `./three.core.min.js`), a nie pojedynczego pliku modułu.
+- Fallback `canvas2d` pozostaje obowiązkowy i jest aktywowany zawsze, gdy tryb `three` nie osiągnie stanu `ready`.
