@@ -69,6 +69,7 @@ Kanon jest mapowany warstwowo przez:
 
 - `docs/current/technical/README.md` (ROBOCZY)
 - `docs/current/technical/WORLD_FUNCTION_MAP.md` (ROBOCZY)
+- `docs/current/technical/WORLD_RENDERING_MODEL.md` (ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA)
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (ROBOCZY / ARCHITEKTURA TECHNICZNA)
 - `docs/current/technical/FONT_SYSTEM_SPEC.md` (ROBOCZY / DO WDROZENIA)
 - `docs/current/technical/FRAME_COMPOSER_SPEC.md` (ROBOCZY / KONTRAKT TECHNICZNY)

@@ -62,6 +62,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 ### 5) technical
 - `technical/README.md` - **ROBOCZY** - mapa dokumentów technicznych.
 - `technical/WORLD_FUNCTION_MAP.md` - **ROBOCZY** - orientacyjna mapa runtime.
+- `technical/WORLD_RENDERING_MODEL.md` - **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** - audyt i etapowy plan migracji renderingu świata pod adapter Three.js/WebGL z fallbackiem Canvas2D.
 - `technical/CARD_VISUAL_ARCHITECTURE.md` - **ROBOCZY** - architektura card visuals i granic runtime.
 - `technical/FONT_SYSTEM_SPEC.md` - **ROBOCZY** - kontrakt font systemu pod i18n/UI.
 - `technical/FRAME_COMPOSER_SPEC.md` - **ROBOCZY** - kontrakt techniczny FrameComposer.
