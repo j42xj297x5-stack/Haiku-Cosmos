@@ -571,3 +571,14 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
 - Dodano prosty marker debug środka kamery (`threeDebugMarker`) do szybkiej walidacji, czy scena renderuje przewidywany obszar.
 - Zakres Three pozostaje ograniczony tylko do meteorów; asteroidy, planety, gwiazdy i PRG visual pozostają poza passami Three.
 - Fallback canvas2d (w tym HUD/SUB-META/META) pozostaje bez zmian funkcjonalnych i nadal jest obowiązkową ścieżką awaryjną.
+
+## Etap 3.1 camera/frustum fix
+
+- Potwierdzono, że mesh cache i pass meteorów działały poprawnie (snapshot zawierał meteory, a renderer tworzył mesh-e), ale obiekty pozostawały poza frustum kamery Three.
+- Przyczyna: niespójny model kamery między Canvas2D i Three. Canvas2D renderuje świat przez transform `translate(viewCenter) -> scale(zoom) -> translate(-cameraCenter)`, więc meteory pozostają w world-space, a kamera definiuje widoczny world-bounds.
+- W Three wybrano model **`absolute_bounds`**:
+  - `OrthographicCamera.left/right/top/bottom` ustawiane bezpośrednio z `camera.worldBounds` snapshotu,
+  - `camera.position` ustawione na `(0, 0, 10)` (bez dodatkowego przesunięcia na center),
+  - `mesh.position.x/y` pozostaje w world-space (`meteor.x`, `meteor.y`).
+- Dodano diagnostykę mapowania kamera↔świat (`cameraSnapshotCenter`, `cameraSnapshotZoom`, `cameraSnapshotWorldBounds`, `worldBoundsSource`, `threeCameraModel`, `meteorGroupChildrenCount`, `firstMeteorScreenEstimate`, `firstMeteorInCameraBounds`) oraz marker debug dla pozycji pierwszego meteoru.
+- Zakres fixu dotyczy wyłącznie warstwy renderingu Three świata; mechanika, fizyka, input, kolizje, ekonomia RP, HUD/SUB-META/META i logika kart pozostają poza Three i bez zmian.
