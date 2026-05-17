@@ -658,6 +658,7 @@
           ["Three dependency", rendererDiag?.hasThreeDependency ? "yes" : "no"],
           ["Three bridge version", String(rendererDiag?.threeBridgeVersion || "bridge_missing")],
           ["Three module URL", String(rendererDiag?.threeModuleUrl || "bridge_missing")],
+          ["Three core URL", String(rendererDiag?.threeCoreUrl || "bridge_missing")],
           ["Three load status", rendererDiag?.threeBridgeVersion ? (rendererDiag?.threeLoadStatus || "unknown") : "bridge_missing"],
           ["Three source", rendererDiag?.threeSource || "unknown"],
           ["Three dependency source", rendererDiag?.threeDependencySource || "unknown"],

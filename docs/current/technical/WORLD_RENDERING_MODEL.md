@@ -522,3 +522,14 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
 - Debug renderera rozróżnia teraz stany: `bridge_missing`, `local_vendor_esm_loading`, `local_vendor_esm_failed`, `local_vendor_esm` (ready).
 - Local vendor ESM Three może wymagać pełnego zestawu plików z `build/` tej samej wersji (jeśli `three.module.min.js` zawiera importy względne, np. do `./three.core.min.js`), a nie pojedynczego pliku modułu.
 - Fallback `canvas2d` pozostaje obowiązkowy i jest aktywowany zawsze, gdy tryb `three` nie osiągnie stanu `ready`.
+
+
+## ESM vendor minimal runtime set (update 2026-05-17)
+
+- Minimalny lokalny zestaw runtime Three ESM w repo to:
+  - `vendor/three/three.module.min.js`
+  - `vendor/three/three.core.min.js`
+- `three.module.min.js` w aktualnych wersjach Three może importować relatywnie `./three.core.min.js`, więc brak pliku core powoduje błąd importu mimo obecności pliku module.
+- Oba pliki (`three.module.min.js` i `three.core.min.js`) muszą pochodzić z tej samej wersji Three.js.
+- CDN nie jest production source-of-truth dla dependency ładowanych przez bridge.
+- Fallback `canvas2d` pozostaje obowiązkowy przy każdym błędzie preflight/importu.
