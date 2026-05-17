@@ -476,7 +476,7 @@ Status na **2026-05-17**: sanity pass warstwy renderera został wykonany bez wej
 
 Status na **2026-05-17**: Etap 2.75 został wykonany jako repo-controlled integration point dla Three.js dependency, bez gameplay render pass w Three.js.
 
-- **Wybrany model delivery:** projekt działa jako runtime oparty o static HTML + script tags (bez bundlera i bez `package.json`), więc użyto lokalnego punktu podpięcia vendora: `./vendor/three/three.min.js` w `index.codex.html`.
+- **Wybrany model delivery:** projekt działa jako runtime oparty o static HTML + script tags (bez bundlera i bez `package.json`), więc użyto lokalnego punktu podpięcia vendora: `./vendor/three/three.module.min.js` w `index.codex.html`.
 - **Ładowanie dependency:** script vendora jest ładowany przed `hc.world_renderer.js`, a następnie ładowany jest mały marker `hc.three_vendor_marker.js` ustawiający `window.HC_THREE_SOURCE = "local_vendor"` jeśli `window.THREE` istnieje.
 - **Diagnostyka source:** `HC.WorldRenderer` raportuje `threeDependencySource = "local_vendor"` gdy wykryje marker; bez markera i z obecnym `window.THREE` raportuje `"window.THREE"`; przy braku dependency raportuje `"missing"`.
 - **CDN policy:** CDN nie jest używany jako production source-of-truth w runtime. Repo utrzymuje lokalny, jawny punkt podpięcia zależności.
@@ -486,7 +486,7 @@ Status na **2026-05-17**: Etap 2.75 został wykonany jako repo-controlled integr
 
 ### Uwagi operacyjne (manual vendor provisioning)
 
-Jeśli `./vendor/three/three.min.js` nie jest jeszcze fizycznie dostarczony w repo (np. ograniczenia środowiska CI/sandbox), runtime zachowuje bezpieczny fallback i należy ręcznie dodać jeden stabilny build Three.js do wskazanej ścieżki bez modyfikacji pliku minifikowanego.
+Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczony w repo (np. ograniczenia środowiska CI/sandbox), runtime zachowuje bezpieczny fallback i należy ręcznie dodać jeden stabilny build Three.js do wskazanej ścieżki bez modyfikacji pliku minifikowanego.
 
 ## ESM vendor loading diagnostics (update 2026-05-17)
 
@@ -494,3 +494,6 @@ Jeśli `./vendor/three/three.min.js` nie jest jeszcze fizycznie dostarczony w re
 - Local ESM vendor wymaga poprawnej ścieżki relatywnej do bridge (`./vendor/three/three.module.min.js`) i powinien być uruchamiany przez lokalny dev server.
 - Tryb `file://` może blokować import ESM; diagnostyka bridge zwraca wtedy czytelny błąd (`ESM Three vendor requires local dev server, not file://`).
 - Fallback `canvas2d` pozostaje obowiązkowy przy statusach `loading`/`failed`/`missing`; runtime nie może crashować przy braku Three.
+
+
+- Bridge ESM (`hc.three_module_bridge.js`) zapisuje `HC_THREE_MODULE_URL` i wykonuje preflight `fetch()` przed `import()`, aby jednoznacznie odróżnić błąd HTTP (np. 404) od błędu ładowania modułu/MIME.

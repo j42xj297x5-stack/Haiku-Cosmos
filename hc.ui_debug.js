@@ -656,6 +656,7 @@
           ["Renderer effective", rendererDiag?.effectiveMode || "canvas2d"],
           ["Renderer fallback", rendererDiag?.fallbackReason || "none"],
           ["Three dependency", rendererDiag?.hasThreeDependency ? "yes" : "no"],
+          ["Three module URL", String(rendererDiag?.threeModuleUrl || "missing")],
           ["Three load status", rendererDiag?.threeLoadStatus || "missing"],
           ["Three dependency source", rendererDiag?.threeDependencySource || "unknown"],
           ["Three load error", String(rendererDiag?.threeLoadError || "none").replace(/\s+/g, " ").trim()],
