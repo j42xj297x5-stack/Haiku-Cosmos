@@ -205,6 +205,41 @@
     return next;
   }
 
+  function getThreeMaterialSettingsForUi() {
+    if (window.HC?.WorldRenderer?.getThreeMaterialSettings) return window.HC.WorldRenderer.getThreeMaterialSettings();
+    const defaults = { enabled: false, envIntensity: 0.38, toneExposure: 1.0, forceAuditLog: false, materialMode: "imported" };
+    return Object.assign({}, defaults, window.HC?.WorldRendererDebug?.materials || window.HC?.Session?.debugConfig?.visual?.threeMaterials || {});
+  }
+
+  function setThreeMaterialSettingFromUi(key, value) {
+    const next = window.HC?.WorldRenderer?.setThreeMaterialDebugSetting
+      ? window.HC.WorldRenderer.setThreeMaterialDebugSetting(key, value)
+      : Object.assign({}, getThreeMaterialSettingsForUi(), { [key]: value });
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.materials = Object.assign({}, next);
+    if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.threeMaterials = Object.assign({}, next);
+    const valueMap = {
+      envIntensity: "dbgThreeEnvIntensityValue",
+      toneExposure: "dbgThreeToneExposureValue",
+    };
+    const valueNode = document.getElementById(valueMap[key]);
+    if (valueNode && Number.isFinite(Number(next[key]))) valueNode.textContent = Number(next[key]).toFixed(2);
+    const inputMap = {
+      enabled: "dbgThreeMaterialDebugEnabled",
+      envIntensity: "dbgThreeEnvIntensity",
+      toneExposure: "dbgThreeToneExposure",
+      forceAuditLog: "dbgThreeForceMaterialAuditLog",
+      materialMode: "dbgThreeMaterialMode",
+    };
+    const input = document.getElementById(inputMap[key]);
+    if (input) {
+      if (input.type === "checkbox") input.checked = !!next[key];
+      else if (String(input.value) !== String(next[key])) input.value = String(next[key]);
+    }
+    return next;
+  }
+
   function getDebugDefaults() {
     if (window.HC?.createDebugConfig) {
       return window.HC.createDebugConfig("debug");
@@ -422,6 +457,17 @@
           };
           if (threeLightControls[target.id]) {
             setThreeLightsSettingFromUi(threeLightControls[target.id], target.type === "checkbox" ? target.checked : target.value);
+            return;
+          }
+          const threeMaterialControls = {
+            dbgThreeMaterialDebugEnabled: "enabled",
+            dbgThreeEnvIntensity: "envIntensity",
+            dbgThreeToneExposure: "toneExposure",
+            dbgThreeForceMaterialAuditLog: "forceAuditLog",
+            dbgThreeMaterialMode: "materialMode",
+          };
+          if (threeMaterialControls[target.id]) {
+            setThreeMaterialSettingFromUi(threeMaterialControls[target.id], target.type === "checkbox" ? target.checked : target.value);
             return;
           }
           const cfg = window.HC?.Session?.debugConfig?.visual?.prgFrameProbe;
@@ -711,6 +757,10 @@
       `<option value="three"${requestedMode === "three" ? " selected" : ""}>three</option>`,
     ].join("");
     const threeLights = getThreeLightsSettingsForUi();
+    const threeMaterials = getThreeMaterialSettingsForUi();
+    const materialModeOptions = ["imported", "standard_test", "normal_debug"].map((mode) =>
+      `<option value="${mode}"${threeMaterials.materialMode === mode ? " selected" : ""}>${mode}</option>`
+    ).join("");
 
     sections.push(`
       <section class="overlay-section">
@@ -754,6 +804,25 @@
             <span id="dbgThreeAmbientValue">${Number(threeLights.ambientIntensity).toFixed(2)}</span>
           </label>
         </div>
+        <div class="overlay-grid">
+          <label class="overlay-select-row" for="dbgThreeMaterialDebugEnabled">Material debug log
+            <input id="dbgThreeMaterialDebugEnabled" type="checkbox"${threeMaterials.enabled === true ? " checked" : ""}>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeEnvIntensity">PBR env intensity
+            <input id="dbgThreeEnvIntensity" type="range" min="0" max="1.5" step="0.01" value="${threeMaterials.envIntensity}">
+            <span id="dbgThreeEnvIntensityValue">${Number(threeMaterials.envIntensity).toFixed(2)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeToneExposure">Tone exposure
+            <input id="dbgThreeToneExposure" type="range" min="0.5" max="1.8" step="0.01" value="${threeMaterials.toneExposure}">
+            <span id="dbgThreeToneExposureValue">${Number(threeMaterials.toneExposure).toFixed(2)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeForceMaterialAuditLog">Force material audit log
+            <input id="dbgThreeForceMaterialAuditLog" type="checkbox"${threeMaterials.forceAuditLog === true ? " checked" : ""}>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeMaterialMode">Material mode
+            <select id="dbgThreeMaterialMode">${materialModeOptions}</select>
+          </label>
+        </div>
         <div class="overlay-grid">${renderRows([
           ["Renderer requested", rendererDiag?.requestedMode || "canvas2d"],
           ["Renderer effective", rendererDiag?.effectiveMode || "canvas2d"],
@@ -782,6 +851,10 @@
           ["Three radius scale", rendererDiag?.threeMeteorRadiusScale ?? "-"],
           ["GLB meteor scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
           ["Three lights", rendererDiag?.threeLights ? JSON.stringify(rendererDiag.threeLights) : JSON.stringify(threeLights)],
+          ["Three material settings", rendererDiag?.threeMaterialSettings ? JSON.stringify(rendererDiag.threeMaterialSettings) : JSON.stringify(threeMaterials)],
+          ["Scene environment", rendererDiag?.sceneEnvironmentEnabled ? "enabled" : "off"],
+          ["Tone mapping/exposure", `${rendererDiag?.rendererToneMapping ?? "-"} / ${rendererDiag?.rendererToneMappingExposure ?? "-"}`],
+          ["GLB material audit", rendererDiag?.glbMaterialAudit ? JSON.stringify(rendererDiag.glbMaterialAudit.slice(-2)) : "[]"],
           ["Three light count", rendererDiag?.threeLightCount ?? 0],
           ["Three light positions", rendererDiag?.threeLightPositions ? JSON.stringify(rendererDiag.threeLightPositions) : "none"],
           ["Active GLB instances", rendererDiag?.activeGlbInstances ?? 0],

@@ -32,6 +32,18 @@
     zOffsetMultiplier: { min: 0.05, max: 2.0 },
     ambientIntensity: { min: 0, max: 0.75 },
   });
+  const THREE_MATERIAL_DEBUG_DEFAULTS = Object.freeze({
+    enabled: false,
+    envIntensity: 0.38,
+    toneExposure: 1.0,
+    forceAuditLog: false,
+    materialMode: "imported",
+  });
+  const THREE_MATERIAL_DEBUG_LIMITS = Object.freeze({
+    envIntensity: { min: 0, max: 1.5 },
+    toneExposure: { min: 0.5, max: 1.8 },
+  });
+  const THREE_MATERIAL_AUDIT_LOG_LIMIT = 8;
   function buildMeteorGlbAssetPool(fileStem) {
     return Object.freeze(Array.from(
       { length: METEOR_GLB_VARIANTS_PER_COLOR },
@@ -65,6 +77,11 @@
     THREE_LIGHTS_DEFAULTS,
     window.HC.WorldRendererDebug.threeLights || {}
   );
+  window.HC.WorldRendererDebug.materials = Object.assign(
+    {},
+    THREE_MATERIAL_DEBUG_DEFAULTS,
+    window.HC.WorldRendererDebug.materials || {}
+  );
 
   const threeState = {
     initialized: false,
@@ -82,7 +99,14 @@
     ambientLight: null,
     cornerLights: [],
     lightsSettings: Object.assign({}, THREE_LIGHTS_DEFAULTS),
+    materialSettings: Object.assign({}, THREE_MATERIAL_DEBUG_DEFAULTS),
     lightsPositions: [],
+    environment: null,
+    environmentCanvas: null,
+    glbBlobUrls: new Set(),
+    glbMaterialAudit: [],
+    glbMaterialAuditLoggedUrls: new Set(),
+    glbMaterialAuditLogCount: 0,
     meteorGeometry: null,
     asteroidGeometries: new Map(),
     meteorMaterials: new Map(),
@@ -150,6 +174,8 @@
     threeState.meteorGlbCacheStats = getMeteorGlbCacheStats();
     threeState.meteorGlbVariantReassignments = 0;
     threeState.meteorGlbInstanceCreates = 0;
+    threeState.glbMaterialAudit = [];
+    threeState.glbMaterialAuditLogCount = 0;
   }
 
   function setMode(nextMode) {
@@ -263,6 +289,46 @@
     window.HC.WorldRendererDebug.threeLights = next;
     if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.threeLights = Object.assign({}, next);
     syncThreeLights();
+    return next;
+  }
+
+  function getThreeMaterialSettings() {
+    const debugMaterials = window.HC?.WorldRendererDebug?.materials || {};
+    const sessionMaterials = window.HC?.Session?.debugConfig?.visual?.threeMaterials || {};
+    const merged = Object.assign({}, THREE_MATERIAL_DEBUG_DEFAULTS, sessionMaterials, debugMaterials);
+    const mode = String(merged.materialMode || "imported");
+    return {
+      enabled: merged.enabled === true,
+      envIntensity: clampNumber(merged.envIntensity, THREE_MATERIAL_DEBUG_DEFAULTS.envIntensity, THREE_MATERIAL_DEBUG_LIMITS.envIntensity.min, THREE_MATERIAL_DEBUG_LIMITS.envIntensity.max),
+      toneExposure: clampNumber(merged.toneExposure, THREE_MATERIAL_DEBUG_DEFAULTS.toneExposure, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.min, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.max),
+      forceAuditLog: merged.forceAuditLog === true,
+      materialMode: ["imported", "standard_test", "normal_debug"].includes(mode) ? mode : "imported",
+    };
+  }
+
+  function setThreeMaterialDebugSetting(key, value) {
+    const current = getThreeMaterialSettings();
+    const next = Object.assign({}, current);
+    if (key === "enabled") next.enabled = value === true || value === "true" || value === "1";
+    else if (key === "envIntensity") next.envIntensity = clampNumber(value, current.envIntensity, THREE_MATERIAL_DEBUG_LIMITS.envIntensity.min, THREE_MATERIAL_DEBUG_LIMITS.envIntensity.max);
+    else if (key === "toneExposure") next.toneExposure = clampNumber(value, current.toneExposure, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.min, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.max);
+    else if (key === "forceAuditLog") next.forceAuditLog = value === true || value === "true" || value === "1";
+    else if (key === "materialMode") next.materialMode = ["imported", "standard_test", "normal_debug"].includes(String(value)) ? String(value) : "imported";
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.materials = next;
+    if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.threeMaterials = Object.assign({}, next);
+    const materialModeChanged = current.materialMode !== next.materialMode;
+    threeState.materialSettings = Object.assign({}, next);
+    applyRendererPbrSettings();
+    if (materialModeChanged) {
+      threeState.meteorMeshes.forEach((entry) => disposeMeteorGlbInstance(entry));
+      threeState.meteorGlbCache.clear();
+      threeState.glbMaterialAudit = [];
+      threeState.glbMaterialAuditLoggedUrls.clear();
+    }
+    applyMaterialSettingsToLoadedGlbs();
+    if (next.forceAuditLog) logGlbMaterialAudit({ force: true });
     return next;
   }
 
@@ -432,8 +498,11 @@
     const existing = threeState.meteorMaterials.get(key);
     if (existing) return existing;
     const colorMap = { red: 0xff6b6b, yellow: 0xffd166, green: 0x6ee7a8, blue: 0x7dbdff, neutral: 0xb6bfd2 };
-    const mat = new THREE.MeshBasicMaterial({
+    const mat = new THREE.MeshStandardMaterial({
       color: colorMap[key] || colorMap.neutral,
+      roughness: 0.72,
+      metalness: key === "yellow" || key === "blue" ? 0.18 : 0.08,
+      envMapIntensity: getThreeMaterialSettings().envIntensity,
       transparent: true,
       opacity: 1.0,
       side: THREE.DoubleSide,
@@ -656,22 +725,139 @@
     return new THREE.BufferAttribute(array, itemSize, !!accessor.normalized);
   }
 
-  function createGlbMaterial(THREE, gltf, materialIndex) {
-    const materialDef = gltf.materials?.[materialIndex] || {};
+  function getThreeWrapping(THREE, value) {
+    if (value === 33071) return THREE.ClampToEdgeWrapping;
+    if (value === 33648) return THREE.MirroredRepeatWrapping;
+    return THREE.RepeatWrapping;
+  }
+
+  function getThreeFilter(THREE, value, fallback) {
+    const filters = {
+      9728: THREE.NearestFilter,
+      9729: THREE.LinearFilter,
+      9984: THREE.NearestMipmapNearestFilter,
+      9985: THREE.LinearMipmapNearestFilter,
+      9986: THREE.NearestMipmapLinearFilter,
+      9987: THREE.LinearMipmapLinearFilter,
+    };
+    return filters[value] || fallback;
+  }
+
+  function readGlbBufferViewBytes(gltf, binaryChunk, bufferViewIndex) {
+    const view = gltf.bufferViews?.[bufferViewIndex];
+    if (!view || view.buffer != null && view.buffer !== 0) return null;
+    const start = view.byteOffset || 0;
+    const length = view.byteLength || 0;
+    if (!length) return null;
+    return binaryChunk.slice(start, start + length);
+  }
+
+  function createGlbTexture(THREE, gltf, binaryChunk, textureInfo, colorSpace) {
+    const textureIndex = textureInfo?.index;
+    const textureDef = gltf.textures?.[textureIndex];
+    const imageDef = gltf.images?.[textureDef?.source];
+    if (!textureDef || !imageDef) return null;
+    let url = null;
+    if (imageDef.bufferView != null) {
+      const bytes = readGlbBufferViewBytes(gltf, binaryChunk, imageDef.bufferView);
+      if (!bytes) return null;
+      const mimeType = imageDef.mimeType || "image/png";
+      url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+      threeState.glbBlobUrls.add(url);
+    } else if (imageDef.uri && !/^data:/i.test(imageDef.uri)) {
+      url = resolvePublicAssetPath(imageDef.uri);
+    } else if (imageDef.uri) {
+      url = imageDef.uri;
+    }
+    if (!url || !THREE.TextureLoader) return null;
+    const texture = new THREE.TextureLoader().load(url, () => { texture.needsUpdate = true; });
+    texture.flipY = false;
+    if (colorSpace && "colorSpace" in texture) texture.colorSpace = colorSpace;
+    else if (colorSpace && "encoding" in texture && THREE.sRGBEncoding) texture.encoding = THREE.sRGBEncoding;
+    const sampler = gltf.samplers?.[textureDef.sampler] || {};
+    texture.wrapS = getThreeWrapping(THREE, sampler.wrapS);
+    texture.wrapT = getThreeWrapping(THREE, sampler.wrapT);
+    texture.magFilter = getThreeFilter(THREE, sampler.magFilter, THREE.LinearFilter);
+    texture.minFilter = getThreeFilter(THREE, sampler.minFilter, THREE.LinearMipmapLinearFilter);
+    texture.userData = Object.assign({}, texture.userData, { hcGlbTextureIndex: textureIndex, hcTexCoord: textureInfo.texCoord || 0 });
+    return texture;
+  }
+
+  function getFallbackMeteorColor(THREE, materialIndex) {
+    const fallbackColors = [0xb6bfd2, 0xff6b6b, 0xffd166, 0x6ee7a8, 0x7dbdff];
+    return new THREE.Color(fallbackColors[Math.max(0, Number(materialIndex) || 0) % fallbackColors.length]);
+  }
+
+  function isMaterialUsable(material) {
+    return !!material && (material.isMaterial || typeof material.type === "string") && material.type !== "MeshBasicMaterial";
+  }
+
+  function createFallbackPbrMaterial(THREE, materialIndex, reason) {
+    const mat = new THREE.MeshStandardMaterial({
+      color: getFallbackMeteorColor(THREE, materialIndex),
+      roughness: 0.72,
+      metalness: 0.12,
+      transparent: false,
+      opacity: 1,
+      side: THREE.FrontSide,
+      depthTest: true,
+      depthWrite: true,
+    });
+    mat.name = `hc_glb_fallback_${reason || "missing"}`;
+    mat.userData = Object.assign({}, mat.userData, { hcMaterialSource: "fallback", hcFallbackReason: reason || "missing" });
+    return mat;
+  }
+
+  function applyImportedMaterialRuntimeSettings(material) {
+    if (!material) return material;
+    const settings = threeState.materialSettings || getThreeMaterialSettings();
+    if (material.isMeshStandardMaterial || material.isMeshPhysicalMaterial) {
+      material.envMapIntensity = settings.envIntensity;
+    }
+    material.needsUpdate = true;
+    return material;
+  }
+
+  function createGlbMaterial(THREE, gltf, binaryChunk, materialIndex) {
+    if (materialIndex == null || !gltf.materials?.[materialIndex]) return createFallbackPbrMaterial(THREE, materialIndex, "missing_material");
+    const materialDef = gltf.materials[materialIndex] || {};
     const pbr = materialDef.pbrMetallicRoughness || {};
     const base = Array.isArray(pbr.baseColorFactor) ? pbr.baseColorFactor : [1, 1, 1, 1];
     const color = new THREE.Color(base[0] ?? 1, base[1] ?? 1, base[2] ?? 1);
     const alpha = Number(base[3]);
-    return new THREE.MeshStandardMaterial({
+    const material = new THREE.MeshStandardMaterial({
+      name: materialDef.name || `glb_material_${materialIndex}`,
       color,
       roughness: Number.isFinite(pbr.roughnessFactor) ? pbr.roughnessFactor : 0.82,
       metalness: Number.isFinite(pbr.metallicFactor) ? pbr.metallicFactor : 0.0,
       transparent: materialDef.alphaMode === "BLEND" || (Number.isFinite(alpha) && alpha < 1),
       opacity: Number.isFinite(alpha) ? alpha : 1,
+      alphaTest: materialDef.alphaMode === "MASK" ? (Number.isFinite(materialDef.alphaCutoff) ? materialDef.alphaCutoff : 0.5) : 0,
       side: materialDef.doubleSided ? THREE.DoubleSide : THREE.FrontSide,
       depthTest: true,
-      depthWrite: true,
+      depthWrite: materialDef.alphaMode !== "BLEND",
     });
+    const srgb = THREE.SRGBColorSpace || THREE.LinearSRGBColorSpace || null;
+    material.map = createGlbTexture(THREE, gltf, binaryChunk, pbr.baseColorTexture, srgb);
+    material.metalnessMap = createGlbTexture(THREE, gltf, binaryChunk, pbr.metallicRoughnessTexture, null);
+    material.roughnessMap = material.metalnessMap;
+    material.normalMap = createGlbTexture(THREE, gltf, binaryChunk, materialDef.normalTexture, null);
+    if (material.normalMap && materialDef.normalTexture && Number.isFinite(materialDef.normalTexture.scale)) {
+      material.normalScale = new THREE.Vector2(materialDef.normalTexture.scale, materialDef.normalTexture.scale);
+    }
+    material.aoMap = createGlbTexture(THREE, gltf, binaryChunk, materialDef.occlusionTexture, null);
+    if (material.aoMap && materialDef.occlusionTexture && Number.isFinite(materialDef.occlusionTexture.strength)) {
+      material.aoMapIntensity = materialDef.occlusionTexture.strength;
+    }
+    const emissive = Array.isArray(materialDef.emissiveFactor) ? materialDef.emissiveFactor : [0, 0, 0];
+    material.emissive = new THREE.Color(emissive[0] || 0, emissive[1] || 0, emissive[2] || 0);
+    material.emissiveMap = createGlbTexture(THREE, gltf, binaryChunk, materialDef.emissiveTexture, srgb);
+    material.userData = Object.assign({}, material.userData, {
+      hcMaterialSource: "glb_imported_pbr",
+      hcGlbMaterialIndex: materialIndex,
+      hcGlbMaterialName: materialDef.name || null,
+    });
+    return applyImportedMaterialRuntimeSettings(material);
   }
 
   function applyGlbNodeTransform(THREE, target, nodeDef) {
@@ -731,14 +917,19 @@
         if (!geometry.getAttribute("normal")) geometry.computeVertexNormals();
         let material = materialCache.get(primitive.material);
         if (!material) {
-          material = createGlbMaterial(THREE, json, primitive.material);
+          material = createGlbMaterial(THREE, json, binaryChunk, primitive.material);
           materialCache.set(primitive.material, material);
         }
+        if (!isMaterialUsable(material)) material = createFallbackPbrMaterial(THREE, primitive.material, "unusable_material");
         if (geometry.getAttribute("color") && material.vertexColors !== true) {
           material = material.clone();
           material.vertexColors = true;
+          material.userData = Object.assign({}, material.userData, { hcVertexColorsEnabled: true });
         }
-        const mesh = new THREE.Mesh(geometry, material);
+        if (material.aoMap && geometry.getAttribute("uv") && !geometry.getAttribute("uv2")) {
+          geometry.setAttribute("uv2", geometry.getAttribute("uv"));
+        }
+        const mesh = new THREE.Mesh(geometry, applyImportedMaterialRuntimeSettings(material));
         mesh.frustumCulled = false;
         group.add(mesh);
       }
@@ -772,6 +963,106 @@
     return root;
   }
 
+  function materialRespondsToLight(material) {
+    return !!material && material.type !== "MeshBasicMaterial" && material.type !== "MeshNormalMaterial";
+  }
+
+  function summarizeMaterial(material) {
+    const color = material?.color;
+    const emissive = material?.emissive;
+    return {
+      type: material?.type || "missing",
+      source: material?.userData?.hcMaterialSource || "unknown",
+      color: color && typeof color.getHexString === "function" ? `#${color.getHexString()}` : null,
+      metalness: Number.isFinite(material?.metalness) ? material.metalness : null,
+      roughness: Number.isFinite(material?.roughness) ? material.roughness : null,
+      emissive: emissive && typeof emissive.getHexString === "function" ? `#${emissive.getHexString()}` : null,
+      map: !!material?.map,
+      normalMap: !!material?.normalMap,
+      metalnessMap: !!material?.metalnessMap,
+      roughnessMap: !!material?.roughnessMap,
+      emissiveMap: !!material?.emissiveMap,
+      aoMap: !!material?.aoMap,
+      vertexColors: !!material?.vertexColors,
+      flatShading: !!material?.flatShading,
+      transparent: !!material?.transparent,
+      opacity: Number.isFinite(material?.opacity) ? material.opacity : null,
+      respondsToLight: materialRespondsToLight(material),
+    };
+  }
+
+  function collectGlbMaterialAudit(root, url) {
+    const materials = [];
+    root.traverse((object) => {
+      if (!object.isMesh) return;
+      const materialList = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materialList) materials.push(summarizeMaterial(material));
+    });
+    const audit = {
+      asset: url,
+      meshCount: materials.length,
+      materials: materials.slice(0, 12),
+      importedPbrCount: materials.filter((m) => m.source === "glb_imported_pbr").length,
+      fallbackCount: materials.filter((m) => m.source === "fallback").length,
+      lightReactiveCount: materials.filter((m) => m.respondsToLight).length,
+      hasMaps: materials.some((m) => m.map || m.metalnessMap || m.roughnessMap || m.emissiveMap || m.aoMap),
+      hasNormalMaps: materials.some((m) => m.normalMap),
+      hasMetalness: materials.some((m) => Number(m.metalness) > 0),
+    };
+    threeState.glbMaterialAudit.push(audit);
+    if (threeState.glbMaterialAudit.length > 16) threeState.glbMaterialAudit.shift();
+    return audit;
+  }
+
+  function logGlbMaterialAudit({ force = false } = {}) {
+    const settings = threeState.materialSettings || getThreeMaterialSettings();
+    if (!force && !settings.enabled && !settings.forceAuditLog) return;
+    for (const audit of threeState.glbMaterialAudit) {
+      if (!audit?.asset) continue;
+      if (!force && threeState.glbMaterialAuditLoggedUrls.has(audit.asset)) continue;
+      if (!force && threeState.glbMaterialAuditLogCount >= THREE_MATERIAL_AUDIT_LOG_LIMIT) continue;
+      threeState.glbMaterialAuditLoggedUrls.add(audit.asset);
+      threeState.glbMaterialAuditLogCount += 1;
+      if (window.console?.debug) window.console.debug("[HC.WorldRenderer] GLB material audit", audit);
+      else if (window.console?.log) window.console.log("[HC.WorldRenderer] GLB material audit", audit);
+    }
+  }
+
+  function applyDebugMaterialMode(THREE, root) {
+    const settings = threeState.materialSettings || getThreeMaterialSettings();
+    if (settings.materialMode === "imported") return;
+    root.traverse((object) => {
+      if (!object.isMesh) return;
+      if (settings.materialMode === "normal_debug") {
+        object.material = new THREE.MeshNormalMaterial({ side: THREE.DoubleSide });
+      } else if (settings.materialMode === "standard_test") {
+        object.material = new THREE.MeshStandardMaterial({ color: 0xb6bfd2, roughness: 0.58, metalness: 0.22, envMapIntensity: settings.envIntensity, side: THREE.DoubleSide });
+      }
+      object.material.userData = Object.assign({}, object.material.userData, { hcMaterialSource: `debug_${settings.materialMode}` });
+    });
+  }
+
+  function applyMaterialSettingsToLoadedGlbs() {
+    const THREE = window.HC_THREE || window.THREE;
+    if (!THREE) return;
+    threeState.meteorMaterials.forEach(applyImportedMaterialRuntimeSettings);
+    threeState.asteroidMaterials.forEach(applyImportedMaterialRuntimeSettings);
+    for (const cacheEntry of threeState.meteorGlbCache.values()) {
+      cacheEntry?.template?.traverse?.((object) => {
+        if (!object.isMesh) return;
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        materials.forEach(applyImportedMaterialRuntimeSettings);
+      });
+    }
+    for (const entry of threeState.meteorMeshes.values()) {
+      entry?.glb?.traverse?.((object) => {
+        if (!object.isMesh) return;
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        materials.forEach(applyImportedMaterialRuntimeSettings);
+      });
+    }
+  }
+
   function loadMeteorGlb(THREE, url) {
     let entry = threeState.meteorGlbCache.get(url);
     if (entry) return entry;
@@ -783,6 +1074,9 @@
       })
       .then((buffer) => {
         entry.template = parseGlbToObject3D(THREE, buffer);
+        applyDebugMaterialMode(THREE, entry.template);
+        entry.materialAudit = collectGlbMaterialAudit(entry.template, url);
+        logGlbMaterialAudit();
         entry.status = "ready";
         return entry.template;
       })
@@ -918,8 +1212,11 @@
     if (existing) return existing;
     const channel = Math.round((grayLight / 100) * 255);
     const color = (channel << 16) | (channel << 8) | channel;
-    const mat = new THREE.MeshBasicMaterial({
+    const mat = new THREE.MeshStandardMaterial({
       color,
+      roughness: 0.8,
+      metalness: 0.05,
+      envMapIntensity: getThreeMaterialSettings().envIntensity,
       transparent: true,
       opacity: 1.0,
       side: THREE.DoubleSide,
@@ -928,6 +1225,48 @@
     });
     threeState.asteroidMaterials.set(key, mat);
     return mat;
+  }
+
+  function createNeutralEnvironmentTexture(THREE) {
+    if (!THREE.CanvasTexture || typeof document === "undefined") return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 16;
+    canvas.height = 8;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    const gradient = ctx.createLinearGradient(0, 0, 16, 8);
+    gradient.addColorStop(0, "#20304a");
+    gradient.addColorStop(0.42, "#58616f");
+    gradient.addColorStop(0.68, "#1a2234");
+    gradient.addColorStop(1, "#080b12");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "rgba(255,246,224,0.9)";
+    ctx.fillRect(1, 1, 2, 1);
+    ctx.fillStyle = "rgba(180,215,255,0.45)";
+    ctx.fillRect(11, 2, 3, 1);
+    const texture = new THREE.CanvasTexture(canvas);
+    if (THREE.EquirectangularReflectionMapping) texture.mapping = THREE.EquirectangularReflectionMapping;
+    if (THREE.SRGBColorSpace && "colorSpace" in texture) texture.colorSpace = THREE.SRGBColorSpace;
+    texture.needsUpdate = true;
+    threeState.environmentCanvas = canvas;
+    return texture;
+  }
+
+  function applyRendererPbrSettings() {
+    const THREE = window.HC_THREE || window.THREE;
+    const renderer = threeState.renderer;
+    if (!THREE || !renderer) return;
+    const settings = getThreeMaterialSettings();
+    threeState.materialSettings = Object.assign({}, settings);
+    if (THREE.ColorManagement) THREE.ColorManagement.enabled = true;
+    if (THREE.SRGBColorSpace && "outputColorSpace" in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+    else if (THREE.sRGBEncoding && "outputEncoding" in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
+    if (THREE.ACESFilmicToneMapping) renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    else if (THREE.NeutralToneMapping) renderer.toneMapping = THREE.NeutralToneMapping;
+    renderer.toneMappingExposure = settings.toneExposure;
+    if (threeState.scene && !threeState.environment) threeState.environment = createNeutralEnvironmentTexture(THREE);
+    if (threeState.scene && threeState.environment) threeState.scene.environment = threeState.environment;
   }
 
   function initThree() {
@@ -950,6 +1289,7 @@
       canvas.style.display = "block";
       canvas.style.visibility = "visible";
       Object.assign(threeState, { canvas, renderer, scene, camera, meteorGroup, asteroidGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16) });
+      applyRendererPbrSettings();
       syncThreeLights();
       createDebugMarker(THREE);
       createFirstMeteorMarker(THREE);
@@ -1095,10 +1435,15 @@
     threeState.asteroidGeometries.forEach((geometry) => geometry?.dispose?.());
     threeState.asteroidGeometries.clear();
     threeState.meteorGeometry?.dispose?.();
+    threeState.environment?.dispose?.();
+    threeState.environment = null;
+    threeState.environmentCanvas = null;
+    threeState.glbBlobUrls.forEach((url) => { try { URL.revokeObjectURL(url); } catch (_) {} });
+    threeState.glbBlobUrls.clear();
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
     if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, asteroidGroup: null, lightsGroup: null, ambientLight: null, cornerLights: [], lightsPositions: [], meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, asteroidGroup: null, lightsGroup: null, ambientLight: null, cornerLights: [], lightsPositions: [], meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -1207,6 +1552,13 @@
       meteorGlbVisualScale: getMeteorGlbVisualScale(),
       meteorGlbScaleLiveControl: true,
       threeLightsLiveControl: true,
+      threeMaterialDebugLiveControl: true,
+      threeMaterialSettings: Object.assign({}, threeState.materialSettings || getThreeMaterialSettings()),
+      glbMaterialAudit: threeState.glbMaterialAudit.slice(-8),
+      sceneEnvironmentEnabled: !!threeState.scene?.environment,
+      rendererOutputColorSpace: threeState.renderer?.outputColorSpace || threeState.renderer?.outputEncoding || null,
+      rendererToneMapping: threeState.renderer?.toneMapping ?? null,
+      rendererToneMappingExposure: threeState.renderer?.toneMappingExposure ?? null,
       threeLights: Object.assign({}, threeState.lightsSettings || getThreeLightsSettings()),
       threeLightPositions: Array.isArray(threeState.lightsPositions) ? threeState.lightsPositions.map((pos) => Object.assign({}, pos)) : [],
       threeLightCount: Array.isArray(threeState.cornerLights) ? threeState.cornerLights.length : 0,
@@ -1239,5 +1591,5 @@
 
   function destroy() { destroyThree(); initialized = false; resetDiagnostics(); }
 
-  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getThreeLightsSettings, setThreeLightsDebugSetting };
+  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getThreeLightsSettings, setThreeLightsDebugSetting, getThreeMaterialSettings, setThreeMaterialDebugSetting };
 })();
