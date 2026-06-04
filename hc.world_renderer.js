@@ -29,6 +29,8 @@
     debugKeyLightIntensity: 2.2,
     debugRimLightEnabled: true,
     debugRimLightIntensity: 0.65,
+    forceHeadlightEnabled: false,
+    forceHeadlightIntensity: 4.5,
     showLightHelpers: false,
   });
   const THREE_LIGHTS_LIMITS = Object.freeze({
@@ -39,6 +41,7 @@
     ambientIntensity: { min: 0, max: 0.75 },
     debugKeyLightIntensity: { min: 0, max: 5.0 },
     debugRimLightIntensity: { min: 0, max: 2.5 },
+    forceHeadlightIntensity: { min: 0, max: 8.0 },
   });
   const THREE_MATERIAL_DEBUG_DEFAULTS = Object.freeze({
     enabled: false,
@@ -52,6 +55,8 @@
     toneExposure: { min: 0.5, max: 1.8 },
   });
   const THREE_MATERIAL_AUDIT_LOG_LIMIT = 8;
+  const THREE_MATERIAL_MODES = Object.freeze(["imported", "standard_test", "normal_debug", "clay_lit", "diagnostic_unlit"]);
+  function isThreeMaterialMode(value) { return THREE_MATERIAL_MODES.includes(String(value)); }
   function buildMeteorGlbAssetPool(fileStem) {
     return Object.freeze(Array.from(
       { length: METEOR_GLB_VARIANTS_PER_COLOR },
@@ -108,10 +113,13 @@
     cornerLights: [],
     debugKeyLight: null,
     debugRimLight: null,
+    forceHeadlight: null,
     lightHelpersGroup: null,
     lightHelpers: [],
     lightsSettings: Object.assign({}, THREE_LIGHTS_DEFAULTS),
     materialSettings: Object.assign({}, THREE_MATERIAL_DEBUG_DEFAULTS),
+    materialOverrideStatus: { activeGlbObjects: 0, activeGlbMeshCount: 0, meshesUsingCurrentMaterialMode: 0, currentMaterialMode: "imported", lastAppliedFrame: null, lastAppliedAtMs: null, restoredImportedMaterials: 0 },
+    lightHelperStatus: { mode: "none", count: 0, visible: false },
     lightsPositions: [],
     environment: null,
     environmentCanvas: null,
@@ -289,6 +297,8 @@
       debugKeyLightIntensity: clampNumber(merged.debugKeyLightIntensity, THREE_LIGHTS_DEFAULTS.debugKeyLightIntensity, THREE_LIGHTS_LIMITS.debugKeyLightIntensity.min, THREE_LIGHTS_LIMITS.debugKeyLightIntensity.max),
       debugRimLightEnabled: merged.debugRimLightEnabled !== false,
       debugRimLightIntensity: clampNumber(merged.debugRimLightIntensity, THREE_LIGHTS_DEFAULTS.debugRimLightIntensity, THREE_LIGHTS_LIMITS.debugRimLightIntensity.min, THREE_LIGHTS_LIMITS.debugRimLightIntensity.max),
+      forceHeadlightEnabled: merged.forceHeadlightEnabled === true,
+      forceHeadlightIntensity: clampNumber(merged.forceHeadlightIntensity, THREE_LIGHTS_DEFAULTS.forceHeadlightIntensity, THREE_LIGHTS_LIMITS.forceHeadlightIntensity.min, THREE_LIGHTS_LIMITS.forceHeadlightIntensity.max),
       showLightHelpers: merged.showLightHelpers === true,
     };
   }
@@ -307,6 +317,8 @@
     else if (key === "debugKeyLightIntensity") next.debugKeyLightIntensity = clampNumber(value, current.debugKeyLightIntensity, THREE_LIGHTS_LIMITS.debugKeyLightIntensity.min, THREE_LIGHTS_LIMITS.debugKeyLightIntensity.max);
     else if (key === "debugRimLightEnabled") next.debugRimLightEnabled = value !== false && value !== "false" && value !== "0";
     else if (key === "debugRimLightIntensity") next.debugRimLightIntensity = clampNumber(value, current.debugRimLightIntensity, THREE_LIGHTS_LIMITS.debugRimLightIntensity.min, THREE_LIGHTS_LIMITS.debugRimLightIntensity.max);
+    else if (key === "forceHeadlightEnabled") next.forceHeadlightEnabled = value === true || value === "true" || value === "1";
+    else if (key === "forceHeadlightIntensity") next.forceHeadlightIntensity = clampNumber(value, current.forceHeadlightIntensity, THREE_LIGHTS_LIMITS.forceHeadlightIntensity.min, THREE_LIGHTS_LIMITS.forceHeadlightIntensity.max);
     else if (key === "showLightHelpers") next.showLightHelpers = value === true || value === "true" || value === "1";
     window.HC = window.HC || {};
     window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
@@ -326,7 +338,7 @@
       envIntensity: clampNumber(merged.envIntensity, THREE_MATERIAL_DEBUG_DEFAULTS.envIntensity, THREE_MATERIAL_DEBUG_LIMITS.envIntensity.min, THREE_MATERIAL_DEBUG_LIMITS.envIntensity.max),
       toneExposure: clampNumber(merged.toneExposure, THREE_MATERIAL_DEBUG_DEFAULTS.toneExposure, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.min, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.max),
       forceAuditLog: merged.forceAuditLog === true,
-      materialMode: ["imported", "standard_test", "normal_debug", "clay_lit"].includes(mode) ? mode : "imported",
+      materialMode: isThreeMaterialMode(mode) ? mode : "imported",
     };
   }
 
@@ -337,20 +349,13 @@
     else if (key === "envIntensity") next.envIntensity = clampNumber(value, current.envIntensity, THREE_MATERIAL_DEBUG_LIMITS.envIntensity.min, THREE_MATERIAL_DEBUG_LIMITS.envIntensity.max);
     else if (key === "toneExposure") next.toneExposure = clampNumber(value, current.toneExposure, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.min, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.max);
     else if (key === "forceAuditLog") next.forceAuditLog = value === true || value === "true" || value === "1";
-    else if (key === "materialMode") next.materialMode = ["imported", "standard_test", "normal_debug", "clay_lit"].includes(String(value)) ? String(value) : "imported";
+    else if (key === "materialMode") next.materialMode = isThreeMaterialMode(value) ? String(value) : "imported";
     window.HC = window.HC || {};
     window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
     window.HC.WorldRendererDebug.materials = next;
     if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.threeMaterials = Object.assign({}, next);
-    const materialModeChanged = current.materialMode !== next.materialMode;
     threeState.materialSettings = Object.assign({}, next);
     applyRendererPbrSettings();
-    if (materialModeChanged) {
-      threeState.meteorMeshes.forEach((entry) => disposeMeteorGlbInstance(entry));
-      threeState.meteorGlbCache.clear();
-      threeState.glbMaterialAudit = [];
-      threeState.glbMaterialAuditLoggedUrls.clear();
-    }
     applyMaterialSettingsToLoadedGlbs();
     if (next.forceAuditLog) logGlbMaterialAudit({ force: true });
     return next;
@@ -376,11 +381,16 @@
     debugRimLight.name = "hc_debug_rim_light_back_right";
     debugRimLight.castShadow = false;
     debugRimLight.visible = false;
+    const forceHeadlight = new THREE.PointLight(0xffffff, THREE_LIGHTS_DEFAULTS.forceHeadlightIntensity, 0, 0.85);
+    forceHeadlight.name = "hc_debug_force_headlight_camera_center";
+    forceHeadlight.castShadow = false;
+    forceHeadlight.visible = false;
     lightsGroup.add(ambientLight);
     cornerLights.forEach((light) => lightsGroup.add(light));
     lightsGroup.add(debugKeyLight);
     lightsGroup.add(debugRimLight);
-    Object.assign(threeState, { lightsGroup, ambientLight, cornerLights, debugKeyLight, debugRimLight });
+    lightsGroup.add(forceHeadlight);
+    Object.assign(threeState, { lightsGroup, ambientLight, cornerLights, debugKeyLight, debugRimLight, forceHeadlight });
     return lightsGroup;
   }
 
@@ -400,25 +410,28 @@
     if (!helpersGroup) return;
     while (helpersGroup.children.length) helpersGroup.remove(helpersGroup.children[0]);
     threeState.lightHelpers = [];
-    const markerGeometry = THREE.SphereGeometry ? new THREE.SphereGeometry(7, 12, 8) : null;
+    const markerGeometry = THREE.SphereGeometry ? new THREE.SphereGeometry(10, 16, 10) : null;
     const allLights = getAllDiagnosticLights();
     allLights.forEach((entry) => {
       const light = entry.light;
       if (!light) return;
-      let helper = null;
       if (THREE.PointLightHelper && light.isPointLight) {
-        helper = new THREE.PointLightHelper(light, 16, entry.color || light.color?.getHex?.());
-        helper.name = `hc_helper_${entry.name}`;
-        helper.userData = Object.assign({}, helper.userData, { hcIsPointLightHelper: true });
-      } else if (markerGeometry && THREE.MeshBasicMaterial) {
-        helper = new THREE.Mesh(markerGeometry, new THREE.MeshBasicMaterial({ color: entry.color || 0xffffff, depthTest: false, depthWrite: false }));
-        helper.name = `hc_marker_${entry.name}`;
-        helper.position.copy(light.position);
+        const pointHelper = new THREE.PointLightHelper(light, 18, entry.color || light.color?.getHex?.());
+        pointHelper.name = `hc_helper_${entry.name}`;
+        pointHelper.userData = Object.assign({}, pointHelper.userData, { hcIsPointLightHelper: true, hcHelperMode: "pointLightHelper" });
+        pointHelper.renderOrder = 9998;
+        helpersGroup.add(pointHelper);
+        threeState.lightHelpers.push({ name: entry.name, light, helper: pointHelper, mode: "pointLightHelper" });
       }
-      if (!helper) return;
-      helper.visible = !!light.visible;
-      helpersGroup.add(helper);
-      threeState.lightHelpers.push({ name: entry.name, light, helper });
+      if (markerGeometry && THREE.MeshBasicMaterial) {
+        const marker = new THREE.Mesh(markerGeometry, new THREE.MeshBasicMaterial({ color: entry.color || 0xffffff, depthTest: false, depthWrite: false, transparent: true, opacity: 1 }));
+        marker.name = `hc_marker_${entry.name}`;
+        marker.position.copy(light.position);
+        marker.renderOrder = 9999;
+        marker.userData = Object.assign({}, marker.userData, { hcHelperMode: "fallbackMarkers" });
+        helpersGroup.add(marker);
+        threeState.lightHelpers.push({ name: entry.name, light, helper: marker, mode: "fallbackMarkers" });
+      }
     });
   }
 
@@ -428,6 +441,7 @@
     if (!THREE || !threeState.scene) return;
     if (!settings.showLightHelpers) {
       if (threeState.lightHelpersGroup) threeState.lightHelpersGroup.visible = false;
+      threeState.lightHelperStatus = { mode: "off", count: threeState.lightHelpers.length, visible: false };
       return;
     }
     if (!threeState.lightHelpersGroup || !threeState.lightHelpers.length) rebuildLightHelpers(THREE);
@@ -439,6 +453,8 @@
       if (entry.helper.position && !entry.helper.userData?.hcIsPointLightHelper) entry.helper.position.copy(entry.light.position);
       if (typeof entry.helper.update === "function") entry.helper.update();
     });
+    const modes = Array.from(new Set(threeState.lightHelpers.map((entry) => entry.mode).filter(Boolean)));
+    threeState.lightHelperStatus = { mode: modes.join("+") || "none", count: threeState.lightHelpers.length, visible: !!threeState.lightHelpersGroup.visible };
   }
 
   function getAllDiagnosticLights() {
@@ -448,6 +464,7 @@
     (threeState.cornerLights || []).forEach((light, index) => entries.push({ name: names[index] || `corner${index}`, light, color: colors[index] || 0xffffff, role: "corner" }));
     if (threeState.debugKeyLight) entries.push({ name: "debugKey", light: threeState.debugKeyLight, color: 0xfff0d8, role: "debug_key" });
     if (threeState.debugRimLight) entries.push({ name: "debugRim", light: threeState.debugRimLight, color: 0xcfe2ff, role: "debug_rim" });
+    if (threeState.forceHeadlight) entries.push({ name: "forceHeadlight", light: threeState.forceHeadlight, color: 0xffffff, role: "force_headlight" });
     return entries;
   }
 
@@ -496,6 +513,13 @@
       threeState.debugRimLight.distance = debugKeyDistance;
       threeState.debugRimLight.decay = 1.1;
       threeState.debugRimLight.visible = settings.debugKeyLightEnabled && settings.debugRimLightEnabled && settings.debugRimLightIntensity > 0;
+    }
+    if (threeState.forceHeadlight) {
+      threeState.forceHeadlight.position.set(bounds.cx, bounds.cy, Math.max(24, height * 0.82));
+      threeState.forceHeadlight.intensity = settings.forceHeadlightEnabled ? settings.forceHeadlightIntensity : 0;
+      threeState.forceHeadlight.distance = 0;
+      threeState.forceHeadlight.decay = 0.85;
+      threeState.forceHeadlight.visible = settings.forceHeadlightEnabled && settings.forceHeadlightIntensity > 0;
     }
     syncLightHelpers();
   }
@@ -654,7 +678,12 @@
     if (!entry?.glb) return;
     entry.root?.remove?.(entry.glb);
     entry.glb.traverse?.((object) => {
-      if (object.isMesh && object.material?.dispose) object.material.dispose();
+      if (!object.isMesh) return;
+      const currentMaterials = Array.isArray(object.material) ? object.material : [object.material];
+      const originalMaterials = Array.isArray(object.userData?.hcOriginalMaterial) ? object.userData.hcOriginalMaterial : [object.userData?.hcOriginalMaterial];
+      Array.from(new Set(currentMaterials.concat(originalMaterials).filter(Boolean))).forEach((material) => {
+        if (typeof material.dispose === "function") material.dispose();
+      });
     });
     entry.glb = null;
   }
@@ -1170,36 +1199,141 @@
     }
   }
 
-  function applyDebugMaterialMode(THREE, root) {
-    const settings = threeState.materialSettings || getThreeMaterialSettings();
-    if (settings.materialMode === "imported") return;
-    root.traverse((object) => {
-      if (!object.isMesh) return;
-      if (settings.materialMode === "normal_debug") {
-        object.material = new THREE.MeshNormalMaterial({ side: THREE.DoubleSide });
-      } else if (settings.materialMode === "standard_test") {
-        object.material = new THREE.MeshStandardMaterial({
-          color: 0xd2d5d8,
-          roughness: 0.45,
-          metalness: 0.0,
-          envMapIntensity: 0.0,
-          emissive: 0x000000,
-          vertexColors: false,
-          side: THREE.DoubleSide,
-        });
-      } else if (settings.materialMode === "clay_lit") {
-        object.material = new THREE.MeshStandardMaterial({
-          color: 0xcfc8bc,
-          roughness: 0.65,
-          metalness: 0.0,
-          envMapIntensity: 0.0,
-          emissive: 0x000000,
-          vertexColors: false,
-          side: THREE.DoubleSide,
-        });
-      }
-      object.material.userData = Object.assign({}, object.material.userData, { hcMaterialSource: `debug_${settings.materialMode}` });
+  function rememberOriginalMeshMaterial(mesh) {
+    if (!mesh?.isMesh) return;
+    mesh.userData = mesh.userData || {};
+    if (mesh.userData.hcOriginalMaterial == null) {
+      mesh.userData.hcOriginalMaterial = Array.isArray(mesh.material) ? mesh.material.slice() : mesh.material;
+    }
+  }
+
+  function disposeDebugMaterial(material) {
+    if (!material) return;
+    const materials = Array.isArray(material) ? material : [material];
+    materials.forEach((mat) => {
+      if (!mat?.userData?.hcDebugMaterialOverride) return;
+      if (typeof mat.dispose === "function") mat.dispose();
     });
+  }
+
+  function createDebugMaterialForMode(THREE, mode) {
+    if (mode === "normal_debug") {
+      return new THREE.MeshNormalMaterial({ side: THREE.DoubleSide });
+    }
+    if (mode === "standard_test") {
+      return new THREE.MeshStandardMaterial({
+        color: 0xd2d5d8,
+        roughness: 0.45,
+        metalness: 0.0,
+        envMap: null,
+        envMapIntensity: 0.0,
+        emissive: 0x000000,
+        emissiveMap: null,
+        vertexColors: false,
+        side: THREE.DoubleSide,
+      });
+    }
+    if (mode === "clay_lit") {
+      return new THREE.MeshStandardMaterial({
+        color: 0xcfc8bc,
+        roughness: 0.65,
+        metalness: 0.0,
+        envMap: null,
+        envMapIntensity: 0.0,
+        emissive: 0x000000,
+        emissiveMap: null,
+        vertexColors: false,
+        side: THREE.DoubleSide,
+      });
+    }
+    if (mode === "diagnostic_unlit") {
+      return new THREE.MeshBasicMaterial({
+        color: 0x00f5ff,
+        map: null,
+        side: THREE.DoubleSide,
+        depthTest: true,
+        depthWrite: true,
+      });
+    }
+    return null;
+  }
+
+  function applyDebugMaterialModeToMesh(THREE, mesh, mode, status) {
+    if (!mesh?.isMesh) return;
+    rememberOriginalMeshMaterial(mesh);
+    if (mesh.userData?.hcMaterialMode === mode && mode !== "imported") {
+      mesh.userData.hcMaterialModeFrame = threeState.renderCalls;
+      return;
+    }
+    if (mesh.userData?.hcMaterialMode === "imported" && mode === "imported") {
+      mesh.userData.hcMaterialModeFrame = threeState.renderCalls;
+      return;
+    }
+    const previousMaterial = mesh.material;
+    if (mode === "imported") {
+      mesh.material = mesh.userData.hcOriginalMaterial || mesh.material;
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      materials.forEach(applyImportedMaterialRuntimeSettings);
+      mesh.userData.hcMaterialMode = "imported";
+      mesh.userData.hcMaterialModeFrame = threeState.renderCalls;
+      status.restoredImportedMaterials += materials.length;
+      disposeDebugMaterial(previousMaterial);
+      return;
+    }
+    const nextMaterial = createDebugMaterialForMode(THREE, mode);
+    if (!nextMaterial) return;
+    nextMaterial.name = `hc_debug_${mode}`;
+    nextMaterial.userData = Object.assign({}, nextMaterial.userData, {
+      hcMaterialSource: `debug_${mode}`,
+      hcDebugMaterialOverride: true,
+      hcMaterialMode: mode,
+    });
+    mesh.material = nextMaterial;
+    mesh.userData.hcMaterialMode = mode;
+    mesh.userData.hcMaterialModeFrame = threeState.renderCalls;
+    disposeDebugMaterial(previousMaterial);
+  }
+
+  function applyDebugMaterialMode(THREE, root, status = null) {
+    const settings = threeState.materialSettings || getThreeMaterialSettings();
+    const mode = settings.materialMode || "imported";
+    const localStatus = status || { activeGlbObjects: 0, activeGlbMeshCount: 0, meshesUsingCurrentMaterialMode: 0, currentMaterialMode: mode, lastAppliedFrame: threeState.renderCalls, lastAppliedAtMs: Date.now(), restoredImportedMaterials: 0 };
+    root?.traverse?.((object) => {
+      if (!object.isMesh) return;
+      localStatus.activeGlbMeshCount += 1;
+      applyDebugMaterialModeToMesh(THREE, object, mode, localStatus);
+      if (object.userData?.hcMaterialMode === mode) localStatus.meshesUsingCurrentMaterialMode += 1;
+    });
+    if (!status) threeState.materialOverrideStatus = localStatus;
+    return localStatus;
+  }
+
+  function collectActiveGlbRoots() {
+    const roots = [];
+    for (const entry of threeState.meteorMeshes.values()) {
+      if (entry?.glb) roots.push(entry.glb);
+    }
+    return roots;
+  }
+
+  function refreshMaterialOverrideStatus(THREE) {
+    const settings = threeState.materialSettings || getThreeMaterialSettings();
+    const status = {
+      activeGlbObjects: 0,
+      activeGlbMeshCount: 0,
+      meshesUsingCurrentMaterialMode: 0,
+      currentMaterialMode: settings.materialMode || "imported",
+      lastAppliedFrame: threeState.renderCalls,
+      lastAppliedAtMs: Date.now(),
+      restoredImportedMaterials: 0,
+    };
+    collectActiveGlbRoots().forEach((root) => {
+      status.activeGlbObjects += 1;
+      applyDebugMaterialMode(THREE, root, status);
+      root.userData = Object.assign({}, root.userData, { hcMaterialMode: status.currentMaterialMode, hcMaterialModeFrame: threeState.renderCalls });
+    });
+    threeState.materialOverrideStatus = status;
+    return status;
   }
 
   function applyMaterialSettingsToLoadedGlbs() {
@@ -1214,13 +1348,7 @@
         materials.forEach(applyImportedMaterialRuntimeSettings);
       });
     }
-    for (const entry of threeState.meteorMeshes.values()) {
-      entry?.glb?.traverse?.((object) => {
-        if (!object.isMesh) return;
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
-        materials.forEach(applyImportedMaterialRuntimeSettings);
-      });
-    }
+    refreshMaterialOverrideStatus(THREE);
   }
 
   function loadMeteorGlb(THREE, url) {
@@ -1234,7 +1362,6 @@
       })
       .then((buffer) => {
         entry.template = parseGlbToObject3D(THREE, buffer);
-        applyDebugMaterialMode(THREE, entry.template);
         entry.materialAudit = collectGlbMaterialAudit(entry.template, url);
         logGlbMaterialAudit();
         entry.status = "ready";
@@ -1255,7 +1382,9 @@
     clone.userData.hcUnitRadius = template.userData?.hcUnitRadius || 1;
     clone.traverse((object) => {
       if (!object.isMesh) return;
-      if (object.material?.clone) object.material = object.material.clone();
+      if (Array.isArray(object.material)) object.material = object.material.map((material) => material?.clone ? material.clone() : material);
+      else if (object.material?.clone) object.material = object.material.clone();
+      rememberOriginalMeshMaterial(object);
       object.frustumCulled = false;
     });
     return clone;
@@ -1340,6 +1469,7 @@
     if (!entry.glb) {
       entry.glb = cloneMeteorGlbTemplate(cacheEntry.template);
       entry.glb.userData.hcAssetUrl = assetUrl;
+      applyDebugMaterialMode(THREE, entry.glb);
       entry.root.add(entry.glb);
       threeState.meteorGlbInstanceCreates += 1;
     }
@@ -1603,7 +1733,7 @@
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
     if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, asteroidGroup: null, lightsGroup: null, ambientLight: null, cornerLights: [], lightsPositions: [], meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, asteroidGroup: null, lightsGroup: null, ambientLight: null, cornerLights: [], debugKeyLight: null, debugRimLight: null, forceHeadlight: null, lightHelpersGroup: null, lightHelpers: [], lightsPositions: [], meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -1631,6 +1761,7 @@
           threeState.threeAsteroidCount = 0;
         }
         threeState.renderCalls += 1;
+        refreshMaterialOverrideStatus(THREE);
         threeState.rendererSize = {
           width: threeState.renderer?.domElement?.width || 0,
           height: threeState.renderer?.domElement?.height || 0,
@@ -1753,12 +1884,18 @@
         objectInRange: objectDistance == null ? null : (distanceRange <= 0 ? true : objectDistance <= distanceRange),
       };
     });
+    const settings = threeState.lightsSettings || getThreeLightsSettings();
     return {
       sampleObject: sample,
+      effectiveAmbientIntensity: settings.enabled && !settings.ambientIsolate ? roundDiagnosticNumber(settings.ambientIntensity) : 0,
+      keyEnabled: !!settings.debugKeyLightEnabled,
+      rimEnabled: !!(settings.debugKeyLightEnabled && settings.debugRimLightEnabled),
+      headlightEnabled: !!settings.forceHeadlightEnabled,
       lights: lightEntries,
       cornerLights: lightEntries.filter((entry) => entry.role === "corner"),
       debugKeyLight: lightEntries.find((entry) => entry.role === "debug_key") || null,
       debugRimLight: lightEntries.find((entry) => entry.role === "debug_rim") || null,
+      forceHeadlight: lightEntries.find((entry) => entry.role === "force_headlight") || null,
     };
   }
 
@@ -1810,7 +1947,8 @@
       threeLights: Object.assign({}, threeState.lightsSettings || getThreeLightsSettings()),
       threeLightPositions: Array.isArray(threeState.lightsPositions) ? threeState.lightsPositions.map((pos) => Object.assign({}, pos)) : [],
       threeLightDiagnostics: getLightDistanceDiagnostics(),
-      threeLightHelpers: { enabled: !!(threeState.lightsSettings || getThreeLightsSettings()).showLightHelpers, visible: !!threeState.lightHelpersGroup?.visible, count: threeState.lightHelpers.length },
+      threeLightHelpers: { enabled: !!(threeState.lightsSettings || getThreeLightsSettings()).showLightHelpers, visible: !!threeState.lightHelpersGroup?.visible, count: threeState.lightHelpers.length, mode: threeState.lightHelperStatus?.mode || "none" },
+      threeMaterialOverrideStatus: Object.assign({}, threeState.materialOverrideStatus),
       threeLightCount: Array.isArray(threeState.cornerLights) ? threeState.cornerLights.length : 0,
       meteorGlbCacheStats: getMeteorGlbCacheStats(),
       meteorGlbAssignmentsCount: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.assetUrl).length,
