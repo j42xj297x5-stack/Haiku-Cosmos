@@ -31,13 +31,21 @@
     return typeof root.Image === "function";
   }
 
+  function getPublicPath(path) {
+    if (root.HC && typeof root.HC.publicPath === "function") {
+      return root.HC.publicPath(path);
+    }
+
+    var cleanBase = toStringSafe(root.HC_PUBLIC_BASE_URL || "/").replace(/\/+$/, "/");
+    var cleanPath = toStringSafe(path).replace(/^\/+/, "");
+    return cleanBase + cleanPath;
+  }
+
   function normalizeAssetUrl(path) {
     var value = toStringSafe(path).trim();
     if (!value) return null;
     if (/^https?:\/\//i.test(value)) return value;
-    if (value.charAt(0) === "/") return value;
-    if (value.indexOf("assets/") === 0) return "/" + value;
-    return value;
+    return getPublicPath(value);
   }
 
   function loadImage(url) {
@@ -80,7 +88,7 @@
     status: "idle",
 
     async loadManifest(url) {
-      var manifestUrl = toStringSafe(url).trim() || DEFAULT_MANIFEST_URL;
+      var manifestUrl = normalizeAssetUrl(toStringSafe(url).trim() || DEFAULT_MANIFEST_URL);
       this.status = "loading_manifest";
       setError(null);
 

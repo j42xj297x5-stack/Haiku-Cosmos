@@ -232,6 +232,13 @@ const CardEngine = (() => {
   let svgManifestMap = null;
   const svgImageCache = new Map();
 
+  function publicAssetPath(path) {
+    if (window.HC && typeof window.HC.publicPath === "function") return window.HC.publicPath(path);
+    const cleanBase = String(window.HC_PUBLIC_BASE_URL || "/").replace(/\/+$/, "/");
+    const cleanPath = String(path || "").replace(/^\/+/, "");
+    return cleanBase + cleanPath;
+  }
+
   function ensureSvgManifestLoaded() {
     if (!LEGACY_SVG_FRAME_ASSETS_ENABLED) {
       svgManifestMap = {};
@@ -240,7 +247,7 @@ const CardEngine = (() => {
     if (svgManifestMap) return Promise.resolve(svgManifestMap);
     if (svgManifestPromise) return svgManifestPromise;
     if (typeof fetch !== "function") return Promise.resolve(null);
-    svgManifestPromise = fetch(SVG_MANIFEST_PATH)
+    svgManifestPromise = fetch(publicAssetPath(SVG_MANIFEST_PATH))
       .then((resp) => (resp && resp.ok ? resp.json() : null))
       .then((json) => {
         svgManifestMap = json && typeof json === "object" ? json : {};

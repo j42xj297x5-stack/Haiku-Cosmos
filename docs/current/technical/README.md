@@ -54,3 +54,7 @@ audytów i synchronizacji dokumentacji z runtime.
 - 2026-05-17: WORLD_RENDERING_MODEL Etap 3 wdrożony — minimalny pass meteorów w Three.js działa na bazie snapshotu, przy zachowaniu fallbacku canvas2d.
 
 - 2026-06-04: WORLD_RENDERING_MODEL Etap 4 wdrożony — pass asteroidów w Three.js działa na bazie `renderSnapshot.world.asteroids`, z cache meshów, diagnostyką liczników i bez zmian mechaniki.
+
+## Deployment
+
+- `VITE_GITHUB_PAGES_DEPLOYMENT.md` - **CURRENT** - konfiguracja Vite, base path `/Haiku-Cosmos/`, lokalny build/preview i deployment GitHub Pages z brancha `Haiku-Cosmos`.

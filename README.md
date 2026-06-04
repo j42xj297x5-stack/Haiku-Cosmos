@@ -33,3 +33,18 @@ Haiku Cosmos to kontemplacyjna gra-system, w której decyzje gracza wpływają n
 ## Ostatnia większa aktualizacja dokumentacji
 
 - **2026-04-27** — reset visual SVG pipeline dla SUB-META/HUD: obecny pass `style_correction` przeniesiony do legacy/evidence, aktywny manifest SVG wyczyszczony, dodany prompt pod nowy modular frame kit Figma.
+
+## Vite / GitHub Pages deployment
+
+Projekt jest konfigurowany jako vanilla JS + Vite dla GitHub Pages project site.
+
+- Lokalny start: `npm install`, potem `npm run dev`.
+- Build produkcyjny: `npm run build` tworzy `dist/`.
+- Preview: `npm run preview`.
+- Deployment: push na branch `Haiku-Cosmos` uruchamia GitHub Actions i publikuje `dist/` na GitHub Pages.
+- URL docelowy: `https://j42xj297x5-stack.github.io/Haiku-Cosmos/`.
+- Wymagany Vite base: `/Haiku-Cosmos/`.
+- Publiczne assety PNG/SVG/GLB należy ładować przez `publicPath` / `publicAssetPath` z `hc.public_path.js`.
+- Modele GLB świata są przygotowywane pod `public/models/` i `public/models/world/`.
+
+Szczegóły techniczne: [`docs/current/technical/VITE_GITHUB_PAGES_DEPLOYMENT.md`](docs/current/technical/VITE_GITHUB_PAGES_DEPLOYMENT.md).
