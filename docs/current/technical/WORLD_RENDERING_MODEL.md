@@ -630,8 +630,8 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
 - Snapshot jest granicą symulacja → prezentacja.
 
 ### E. Current object coverage
-- Three renderuje obecnie tylko meteory.
-- Asteroidy, planety, gwiazdy, PRG ring/resonance effects nie są jeszcze renderowane przez Three.
+- Three renderuje po Etapie 4 meteory oraz asteroidy.
+- Planety, gwiazdy, PRG ring/resonance effects nie są jeszcze renderowane przez Three.
 - HUD/SUB-META/META nie są przeniesione do Three.
 
 ### F. Layer composition
@@ -648,14 +648,34 @@ Manualny screen/test potwierdził:
 - meteory są widoczne,
 - debug overlay działa.
 
-## Plan kolejnych etapów po checkpointcie 3.1
+## Etap 4 asteroid render pass checkpoint (2026-06-04)
 
-### Etap 4 — asteroidy render pass
-- Render asteroidów ze snapshotu.
-- Bez zmian mechaniki.
-- Cache meshów.
-- Podstawowa geometria/kolor.
-- Sprawdzenie obiektów powstających z kolizji.
+### A. Zakres Three po Etapie 4
+- Three renderuje teraz meteory oraz **asteroidy** jako drugi gameplay object pass.
+- Pass asteroidów czyta wyłącznie `renderSnapshot.world.asteroids`; renderer Three nie czyta bezpośrednio `World.asteroids`.
+- Asteroidy używają podstawowej low-poly geometrii `CircleGeometry` z liczbą boków pobraną ze snapshotu (`sides`) oraz podstawowego materiału w skali szarości z `grayLight`.
+- Mesh cache asteroidów jest indeksowany po `renderKey` / `id` fallback i aktualizuje pozycję, skalę, rotację, materiał oraz widoczność z aktualnego snapshotu.
+- Cleanup usuwa ze sceny Three meshe asteroidów, których nie ma już w `renderSnapshot.world.asteroids`.
+
+### B. Obiekty nadal poza Three
+- Planety, gwiazdy, komety, PRG ring/resonance effects oraz premium visual polish pozostają poza passami Three.
+- HUD, debug overlay, SUB-META i META pozostają warstwami overlay poza sceną Three.
+- `gameCanvas` pozostaje transparentnym overlayem UI/input nad `#hc-three-world-canvas` w trybie `three`.
+- `canvas2d` pozostaje pełnym fallbackiem i nadal renderuje klasyczną ścieżkę świata.
+
+### C. Snapshot-only / no-mechanics-change
+- Snapshot asteroidów zawiera minimalne pola renderowe: `renderKey`, `id`, `x`, `y`, `radius`, `scale`, `color`, `colorKey` oraz bezpieczne pola wizualne istniejące w runtime (`sides`, `angle`, `grayLight`, orbit/collapse metadata).
+- Snapshot pozostaje read-only: budowanie snapshotu mapuje dane do nowych obiektów prezentacyjnych i nie mutuje `World`.
+- Nie zmieniono mechaniki, fizyki, inputu, kolizji, sekwencji, ekonomii RP ani powstawania/przechwytywania asteroidów.
+
+### D. Diagnostics / QA
+- Diagnostyka `HC.WorldRenderer.getDiagnostics()` raportuje `threeAsteroidCount`, `threeAsteroidMeshes`, `asteroidMeshCount`, `threeAsteroidLastError` i `asteroidGroupChildrenCount`.
+- Debug overlay pokazuje liczby asteroidów/meshy Three oraz błąd passu asteroidów bez dodawania nowego panelu.
+- QA automatyczne dla checkpointu: syntax check plików runtime i prosty test snapshot buildera w Node.
+- Wynik manualnego QA w tym środowisku: **pending / wymagany w przeglądarce**, ponieważ środowisko repo nie udostępnia lokalnej przeglądarki do uruchomienia runtime.
+- Checklist manualny do wykonania w przeglądarce: `canvas2d` działa jak wcześniej; w trybie `three` `effectiveMode=three`, `fallback=none`, meteory pozostają widoczne, a asteroidy po kolizjach meteorów pojawiają się w Three; brak Three lub błąd init/render zachowuje fallback `canvas2d`.
+
+## Plan kolejnych etapów po checkpointcie 4
 
 ### Etap 5 — planety render pass
 - Planety gas/rocky.

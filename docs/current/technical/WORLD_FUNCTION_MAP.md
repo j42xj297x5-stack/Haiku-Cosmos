@@ -300,6 +300,18 @@
 
 **Funkcje kluczowe:**
 - `HC.Render.frame(now, dt)` — rysuje tło, meteory, asteroidy, planety, gwiazdy, pierścienie itp.
+- Pozostaje pełną ścieżką `canvas2d` i fallbackiem dla adaptera świata.
+
+### 3.8a `hc.world_render_snapshot.js` + `hc.world_renderer.js` — World rendering adapter
+**STATE:**
+- `HC.WorldRenderer` utrzymuje tylko stan prezentacyjny adaptera: tryb `canvas2d|three`, osobny canvas Three, scene/camera/renderer oraz cache meshów meteorów i asteroidów.
+- `HC.WorldRenderSnapshot.build(...)` tworzy read-only snapshot prezentacyjny na bazie `World/Camera/View`; nie mutuje świata.
+
+**Funkcje kluczowe:**
+- `HC.WorldRenderSnapshot.build({ World, Camera, View, ... })` mapuje kolekcje świata do `renderSnapshot.world.*`, w tym `meteors[]` i `asteroids[]` z minimalnymi polami renderowymi.
+- `HC.WorldRenderer.render(renderSnapshot, now, dt)` wybiera `canvas2d` fallback albo `three`.
+- W trybie `three` adapter renderuje meteory i asteroidy wyłącznie ze snapshotu; planety/gwiazdy/PRG pozostają poza Three.
+- Diagnostics raportują tryb/fallback, stan lokalnego Three ESM bridge, liczbę meshów meteorów oraz liczby `threeAsteroidCount` / `threeAsteroidMeshes`.
 
 ---
 
