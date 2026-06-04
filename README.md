@@ -40,11 +40,13 @@ Projekt jest konfigurowany jako vanilla JS + Vite dla GitHub Pages project site.
 
 - Lokalny start: `npm install`, potem `npm run dev`.
 - Build produkcyjny: `npm run build` tworzy `dist/`.
-- Preview: `npm run preview`.
+- Preview produkcyjnego buildu: `npm run preview`.
 - Deployment: push na branch `Haiku-Cosmos` uruchamia GitHub Actions i publikuje `dist/` na GitHub Pages.
 - URL docelowy: `https://j42xj297x5-stack.github.io/Haiku-Cosmos/`.
 - Wymagany Vite base: `/Haiku-Cosmos/`.
-- Publiczne assety PNG/SVG/GLB należy ładować przez `publicPath` / `publicAssetPath` z `hc.public_path.js`.
-- Modele GLB świata są przygotowywane pod `public/models/` i `public/models/world/`.
+- Publiczne assety PNG/SVG/GLB/tekstury należy ładować przez `publicPath` / `publicAssetPath` z `hc.public_path.js`.
+- Katalogi przyszłych assetów publicznych: `public/models/world/`, `public/png/`, `public/svg/`, `public/textures/`.
+- Prawdziwe assety są wgrywane ręcznie przez projektanta; w repo nie dodajemy binarnych placeholderów GLB/PNG/SVG ani przykładowych modeli/tekstur tylko po to, żeby katalog istniał.
+- Puste katalogi utrzymujemy wyłącznie przez `.gitkeep`.
 
 Szczegóły techniczne: [`docs/current/technical/VITE_GITHUB_PAGES_DEPLOYMENT.md`](docs/current/technical/VITE_GITHUB_PAGES_DEPLOYMENT.md).
