@@ -194,7 +194,7 @@
 
   function getThreeLightsSettingsForUi() {
     if (window.HC?.WorldRenderer?.getThreeLightsSettings) return window.HC.WorldRenderer.getThreeLightsSettings();
-    const defaults = { enabled: true, pointIntensity: 0.9, distanceMultiplier: 1.55, zOffsetMultiplier: 0.45, ambientIntensity: 0.24, ambientIsolate: false, debugKeyLightEnabled: false, debugKeyLightIntensity: 2.2, debugRimLightEnabled: true, debugRimLightIntensity: 0.65, forceHeadlightEnabled: false, forceHeadlightIntensity: 4.5, showLightHelpers: false };
+    const defaults = { enabled: true, pointIntensity: 0.9, distanceMultiplier: 1.55, zOffsetMultiplier: 0.45, ambientIntensity: 0.24, ambientIsolate: false, debugKeyLightEnabled: false, debugKeyLightIntensity: 2.2, debugRimLightEnabled: true, debugRimLightIntensity: 0.65, forceHeadlightEnabled: false, forceHeadlightIntensity: 4.5, debugSpotLightEnabled: false, debugSpotLightIntensity: 12, debugSpotLightAngle: Math.PI / 5, debugSpotLightPenumbra: 0.35, debugSpotLightDistance: 0, debugSpotLightDecay: 1, debugSpotLightTargetMode: "center", showLightHelpers: false };
     return Object.assign({}, defaults, window.HC?.WorldRendererDebug?.threeLights || window.HC?.Session?.debugConfig?.visual?.threeLights || {});
   }
 
@@ -526,6 +526,13 @@
             dbgThreeDebugRimIntensity: "debugRimLightIntensity",
             dbgThreeForceHeadlightEnabled: "forceHeadlightEnabled",
             dbgThreeForceHeadlightIntensity: "forceHeadlightIntensity",
+            dbgThreeDebugSpotEnabled: "debugSpotLightEnabled",
+            dbgThreeDebugSpotIntensity: "debugSpotLightIntensity",
+            dbgThreeDebugSpotAngle: "debugSpotLightAngle",
+            dbgThreeDebugSpotPenumbra: "debugSpotLightPenumbra",
+            dbgThreeDebugSpotDistance: "debugSpotLightDistance",
+            dbgThreeDebugSpotDecay: "debugSpotLightDecay",
+            dbgThreeDebugSpotTargetMode: "debugSpotLightTargetMode",
             dbgThreeShowLightHelpers: "showLightHelpers",
           };
           if (threeLightControls[target.id]) {
@@ -901,6 +908,35 @@
             <input id="dbgThreeForceHeadlightIntensity" type="range" min="0" max="8" step="0.05" value="${threeLights.forceHeadlightIntensity}">
             <span id="dbgThreeForceHeadlightIntensityValue">${Number(threeLights.forceHeadlightIntensity).toFixed(2)}</span>
           </label>
+          <label class="overlay-select-row" for="dbgThreeDebugSpotEnabled">Debug spot light enabled
+            <input id="dbgThreeDebugSpotEnabled" type="checkbox"${threeLights.debugSpotLightEnabled === true ? " checked" : ""}>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeDebugSpotIntensity">Debug spot intensity
+            <input id="dbgThreeDebugSpotIntensity" type="range" min="0" max="25" step="0.1" value="${threeLights.debugSpotLightIntensity}">
+            <span id="dbgThreeDebugSpotIntensityValue">${Number(threeLights.debugSpotLightIntensity).toFixed(1)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeDebugSpotAngle">Debug spot angle
+            <input id="dbgThreeDebugSpotAngle" type="range" min="${Math.PI / 24}" max="${Math.PI / 2}" step="0.01" value="${threeLights.debugSpotLightAngle}">
+            <span id="dbgThreeDebugSpotAngleValue">${Number(threeLights.debugSpotLightAngle).toFixed(2)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeDebugSpotPenumbra">Debug spot penumbra
+            <input id="dbgThreeDebugSpotPenumbra" type="range" min="0" max="1" step="0.01" value="${threeLights.debugSpotLightPenumbra}">
+            <span id="dbgThreeDebugSpotPenumbraValue">${Number(threeLights.debugSpotLightPenumbra).toFixed(2)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeDebugSpotDistance">Debug spot distance
+            <input id="dbgThreeDebugSpotDistance" type="range" min="0" max="5000" step="25" value="${threeLights.debugSpotLightDistance}">
+            <span id="dbgThreeDebugSpotDistanceValue">${Number(threeLights.debugSpotLightDistance).toFixed(0)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeDebugSpotDecay">Debug spot decay
+            <input id="dbgThreeDebugSpotDecay" type="range" min="0" max="3" step="0.05" value="${threeLights.debugSpotLightDecay}">
+            <span id="dbgThreeDebugSpotDecayValue">${Number(threeLights.debugSpotLightDecay).toFixed(2)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeDebugSpotTargetMode">Debug spot target
+            <select id="dbgThreeDebugSpotTargetMode">
+              <option value="center"${threeLights.debugSpotLightTargetMode === "center" ? " selected" : ""}>center</option>
+              <option value="sampleObject"${threeLights.debugSpotLightTargetMode === "sampleObject" ? " selected" : ""}>sampleObject</option>
+            </select>
+          </label>
           <label class="overlay-select-row" for="dbgThreeShowLightHelpers">Show light helpers
             <input id="dbgThreeShowLightHelpers" type="checkbox"${threeLights.showLightHelpers === true ? " checked" : ""}>
           </label>
@@ -956,6 +992,9 @@
           ["GLB meteor scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
           ["Three lights", rendererDiag?.threeLights ? JSON.stringify(rendererDiag.threeLights) : JSON.stringify(threeLights)],
           ["Light range/distance diag", rendererDiag?.threeLightDiagnostics ? JSON.stringify(rendererDiag.threeLightDiagnostics) : "none"],
+          ["Debug SpotLight", rendererDiag?.debugSpotLight ? JSON.stringify(rendererDiag.debugSpotLight) : "none"],
+          ["Spot sample projected", rendererDiag?.threeLightDiagnostics?.sampleObjectProjected ? JSON.stringify(rendererDiag.threeLightDiagnostics.sampleObjectProjected) : "none"],
+          ["Spot sample frustum", rendererDiag?.threeLightDiagnostics?.sampleObjectFrustumVisible == null ? "n/a" : String(rendererDiag.threeLightDiagnostics.sampleObjectFrustumVisible)],
           ["Light helpers", rendererDiag?.threeLightHelpers ? JSON.stringify(rendererDiag.threeLightHelpers) : "none"],
           ["Helper mode", rendererDiag?.threeLightHelpers?.mode || "none"],
           ["Helpers count", rendererDiag?.threeLightHelpers?.count ?? 0],
