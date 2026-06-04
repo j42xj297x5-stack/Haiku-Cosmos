@@ -712,6 +712,8 @@
           ["Three radius scale", rendererDiag?.threeMeteorRadiusScale ?? "-"],
           ["GLB meteor scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
           ["Active GLB instances", rendererDiag?.activeGlbInstances ?? 0],
+          ["Active GLB by color", rendererDiag?.activeGlbInstancesByColor ? JSON.stringify(rendererDiag.activeGlbInstancesByColor) : "-"],
+          ["Fallback GLB by color", rendererDiag?.fallbackVisualsByColor ? JSON.stringify(rendererDiag.fallbackVisualsByColor) : "-"],
           ["Three min radius", rendererDiag?.threeMeteorMinRadius ?? "-"],
           ["Three debug marker", rendererDiag?.threeDebugMarker?.visible ? "visible" : (rendererDiag?.threeDebugMarker?.enabled ? "enabled_hidden" : "off")],
           ["First meteor", rendererDiag?.firstMeteor ? JSON.stringify(rendererDiag.firstMeteor) : "none"],

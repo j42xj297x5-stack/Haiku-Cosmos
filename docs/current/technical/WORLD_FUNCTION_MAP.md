@@ -311,7 +311,7 @@
 - `HC.WorldRenderSnapshot.build({ World, Camera, View, ... })` mapuje kolekcje świata do `renderSnapshot.world.*`, w tym `meteors[]` i `asteroids[]` z minimalnymi polami renderowymi.
 - `HC.WorldRenderer.render(renderSnapshot, now, dt)` wybiera `canvas2d` fallback albo `three`.
 - W trybie `three` adapter renderuje meteory i asteroidy wyłącznie ze snapshotu; planety/gwiazdy/PRG pozostają poza Three.
-- Diagnostics raportują tryb/fallback, stan lokalnego Three ESM bridge, liczbę meshów meteorów oraz liczby `threeAsteroidCount` / `threeAsteroidMeshes`.
+- Diagnostics raportują tryb/fallback, stan lokalnego Three ESM bridge, liczbę meshów meteorów, liczniki GLB meteorów (`meteorGlbAssignmentsCount`, `meteorGlbCacheSize`, `activeGlbInstances`, `activeFallbackMeteorVisuals`, `activeGlbInstancesByColor`, `fallbackVisualsByColor`) oraz liczby `threeAsteroidCount` / `threeAsteroidMeshes`.
 
 ---
 

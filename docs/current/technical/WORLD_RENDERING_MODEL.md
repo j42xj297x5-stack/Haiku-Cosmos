@@ -675,6 +675,14 @@ Manualny screen/test potwierdził:
 - Wynik manualnego QA w tym środowisku: **pending / wymagany w przeglądarce**, ponieważ środowisko repo nie udostępnia lokalnej przeglądarki do uruchomienia runtime.
 - Checklist manualny do wykonania w przeglądarce: `canvas2d` działa jak wcześniej; w trybie `three` `effectiveMode=three`, `fallback=none`, meteory pozostają widoczne, a asteroidy po kolizjach meteorów pojawiają się w Three; brak Three lub błąd init/render zachowuje fallback `canvas2d`.
 
+## Three meteor GLB asset pools checkpoint (2026-06-04)
+
+- Three meteor visual pass ma centralna konfiguracje `METEOR_GLB_ASSETS` dla czterech kolorow meteorow: `red`, `yellow`, `green`, `blue`.
+- Kazdy kolor ma dokladnie 5 wariantow GLB w `public/glb/`, ladowanych przez deployment-safe helper public path (`publicAssetPath` / `publicPath`) zamiast absolutnych sciezek.
+- Przypisanie wariantu pozostaje stabilne na zycie wrappera wizualnego meteoru; zmiana debugowej skali GLB aktualizuje tylko skale child modelu w render pass i nie przebudowuje/nie losuje GLB ponownie.
+- Fallback circle pozostaje widoczny podczas loadingu, po bledzie ladowania i gdy asset nie istnieje; po gotowym GLB fallback dla danego meteoru jest ukrywany.
+- Diagnostyka obejmuje laczne liczniki GLB oraz per-color `activeGlbInstancesByColor` i `fallbackVisualsByColor`.
+
 ## Plan kolejnych etapów po checkpointcie 4
 
 ### Etap 5 — planety render pass
