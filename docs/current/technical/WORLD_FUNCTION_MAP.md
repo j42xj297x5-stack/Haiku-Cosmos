@@ -312,9 +312,10 @@
 - `HC.WorldRenderSnapshot.build({ World, Camera, View, ... })` mapuje kolekcje świata do `renderSnapshot.world.*`, w tym `meteors[]` i `asteroids[]` z minimalnymi polami renderowymi.
 - `HC.WorldRenderer.render(renderSnapshot, now, dt)` wybiera `canvas2d` fallback albo `three`.
 - W trybie `three` adapter renderuje meteory i asteroidy wyłącznie ze snapshotu; planety/gwiazdy/PRG pozostają poza Three.
-- Meteor GLB pass ładuje aktywne pule `public/glb/` przez `publicAssetPath` / `publicPath`, pokazuje fallback circle podczas loading/failed i zachowuje Canvas2D jako fallback renderer.
+- Meteor GLB pass ładuje aktywne pule `public/glb/` przez `publicAssetPath` / `publicPath`, pokazuje fallback circle podczas loading/failed i zachowuje Canvas2D jako fallback renderer. Po naprawie pipeline materiały GLB pozostają PBR/`MeshStandardMaterial`; `MeshBasicMaterial` nie jest fallbackiem dla obiektów, które mają reagować na światło.
 - Live debug scale meteorów GLB ma zakres `0.25`–`4.0`, działa bez reloadu i jest visual-only: nie zmienia promienia logicznego, kolizji, spawnu, kart, RP, HUD ani SUB-META.
-- Diagnostics raportują tryb/fallback, stan lokalnego Three ESM bridge, liczbę meshów meteorów, liczniki GLB meteorów (`meteorGlbAssignmentsCount`, `meteorGlbCacheSize`, `activeGlbInstances`, `activeFallbackMeteorVisuals`, `activeGlbInstancesByColor`, `fallbackVisualsByColor`) oraz liczby `threeAsteroidCount` / `threeAsteroidMeshes`.
+- Diagnostics raportują tryb/fallback, stan lokalnego Three ESM bridge, liczbę meshów meteorów, liczniki GLB meteorów (`meteorGlbAssignmentsCount`, `meteorGlbCacheSize`, `activeGlbInstances`, `activeFallbackMeteorVisuals`, `activeGlbInstancesByColor`, `fallbackVisualsByColor`), stan PBR/material debug (`threeMaterialSettings`, `glbMaterialAudit`, environment/tone exposure) oraz liczby `threeAsteroidCount` / `threeAsteroidMeshes`.
+- Aktualny audyt assetów `public/glb/*.glb`: 21 plików, 21 materiałów, 12 materiałów z `metallicFactor > 0`, 0 map tekstur i 0 normalMap; proceduralne detale Blendera wymagają bake/eksportu map do GLB, żeby były widoczne w Three.js.
 
 ---
 

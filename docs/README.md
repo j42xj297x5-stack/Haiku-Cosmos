@@ -9,6 +9,10 @@ Ten katalog jest główną mapą dokumentacji projektu.
 - [`audits/`](audits/README.md) — audyty projektu (chronologiczne i tematyczne).
 - [`handoff/`](handoff/README.md) — krótkie dokumenty przekazania stanu po większych zmianach.
 
+## Aktualne snapshoty techniczne
+
+- Snapshot techniczny GLB/PBR po naprawie Three material pipeline znajduje się w [`current/technical/WORLD_RENDERING_MODEL.md`](current/technical/WORLD_RENDERING_MODEL.md); krótka notka materiałowa jest w [`current/visual/BIBLIOTEKA_MATERIALOW.md`](current/visual/BIBLIOTEKA_MATERIALOW.md).
+
 ## Zasady
 
 1. `docs/current/` jest źródłem prawdy dla decyzji projektowych i implementacyjnych.

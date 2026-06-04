@@ -764,6 +764,57 @@ Manualny screen/test potwierdził:
 - Opcjonalnie wykonać snapshot visual QA z porównaniem wariantów per kolor.
 - Później rozważyć analogiczny pass dla asteroid/planetoid, jeśli projektant zatwierdzi kierunek.
 
+## Three GLB PBR material pipeline snapshot (2026-06-04)
+
+### A. Stan runtime po naprawie pipeline
+- Three GLB runtime zachowuje światłoczułe materiały PBR z GLB jako `MeshStandardMaterial` / kompatybilny material PBR zamiast spłaszczania ich do `MeshBasicMaterial`.
+- `MeshBasicMaterial` nie jest poprawnym fallbackiem dla obiektów, które mają reagować na światło; fallback materiałowy dla takich obiektów musi pozostać w rodzinie PBR/standard i zachować `depthTest`/`depthWrite` zgodnie z rolą obiektu.
+- Import GLB obsługuje `baseColorFactor`, `metallicFactor`, `roughnessFactor`, alpha/transparentność, `doubleSided`, `emissiveFactor` oraz sloty `baseColorTexture`, `metallicRoughnessTexture`, `normalTexture`, `occlusionTexture` i `emissiveTexture`, jeśli te dane istnieją w pliku GLB.
+- Renderer Three ma proceduralne `scene.environment`, color management / output color space, tone mapping i `toneMappingExposure`, żeby metaliczność i roughness miały widoczną reakcję na światło.
+- Ustawienia materiałowe są live-debug-only i nie zmieniają mechaniki, hit-testów, kolizji, spawnu, RP, kart, HUD, SUB-META ani META.
+
+### B. Aktualny wynik audytu publicznych GLB
+Audyt lokalnych plików `public/glb/*.glb` po naprawie pipeline ustala aktualny stan assetów:
+
+- 21 plików GLB w katalogu `public/glb/`;
+- 21 materiałów;
+- 12 materiałów z `metallicFactor > 0`;
+- 0 map tekstur w slotach PBR/AO/emissive;
+- 0 `normalTexture` / normal map.
+
+Wniosek: runtime może teraz poprawnie pokazać kolor bazowy, metaliczność, chropowatość, alpha/double-sided/emissive factor oraz reakcję na światło, ale nie pokaże powierzchniowej faktury ani normal detail, jeśli te dane nie są zapisane w GLB.
+
+### C. Wymagania dla kolejnego passu eksportu GLB z Blendera
+- Proceduralne node’y z Blendera nie są automatycznie widoczne w Three.js, jeśli nie zostaną wypalone do map albo poprawnie wyeksportowane do standardowych pól glTF/GLB.
+- Kolejny pass assetów powinien eksportować co najmniej `normal map` dla powierzchniowego detalu oraz mapy roughness/metallic-roughness tam, gdzie wygląd materiału zależy od zmienności powierzchni.
+- Zalecany pakiet map dla meteorów/asteroidów GLB:
+  - `normal map`;
+  - `roughness map`;
+  - `metallic-roughness map`;
+  - opcjonalnie `baseColor map`;
+  - opcjonalnie `AO map`.
+- Jeśli asset ma mieć ręcznie malowany kolor lub widoczne przebarwienia, `baseColor map` powinna być częścią GLB albo jego prawidłowo rozwiązywalnych zależności.
+- Jeśli asset ma mieć wklęsłości, rysy, pęknięcia, kryształowy relief albo fabryczną mikrostrukturę, sam `baseColorFactor`/`roughnessFactor` nie wystarczy; wymagany jest bake/eksport map.
+
+### D. Manual QA materiałów
+Manual QA po zmianach PBR powinien obejmować:
+
+1. Tryb `imported` — potwierdzić, że GLB używa materiałów z pliku i reaguje na światła/scenę.
+2. Tryb `standard_test` — potwierdzić, że testowy `MeshStandardMaterial` reaguje na światło, environment i exposure.
+3. Tryb `normal_debug` — potwierdzić orientację normalnych i brak oczywistych błędów geometrii.
+4. `material audit log` / `Force material audit log` — sprawdzić typ materiału, metalness, roughness, mapy i normalMap w diagnostyce.
+5. `corner light intensity` — przetestować wpływ świateł narożnych na czytelność modeli.
+6. `ambient fill` — przetestować minimalne doświetlenie bez przepalenia koloru.
+7. `PBR env intensity` — przetestować czytelność metaliczności/roughness.
+8. `tone exposure` — przetestować zakres ekspozycji bez utraty detalu.
+
+### E. Granice i ryzyka
+- Aktualne GLB są PBR factory-material assets bez tekstur; brak map jest ograniczeniem assetów, nie błędem runtime.
+- Nie należy oceniać finalnej jakości faktury powierzchni po obecnych GLB, bo nie zawierają danych teksturowych ani normal map.
+- Dodanie map może zwiększyć rozmiar assetów, czas ładowania i wymagania cache; przed masowym eksportem trzeba ustalić budżety rozdzielczości oraz strategię kompresji.
+- Jeśli przyszłe GLB zaczną używać zewnętrznych tekstur, DRACO, Meshopt, animacji albo bardziej złożonych rozszerzeń glTF, obecny lightweight loader może wymagać zastąpienia lub uzupełnienia vendored `GLTFLoader`.
+- Dokument ten utrwala stan pipeline i assetów; nie jest poleceniem zmiany runtime ani mechaniki.
+
 ## Plan kolejnych etapów po checkpointcie 4
 
 ### Etap 5 — planety render pass
