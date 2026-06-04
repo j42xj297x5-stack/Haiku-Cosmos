@@ -168,6 +168,21 @@
     return scale;
   }
 
+
+  function emitThreeDebugControlEvent(type, payload) {
+    if (!window.HC?.Session?.started || typeof window.HC.Session.emit !== "function") return;
+    window.HC.Session.emit("debug", type, Object.assign({ source: "ui_debug" }, payload || {}), {
+      source: "ui_debug",
+      snapshot: true,
+    });
+  }
+
+  function normalizeDebugControlValue(value) {
+    if (typeof value === "number" || typeof value === "boolean" || value == null) return value;
+    const n = Number(value);
+    return Number.isFinite(n) && String(value).trim() !== "" ? n : String(value);
+  }
+
   function getThreeLightsSettingsForUi() {
     if (window.HC?.WorldRenderer?.getThreeLightsSettings) return window.HC.WorldRenderer.getThreeLightsSettings();
     const defaults = { enabled: true, pointIntensity: 0.9, distanceMultiplier: 1.55, zOffsetMultiplier: 0.45, ambientIntensity: 0.24, ambientIsolate: false, debugKeyLightEnabled: false, debugKeyLightIntensity: 2.2, debugRimLightEnabled: true, debugRimLightIntensity: 0.65, forceHeadlightEnabled: false, forceHeadlightIntensity: 4.5, showLightHelpers: false };
@@ -175,9 +190,10 @@
   }
 
   function setThreeLightsSettingFromUi(key, value) {
+    const before = getThreeLightsSettingsForUi();
     const next = window.HC?.WorldRenderer?.setThreeLightsDebugSetting
       ? window.HC.WorldRenderer.setThreeLightsDebugSetting(key, value)
-      : Object.assign({}, getThreeLightsSettingsForUi(), { [key]: value });
+      : Object.assign({}, before, { [key]: value });
     window.HC = window.HC || {};
     window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
     window.HC.WorldRendererDebug.threeLights = Object.assign({}, next);
@@ -213,6 +229,20 @@
       if (input.type === "checkbox") input.checked = !!next[key];
       else if (Number(input.value) !== Number(next[key])) input.value = String(next[key]);
     }
+    const beforeValue = normalizeDebugControlValue(before[key]);
+    const afterValue = normalizeDebugControlValue(next[key]);
+    if (beforeValue !== afterValue) {
+      const eventType = key === "ambientIsolate"
+        ? "debug.three_ambient_isolate_changed"
+        : (key === "showLightHelpers" ? "debug.three_helper_visibility_changed" : "debug.three_light_setting_changed");
+      emitThreeDebugControlEvent(eventType, {
+        key,
+        before: beforeValue,
+        after: afterValue,
+        beforeSettings: before,
+        afterSettings: next,
+      });
+    }
     return next;
   }
 
@@ -223,9 +253,10 @@
   }
 
   function setThreeMaterialSettingFromUi(key, value) {
+    const before = getThreeMaterialSettingsForUi();
     const next = window.HC?.WorldRenderer?.setThreeMaterialDebugSetting
       ? window.HC.WorldRenderer.setThreeMaterialDebugSetting(key, value)
-      : Object.assign({}, getThreeMaterialSettingsForUi(), { [key]: value });
+      : Object.assign({}, before, { [key]: value });
     window.HC = window.HC || {};
     window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
     window.HC.WorldRendererDebug.materials = Object.assign({}, next);
@@ -247,6 +278,17 @@
     if (input) {
       if (input.type === "checkbox") input.checked = !!next[key];
       else if (String(input.value) !== String(next[key])) input.value = String(next[key]);
+    }
+    const beforeValue = normalizeDebugControlValue(before[key]);
+    const afterValue = normalizeDebugControlValue(next[key]);
+    if (beforeValue !== afterValue) {
+      emitThreeDebugControlEvent(key === "materialMode" ? "debug.three_material_mode_changed" : "debug.three_material_setting_changed", {
+        key,
+        before: beforeValue,
+        after: afterValue,
+        beforeSettings: before,
+        afterSettings: next,
+      });
     }
     return next;
   }
