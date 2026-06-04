@@ -9,6 +9,24 @@
   const THREE_ASTEROID_DEFAULT_SIDES = 7;
   const THREE_DEBUG_MARKER_ENABLED = true;
   const THREE_DEBUG_MARKER_SIZE = 12;
+  const METEOR_GLB_RADIUS_SCALE = 1.0;
+  const METEOR_GLB_SPIN_SPEED = 0.00012;
+  const METEOR_GLB_ASSETS = Object.freeze({
+    red: Object.freeze([
+      "glb/meteor_red_form_core_01.glb",
+      "glb/meteor_red_form_core_02.glb",
+      "glb/meteor_red_form_core_03.glb",
+      "glb/meteor_red_form_core_04.glb",
+      "glb/meteor_red_form_core_05.glb",
+    ]),
+    yellow: Object.freeze([
+      "glb/meteor_yellow_bond_resin_01.glb",
+      "glb/meteor_yellow_bond_resin_02.glb",
+      "glb/meteor_yellow_bond_resin_03.glb",
+      "glb/meteor_yellow_bond_resin_04.glb",
+      "glb/meteor_yellow_bond_resin_05.glb",
+    ]),
+  });
   let requestedMode = "canvas2d";
   let effectiveMode = "canvas2d";
   let initialized = false;
@@ -38,6 +56,9 @@
     meteorMaterials: new Map(),
     asteroidMaterials: new Map(),
     meteorMeshes: new Map(),
+    meteorGlbCache: new Map(),
+    meteorGlbAssignments: new Map(),
+    meteorGlbWarnings: new Set(),
     asteroidMeshes: new Map(),
     threeMeteorRenderEnabled: true,
     threeAsteroidRenderEnabled: true,
@@ -60,6 +81,7 @@
     cameraSnapshotWorldBounds: null,
     worldBoundsSource: "unknown",
     meteorGroupChildrenCount: 0,
+    meteorGlbCacheStats: { loading: 0, ready: 0, failed: 0 },
     asteroidGroupChildrenCount: 0,
     firstMeteorScreenEstimate: null,
     firstMeteorInCameraBounds: null,
@@ -91,6 +113,7 @@
     threeState.firstMeteorInCameraBounds = null;
     threeState.meteorGroupChildrenCount = 0;
     threeState.asteroidGroupChildrenCount = 0;
+    threeState.meteorGlbCacheStats = getMeteorGlbCacheStats();
   }
 
   function setMode(nextMode) {
@@ -298,6 +321,303 @@
     return mat;
   }
 
+
+  function resolvePublicAssetPath(path) {
+    const cleanPath = String(path || "").replace(/^\/+/, "");
+    const helper = window.HC?.publicAssetPath || window.HC?.publicPath;
+    if (typeof helper === "function") return helper(cleanPath);
+    try { return new URL(cleanPath, document.baseURI || window.location.href).href; }
+    catch { return cleanPath; }
+  }
+
+  function hashMeteorKey(key) {
+    let hash = 2166136261;
+    const text = String(key || "meteor");
+    for (let i = 0; i < text.length; i += 1) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function chooseMeteorGlbAsset(colorKey, meteorKey) {
+    const pool = METEOR_GLB_ASSETS[colorKey];
+    if (!pool || !pool.length) return null;
+    const assignmentKey = `${colorKey}:${meteorKey}`;
+    let assignment = threeState.meteorGlbAssignments.get(assignmentKey);
+    if (assignment) return assignment;
+    const variantIndex = hashMeteorKey(assignmentKey) % pool.length;
+    const path = pool[variantIndex];
+    assignment = { path, url: resolvePublicAssetPath(path), variantIndex };
+    threeState.meteorGlbAssignments.set(assignmentKey, assignment);
+    return assignment;
+  }
+
+  function warnMeteorGlbOnce(url, message) {
+    if (threeState.meteorGlbWarnings.has(url)) return;
+    threeState.meteorGlbWarnings.add(url);
+    if (window.console?.warn) window.console.warn(`[HC.WorldRenderer] Meteor GLB fallback for ${url}: ${message}`);
+  }
+
+  function getMeteorGlbCacheStats() {
+    const stats = { loading: 0, ready: 0, failed: 0 };
+    for (const entry of threeState.meteorGlbCache.values()) {
+      if (entry?.status === "ready") stats.ready += 1;
+      else if (entry?.status === "failed") stats.failed += 1;
+      else stats.loading += 1;
+    }
+    return stats;
+  }
+
+  function getAccessorItemSize(type) {
+    return ({ SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 })[type] || 1;
+  }
+
+  function getComponentArrayType(componentType) {
+    return ({ 5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array })[componentType] || Float32Array;
+  }
+
+  function getComponentByteSize(componentType) {
+    const ArrayType = getComponentArrayType(componentType);
+    return ArrayType.BYTES_PER_ELEMENT || 4;
+  }
+
+  function readAccessorAttribute(THREE, gltf, binaryChunk, accessorIndex) {
+    const accessor = gltf.accessors?.[accessorIndex];
+    if (!accessor) return null;
+    const bufferView = gltf.bufferViews?.[accessor.bufferView];
+    if (!bufferView) return null;
+    const itemSize = getAccessorItemSize(accessor.type);
+    const ArrayType = getComponentArrayType(accessor.componentType);
+    const componentBytes = getComponentByteSize(accessor.componentType);
+    const componentOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+    const count = accessor.count || 0;
+    const packedStride = itemSize * componentBytes;
+    const stride = bufferView.byteStride || packedStride;
+    let array;
+    if (stride === packedStride) {
+      array = new ArrayType(binaryChunk, componentOffset, count * itemSize);
+    } else {
+      array = new ArrayType(count * itemSize);
+      const source = new DataView(binaryChunk, componentOffset, Math.max(0, (count - 1) * stride + packedStride));
+      const readers = {
+        5120: (offset) => source.getInt8(offset),
+        5121: (offset) => source.getUint8(offset),
+        5122: (offset) => source.getInt16(offset, true),
+        5123: (offset) => source.getUint16(offset, true),
+        5125: (offset) => source.getUint32(offset, true),
+        5126: (offset) => source.getFloat32(offset, true),
+      };
+      const read = readers[accessor.componentType] || readers[5126];
+      for (let row = 0; row < count; row += 1) {
+        for (let col = 0; col < itemSize; col += 1) {
+          array[row * itemSize + col] = read(row * stride + col * componentBytes);
+        }
+      }
+    }
+    return new THREE.BufferAttribute(array, itemSize, !!accessor.normalized);
+  }
+
+  function createGlbMaterial(THREE, gltf, materialIndex) {
+    const materialDef = gltf.materials?.[materialIndex] || {};
+    const pbr = materialDef.pbrMetallicRoughness || {};
+    const base = Array.isArray(pbr.baseColorFactor) ? pbr.baseColorFactor : [1, 1, 1, 1];
+    const color = new THREE.Color(base[0] ?? 1, base[1] ?? 1, base[2] ?? 1);
+    const alpha = Number(base[3]);
+    return new THREE.MeshStandardMaterial({
+      color,
+      roughness: Number.isFinite(pbr.roughnessFactor) ? pbr.roughnessFactor : 0.82,
+      metalness: Number.isFinite(pbr.metallicFactor) ? pbr.metallicFactor : 0.0,
+      transparent: materialDef.alphaMode === "BLEND" || (Number.isFinite(alpha) && alpha < 1),
+      opacity: Number.isFinite(alpha) ? alpha : 1,
+      side: materialDef.doubleSided ? THREE.DoubleSide : THREE.FrontSide,
+      depthTest: true,
+      depthWrite: true,
+    });
+  }
+
+  function applyGlbNodeTransform(THREE, target, nodeDef) {
+    if (Array.isArray(nodeDef.matrix) && nodeDef.matrix.length === 16) {
+      const matrix = new THREE.Matrix4();
+      matrix.fromArray(nodeDef.matrix);
+      target.applyMatrix4(matrix);
+      return;
+    }
+    if (Array.isArray(nodeDef.translation)) target.position.fromArray(nodeDef.translation);
+    if (Array.isArray(nodeDef.rotation)) target.quaternion.fromArray(nodeDef.rotation);
+    if (Array.isArray(nodeDef.scale)) target.scale.fromArray(nodeDef.scale);
+  }
+
+  function parseGlbToObject3D(THREE, arrayBuffer) {
+    const header = new DataView(arrayBuffer, 0, 12);
+    if (header.getUint32(0, true) !== 0x46546c67) throw new Error("Invalid GLB magic");
+    if (header.getUint32(4, true) !== 2) throw new Error("Only GLB v2 is supported");
+    let offset = 12;
+    let json = null;
+    let binaryChunk = null;
+    while (offset + 8 <= arrayBuffer.byteLength) {
+      const chunkLength = new DataView(arrayBuffer, offset, 4).getUint32(0, true);
+      const chunkType = new DataView(arrayBuffer, offset + 4, 4).getUint32(0, true);
+      const chunkStart = offset + 8;
+      if (chunkType === 0x4e4f534a) {
+        const text = new TextDecoder("utf-8").decode(new Uint8Array(arrayBuffer, chunkStart, chunkLength));
+        json = JSON.parse(text.trim());
+      } else if (chunkType === 0x004e4942) {
+        binaryChunk = arrayBuffer.slice(chunkStart, chunkStart + chunkLength);
+      }
+      offset = chunkStart + chunkLength;
+    }
+    if (!json || !binaryChunk) throw new Error("GLB JSON or BIN chunk is missing");
+    const meshCache = new Map();
+    const materialCache = new Map();
+    const buildMesh = (meshIndex) => {
+      if (meshCache.has(meshIndex)) return meshCache.get(meshIndex).clone(true);
+      const meshDef = json.meshes?.[meshIndex];
+      const group = new THREE.Group();
+      group.name = meshDef?.name || `glb_mesh_${meshIndex}`;
+      for (const primitive of meshDef?.primitives || []) {
+        if (primitive.mode != null && primitive.mode !== 4) continue;
+        const geometry = new THREE.BufferGeometry();
+        const attrs = primitive.attributes || {};
+        const attrMap = { POSITION: "position", NORMAL: "normal", TEXCOORD_0: "uv", COLOR_0: "color" };
+        for (const [gltfName, threeName] of Object.entries(attrMap)) {
+          if (attrs[gltfName] == null) continue;
+          const attr = readAccessorAttribute(THREE, json, binaryChunk, attrs[gltfName]);
+          if (attr) geometry.setAttribute(threeName, attr);
+        }
+        if (primitive.indices != null) {
+          const indexAttr = readAccessorAttribute(THREE, json, binaryChunk, primitive.indices);
+          if (indexAttr) geometry.setIndex(indexAttr);
+        }
+        geometry.computeBoundingSphere();
+        if (!geometry.getAttribute("normal")) geometry.computeVertexNormals();
+        let material = materialCache.get(primitive.material);
+        if (!material) {
+          material = createGlbMaterial(THREE, json, primitive.material);
+          materialCache.set(primitive.material, material);
+        }
+        if (geometry.getAttribute("color") && material.vertexColors !== true) {
+          material = material.clone();
+          material.vertexColors = true;
+        }
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.frustumCulled = false;
+        group.add(mesh);
+      }
+      meshCache.set(meshIndex, group);
+      return group.clone(true);
+    };
+    const buildNode = (nodeIndex) => {
+      const nodeDef = json.nodes?.[nodeIndex] || {};
+      const object = nodeDef.mesh != null ? buildMesh(nodeDef.mesh) : new THREE.Group();
+      object.name = nodeDef.name || object.name || `glb_node_${nodeIndex}`;
+      applyGlbNodeTransform(THREE, object, nodeDef);
+      for (const childIndex of nodeDef.children || []) object.add(buildNode(childIndex));
+      return object;
+    };
+    const sceneDef = json.scenes?.[json.scene || 0] || json.scenes?.[0] || {};
+    const root = new THREE.Group();
+    for (const nodeIndex of sceneDef.nodes || []) root.add(buildNode(nodeIndex));
+    const box = new THREE.Box3().setFromObject(root);
+    const sphere = new THREE.Sphere();
+    if (!box.isEmpty()) {
+      box.getBoundingSphere(sphere);
+      root.position.sub(sphere.center);
+      root.userData.hcUnitRadius = Math.max(0.0001, sphere.radius);
+    } else {
+      root.userData.hcUnitRadius = 1;
+    }
+    root.traverse((object) => {
+      if (!object.isMesh) return;
+      object.castShadow = false;
+      object.receiveShadow = false;
+      object.renderOrder = 1000;
+    });
+    return root;
+  }
+
+  function loadMeteorGlb(THREE, url) {
+    let entry = threeState.meteorGlbCache.get(url);
+    if (entry) return entry;
+    entry = { status: "loading", template: null, error: null, promise: null };
+    entry.promise = fetch(url, { cache: "force-cache" })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        return response.arrayBuffer();
+      })
+      .then((buffer) => {
+        entry.template = parseGlbToObject3D(THREE, buffer);
+        entry.status = "ready";
+        return entry.template;
+      })
+      .catch((error) => {
+        entry.status = "failed";
+        entry.error = error?.message || String(error);
+        warnMeteorGlbOnce(url, entry.error);
+        return null;
+      });
+    threeState.meteorGlbCache.set(url, entry);
+    return entry;
+  }
+
+  function cloneMeteorGlbTemplate(template) {
+    const clone = template.clone(true);
+    clone.userData.hcUnitRadius = template.userData?.hcUnitRadius || 1;
+    clone.traverse((object) => {
+      if (!object.isMesh) return;
+      if (object.material?.clone) object.material = object.material.clone();
+      object.frustumCulled = false;
+    });
+    return clone;
+  }
+
+  function createMeteorVisual(THREE, colorKey) {
+    const root = new THREE.Group();
+    const fallback = new THREE.Mesh(threeState.meteorGeometry, getMeteorMaterial(THREE, colorKey));
+    fallback.frustumCulled = false;
+    fallback.renderOrder = 1000;
+    root.add(fallback);
+    root.frustumCulled = false;
+    return { root, fallback, glb: null, assetUrl: null, variantIndex: null, spinSeed: 0 };
+  }
+
+  function removeMeteorVisual(entry) {
+    const root = entry?.root || entry;
+    threeState.meteorGroup?.remove(root);
+    if (entry?.glb) {
+      entry.glb.traverse?.((object) => {
+        if (object.isMesh && object.material?.dispose) object.material.dispose();
+      });
+    }
+  }
+
+  function updateMeteorGlbVisual(THREE, entry, assignment, colorKey) {
+    if (!entry) return false;
+    if (!assignment) {
+      entry.assetUrl = null;
+      entry.variantIndex = null;
+      entry.fallback.visible = true;
+      if (entry.glb) entry.glb.visible = false;
+      return false;
+    }
+    entry.assetUrl = assignment.url;
+    entry.variantIndex = assignment.variantIndex;
+    const cacheEntry = loadMeteorGlb(THREE, assignment.url);
+    if (cacheEntry.status !== "ready" || !cacheEntry.template) {
+      entry.fallback.visible = true;
+      return false;
+    }
+    if (!entry.glb || entry.glb.userData?.hcAssetUrl !== assignment.url) {
+      if (entry.glb) entry.root.remove(entry.glb);
+      entry.glb = cloneMeteorGlbTemplate(cacheEntry.template);
+      entry.glb.userData.hcAssetUrl = assignment.url;
+      entry.root.add(entry.glb);
+    }
+    entry.fallback.visible = false;
+    entry.glb.visible = true;
+    return true;
+  }
+
   function sanitizeAsteroidSides(value) {
     const n = Math.round(Number(value) || THREE_ASTEROID_DEFAULT_SIDES);
     return Math.max(5, Math.min(12, n));
@@ -344,6 +664,11 @@
       const camera = new THREE.OrthographicCamera(0, 1, 0, 1, 0.1, 1000);
       const meteorGroup = new THREE.Group();
       const asteroidGroup = new THREE.Group();
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.1);
+      keyLight.position.set(0.35, -0.45, 1.0);
+      scene.add(ambientLight);
+      scene.add(keyLight);
       scene.add(asteroidGroup);
       scene.add(meteorGroup);
       scene.background = new THREE.Color(0x05070a);
@@ -371,23 +696,33 @@
       const m = meteors[i] || {};
       const key = String(m.renderKey || m.id || `meteor:${i}:${Math.round(m.x||0)}:${Math.round(m.y||0)}`);
       seen.add(key);
-      let mesh = threeState.meteorMeshes.get(key);
+      let visual = threeState.meteorMeshes.get(key);
       const colorKey = String(m.colorKey || m.colorName || m.color || "neutral").toLowerCase();
-      if (!mesh) {
-        mesh = new THREE.Mesh(threeState.meteorGeometry, getMeteorMaterial(THREE, colorKey));
-        mesh.frustumCulled = false;
-        threeState.meteorGroup.add(mesh);
-        threeState.meteorMeshes.set(key, mesh);
+      if (!visual) {
+        visual = createMeteorVisual(THREE, colorKey);
+        visual.spinSeed = (hashMeteorKey(key) % 6283) / 1000;
+        threeState.meteorGroup.add(visual.root);
+        threeState.meteorMeshes.set(key, visual);
       } else {
-        mesh.material = getMeteorMaterial(THREE, colorKey);
+        visual.fallback.material = getMeteorMaterial(THREE, colorKey);
       }
       const sourceRadius = Number(m.radius ?? m.r ?? m.size) || 2;
       const radius = Math.max(THREE_METEOR_MIN_RADIUS, sourceRadius * THREE_METEOR_RADIUS_SCALE);
-      mesh.position.set(Number(m.x) || 0, Number(m.y) || 0, 0);
-      mesh.scale.set(radius, radius, 1);
-      mesh.material.opacity = Number.isFinite(m.alpha) ? Math.max(0.9, m.alpha) : 1;
-      mesh.renderOrder = 1000;
-      mesh.visible = !m.flags?.dead;
+      const assignment = chooseMeteorGlbAsset(colorKey, key);
+      const hasGlbVisual = updateMeteorGlbVisual(THREE, visual, assignment, colorKey);
+      visual.root.position.set(Number(m.x) || 0, Number(m.y) || 0, 0);
+      visual.root.renderOrder = 1000;
+      visual.root.visible = !m.flags?.dead;
+      visual.fallback.scale.set(radius, radius, 1);
+      visual.fallback.material.opacity = Number.isFinite(m.alpha) ? Math.max(0.9, m.alpha) : 1;
+      if (visual.glb) {
+        const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
+        const glbScale = (radius * METEOR_GLB_RADIUS_SCALE) / unitRadius;
+        visual.glb.scale.setScalar(glbScale);
+        visual.glb.rotation.y = visual.spinSeed + ((Number(renderSnapshot?.time?.nowMs) || performance.now?.() || 0) * METEOR_GLB_SPIN_SPEED);
+        visual.glb.rotation.z = visual.spinSeed * 0.37;
+        visual.glb.visible = hasGlbVisual && visual.root.visible;
+      }
       if (i === 0) {
         threeState.firstMeteorSample = {
           x: Number(m.x) || 0,
@@ -397,16 +732,18 @@
           alpha: Number.isFinite(m.alpha) ? m.alpha : null,
         };
         threeState.firstMeshSample = {
-          position: { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z },
-          scale: { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z },
-          visible: mesh.visible,
+          position: { x: visual.root.position.x, y: visual.root.position.y, z: visual.root.position.z },
+          scale: { x: visual.fallback.scale.x, y: visual.fallback.scale.y, z: visual.fallback.scale.z },
+          visible: visual.root.visible,
+          glbAssetUrl: visual.assetUrl || null,
+          glbVariantIndex: visual.variantIndex,
+          glbVisible: !!visual.glb?.visible,
         };
       }
     }
     for (const [key, mesh] of threeState.meteorMeshes.entries()) {
       if (seen.has(key)) continue;
-      threeState.meteorGroup.remove(mesh);
-      if (mesh?.geometry && mesh.geometry !== threeState.meteorGeometry) mesh.geometry.dispose?.();
+      removeMeteorVisual(mesh);
       threeState.meteorMeshes.delete(key);
     }
     threeState.meteorGroupChildrenCount = threeState.meteorGroup?.children?.length || 0;
@@ -454,8 +791,9 @@
 
   function destroyThree() {
     if (threeState.renderer?.dispose) threeState.renderer.dispose();
-    threeState.meteorMeshes.forEach((mesh) => { threeState.meteorGroup?.remove(mesh); });
+    threeState.meteorMeshes.forEach((entry) => { removeMeteorVisual(entry); });
     threeState.meteorMeshes.clear();
+    threeState.meteorGlbAssignments.clear();
     threeState.asteroidMeshes.forEach((mesh) => { threeState.asteroidGroup?.remove(mesh); });
     threeState.asteroidMeshes.clear();
     threeState.meteorMaterials.forEach((mat) => mat?.dispose?.());
@@ -573,6 +911,8 @@
       threeMeteorLastError: threeState.threeMeteorLastError, threeAsteroidLastError: threeState.threeAsteroidLastError, threeObjectRenderPasses: threeState.threeObjectRenderPasses.slice(),
       threeMeteorRadiusScale: threeState.threeMeteorRadiusScale,
       threeMeteorMinRadius: threeState.threeMeteorMinRadius,
+      meteorGlbAssets: METEOR_GLB_ASSETS,
+      meteorGlbCacheStats: getMeteorGlbCacheStats(),
       firstMeteor: threeState.firstMeteorSample,
       firstMeteorMesh: threeState.firstMeshSample,
       threeDebugMarker: { enabled: !!threeState.debugMarkerEnabled, visible: !!threeState.debugMarker?.visible },
