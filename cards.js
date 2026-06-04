@@ -2790,7 +2790,17 @@ const CardEngine = (() => {
 
     const order = ["red", "yellow", "green", "blue"];
     const pad = 12;
-    const hudTopSafeY = 130 + 18;
+    const hudRootStyle = typeof window !== "undefined" && window.getComputedStyle
+      ? window.getComputedStyle(window.document.documentElement)
+      : null;
+    const readHudCssNumber = (name, fallback) => {
+      const value = hudRootStyle ? parseFloat(hudRootStyle.getPropertyValue(name)) : NaN;
+      return Number.isFinite(value) ? value : fallback;
+    };
+    const hudAssetScale = readHudCssNumber("--hud-asset-scale", 0.5);
+    const hudNativeHeight = readHudCssNumber("--hud-native-height", 130);
+    const hudSafeMargin = readHudCssNumber("--hud-safe-margin", 18);
+    const hudTopSafeY = hudNativeHeight * hudAssetScale + hudSafeMargin;
     const rectW = 10;
     const rectH = 24;
     const gap = 14;
