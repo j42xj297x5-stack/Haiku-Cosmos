@@ -10,7 +10,9 @@
   const THREE_DEBUG_MARKER_ENABLED = true;
   const THREE_DEBUG_MARKER_SIZE = 12;
   const METEOR_GLB_RADIUS_SCALE = 1.0;
-  const METEOR_GLB_SPIN_SPEED = 0.00012;
+  const METEOR_GLB_ROTATION_TWO_PI = Math.PI * 2;
+  const METEOR_GLB_ROTATION_MIN_SPEED = 0.08;
+  const METEOR_GLB_ROTATION_SPEED_RANGES = Object.freeze({ x: 0.9, y: 1.1, z: 0.7 });
   const METEOR_GLB_ASSETS = Object.freeze({
     red: Object.freeze([
       "glb/meteor_red_form_core_01.glb",
@@ -60,6 +62,7 @@
     meteorGlbWarnings: new Set(),
     nextMeteorVisualId: 1,
     meteorGlbVariantReassignments: 0,
+    meteorGlbInstanceCreates: 0,
     asteroidMeshes: new Map(),
     threeMeteorRenderEnabled: true,
     threeAsteroidRenderEnabled: true,
@@ -116,6 +119,7 @@
     threeState.asteroidGroupChildrenCount = 0;
     threeState.meteorGlbCacheStats = getMeteorGlbCacheStats();
     threeState.meteorGlbVariantReassignments = 0;
+    threeState.meteorGlbInstanceCreates = 0;
   }
 
   function setMode(nextMode) {
@@ -332,16 +336,6 @@
     catch { return cleanPath; }
   }
 
-  function hashMeteorKey(key) {
-    let hash = 2166136261;
-    const text = String(key || "meteor");
-    for (let i = 0; i < text.length; i += 1) {
-      hash ^= text.charCodeAt(i);
-      hash = Math.imul(hash, 16777619);
-    }
-    return hash >>> 0;
-  }
-
   function chooseMeteorGlbAsset(colorKey, visualId) {
     const pool = METEOR_GLB_ASSETS[colorKey];
     if (!pool || !pool.length) return null;
@@ -405,6 +399,61 @@
       else stats.loading += 1;
     }
     return stats;
+  }
+
+  function randomMeteorRotationSpeed(axis, isDominantAxis) {
+    const max = METEOR_GLB_ROTATION_SPEED_RANGES[axis] || 1;
+    const minRatio = isDominantAxis ? 0.55 : 0.18;
+    const maxRatio = isDominantAxis ? 1.0 : 0.72;
+    const magnitude = max * (minRatio + (Math.random() * (maxRatio - minRatio)));
+    const speed = magnitude * (Math.random() < 0.5 ? -1 : 1);
+    if (Math.abs(speed) >= METEOR_GLB_ROTATION_MIN_SPEED) return speed;
+    return METEOR_GLB_ROTATION_MIN_SPEED * (speed < 0 ? -1 : 1);
+  }
+
+  function createMeteorGlbRotationState(visualId) {
+    const dominantAxis = ["x", "y", "z"][Math.floor(Math.random() * 3)] || "y";
+    const rotationSeed = Math.random();
+    return {
+      rotationSeed,
+      dominantAxis,
+      rotationBase: {
+        x: Math.random() * METEOR_GLB_ROTATION_TWO_PI,
+        y: Math.random() * METEOR_GLB_ROTATION_TWO_PI,
+        z: Math.random() * METEOR_GLB_ROTATION_TWO_PI,
+      },
+      rotationSpeed: {
+        x: randomMeteorRotationSpeed("x", dominantAxis === "x"),
+        y: randomMeteorRotationSpeed("y", dominantAxis === "y"),
+        z: randomMeteorRotationSpeed("z", dominantAxis === "z"),
+      },
+      rotationPhase: 0,
+      visualId,
+      startMs: null,
+    };
+  }
+
+  function getMeteorRotationNowMs(renderSnapshot, nowMs) {
+    const snapshotNow = Number(renderSnapshot?.time?.nowMs);
+    if (Number.isFinite(snapshotNow)) return snapshotNow;
+    const frameNow = Number(nowMs);
+    if (Number.isFinite(frameNow)) return frameNow;
+    if (typeof performance !== "undefined" && typeof performance.now === "function") return performance.now();
+    return 0;
+  }
+
+  function applyMeteorGlbRotation(entry, nowMs) {
+    const glb = entry?.glb;
+    const state = entry?.rotationState;
+    if (!glb || !state) return;
+    if (!Number.isFinite(state.startMs)) state.startMs = Number(nowMs) || 0;
+    const elapsedSeconds = Math.max(0, ((Number(nowMs) || 0) - state.startMs) / 1000);
+    state.rotationPhase = elapsedSeconds;
+    glb.rotation.set(
+      state.rotationBase.x + (state.rotationSpeed.x * elapsedSeconds),
+      state.rotationBase.y + (state.rotationSpeed.y * elapsedSeconds),
+      state.rotationBase.z + (state.rotationSpeed.z * elapsedSeconds)
+    );
   }
 
   function getAccessorItemSize(type) {
@@ -643,7 +692,13 @@
     fallback.renderOrder = 1000;
     root.add(fallback);
     root.frustumCulled = false;
-    const entry = { root, fallback, glb: null, visualId, colorKey: null, assetUrl: null, variantIndex: null, glbStatus: "fallback", spinSeed: 0 };
+    const rotationState = createMeteorGlbRotationState(visualId);
+    root.userData.rotationSeed = rotationState.rotationSeed;
+    root.userData.rotationBase = rotationState.rotationBase;
+    root.userData.rotationSpeed = rotationState.rotationSpeed;
+    root.userData.rotationPhase = rotationState.rotationPhase;
+    root.userData.rotationDominantAxis = rotationState.dominantAxis;
+    const entry = { root, fallback, glb: null, visualId, colorKey: null, assetUrl: null, variantIndex: null, glbStatus: "fallback", rotationState };
     assignMeteorGlbAsset(entry, colorKey);
     return entry;
   }
@@ -683,6 +738,7 @@
       entry.glb = cloneMeteorGlbTemplate(cacheEntry.template);
       entry.glb.userData.hcAssetUrl = assetUrl;
       entry.root.add(entry.glb);
+      threeState.meteorGlbInstanceCreates += 1;
     }
     entry.glbStatus = "ready";
     entry.root.userData.glbStatus = entry.glbStatus;
@@ -757,13 +813,14 @@
     } catch (err) { threeState.lastError = err?.message || String(err); return false; }
   }
 
-  function syncMeteorPass(renderSnapshot) {
+  function syncMeteorPass(renderSnapshot, nowMs) {
     const THREE = window.HC_THREE || window.THREE;
     const meteors = Array.isArray(renderSnapshot?.world?.meteors) ? renderSnapshot.world.meteors : [];
     threeState.threeMeteorCount = meteors.length;
     threeState.firstMeteorSample = null;
     threeState.firstMeshSample = null;
     threeState.meteorGroupChildrenCount = 0;
+    const rotationNowMs = getMeteorRotationNowMs(renderSnapshot, nowMs);
     const seen = new Set();
     for (let i = 0; i < meteors.length; i += 1) {
       const m = meteors[i] || {};
@@ -782,7 +839,6 @@
         visual = createMeteorVisual(THREE, colorKey);
         key = key || `meteor:visual:${visual.visualId}`;
         visual.isUnkeyedMeteorVisual = !stableKey;
-        visual.spinSeed = (hashMeteorKey(key) % 6283) / 1000;
         threeState.meteorGroup.add(visual.root);
         threeState.meteorMeshes.set(key, visual);
       } else if (stableKey && visual.isUnkeyedMeteorVisual) {
@@ -805,8 +861,8 @@
         const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
         const glbScale = (radius * METEOR_GLB_RADIUS_SCALE) / unitRadius;
         visual.glb.scale.setScalar(glbScale);
-        visual.glb.rotation.y = visual.spinSeed + ((Number(renderSnapshot?.time?.nowMs) || performance.now?.() || 0) * METEOR_GLB_SPIN_SPEED);
-        visual.glb.rotation.z = visual.spinSeed * 0.37;
+        applyMeteorGlbRotation(visual, rotationNowMs);
+        visual.root.userData.rotationPhase = visual.rotationState?.rotationPhase || 0;
         visual.glb.visible = hasGlbVisual && visual.root.visible;
       }
       if (i === 0) {
@@ -906,7 +962,7 @@
         threeModeActive = true; effectiveMode = "three"; fallbackUsed = false; fallbackReason = null; lastError = null;
         resize(renderSnapshot);
         try {
-          if (threeState.threeMeteorRenderEnabled) syncMeteorPass(renderSnapshot || {});
+          if (threeState.threeMeteorRenderEnabled) syncMeteorPass(renderSnapshot || {}, nowMs);
           threeState.threeMeteorLastError = null;
         } catch (err) {
           threeState.threeMeteorLastError = err?.message || String(err);
@@ -1004,6 +1060,7 @@
       activeGlbInstances: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.glb).length,
       activeFallbackMeteorVisuals: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
       glbVariantReassignments: threeState.meteorGlbVariantReassignments,
+      meteorGlbInstanceCreates: threeState.meteorGlbInstanceCreates,
       firstMeteor: threeState.firstMeteorSample,
       firstMeteorMesh: threeState.firstMeshSample,
       threeDebugMarker: { enabled: !!threeState.debugMarkerEnabled, visible: !!threeState.debugMarker?.visible },
