@@ -16,21 +16,18 @@
   const METEOR_GLB_ROTATION_TWO_PI = Math.PI * 2;
   const METEOR_GLB_ROTATION_MIN_SPEED = 0.08;
   const METEOR_GLB_ROTATION_SPEED_RANGES = Object.freeze({ x: 0.9, y: 1.1, z: 0.7 });
+  const METEOR_GLB_VARIANTS_PER_COLOR = 5;
+  function buildMeteorGlbAssetPool(fileStem) {
+    return Object.freeze(Array.from(
+      { length: METEOR_GLB_VARIANTS_PER_COLOR },
+      (_, index) => `glb/${fileStem}_${String(index + 1).padStart(2, "0")}.glb`
+    ));
+  }
   const METEOR_GLB_ASSETS = Object.freeze({
-    red: Object.freeze([
-      "glb/meteor_red_form_core_01.glb",
-      "glb/meteor_red_form_core_02.glb",
-      "glb/meteor_red_form_core_03.glb",
-      "glb/meteor_red_form_core_04.glb",
-      "glb/meteor_red_form_core_05.glb",
-    ]),
-    yellow: Object.freeze([
-      "glb/meteor_yellow_bond_resin_01.glb",
-      "glb/meteor_yellow_bond_resin_02.glb",
-      "glb/meteor_yellow_bond_resin_03.glb",
-      "glb/meteor_yellow_bond_resin_04.glb",
-      "glb/meteor_yellow_bond_resin_05.glb",
-    ]),
+    red: buildMeteorGlbAssetPool("meteor_red_form_core"),
+    yellow: buildMeteorGlbAssetPool("meteor_yellow_bond_resin"),
+    green: buildMeteorGlbAssetPool("meteor_green_flow_shard"),
+    blue: buildMeteorGlbAssetPool("meteor_blue_silence_crystal"),
   });
   let requestedMode = "canvas2d";
   let effectiveMode = "canvas2d";
@@ -430,6 +427,17 @@
       else stats.loading += 1;
     }
     return stats;
+  }
+
+  function countMeteorVisualsByColor(predicate) {
+    const counts = {};
+    for (const colorKey of Object.keys(METEOR_GLB_ASSETS)) counts[colorKey] = 0;
+    for (const entry of threeState.meteorMeshes.values()) {
+      if (!entry || !predicate(entry)) continue;
+      const colorKey = METEOR_GLB_ASSETS[entry.colorKey] ? entry.colorKey : "unknown";
+      counts[colorKey] = (counts[colorKey] || 0) + 1;
+    }
+    return counts;
   }
 
   function randomMeteorRotationSpeed(axis, isDominantAxis) {
@@ -1095,6 +1103,8 @@
       meteorGlbCacheSize: threeState.meteorGlbCache.size,
       activeGlbInstances: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.glb).length,
       activeFallbackMeteorVisuals: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
+      activeGlbInstancesByColor: countMeteorVisualsByColor((entry) => !!entry.glb),
+      fallbackVisualsByColor: countMeteorVisualsByColor((entry) => !!entry.fallback?.visible),
       glbVariantReassignments: threeState.meteorGlbVariantReassignments,
       meteorGlbInstanceCreates: threeState.meteorGlbInstanceCreates,
       firstMeteor: threeState.firstMeteorSample,
