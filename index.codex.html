@@ -13,6 +13,10 @@
       --hc-font-display: "Cinzel", "Noto Serif", Georgia, serif;
       --hc-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
       --hc-ui-direction: ltr;
+      --hud-asset-scale: 0.5;
+      --hud-native-height: 130px;
+      --hud-height: calc(var(--hud-native-height) * var(--hud-asset-scale));
+      --hud-safe-margin: 18px;
     }
 
     html, body {
@@ -57,7 +61,7 @@
       left: 0;
       right: 0;
       top: 0;
-      height: 130px;
+      height: var(--hud-height);
       pointer-events: none;
       z-index: 9998;
     }
@@ -76,8 +80,8 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 261px;
-      height: 130px;
+      width: calc(261px * var(--hud-asset-scale));
+      height: var(--hud-height);
       pointer-events: none;
     }
 
@@ -85,8 +89,8 @@
       position: absolute;
       top: 0;
       left: 50%;
-      width: 195px;
-      height: 130px;
+      width: calc(195px * var(--hud-asset-scale));
+      height: var(--hud-height);
       padding: 0;
       border: 0;
       border-radius: 0;
@@ -105,8 +109,8 @@
     }
 
     #hudSubMetaImage {
-      width: 195px;
-      height: 130px;
+      width: calc(195px * var(--hud-asset-scale));
+      height: var(--hud-height);
       pointer-events: none;
     }
 
@@ -114,25 +118,25 @@
       position: absolute;
       top: 0;
       right: 0;
-      width: 279px;
-      height: 130px;
+      width: calc(279px * var(--hud-asset-scale));
+      height: var(--hud-height);
       box-sizing: border-box;
       display: block;
       pointer-events: none;
       background-repeat: no-repeat;
       background-position: top right;
-      background-size: auto;
+      background-size: 100% 100%;
       color: #f6c86a;
       text-shadow: 0 0 8px rgba(255, 184, 76, 0.45), 0 1px 2px rgba(0,0,0,0.75);
-      font: 700 30px/1 var(--hc-font-display);
+      font: 700 calc(30px * var(--hud-asset-scale))/1 var(--hc-font-display);
       letter-spacing: 0.04em;
     }
 
     #scoreLabel .rp-value {
       position: absolute;
-      top: 48px;
-      right: 48px;
-      min-width: 74px;
+      top: calc(48px * var(--hud-asset-scale));
+      right: calc(48px * var(--hud-asset-scale));
+      min-width: calc(74px * var(--hud-asset-scale));
       text-align: center;
     }
 
