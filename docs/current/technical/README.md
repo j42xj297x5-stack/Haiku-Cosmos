@@ -1,3 +1,4 @@
+> Update 2026-06-04: `WORLD_RENDERING_MODEL.md` zawiera snapshot Three GLB meteor pass v0.1: aktywne pule 4x5 GLB, stabilny wariant per wrapper, GLB cache per URL, fallback circle, rotacja XYZ, live debug scale `0.25`-`4.0` i granice visual-only.
 > Update 2026-06-04: `VITE_GITHUB_PAGES_DEPLOYMENT.md` zawiera snapshot po naprawie lokalnego Vite, GitHub Pages, base path `/Haiku-Cosmos/`, runtime script loading i hygiene zależności.
 > Update 2026-04-29: `SUB_META_V2_BOX_AUDIT.md` dodaje pelny audit obecnego SUB-META boxu i mapowanie do 9 stref v2.
 > Update 2026-04-29: `CENTER_BASED_POSITIONING_SPEC.md` definiuje kontrakt center-based positioning (mountCenter/mountSize/visualSize/bleed + named anchors).
