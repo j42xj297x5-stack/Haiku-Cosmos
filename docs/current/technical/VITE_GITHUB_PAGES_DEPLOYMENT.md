@@ -4,6 +4,26 @@
 > Obszar: techniczny deployment runtime Haiku Cosmos
 > Repozytorium: `j42xj297x5-stack/Haiku-Cosmos`
 > Branch publikujący: `Haiku-Cosmos`
+> Snapshot: 2026-06-04 po naprawie lokalnego i publicznego uruchamiania przez Vite + GitHub Pages
+
+## Snapshot statusu 2026-06-04
+
+Potwierdzony baseline po naprawie uruchamiania:
+
+- lokalny runtime przez Vite działa;
+- publiczny runtime na GitHub Pages działa;
+- runtime JS ładują się poprawnie;
+- runtime JS nie ładują się już z błędnego, podwójnego pathu `/Haiku-Cosmos/Haiku-Cosmos/runtime/...`;
+- obowiązujący publiczny model URL dla runtime to `/Haiku-Cosmos/runtime/nazwa_pliku.js`;
+- automatyczny deploy po merge/push do brancha `Haiku-Cosmos` działa przez GitHub Actions;
+- wcześniejszy błąd GitHub Actions `sh: 1: vite: Permission denied` został przypisany do śledzonego `node_modules` / błędnych uprawnień zależności w środowisku Linux i rozwiązany przez usunięcie zależności z repo oraz poprawne ignorowanie dependency artifacts.
+
+## Aktualny model uruchamiania
+
+- Vite jest lokalną warstwą dev/build dla vanilla JS runtime.
+- GitHub Pages jest publicznym deploymentem projektu.
+- Base path projektu pozostaje `/Haiku-Cosmos/`.
+- `dist/` jest artefaktem build/deploy, nie źródłem runtime do edycji.
 
 ## Lokalny start
 
@@ -47,7 +67,7 @@ Po każdym pushu na branch `Haiku-Cosmos` GitHub Actions:
 3. buduje projekt przez `npm run build`,
 4. publikuje katalog `dist/` na GitHub Pages.
 
-Workflow ma także `workflow_dispatch`, więc deployment można uruchomić ręcznie. Workflow nie publikuje z `pull_request`.
+Workflow ma także `workflow_dispatch`, więc deployment można uruchomić ręcznie. Workflow nie publikuje z `pull_request`. Po merge/pushu do brancha `Haiku-Cosmos` nie trzeba uruchamiać deploya ręcznie, jeżeli push/merge uruchomił workflow; GitHub Pages odświeża się po poprawnym buildzie i deployu.
 
 Docelowy URL GitHub Pages:
 
@@ -118,14 +138,23 @@ dist/runtime/game.boot.js
 
 oraz pozostałe pliki z listy runtime.
 
-HTML musi ładować klasyczne skrypty przez ścieżki świadome `base`, np.:
+HTML ładuje klasyczne runtime skrypty przez ścieżki względne względem dokumentu, np.:
 
 ```html
-<script src="%BASE_URL%runtime/hc.core.js"></script>
-<script src="%BASE_URL%runtime/cards.js"></script>
-<script src="%BASE_URL%runtime/game.boot.js"></script>
+<script src="./runtime/hc.core.js"></script>
+<script src="./runtime/cards.js"></script>
+<script src="./runtime/game.boot.js"></script>
 ```
 
-Dla GitHub Pages daje to URL-e pod `/Haiku-Cosmos/runtime/...`. Zachowuj kolejność `<script>` z `index.html`: `cards.js` musi pozostać przed modułami, które korzystają z kart, a `game.boot.js` po modułach świata.
+W aktualnym `index.html` zapis może być znormalizowany przez przeglądarkę/narzędzia jako `runtime/nazwa_pliku.js`; istotny jest model względny, bez prefiksowania klasycznych globalnych skryptów przez `%BASE_URL%`. Dla GitHub Pages daje to poprawny URL pod `/Haiku-Cosmos/runtime/...`. Zachowuj kolejność `<script>` z `index.html`: `cards.js` musi pozostać przed modułami, które korzystają z kart, a `game.boot.js` po modułach świata.
+
+Powód tego rozdziału: przy klasycznych scriptach wariant `%BASE_URL%runtime/...` powodował w dev/build błędny, podwójny path `/Haiku-Cosmos/Haiku-Cosmos/runtime/...`. Module script tagi, np. `hc.public_path.js` i `hc.three_module_bridge.js`, pozostają na modelu `%BASE_URL%`, bo korzystają z Vite/base semantics dla modułów.
 
 Po buildzie `postbuild` uruchamia `scripts/verify-legacy-runtime-dist.mjs`, który przerywa build, jeśli którykolwiek wymagany legacy script nie istnieje w `dist/runtime/`.
+
+## Dependency hygiene
+
+- `node_modules` nie może być śledzone przez git.
+- `node_modules/` jest ignorowane w `.gitignore`.
+- `dist/` pozostaje artefaktem build/deploy, nie źródłem runtime.
+- Wcześniejszy błąd GitHub Actions `sh: 1: vite: Permission denied` wynikał ze śledzonego `node_modules` / błędnych uprawnień zależności w środowisku Linux.
