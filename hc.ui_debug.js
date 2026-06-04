@@ -257,7 +257,7 @@
 
   function getThreeMaterialSettingsForUi() {
     if (window.HC?.WorldRenderer?.getThreeMaterialSettings) return window.HC.WorldRenderer.getThreeMaterialSettings();
-    const defaults = { enabled: false, envIntensity: 0.38, toneExposure: 1.0, forceAuditLog: false, materialMode: "imported" };
+    const defaults = { enabled: false, envIntensity: 0.38, toneExposure: 1.0, forceAuditLog: false, materialMode: "imported", redMeteorTexturesEnabled: true };
     return Object.assign({}, defaults, window.HC?.WorldRendererDebug?.materials || window.HC?.Session?.debugConfig?.visual?.threeMaterials || {});
   }
 
@@ -282,6 +282,7 @@
       toneExposure: "dbgThreeToneExposure",
       forceAuditLog: "dbgThreeForceMaterialAuditLog",
       materialMode: "dbgThreeMaterialMode",
+      redMeteorTexturesEnabled: "dbgRedMeteorTexturesEnabled",
     };
     const input = document.getElementById(inputMap[key]);
     if (input) {
@@ -537,6 +538,7 @@
             dbgThreeToneExposure: "toneExposure",
             dbgThreeForceMaterialAuditLog: "forceAuditLog",
             dbgThreeMaterialMode: "materialMode",
+            dbgRedMeteorTexturesEnabled: "redMeteorTexturesEnabled",
           };
           if (threeMaterialControls[target.id]) {
             setThreeMaterialSettingFromUi(threeMaterialControls[target.id], target.type === "checkbox" ? target.checked : target.value);
@@ -921,6 +923,9 @@
           <label class="overlay-select-row" for="dbgThreeMaterialMode">Material mode
             <select id="dbgThreeMaterialMode">${materialModeOptions}</select>
           </label>
+          <label class="overlay-select-row" for="dbgRedMeteorTexturesEnabled">Red meteor textures enabled
+            <input id="dbgRedMeteorTexturesEnabled" type="checkbox"${threeMaterials.redMeteorTexturesEnabled !== false ? " checked" : ""}>
+          </label>
         </div>
         <div class="overlay-grid">${renderRows([
           ["Renderer requested", rendererDiag?.requestedMode || "canvas2d"],
@@ -956,6 +961,10 @@
           ["Helpers count", rendererDiag?.threeLightHelpers?.count ?? 0],
           ["Helpers visible", rendererDiag?.threeLightHelpers?.visible ? "true" : "false"],
           ["Three material settings", rendererDiag?.threeMaterialSettings ? JSON.stringify(rendererDiag.threeMaterialSettings) : JSON.stringify(threeMaterials)],
+          ["Red texture palette", rendererDiag?.redMeteorTexturePaletteEnabled ? "enabled" : "disabled"],
+          ["Red texture cache", rendererDiag?.redMeteorTextureCacheStats ? JSON.stringify(rendererDiag.redMeteorTextureCacheStats) : "none"],
+          ["Red texture usage", rendererDiag?.redMeteorTextureUsage ? JSON.stringify(rendererDiag.redMeteorTextureUsage) : "none"],
+          ["Red texture warnings", rendererDiag?.redMeteorTextureWarnings ?? 0],
           ["Material override", rendererDiag?.threeMaterialOverrideStatus ? JSON.stringify(rendererDiag.threeMaterialOverrideStatus) : "none"],
           ["Scene environment", rendererDiag?.sceneEnvironmentEnabled ? "enabled" : "off"],
           ["Tone mapping/exposure", `${rendererDiag?.rendererToneMapping ?? "-"} / ${rendererDiag?.rendererToneMappingExposure ?? "-"}`],
