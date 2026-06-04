@@ -103,3 +103,29 @@ public/
 Puste katalogi są utrzymywane przez `.gitkeep`. W tym pass nie dodaje się żadnych placeholderów binarnych ani przykładowych assetów: GLB, GLTF, BIN, FBX, OBJ, BLEND, PNG, JPG, JPEG, WEBP ani SVG.
 
 Obecny Three.js runtime pozostaje przy lokalnie vendored Three (`vendor/three`) i nie przełącza się automatycznie na npm `three`; dodanie GLTFLoadera lub render passu GLB wymaga osobnej decyzji, żeby nie mieszać runtime vendored/npm bez kontroli wersji.
+
+## Legacy runtime JS w buildzie Vite
+
+Runtime gry nadal używa klasycznych globalnych skryptów JS (`hc.*.js`, `cards.js`, `game.boot.js`) ładowanych przez `<script src="...">`. Nie są one w tym pass przerabiane na moduły ES.
+
+Źródła tych plików pozostają w root repozytorium, a lista plików do publikacji jest jawnie utrzymywana w `scripts/legacy-runtime-files.mjs`. Przed `npm run dev` i `npm run build` skrypt `scripts/sync-legacy-runtime.mjs` kopiuje je do `public/runtime/`. Podczas buildu Vite kopiuje zawartość `public/` do `dist/`, więc finalnie skrypty są dostępne jako:
+
+```text
+dist/runtime/hc.core.js
+dist/runtime/cards.js
+dist/runtime/game.boot.js
+```
+
+oraz pozostałe pliki z listy runtime.
+
+HTML musi ładować klasyczne skrypty przez ścieżki świadome `base`, np.:
+
+```html
+<script src="%BASE_URL%runtime/hc.core.js"></script>
+<script src="%BASE_URL%runtime/cards.js"></script>
+<script src="%BASE_URL%runtime/game.boot.js"></script>
+```
+
+Dla GitHub Pages daje to URL-e pod `/Haiku-Cosmos/runtime/...`. Zachowuj kolejność `<script>` z `index.html`: `cards.js` musi pozostać przed modułami, które korzystają z kart, a `game.boot.js` po modułach świata.
+
+Po buildzie `postbuild` uruchamia `scripts/verify-legacy-runtime-dist.mjs`, który przerywa build, jeśli którykolwiek wymagany legacy script nie istnieje w `dist/runtime/`.

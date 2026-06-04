@@ -45,6 +45,7 @@ Projekt jest konfigurowany jako vanilla JS + Vite dla GitHub Pages project site.
 - URL docelowy: `https://j42xj297x5-stack.github.io/Haiku-Cosmos/`.
 - Wymagany Vite base: `/Haiku-Cosmos/`.
 - Publiczne assety PNG/SVG/GLB/tekstury należy ładować przez `publicPath` / `publicAssetPath` z `hc.public_path.js`.
+- Legacy/global runtime JS (`hc.*.js`, `cards.js`, `game.boot.js`) pozostaje źródłowo w root repozytorium, a przed dev/build jest synchronizowany przez `scripts/sync-legacy-runtime.mjs` do `public/runtime/`, skąd Vite publikuje go jako `dist/runtime/`.
 - Katalogi przyszłych assetów publicznych: `public/models/world/`, `public/png/`, `public/svg/`, `public/textures/`.
 - Prawdziwe assety są wgrywane ręcznie przez projektanta; w repo nie dodajemy binarnych placeholderów GLB/PNG/SVG ani przykładowych modeli/tekstur tylko po to, żeby katalog istniał.
 - Puste katalogi utrzymujemy wyłącznie przez `.gitkeep`.

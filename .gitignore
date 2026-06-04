@@ -3,3 +3,6 @@ logs/runs/**
 !logs/README.md
 !logs/runs/
 !logs/runs/.gitkeep
+# Generated Vite public copies of root legacy runtime scripts
+public/runtime/*.js
+!public/runtime/.gitkeep
