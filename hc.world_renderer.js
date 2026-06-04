@@ -17,6 +17,15 @@
   const METEOR_GLB_ROTATION_MIN_SPEED = 0.08;
   const METEOR_GLB_ROTATION_SPEED_RANGES = Object.freeze({ x: 0.9, y: 1.1, z: 0.7 });
   const METEOR_GLB_VARIANTS_PER_COLOR = 5;
+  const RED_METEOR_TEXTURE_PATHS = Object.freeze([
+    "png/texture_meteor_red_01.png",
+    "png/texture_meteor_red_02.png",
+    "png/texture_meteor_red_03.png",
+    "png/texture_meteor_red_04.png",
+    "png/texture_meteor_red_05.png",
+  ]);
+  const RED_METEOR_TEXTURE_ROUGHNESS = 0.86;
+  const RED_METEOR_TEXTURE_METALNESS = 0.04;
   const THREE_LIGHTS_DEFAULTS = Object.freeze({
     enabled: true,
     pointIntensity: 0.9,
@@ -49,6 +58,7 @@
     toneExposure: 1.0,
     forceAuditLog: false,
     materialMode: "imported",
+    redMeteorTexturesEnabled: true,
   });
   const THREE_MATERIAL_DEBUG_LIMITS = Object.freeze({
     envIntensity: { min: 0, max: 1.5 },
@@ -134,6 +144,10 @@
     meteorMeshes: new Map(),
     meteorGlbCache: new Map(),
     meteorGlbWarnings: new Set(),
+    textureLoader: null,
+    redMeteorTextureCache: new Map(),
+    redMeteorTextureWarnings: new Set(),
+    redMeteorTextureUsage: new Map(),
     nextMeteorVisualId: 1,
     meteorGlbVariantReassignments: 0,
     meteorGlbInstanceCreates: 0,
@@ -196,6 +210,7 @@
     threeState.meteorGlbInstanceCreates = 0;
     threeState.glbMaterialAudit = [];
     threeState.glbMaterialAuditLogCount = 0;
+    threeState.redMeteorTextureUsage = new Map();
   }
 
   function setMode(nextMode) {
@@ -339,6 +354,7 @@
       toneExposure: clampNumber(merged.toneExposure, THREE_MATERIAL_DEBUG_DEFAULTS.toneExposure, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.min, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.max),
       forceAuditLog: merged.forceAuditLog === true,
       materialMode: isThreeMaterialMode(mode) ? mode : "imported",
+      redMeteorTexturesEnabled: merged.redMeteorTexturesEnabled !== false,
     };
   }
 
@@ -350,6 +366,7 @@
     else if (key === "toneExposure") next.toneExposure = clampNumber(value, current.toneExposure, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.min, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.max);
     else if (key === "forceAuditLog") next.forceAuditLog = value === true || value === "true" || value === "1";
     else if (key === "materialMode") next.materialMode = isThreeMaterialMode(value) ? String(value) : "imported";
+    else if (key === "redMeteorTexturesEnabled") next.redMeteorTexturesEnabled = value === true || value === "true" || value === "1";
     window.HC = window.HC || {};
     window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
     window.HC.WorldRendererDebug.materials = next;
@@ -665,6 +682,140 @@
     catch { return cleanPath; }
   }
 
+  function buildRedMeteorTexturePalette() {
+    return RED_METEOR_TEXTURE_PATHS.map((path) => ({ path, url: resolvePublicAssetPath(path) }));
+  }
+
+  function chooseRedMeteorTexture() {
+    const palette = buildRedMeteorTexturePalette();
+    if (!palette.length) return null;
+    const index = Math.floor(Math.random() * palette.length) % palette.length;
+    return Object.assign({ index }, palette[index]);
+  }
+
+  function warnRedMeteorTextureOnce(url, message) {
+    if (threeState.redMeteorTextureWarnings.has(url)) return;
+    threeState.redMeteorTextureWarnings.add(url);
+    if (window.console?.warn) window.console.warn(`[HC.WorldRenderer] Red meteor texture fallback for ${url}: ${message}`);
+  }
+
+  function configureRedMeteorTexture(THREE, texture) {
+    if (!texture) return texture;
+    if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
+    else if (THREE.sRGBEncoding) texture.encoding = THREE.sRGBEncoding;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.flipY = false;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  function loadRedMeteorTexture(THREE, assignment) {
+    if (!assignment?.url || !THREE?.TextureLoader) return null;
+    let entry = threeState.redMeteorTextureCache.get(assignment.url);
+    if (entry) return entry;
+    if (!threeState.textureLoader) threeState.textureLoader = new THREE.TextureLoader();
+    entry = { status: "loading", texture: null, error: null, url: assignment.url, path: assignment.path, name: assignment.path?.split("/").pop() || assignment.url };
+    threeState.redMeteorTextureCache.set(assignment.url, entry);
+    threeState.textureLoader.load(
+      assignment.url,
+      (texture) => {
+        entry.texture = configureRedMeteorTexture(THREE, texture);
+        entry.status = "ready";
+      },
+      undefined,
+      (error) => {
+        entry.status = "failed";
+        entry.error = error?.message || String(error || "load error");
+        warnRedMeteorTextureOnce(assignment.url, entry.error);
+      }
+    );
+    return entry;
+  }
+
+  function getRedMeteorTextureCacheStats() {
+    const stats = { loading: 0, ready: 0, failed: 0, total: threeState.redMeteorTextureCache.size };
+    for (const entry of threeState.redMeteorTextureCache.values()) {
+      if (entry?.status === "ready") stats.ready += 1;
+      else if (entry?.status === "failed") stats.failed += 1;
+      else stats.loading += 1;
+    }
+    return stats;
+  }
+
+  function countRedMeteorTextureUsage() {
+    const counts = {};
+    for (const paletteEntry of buildRedMeteorTexturePalette()) counts[paletteEntry.path] = 0;
+    for (const entry of threeState.meteorMeshes.values()) {
+      const path = entry?.redTextureAssignment?.path;
+      if (entry?.colorKey === "red" && path) counts[path] = (counts[path] || 0) + 1;
+    }
+    return counts;
+  }
+
+  function rememberOriginalMaterialMap(material) {
+    if (!material) return;
+    material.userData = material.userData || {};
+    if (!Object.prototype.hasOwnProperty.call(material.userData, "hcRedMeteorOriginalMap")) {
+      material.userData.hcRedMeteorOriginalMap = material.map || null;
+    }
+  }
+
+  function restoreRedMeteorMaterialMap(material) {
+    if (!material) return;
+    rememberOriginalMaterialMap(material);
+    const originalMap = material.userData.hcRedMeteorOriginalMap || null;
+    if (material.map !== originalMap || material.userData.hcRedMeteorTextureAppliedUrl) {
+      material.map = originalMap;
+      material.userData.hcRedMeteorTextureAppliedUrl = null;
+      material.needsUpdate = true;
+    }
+  }
+
+  function applyRedMeteorTextureToMaterial(material, texture, textureUrl) {
+    if (!material || !texture) return;
+    rememberOriginalMaterialMap(material);
+    if (material.map !== texture) {
+      material.map = texture;
+      material.needsUpdate = true;
+    }
+    if ("roughness" in material) material.roughness = RED_METEOR_TEXTURE_ROUGHNESS;
+    if ("metalness" in material) material.metalness = RED_METEOR_TEXTURE_METALNESS;
+    material.userData.hcRedMeteorTextureAppliedUrl = textureUrl;
+  }
+
+  function syncRedMeteorTexturePaletteForEntry(THREE, entry) {
+    if (!entry?.glb) return;
+    const settings = threeState.materialSettings || getThreeMaterialSettings();
+    const enabled = settings.redMeteorTexturesEnabled !== false && (settings.materialMode || "imported") === "imported";
+    if (entry.colorKey !== "red" || !enabled || !entry.redTextureAssignment) {
+      if (entry.redTextureAppliedUrl || entry.redTextureRestorePending) {
+        entry.glb.traverse?.((object) => {
+          if (!object.isMesh) return;
+          const materials = Array.isArray(object.material) ? object.material : [object.material];
+          const originalMaterials = Array.isArray(object.userData?.hcOriginalMaterial) ? object.userData.hcOriginalMaterial : [object.userData?.hcOriginalMaterial];
+          Array.from(new Set(materials.concat(originalMaterials).filter(Boolean))).forEach(restoreRedMeteorMaterialMap);
+        });
+        entry.redTextureAppliedUrl = null;
+        entry.redTextureRestorePending = false;
+      }
+      return;
+    }
+    const textureEntry = loadRedMeteorTexture(THREE, entry.redTextureAssignment);
+    entry.redTextureStatus = textureEntry?.status || "unavailable";
+    if (textureEntry?.status !== "ready" || !textureEntry.texture) return;
+    if (entry.redTextureAppliedUrl === textureEntry.url) return;
+    entry.glb.traverse?.((object) => {
+      if (!object.isMesh) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach((material) => applyRedMeteorTextureToMaterial(material, textureEntry.texture, textureEntry.url));
+    });
+    entry.redTextureAppliedUrl = textureEntry.url;
+    entry.redTextureRestorePending = true;
+    entry.root.userData.redMeteorTextureUrl = textureEntry.url;
+    entry.root.userData.redMeteorTextureName = textureEntry.name;
+  }
+
   function chooseMeteorGlbAsset(colorKey, visualId) {
     const pool = METEOR_GLB_ASSETS[colorKey];
     if (!pool || !pool.length) return null;
@@ -694,6 +845,14 @@
     const previousUrl = entry.assetUrl || null;
     entry.colorKey = colorKey;
     entry.root.userData.colorKey = colorKey;
+    if (colorKey === "red" && !entry.redTextureAssignment) entry.redTextureAssignment = chooseRedMeteorTexture();
+    if (colorKey !== "red") {
+      entry.redTextureAssignment = null;
+      entry.redTextureAppliedUrl = null;
+      entry.redTextureStatus = "disabled";
+      entry.root.userData.redMeteorTextureUrl = null;
+      entry.root.userData.redMeteorTextureName = null;
+    }
     if (!assignment) {
       if (previousUrl) disposeMeteorGlbInstance(entry);
       entry.assetUrl = null;
@@ -1430,7 +1589,7 @@
     root.userData.rotationSpeed = rotationState.rotationSpeed;
     root.userData.rotationPhase = rotationState.rotationPhase;
     root.userData.rotationDominantAxis = rotationState.dominantAxis;
-    const entry = { root, fallback, glb: null, visualId, colorKey: null, assetUrl: null, variantIndex: null, glbStatus: "fallback", rotationState };
+    const entry = { root, fallback, glb: null, visualId, colorKey: null, assetUrl: null, variantIndex: null, glbStatus: "fallback", rotationState, redTextureAssignment: null, redTextureAppliedUrl: null, redTextureStatus: "idle", redTextureRestorePending: false };
     assignMeteorGlbAsset(entry, colorKey);
     return entry;
   }
@@ -1470,9 +1629,11 @@
       entry.glb = cloneMeteorGlbTemplate(cacheEntry.template);
       entry.glb.userData.hcAssetUrl = assetUrl;
       applyDebugMaterialMode(THREE, entry.glb);
+      syncRedMeteorTexturePaletteForEntry(THREE, entry);
       entry.root.add(entry.glb);
       threeState.meteorGlbInstanceCreates += 1;
     }
+    syncRedMeteorTexturePaletteForEntry(THREE, entry);
     entry.glbStatus = "ready";
     entry.root.userData.glbStatus = entry.glbStatus;
     entry.fallback.visible = false;
@@ -1660,6 +1821,9 @@
           glbVisible: !!visual.glb?.visible,
           glbScale: visual.glb ? visual.glb.scale.x : null,
           meteorGlbVisualScale,
+          redMeteorTextureUrl: visual.redTextureAppliedUrl || visual.redTextureAssignment?.url || null,
+          redMeteorTextureName: visual.redTextureAssignment?.path?.split("/").pop() || null,
+          redMeteorTextureStatus: visual.redTextureStatus || null,
         };
       }
     }
@@ -1938,6 +2102,11 @@
       threeLightsLiveControl: true,
       threeMaterialDebugLiveControl: true,
       threeMaterialSettings: Object.assign({}, threeState.materialSettings || getThreeMaterialSettings()),
+      redMeteorTexturePalette: buildRedMeteorTexturePalette(),
+      redMeteorTexturePaletteEnabled: getThreeMaterialSettings().redMeteorTexturesEnabled !== false,
+      redMeteorTextureCacheStats: getRedMeteorTextureCacheStats(),
+      redMeteorTextureUsage: countRedMeteorTextureUsage(),
+      redMeteorTextureWarnings: threeState.redMeteorTextureWarnings.size,
       glbMaterialAudit: threeState.glbMaterialAudit.slice(-8),
       glbMaterialAuditStatus: getMaterialAuditOverlayStatus(),
       sceneEnvironmentEnabled: !!threeState.scene?.environment,
