@@ -4,12 +4,12 @@
   root.HC = root.HC || {};
 
   const DEFAULTS = {
-    manifestUrl: "/assets/visual/prg/prg_frame_manifest.json",
-    assetBaseUrl: "/assets/visual/prg/svg/frame_parts/",
+    manifestUrl: "assets/visual/prg/prg_frame_manifest.json",
+    assetBaseUrl: "assets/visual/prg/svg/frame_parts/",
     mode: "frameRectHeightMountProbe",
     debugGoldTint: "#d4af37",
     tintAlpha: 0.88,
-    layoutMetadataUrl: "/assets/visual/prg/prg_frame_layout_metadata.json",
+    layoutMetadataUrl: "assets/visual/prg/prg_frame_layout_metadata.json",
     stretchFillCenterToTargetWidth: true,
     fillCenterMode: "rotate_left_fit_width"
   };
@@ -34,6 +34,13 @@
 
   function toNum(value) { return Number(value); }
   function finite(value) { return Number.isFinite(value); }
+
+  function publicPath(path) {
+    if (root.HC && typeof root.HC.publicPath === "function") return root.HC.publicPath(path);
+    const cleanBase = String(root.HC_PUBLIC_BASE_URL || "/").replace(/\/+$/, "/");
+    const cleanPath = String(path || "").replace(/^\/+/, "");
+    return cleanBase + cleanPath;
+  }
 
   function joinAssetUrl(baseUrl, file) {
     if (!baseUrl || !file) return null;
@@ -309,7 +316,7 @@
     if (state.requested || typeof root.fetch !== "function" || typeof root.Image === "undefined") return;
     state.requested = true;
     state.status = "loading_manifest";
-    const manifestUrl = appendCacheBust(opts.manifestUrl, Date.now());
+    const manifestUrl = appendCacheBust(publicPath(opts.manifestUrl), Date.now());
     root.fetch(manifestUrl, { cache: "no-store" })
       .then((resp) => (resp && resp.ok ? resp.json() : null))
       .then((manifest) => {
@@ -319,7 +326,7 @@
         state.cacheBustToken = state.manifestVersion || Date.now();
         state.cacheBustActive = true;
         state.layoutMetadataStatus = "loading";
-        root.fetch(appendCacheBust(opts.layoutMetadataUrl, state.cacheBustToken), { cache: "no-store" })
+        root.fetch(appendCacheBust(publicPath(opts.layoutMetadataUrl), state.cacheBustToken), { cache: "no-store" })
           .then((resp) => (resp && resp.ok ? resp.json() : null))
           .then((json) => {
             state.layoutMetadata = json && typeof json === "object" ? json : null;
@@ -336,7 +343,7 @@
           const img = new root.Image();
           img.onload = () => { state.loaded += 1; };
           img.onerror = () => { state.failed += 1; state.warnings.push(`failed:${asset && asset.file}`); };
-          const resolvedAssetUrl = appendCacheBust(joinAssetUrl(opts.assetBaseUrl, asset && asset.file), state.cacheBustToken);
+          const resolvedAssetUrl = appendCacheBust(joinAssetUrl(publicPath(opts.assetBaseUrl), asset && asset.file), state.cacheBustToken);
           img.src = resolvedAssetUrl;
           if (!state.firstResolvedAssetUrl) state.firstResolvedAssetUrl = resolvedAssetUrl;
           state.imageById.set(asset && asset.id, img);
