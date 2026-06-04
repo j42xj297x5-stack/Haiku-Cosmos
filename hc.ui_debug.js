@@ -168,6 +168,43 @@
     return scale;
   }
 
+  function getThreeLightsSettingsForUi() {
+    if (window.HC?.WorldRenderer?.getThreeLightsSettings) return window.HC.WorldRenderer.getThreeLightsSettings();
+    const defaults = { enabled: true, pointIntensity: 0.9, distanceMultiplier: 1.55, zOffsetMultiplier: 0.45, ambientIntensity: 0.24 };
+    return Object.assign({}, defaults, window.HC?.WorldRendererDebug?.threeLights || window.HC?.Session?.debugConfig?.visual?.threeLights || {});
+  }
+
+  function setThreeLightsSettingFromUi(key, value) {
+    const next = window.HC?.WorldRenderer?.setThreeLightsDebugSetting
+      ? window.HC.WorldRenderer.setThreeLightsDebugSetting(key, value)
+      : Object.assign({}, getThreeLightsSettingsForUi(), { [key]: value });
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.threeLights = Object.assign({}, next);
+    if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.threeLights = Object.assign({}, next);
+    const valueMap = {
+      pointIntensity: "dbgThreeLightIntensityValue",
+      distanceMultiplier: "dbgThreeLightDistanceValue",
+      zOffsetMultiplier: "dbgThreeLightZValue",
+      ambientIntensity: "dbgThreeAmbientValue",
+    };
+    const valueNode = document.getElementById(valueMap[key]);
+    if (valueNode && Number.isFinite(Number(next[key]))) valueNode.textContent = Number(next[key]).toFixed(2);
+    const inputMap = {
+      enabled: "dbgThreeLightsEnabled",
+      pointIntensity: "dbgThreeLightIntensity",
+      distanceMultiplier: "dbgThreeLightDistance",
+      zOffsetMultiplier: "dbgThreeLightZ",
+      ambientIntensity: "dbgThreeAmbient",
+    };
+    const input = document.getElementById(inputMap[key]);
+    if (input) {
+      if (input.type === "checkbox") input.checked = !!next[key];
+      else if (Number(input.value) !== Number(next[key])) input.value = String(next[key]);
+    }
+    return next;
+  }
+
   function getDebugDefaults() {
     if (window.HC?.createDebugConfig) {
       return window.HC.createDebugConfig("debug");
@@ -374,6 +411,17 @@
           if (!target || !target.id) return;
           if (target.id === "dbgMeteorGlbScale") {
             setMeteorGlbVisualScaleFromUi(target.value);
+            return;
+          }
+          const threeLightControls = {
+            dbgThreeLightsEnabled: "enabled",
+            dbgThreeLightIntensity: "pointIntensity",
+            dbgThreeLightDistance: "distanceMultiplier",
+            dbgThreeLightZ: "zOffsetMultiplier",
+            dbgThreeAmbient: "ambientIntensity",
+          };
+          if (threeLightControls[target.id]) {
+            setThreeLightsSettingFromUi(threeLightControls[target.id], target.type === "checkbox" ? target.checked : target.value);
             return;
           }
           const cfg = window.HC?.Session?.debugConfig?.visual?.prgFrameProbe;
@@ -662,6 +710,7 @@
       `<option value="canvas2d"${requestedMode === "canvas2d" ? " selected" : ""}>canvas2d</option>`,
       `<option value="three"${requestedMode === "three" ? " selected" : ""}>three</option>`,
     ].join("");
+    const threeLights = getThreeLightsSettingsForUi();
 
     sections.push(`
       <section class="overlay-section">
@@ -682,6 +731,27 @@
           <label class="overlay-select-row" for="dbgMeteorGlbScale">GLB meteor scale
             <input id="dbgMeteorGlbScale" type="range" min="0.25" max="4" step="0.05" value="${getMeteorGlbVisualScaleForUi()}">
             <span id="dbgMeteorGlbScaleValue">${getMeteorGlbVisualScaleForUi().toFixed(2)}</span>
+          </label>
+        </div>
+        <div class="overlay-grid">
+          <label class="overlay-select-row" for="dbgThreeLightsEnabled">Three lights enabled
+            <input id="dbgThreeLightsEnabled" type="checkbox"${threeLights.enabled !== false ? " checked" : ""}>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeLightIntensity">Corner light intensity
+            <input id="dbgThreeLightIntensity" type="range" min="0" max="2.5" step="0.05" value="${threeLights.pointIntensity}">
+            <span id="dbgThreeLightIntensityValue">${Number(threeLights.pointIntensity).toFixed(2)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeLightDistance">Light range x view
+            <input id="dbgThreeLightDistance" type="range" min="0.25" max="4" step="0.05" value="${threeLights.distanceMultiplier}">
+            <span id="dbgThreeLightDistanceValue">${Number(threeLights.distanceMultiplier).toFixed(2)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeLightZ">Light Z x height
+            <input id="dbgThreeLightZ" type="range" min="0.05" max="2" step="0.05" value="${threeLights.zOffsetMultiplier}">
+            <span id="dbgThreeLightZValue">${Number(threeLights.zOffsetMultiplier).toFixed(2)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeAmbient">Ambient fill
+            <input id="dbgThreeAmbient" type="range" min="0" max="0.75" step="0.01" value="${threeLights.ambientIntensity}">
+            <span id="dbgThreeAmbientValue">${Number(threeLights.ambientIntensity).toFixed(2)}</span>
           </label>
         </div>
         <div class="overlay-grid">${renderRows([
@@ -711,6 +781,9 @@
           ["Three asteroid pass error", String(rendererDiag?.threeAsteroidLastError || "none")],
           ["Three radius scale", rendererDiag?.threeMeteorRadiusScale ?? "-"],
           ["GLB meteor scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
+          ["Three lights", rendererDiag?.threeLights ? JSON.stringify(rendererDiag.threeLights) : JSON.stringify(threeLights)],
+          ["Three light count", rendererDiag?.threeLightCount ?? 0],
+          ["Three light positions", rendererDiag?.threeLightPositions ? JSON.stringify(rendererDiag.threeLightPositions) : "none"],
           ["Active GLB instances", rendererDiag?.activeGlbInstances ?? 0],
           ["Active GLB by color", rendererDiag?.activeGlbInstancesByColor ? JSON.stringify(rendererDiag.activeGlbInstancesByColor) : "-"],
           ["Fallback GLB by color", rendererDiag?.fallbackVisualsByColor ? JSON.stringify(rendererDiag.fallbackVisualsByColor) : "-"],
