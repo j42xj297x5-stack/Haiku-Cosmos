@@ -225,6 +225,8 @@
     const visualCfg = partial.visual || {};
     const prgProbePartial = visualCfg.prgFrameProbe || {};
     const meteorGlbVisualScale = Number(visualCfg.meteorGlbVisualScale);
+    const meteorGlbDepthScale = Number(visualCfg.meteorGlbDepthScale);
+    const cameraModel = ["absolute_bounds", "stage_normalized"].includes(String(visualCfg.cameraModel)) ? String(visualCfg.cameraModel) : "absolute_bounds";
     const materialCfg = visualCfg.threeMaterials || {};
     const lightsCfg = visualCfg.threeLights || {};
     return {
@@ -250,6 +252,8 @@
       },
       visual: {
         meteorGlbVisualScale: Number.isFinite(meteorGlbVisualScale) ? Math.max(0.25, Math.min(4.0, meteorGlbVisualScale)) : 1.0,
+        meteorGlbDepthScale: Number.isFinite(meteorGlbDepthScale) ? Math.max(0.25, Math.min(3.0, meteorGlbDepthScale)) : 1.0,
+        cameraModel,
         threeMaterials: {
           enabled: materialCfg.enabled === true,
           envIntensity: Number.isFinite(Number(materialCfg.envIntensity)) ? Math.max(0, Math.min(1.5, Number(materialCfg.envIntensity))) : 0.38,
@@ -371,6 +375,17 @@
       envIntensity: materials.envIntensity ?? null,
       toneExposure: materials.toneExposure ?? null,
       forceAuditLog: materials.forceAuditLog === true,
+      meteorGlbDepthScale: diagnostics?.meteorGlbDepthScale ?? null,
+      firstGlbScale: diagnostics?.firstMeteorMesh?.scale || null,
+      scaleUniform: diagnostics?.firstMeteorMesh?.scaleUniform ?? null,
+      zScaleRatio: diagnostics?.firstMeteorMesh?.zScaleRatio ?? null,
+      localBoundingBox: diagnostics?.firstMeteorMesh?.localBoundingBox || null,
+      worldBoundingBox: diagnostics?.firstMeteorMesh?.worldBoundingBox || null,
+      worldSize: diagnostics?.firstMeteorMesh?.worldSize || null,
+      objectDepthVisibleEstimate: diagnostics?.firstMeteorMesh?.objectDepthVisibleEstimate ?? null,
+      glbScaleWarning: diagnostics?.glbScaleWarning || diagnostics?.firstMeteorMesh?.warning || null,
+      cameraModel: diagnostics?.cameraModel || diagnostics?.threeCameraModel || null,
+      stageModelEnabled: diagnostics?.stageModelEnabled === true,
       ambientIsolate: lights.ambientIsolate === true,
       ambientEffectiveIntensity: lightDiagnostics?.effectiveAmbientIntensity ?? null,
       threeLights: {

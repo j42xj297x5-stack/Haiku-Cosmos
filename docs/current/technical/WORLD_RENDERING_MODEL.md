@@ -836,3 +836,47 @@ Manual QA po zmianach PBR powinien obejmować:
 - Instancing tam, gdzie potrzebne.
 - Glow/particles/shaders dopiero po stabilnym object coverage.
 - Fallback `canvas2d` pozostaje.
+
+## 15. Snapshot 2026-06-04 — Three GLB uniform depth scale + stage-normalized camera prototype
+
+Status: CURRENT diagnostic pass for Three renderer only; Canvas2D fallback and gameplay mechanics remain unchanged.
+
+### Audit result
+
+- Meteor GLB instances were sized from gameplay radius and `meteorGlbVisualScale`, but diagnostics previously showed the first visual through the flat fallback scale (`radius, radius, 1`), which made the evidence look like an active GLB could be flattened in Z.
+- Runtime GLB scaling is now explicit and uniform by default: `scale.set(s, s, s * glbDepthScale)` with `glbDepthScale = 1.0` by default.
+- The debug-only Z multiplier is exposed as `meteorGlbDepthScale` / `glbDepthScale`; valid live range is `0.25–3.0`. Production default does not flatten GLB solids.
+
+### Diagnostics added
+
+`HC.WorldRenderer.getDiagnostics()` now includes:
+
+- `meteorGlbDepthScale`, `meteorGlbDepthScaleLiveControl`, and `glbScaleWarning`,
+- `firstMeteorMesh.scale`, `scaleUniform`, `zScaleRatio`, `localBoundingBox`, `localSize`, `worldBoundingBox`, `worldSize`, and `objectDepthVisibleEstimate`,
+- warning text when `zScaleRatio < 0.25`: `GLB appears flattened in Z; lighting may not reveal 3D facets.`,
+- `cameraModel`, `stageModelEnabled`, `stageSettings`, and `worldCameraBounds`.
+
+### Stage model prototype
+
+A debug camera model switch is available in the runtime overlay:
+
+- `absolute_bounds` — current default behavior; world coordinates and orthographic bounds remain the default low-risk path.
+- `stage_normalized` — prototype mode that maps the current world camera center to `(0,0,0)`, scales the visible world area to a controlled stage size (`180–240`, default `220`), and uses a `PerspectiveCamera` looking at stage origin from positive Z.
+
+In `stage_normalized`, meteor and asteroid render positions/scales are mapped only in Three presentation space. Spawn, physics, collision, cards, RP, HUD, SUB-META, META and Canvas2D fallback are not changed.
+
+### Lighting model notes
+
+The existing corner/debug/headlight/spotlight setup is rescaled against the active render bounds. In `stage_normalized`, those render bounds are the normalized stage bounds, so light distances and Z offsets are comparable to object size. Shadows remain disabled.
+
+### Manual QA checklist
+
+1. Current default: `renderer=three`, `cameraModel=absolute_bounds`, `meteorGlbDepthScale=1`.
+2. Debug material pass: `materialMode=clay_lit`, ambient isolate on, debug SpotLight or force headlight enabled.
+3. Imported material pass: switch `materialMode=imported` and compare facet response.
+4. Depth comparison: test `meteorGlbDepthScale=0.25`, `1`, and `2`; if lighting appears only at `1+`, Z flattening was the primary issue.
+5. If absolute bounds still gives weak light modeling, switch `cameraModel=stage_normalized` and compare light/object scale.
+
+### Portfolio comparison checklist
+
+No portfolio runtime setup is currently part of the active Haiku Cosmos repo. Manual comparison should check: camera type and distance, renderer `outputColorSpace`, tone mapping, exposure, scene environment, light positions/distances/decay, GLB root scale, material transparency/depth flags, and whether material overrides preserve light-reactive PBR materials.

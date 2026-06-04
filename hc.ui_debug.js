@@ -178,6 +178,48 @@
   }
 
 
+  function getMeteorGlbDepthScaleForUi() {
+    if (window.HC?.WorldRenderer?.getMeteorGlbDepthScale) return window.HC.WorldRenderer.getMeteorGlbDepthScale();
+    const n = Number(window.HC?.WorldRendererDebug?.meteorGlbDepthScale ?? window.HC?.Session?.debugConfig?.visual?.meteorGlbDepthScale);
+    if (!Number.isFinite(n)) return 1.0;
+    return Math.max(0.25, Math.min(3.0, n));
+  }
+
+  function setMeteorGlbDepthScaleFromUi(value) {
+    const scale = window.HC?.WorldRenderer?.setMeteorGlbDepthScale
+      ? window.HC.WorldRenderer.setMeteorGlbDepthScale(value)
+      : Math.max(0.25, Math.min(3.0, Number(value) || 1.0));
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.meteorGlbDepthScale = scale;
+    if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.meteorGlbDepthScale = scale;
+    const valueNode = document.getElementById("dbgMeteorGlbDepthScaleValue");
+    if (valueNode) valueNode.textContent = scale.toFixed(2);
+    const input = document.getElementById("dbgMeteorGlbDepthScale");
+    if (input && Number(input.value) !== scale) input.value = String(scale);
+    return scale;
+  }
+
+  function getThreeCameraModelForUi() {
+    if (window.HC?.WorldRenderer?.getThreeCameraModel) return window.HC.WorldRenderer.getThreeCameraModel();
+    const model = String(window.HC?.WorldRendererDebug?.cameraModel || window.HC?.Session?.debugConfig?.visual?.cameraModel || "absolute_bounds");
+    return model === "stage_normalized" ? model : "absolute_bounds";
+  }
+
+  function setThreeCameraModelFromUi(value) {
+    const model = window.HC?.WorldRenderer?.setThreeCameraModel
+      ? window.HC.WorldRenderer.setThreeCameraModel(value)
+      : (String(value) === "stage_normalized" ? "stage_normalized" : "absolute_bounds");
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.cameraModel = model;
+    if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.cameraModel = model;
+    const input = document.getElementById("dbgThreeCameraModel");
+    if (input && input.value !== model) input.value = model;
+    return model;
+  }
+
+
   function emitThreeDebugControlEvent(type, payload) {
     if (!window.HC?.Session?.started || typeof window.HC.Session.emit !== "function") return;
     window.HC.Session.emit("debug", type, Object.assign({ source: "ui_debug" }, payload || {}), {
@@ -511,6 +553,14 @@
           if (!target || !target.id) return;
           if (target.id === "dbgMeteorGlbScale") {
             setMeteorGlbVisualScaleFromUi(target.value);
+            return;
+          }
+          if (target.id === "dbgMeteorGlbDepthScale") {
+            setMeteorGlbDepthScaleFromUi(target.value);
+            return;
+          }
+          if (target.id === "dbgThreeCameraModel") {
+            setThreeCameraModelFromUi(target.value);
             return;
           }
           const threeLightControls = {
@@ -859,9 +909,19 @@
         ])}</div>
         <div class="overlay-grid">
           <label class="overlay-select-row" for="dbgRendererMode">Renderer: canvas2d / three <select id="dbgRendererMode">${modeOptions}</select></label>
-          <label class="overlay-select-row" for="dbgMeteorGlbScale">GLB meteor scale
+          <label class="overlay-select-row" for="dbgMeteorGlbScale">GLB meteor XY/uniform scale
             <input id="dbgMeteorGlbScale" type="range" min="0.25" max="4" step="0.05" value="${getMeteorGlbVisualScaleForUi()}">
             <span id="dbgMeteorGlbScaleValue">${getMeteorGlbVisualScaleForUi().toFixed(2)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgMeteorGlbDepthScale">GLB depth scale Z
+            <input id="dbgMeteorGlbDepthScale" type="range" min="0.25" max="3" step="0.05" value="${getMeteorGlbDepthScaleForUi()}">
+            <span id="dbgMeteorGlbDepthScaleValue">${getMeteorGlbDepthScaleForUi().toFixed(2)}</span>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeCameraModel">Camera model
+            <select id="dbgThreeCameraModel">
+              <option value="absolute_bounds"${getThreeCameraModelForUi() === "absolute_bounds" ? " selected" : ""}>absolute_bounds</option>
+              <option value="stage_normalized"${getThreeCameraModelForUi() === "stage_normalized" ? " selected" : ""}>stage_normalized</option>
+            </select>
           </label>
         </div>
         <div class="overlay-grid">
@@ -990,6 +1050,8 @@
           ["Three asteroid pass error", String(rendererDiag?.threeAsteroidLastError || "none")],
           ["Three radius scale", rendererDiag?.threeMeteorRadiusScale ?? "-"],
           ["GLB meteor scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
+          ["GLB depth scale Z", rendererDiag?.meteorGlbDepthScale ?? getMeteorGlbDepthScaleForUi()],
+          ["GLB scale warning", rendererDiag?.glbScaleWarning || rendererDiag?.firstMeteorMesh?.warning || "none"],
           ["Three lights", rendererDiag?.threeLights ? JSON.stringify(rendererDiag.threeLights) : JSON.stringify(threeLights)],
           ["Light range/distance diag", rendererDiag?.threeLightDiagnostics ? JSON.stringify(rendererDiag.threeLightDiagnostics) : "none"],
           ["Debug SpotLight", rendererDiag?.debugSpotLight ? JSON.stringify(rendererDiag.debugSpotLight) : "none"],
@@ -1027,6 +1089,8 @@
           ["First meteor screen est", rendererDiag?.firstMeteorScreenEstimate ? JSON.stringify(rendererDiag.firstMeteorScreenEstimate) : "none"],
           ["First meteor in bounds", rendererDiag?.firstMeteorInCameraBounds == null ? "n/a" : (rendererDiag.firstMeteorInCameraBounds ? "true" : "false")],
           ["Camera model", rendererDiag?.threeCameraModel || "unknown"],
+          ["Stage model enabled", rendererDiag?.stageModelEnabled ? "true" : "false"],
+          ["Stage settings", rendererDiag?.stageSettings ? JSON.stringify(rendererDiag.stageSettings) : "none"],
           ["Camera snapshot center", rendererDiag?.cameraSnapshotCenter ? JSON.stringify(rendererDiag.cameraSnapshotCenter) : "none"],
           ["Camera snapshot zoom", rendererDiag?.cameraSnapshotZoom ?? "none"],
           ["Camera snapshot bounds", rendererDiag?.cameraSnapshotWorldBounds ? JSON.stringify(rendererDiag.cameraSnapshotWorldBounds) : "none"],

@@ -13,6 +13,14 @@
   const METEOR_GLB_VISUAL_SCALE_DEFAULT = 1.0;
   const METEOR_GLB_VISUAL_SCALE_MIN = 0.25;
   const METEOR_GLB_VISUAL_SCALE_MAX = 4.0;
+  const METEOR_GLB_DEPTH_SCALE_DEFAULT = 1.0;
+  const METEOR_GLB_DEPTH_SCALE_MIN = 0.25;
+  const METEOR_GLB_DEPTH_SCALE_MAX = 3.0;
+  const THREE_CAMERA_MODELS = Object.freeze(["absolute_bounds", "stage_normalized"]);
+  const THREE_STAGE_SIZE_DEFAULT = 220;
+  const THREE_STAGE_SIZE_MIN = 180;
+  const THREE_STAGE_SIZE_MAX = 240;
+  const THREE_STAGE_CAMERA_FOV = 45;
   const METEOR_GLB_ROTATION_TWO_PI = Math.PI * 2;
   const METEOR_GLB_ROTATION_MIN_SPEED = 0.08;
   const METEOR_GLB_ROTATION_SPEED_RANGES = Object.freeze({ x: 0.9, y: 1.1, z: 0.7 });
@@ -109,6 +117,12 @@
   if (!Number.isFinite(Number(window.HC.WorldRendererDebug.meteorGlbVisualScale))) {
     window.HC.WorldRendererDebug.meteorGlbVisualScale = METEOR_GLB_VISUAL_SCALE_DEFAULT;
   }
+  if (!Number.isFinite(Number(window.HC.WorldRendererDebug.meteorGlbDepthScale))) {
+    window.HC.WorldRendererDebug.meteorGlbDepthScale = METEOR_GLB_DEPTH_SCALE_DEFAULT;
+  }
+  if (!THREE_CAMERA_MODELS.includes(String(window.HC.WorldRendererDebug.cameraModel))) {
+    window.HC.WorldRendererDebug.cameraModel = "absolute_bounds";
+  }
   window.HC.WorldRendererDebug.threeLights = Object.assign(
     {},
     THREE_LIGHTS_DEFAULTS,
@@ -127,6 +141,8 @@
     renderer: null,
     scene: null,
     camera: null,
+    orthographicCamera: null,
+    perspectiveCamera: null,
     lastError: null,
     renderCalls: 0,
     resizeCalls: 0,
@@ -182,8 +198,11 @@
     firstMeteorSample: null,
     firstMeshSample: null,
     cameraBounds: null,
+    worldCameraBounds: null,
     rendererSize: null,
-    threeCameraModel: "centered_viewport",
+    threeCameraModel: "absolute_bounds",
+    stageModelEnabled: false,
+    stageSettings: { size: THREE_STAGE_SIZE_DEFAULT, scale: 1, cameraDistance: null, renderBounds: null },
     cameraSnapshotCenter: null,
     cameraSnapshotZoom: null,
     cameraSnapshotWorldBounds: null,
@@ -194,6 +213,7 @@
     firstMeteorScreenEstimate: null,
     firstMeteorInCameraBounds: null,
     firstMeteorMarker: null,
+    glbScaleWarning: null,
   };
 
   function resetDiagnostics() {
@@ -216,6 +236,9 @@
     threeState.cameraSnapshotCenter = null;
     threeState.cameraSnapshotZoom = null;
     threeState.cameraSnapshotWorldBounds = null;
+    threeState.stageModelEnabled = false;
+    threeState.stageSettings = { size: THREE_STAGE_SIZE_DEFAULT, scale: 1, cameraDistance: null, renderBounds: null };
+    threeState.glbScaleWarning = null;
     threeState.worldBoundsSource = "unknown";
     threeState.firstMeteorScreenEstimate = null;
     threeState.firstMeteorInCameraBounds = null;
@@ -549,7 +572,7 @@
   function getFirstActiveGlbLightTargetObject() {
     for (const entry of threeState.meteorMeshes.values()) {
       if (!entry?.glb?.visible && !entry?.fallback?.visible) continue;
-      const object = entry.glb?.visible ? entry.glb : entry.root;
+      const object = entry.root || (entry.glb?.visible ? entry.glb : null);
       if (object?.position) return object;
     }
     for (const mesh of threeState.asteroidMeshes.values()) {
@@ -633,6 +656,11 @@
     syncLightHelpers();
   }
 
+  function useThreeCamera(camera) {
+    if (!camera || threeState.camera === camera) return;
+    threeState.camera = camera;
+  }
+
   function applyThreeCameraSnapshot(renderSnapshot) {
     const cam = renderSnapshot?.camera || {};
     const diag = renderSnapshot?.diagnostics || {};
@@ -644,30 +672,70 @@
     if (bounds && Number.isFinite(bounds.l) && Number.isFinite(bounds.r) && Number.isFinite(bounds.t) && Number.isFinite(bounds.b)) {
       left = bounds.l; right = bounds.r; top = bounds.t; bottom = bounds.b;
     } else {
-      const cx = Number.isFinite(cam.x) ? cam.x : (Number.isFinite(cam.centerX) ? cam.centerX : width * 0.5);
-      const cy = Number.isFinite(cam.y) ? cam.y : (Number.isFinite(cam.centerY) ? cam.centerY : height * 0.5);
+      const cxFallback = Number.isFinite(cam.x) ? cam.x : (Number.isFinite(cam.centerX) ? cam.centerX : width * 0.5);
+      const cyFallback = Number.isFinite(cam.y) ? cam.y : (Number.isFinite(cam.centerY) ? cam.centerY : height * 0.5);
       const zoom = Math.max(0.001, Number(cam.zoom) || 1);
       const halfW = (width * 0.5) / zoom;
       const halfH = (height * 0.5) / zoom;
-      left = cx - halfW;
-      right = cx + halfW;
-      top = cy - halfH;
-      bottom = cy + halfH;
+      left = cxFallback - halfW;
+      right = cxFallback + halfW;
+      top = cyFallback - halfH;
+      bottom = cyFallback + halfH;
     }
-    threeState.threeCameraModel = "absolute_bounds";
-    threeState.cameraSnapshotCenter = { x: Number.isFinite(cam.centerX) ? cam.centerX : (Number.isFinite(cam.x) ? cam.x : 0), y: Number.isFinite(cam.centerY) ? cam.centerY : (Number.isFinite(cam.y) ? cam.y : 0) };
+    const cx = (left + right) * 0.5;
+    const cy = (top + bottom) * 0.5;
+    const worldBounds = { left, right, top, bottom, cx, cy };
+    threeState.worldCameraBounds = worldBounds;
+    threeState.cameraSnapshotCenter = { x: Number.isFinite(cam.centerX) ? cam.centerX : (Number.isFinite(cam.x) ? cam.x : cx), y: Number.isFinite(cam.centerY) ? cam.centerY : (Number.isFinite(cam.y) ? cam.y : cy) };
     threeState.cameraSnapshotZoom = Math.max(0.001, Number(cam.zoom) || 1);
     threeState.cameraSnapshotWorldBounds = bounds && Number.isFinite(bounds.l) ? { l: bounds.l, r: bounds.r, t: bounds.t, b: bounds.b } : null;
     threeState.worldBoundsSource = diag.worldBoundsSource || diag.cameraAvailability?.worldBoundsSource || "unknown";
-    threeState.camera.left = left;
-    threeState.camera.right = right;
-    threeState.camera.top = top;
-    threeState.camera.bottom = bottom;
-    const cx = (left + right) * 0.5;
-    const cy = (top + bottom) * 0.5;
-    threeState.camera.position.set(0, 0, 10);
-    threeState.cameraBounds = { left, right, top, bottom, cx, cy };
-    threeState.camera.updateProjectionMatrix();
+
+    const cameraModel = getThreeCameraModel();
+    if (cameraModel === "stage_normalized" && threeState.perspectiveCamera) {
+      const sourceWidth = Math.max(1, Math.abs(right - left));
+      const sourceHeight = Math.max(1, Math.abs(bottom - top));
+      const stageSize = getThreeStageSize();
+      const stageScale = stageSize / Math.max(sourceWidth, sourceHeight);
+      const stageWidth = sourceWidth * stageScale;
+      const stageHeight = sourceHeight * stageScale;
+      const stageBounds = { left: -stageWidth * 0.5, right: stageWidth * 0.5, top: stageHeight * 0.5, bottom: -stageHeight * 0.5, cx: 0, cy: 0 };
+      const aspect = width / Math.max(1, height);
+      const fov = THREE_STAGE_CAMERA_FOV;
+      const tan = Math.tan((fov * Math.PI / 180) * 0.5);
+      const fitHeightDistance = (stageHeight * 0.5) / Math.max(1e-6, tan);
+      const fitWidthDistance = (stageWidth * 0.5) / Math.max(1e-6, tan * aspect);
+      const cameraDistance = Math.max(fitHeightDistance, fitWidthDistance, stageSize) * 1.08;
+      useThreeCamera(threeState.perspectiveCamera);
+      threeState.perspectiveCamera.fov = fov;
+      threeState.perspectiveCamera.aspect = aspect;
+      threeState.perspectiveCamera.near = 0.1;
+      threeState.perspectiveCamera.far = Math.max(1000, cameraDistance + stageSize * 4);
+      threeState.perspectiveCamera.position.set(0, 0, cameraDistance);
+      threeState.perspectiveCamera.up.set(0, 1, 0);
+      threeState.perspectiveCamera.lookAt(0, 0, 0);
+      threeState.perspectiveCamera.updateProjectionMatrix();
+      threeState.threeCameraModel = "stage_normalized";
+      threeState.stageModelEnabled = true;
+      threeState.stageSettings = { size: stageSize, scale: stageScale, cameraDistance, renderBounds: stageBounds };
+      threeState.cameraBounds = stageBounds;
+    } else {
+      useThreeCamera(threeState.orthographicCamera || threeState.camera);
+      if (threeState.camera?.isOrthographicCamera) {
+        threeState.camera.left = left;
+        threeState.camera.right = right;
+        threeState.camera.top = top;
+        threeState.camera.bottom = bottom;
+        threeState.camera.near = 0.1;
+        threeState.camera.far = 1000;
+        threeState.camera.position.set(0, 0, 10);
+        threeState.camera.updateProjectionMatrix();
+      }
+      threeState.threeCameraModel = "absolute_bounds";
+      threeState.stageModelEnabled = false;
+      threeState.stageSettings = { size: THREE_STAGE_SIZE_DEFAULT, scale: 1, cameraDistance: null, renderBounds: null };
+      threeState.cameraBounds = worldBounds;
+    }
     syncDebugMarkerPosition();
     syncThreeLights();
   }
@@ -703,7 +771,7 @@
 
   function updateFirstMeteorDiagnostics() {
     const first = threeState.firstMeteorSample;
-    const bounds = threeState.cameraBounds;
+    const bounds = threeState.worldCameraBounds || threeState.cameraBounds;
     const viewport = { width: Number(threeState.renderer?.domElement?.width || 0), height: Number(threeState.renderer?.domElement?.height || 0) };
     if (!first || !bounds) {
       threeState.firstMeteorInCameraBounds = null;
@@ -717,7 +785,8 @@
     threeState.firstMeteorInCameraBounds = inBounds;
     threeState.firstMeteorScreenEstimate = { x: sx, y: sy };
     if (threeState.firstMeteorMarker) {
-      threeState.firstMeteorMarker.position.set(first.x, first.y, 2);
+      const markerPos = first.renderedPosition || applyRenderSpaceToVector(first.x, first.y, 2);
+      threeState.firstMeteorMarker.position.set(markerPos.x, markerPos.y, 2);
       threeState.firstMeteorMarker.visible = !!threeState.debugMarkerEnabled;
     }
   }
@@ -997,6 +1066,70 @@
       window.HC.Session.debugConfig.visual.meteorGlbVisualScale = scale;
     }
     return scale;
+  }
+
+
+
+  function clampMeteorGlbDepthScale(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return METEOR_GLB_DEPTH_SCALE_DEFAULT;
+    return Math.max(METEOR_GLB_DEPTH_SCALE_MIN, Math.min(METEOR_GLB_DEPTH_SCALE_MAX, n));
+  }
+
+  function getMeteorGlbDepthScale() {
+    const debugValue = window.HC?.WorldRendererDebug?.meteorGlbDepthScale;
+    const sessionValue = window.HC?.Session?.debugConfig?.visual?.meteorGlbDepthScale;
+    return clampMeteorGlbDepthScale(debugValue ?? sessionValue ?? METEOR_GLB_DEPTH_SCALE_DEFAULT);
+  }
+
+  function setMeteorGlbDepthScale(value) {
+    const scale = clampMeteorGlbDepthScale(value);
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.meteorGlbDepthScale = scale;
+    if (window.HC.Session?.debugConfig?.visual) {
+      window.HC.Session.debugConfig.visual.meteorGlbDepthScale = scale;
+    }
+    return scale;
+  }
+
+  function isThreeCameraModel(value) { return THREE_CAMERA_MODELS.includes(String(value)); }
+
+  function getThreeCameraModel() {
+    const debugValue = window.HC?.WorldRendererDebug?.cameraModel;
+    const sessionValue = window.HC?.Session?.debugConfig?.visual?.cameraModel;
+    const model = String(debugValue || sessionValue || "absolute_bounds");
+    return isThreeCameraModel(model) ? model : "absolute_bounds";
+  }
+
+  function setThreeCameraModel(value) {
+    const model = isThreeCameraModel(value) ? String(value) : "absolute_bounds";
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.cameraModel = model;
+    if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.cameraModel = model;
+    return model;
+  }
+
+  function getThreeStageSize() {
+    const debugValue = window.HC?.WorldRendererDebug?.stageSize;
+    const sessionValue = window.HC?.Session?.debugConfig?.visual?.stageSize;
+    return clampNumber(debugValue ?? sessionValue, THREE_STAGE_SIZE_DEFAULT, THREE_STAGE_SIZE_MIN, THREE_STAGE_SIZE_MAX);
+  }
+
+  function applyRenderSpaceToVector(sourceX, sourceY, z = 0) {
+    if (!threeState.stageModelEnabled) return { x: Number(sourceX) || 0, y: Number(sourceY) || 0, z };
+    const bounds = threeState.worldCameraBounds || threeState.cameraBounds || { cx: 0, cy: 0 };
+    const stageScale = Number(threeState.stageSettings?.scale) || 1;
+    return {
+      x: ((Number(sourceX) || 0) - (Number(bounds.cx) || 0)) * stageScale,
+      y: ((Number(bounds.cy) || 0) - (Number(sourceY) || 0)) * stageScale,
+      z,
+    };
+  }
+
+  function applyRenderSpaceToRadius(radius) {
+    return Math.max(0.0001, (Number(radius) || 0) * (threeState.stageModelEnabled ? (Number(threeState.stageSettings?.scale) || 1) : 1));
   }
 
   function getMeteorGlbCacheStats() {
@@ -1353,6 +1486,14 @@
       box.getBoundingSphere(sphere);
       root.position.sub(sphere.center);
       root.userData.hcUnitRadius = Math.max(0.0001, sphere.radius);
+      const centeredBox = new THREE.Box3().setFromObject(root);
+      const centeredSize = new THREE.Vector3();
+      centeredBox.getSize(centeredSize);
+      root.userData.hcLocalBoundingBox = {
+        min: { x: centeredBox.min.x, y: centeredBox.min.y, z: centeredBox.min.z },
+        max: { x: centeredBox.max.x, y: centeredBox.max.y, z: centeredBox.max.z },
+      };
+      root.userData.hcLocalSize = { x: centeredSize.x, y: centeredSize.y, z: centeredSize.z };
     } else {
       root.userData.hcUnitRadius = 1;
     }
@@ -1631,6 +1772,8 @@
   function cloneMeteorGlbTemplate(template) {
     const clone = template.clone(true);
     clone.userData.hcUnitRadius = template.userData?.hcUnitRadius || 1;
+    clone.userData.hcLocalBoundingBox = template.userData?.hcLocalBoundingBox || null;
+    clone.userData.hcLocalSize = template.userData?.hcLocalSize || null;
     clone.traverse((object) => {
       if (!object.isMesh) return;
       if (Array.isArray(object.material)) object.material = object.material.map((material) => material?.clone ? material.clone() : material);
@@ -1821,7 +1964,9 @@
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
       renderer.setClearColor(0x071126, 1);
       const scene = new THREE.Scene();
-      const camera = new THREE.OrthographicCamera(0, 1, 0, 1, 0.1, 1000);
+      const orthographicCamera = new THREE.OrthographicCamera(0, 1, 0, 1, 0.1, 1000);
+      const perspectiveCamera = THREE.PerspectiveCamera ? new THREE.PerspectiveCamera(THREE_STAGE_CAMERA_FOV, 1, 0.1, 1000) : null;
+      const camera = orthographicCamera;
       const meteorGroup = new THREE.Group();
       const asteroidGroup = new THREE.Group();
       const lightsGroup = createThreeLights(THREE);
@@ -1832,7 +1977,7 @@
       scene.background = new THREE.Color(0x05070a);
       canvas.style.display = "block";
       canvas.style.visibility = "visible";
-      Object.assign(threeState, { canvas, renderer, scene, camera, meteorGroup, asteroidGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16) });
+      Object.assign(threeState, { canvas, renderer, scene, camera, orthographicCamera, perspectiveCamera, meteorGroup, asteroidGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16) });
       applyRendererPbrSettings();
       syncThreeLights();
       createDebugMarker(THREE);
@@ -1853,6 +1998,8 @@
     threeState.meteorGroupChildrenCount = 0;
     const rotationNowMs = getMeteorRotationNowMs(renderSnapshot, nowMs);
     const meteorGlbVisualScale = getMeteorGlbVisualScale();
+    const meteorGlbDepthScale = getMeteorGlbDepthScale();
+    threeState.glbScaleWarning = null;
     const seen = new Set();
     for (let i = 0; i < meteors.length; i += 1) {
       const m = meteors[i] || {};
@@ -1883,37 +2030,54 @@
       }
       const sourceRadius = Number(m.radius ?? m.r ?? m.size) || 2;
       const radius = Math.max(THREE_METEOR_MIN_RADIUS, sourceRadius * THREE_METEOR_RADIUS_SCALE);
+      const renderRadius = applyRenderSpaceToRadius(radius);
+      const renderPosition = applyRenderSpaceToVector(x, y, 0);
       const hasGlbVisual = updateMeteorGlbVisual(THREE, visual);
-      visual.root.position.set(x, y, 0);
+      visual.root.position.set(renderPosition.x, renderPosition.y, renderPosition.z);
       visual.root.renderOrder = 1000;
       visual.root.visible = !m.flags?.dead;
-      visual.fallback.scale.set(radius, radius, 1);
+      visual.fallback.scale.set(renderRadius, renderRadius, 1);
       visual.fallback.material.opacity = Number.isFinite(m.alpha) ? Math.max(0.9, m.alpha) : 1;
       if (visual.glb) {
         const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
-        const glbScale = ((radius * METEOR_GLB_RADIUS_SCALE) / unitRadius) * meteorGlbVisualScale;
-        visual.glb.scale.setScalar(glbScale);
+        const glbScale = ((renderRadius * METEOR_GLB_RADIUS_SCALE) / unitRadius) * meteorGlbVisualScale;
+        visual.glb.scale.set(glbScale, glbScale, glbScale * meteorGlbDepthScale);
         applyMeteorGlbRotation(visual, rotationNowMs);
         visual.root.userData.rotationPhase = visual.rotationState?.rotationPhase || 0;
         visual.glb.visible = hasGlbVisual && visual.root.visible;
       }
       if (i === 0) {
+        const glbDiagnostics = buildGlbScaleDiagnostics(THREE, visual.glb);
+        if (glbDiagnostics?.warning) threeState.glbScaleWarning = glbDiagnostics.warning;
         threeState.firstMeteorSample = {
           x: Number(m.x) || 0,
           y: Number(m.y) || 0,
           radius: sourceRadius,
           color: m.color || m.colorKey || null,
           alpha: Number.isFinite(m.alpha) ? m.alpha : null,
+          renderedPosition: { x: visual.root.position.x, y: visual.root.position.y, z: visual.root.position.z },
         };
         threeState.firstMeshSample = {
           position: { x: visual.root.position.x, y: visual.root.position.y, z: visual.root.position.z },
-          scale: { x: visual.fallback.scale.x, y: visual.fallback.scale.y, z: visual.fallback.scale.z },
+          sourcePosition: { x, y, z: 0 },
+          fallbackScale: { x: visual.fallback.scale.x, y: visual.fallback.scale.y, z: visual.fallback.scale.z },
+          scale: glbDiagnostics?.scale || { x: visual.fallback.scale.x, y: visual.fallback.scale.y, z: visual.fallback.scale.z },
           visible: visual.root.visible,
           glbAssetUrl: visual.assetUrl || null,
           glbVariantIndex: visual.variantIndex,
           glbVisible: !!visual.glb?.visible,
           glbScale: visual.glb ? visual.glb.scale.x : null,
           meteorGlbVisualScale,
+          glbDepthScale: meteorGlbDepthScale,
+          scaleUniform: glbDiagnostics?.scaleUniform ?? false,
+          zScaleRatio: glbDiagnostics?.zScaleRatio ?? null,
+          localBoundingBox: glbDiagnostics?.localBoundingBox || null,
+          localSize: glbDiagnostics?.localSize || null,
+          worldBoundingBox: glbDiagnostics?.worldBoundingBox || null,
+          worldSize: glbDiagnostics?.worldSize || null,
+          objectDepthVisibleEstimate: glbDiagnostics?.objectDepthVisibleEstimate ?? null,
+          warning: glbDiagnostics?.warning || null,
+          glbStatus: visual.glbStatus,
           redMeteorTextureUrl: visual.redTextureAppliedUrl || visual.redTextureAssignment?.url || null,
           redMeteorTextureName: visual.redTextureAssignment?.path?.split("/").pop() || null,
           redMeteorTextureStatus: visual.redTextureStatus || null,
@@ -1952,8 +2116,10 @@
       }
       const sourceRadius = Number(a.radius ?? a.r ?? a.scale) || THREE_ASTEROID_MIN_RADIUS;
       const radius = Math.max(THREE_ASTEROID_MIN_RADIUS, sourceRadius);
-      mesh.position.set(Number(a.x) || 0, Number(a.y) || 0, -0.1);
-      mesh.scale.set(radius, radius, 1);
+      const renderRadius = applyRenderSpaceToRadius(radius);
+      const renderPosition = applyRenderSpaceToVector(Number(a.x) || 0, Number(a.y) || 0, -0.1);
+      mesh.position.set(renderPosition.x, renderPosition.y, renderPosition.z);
+      mesh.scale.set(renderRadius, renderRadius, 1);
       mesh.rotation.z = Number.isFinite(a.angle) ? a.angle : 0;
       const collapseOpacity = a.visual?.isCollapsing || a.state === "collapsing" ? 0.86 : 1;
       mesh.material.opacity = Number.isFinite(a.alpha) ? Math.max(0.25, Math.min(1, a.alpha)) : collapseOpacity;
@@ -1990,7 +2156,7 @@
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
     if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, asteroidGroup: null, lightsGroup: null, ambientLight: null, cornerLights: [], debugKeyLight: null, debugRimLight: null, forceHeadlight: null, debugSpotLight: null, debugSpotLightTarget: null, lightHelpersGroup: null, lightHelpers: [], lightsPositions: [], meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, lightsGroup: null, ambientLight: null, cornerLights: [], debugKeyLight: null, debugRimLight: null, forceHeadlight: null, debugSpotLight: null, debugSpotLightTarget: null, lightHelpersGroup: null, lightHelpers: [], lightsPositions: [], meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -2086,6 +2252,55 @@
   function vectorToDiagnostic(position) {
     if (!position) return null;
     return { x: roundDiagnosticNumber(position.x), y: roundDiagnosticNumber(position.y), z: roundDiagnosticNumber(position.z) };
+  }
+
+
+  function boundsToDiagnostic(bounds) {
+    if (!bounds) return null;
+    return {
+      min: bounds.min ? vectorToDiagnostic(bounds.min) : (bounds.min && bounds.min.x != null ? bounds.min : null),
+      max: bounds.max ? vectorToDiagnostic(bounds.max) : (bounds.max && bounds.max.x != null ? bounds.max : null),
+    };
+  }
+
+  function sizeToDiagnostic(size) {
+    if (!size) return null;
+    return { x: roundDiagnosticNumber(size.x), y: roundDiagnosticNumber(size.y), z: roundDiagnosticNumber(size.z) };
+  }
+
+  function getObjectWorldBoundsDiagnostic(THREE, object) {
+    if (!THREE?.Box3 || !object) return null;
+    object.updateMatrixWorld?.(true);
+    const box = new THREE.Box3().setFromObject(object);
+    if (box.isEmpty()) return null;
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    return { box: boundsToDiagnostic(box), size: sizeToDiagnostic(size) };
+  }
+
+  function buildGlbScaleDiagnostics(THREE, glb) {
+    if (!glb) return null;
+    const scale = { x: glb.scale.x, y: glb.scale.y, z: glb.scale.z };
+    const zScaleRatio = Math.abs(scale.x) > 1e-6 ? scale.z / scale.x : null;
+    const scaleUniform = Math.abs(scale.x - scale.y) < 1e-4 && Math.abs(scale.x - scale.z) < 1e-4;
+    const world = getObjectWorldBoundsDiagnostic(THREE, glb);
+    const localSize = glb.userData?.hcLocalSize || null;
+    const worldSize = world?.size || null;
+    const objectDepthVisibleEstimate = worldSize && Math.max(Math.abs(worldSize.x || 0), Math.abs(worldSize.y || 0)) > 1e-6
+      ? roundDiagnosticNumber(Math.abs(worldSize.z || 0) / Math.max(Math.abs(worldSize.x || 0), Math.abs(worldSize.y || 0)))
+      : null;
+    const warning = zScaleRatio != null && zScaleRatio < 0.25 ? "GLB appears flattened in Z; lighting may not reveal 3D facets." : null;
+    return {
+      scale: { x: roundDiagnosticNumber(scale.x), y: roundDiagnosticNumber(scale.y), z: roundDiagnosticNumber(scale.z) },
+      scaleUniform,
+      zScaleRatio: roundDiagnosticNumber(zScaleRatio),
+      localBoundingBox: glb.userData?.hcLocalBoundingBox || null,
+      localSize: localSize ? sizeToDiagnostic(localSize) : null,
+      worldBoundingBox: world?.box || null,
+      worldSize,
+      objectDepthVisibleEstimate,
+      warning,
+    };
   }
 
   function getFirstActiveGlbLightSample() {
@@ -2199,7 +2414,10 @@
       threeMeteorMinRadius: threeState.threeMeteorMinRadius,
       meteorGlbAssets: METEOR_GLB_ASSETS,
       meteorGlbVisualScale: getMeteorGlbVisualScale(),
+      meteorGlbDepthScale: getMeteorGlbDepthScale(),
       meteorGlbScaleLiveControl: true,
+      meteorGlbDepthScaleLiveControl: true,
+      glbScaleWarning: threeState.glbScaleWarning,
       threeLightsLiveControl: true,
       threeMaterialDebugLiveControl: true,
       threeMaterialSettings: Object.assign({}, threeState.materialSettings || getThreeMaterialSettings()),
@@ -2247,6 +2465,7 @@
       firstMeteorMesh: threeState.firstMeshSample,
       threeDebugMarker: { enabled: !!threeState.debugMarkerEnabled, visible: !!threeState.debugMarker?.visible },
       cameraBounds: threeState.cameraBounds,
+      worldCameraBounds: threeState.worldCameraBounds,
       rendererSize: threeState.rendererSize,
       sceneChildrenCount: threeState.scene?.children?.length || 0,
       meteorGroupChildrenCount: threeState.meteorGroupChildrenCount,
@@ -2256,6 +2475,9 @@
       cameraSnapshotWorldBounds: threeState.cameraSnapshotWorldBounds,
       worldBoundsSource: threeState.worldBoundsSource,
       threeCameraModel: threeState.threeCameraModel,
+      cameraModel: threeState.threeCameraModel,
+      stageModelEnabled: !!threeState.stageModelEnabled,
+      stageSettings: Object.assign({}, threeState.stageSettings || {}),
       firstMeteorScreenEstimate: threeState.firstMeteorScreenEstimate,
       firstMeteorInCameraBounds: threeState.firstMeteorInCameraBounds,
     };
@@ -2263,5 +2485,5 @@
 
   function destroy() { destroyThree(); initialized = false; resetDiagnostics(); }
 
-  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getThreeLightsSettings, setThreeLightsDebugSetting, getThreeMaterialSettings, setThreeMaterialDebugSetting };
+  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getMeteorGlbDepthScale, setMeteorGlbDepthScale, getThreeCameraModel, setThreeCameraModel, getThreeLightsSettings, setThreeLightsDebugSetting, getThreeMaterialSettings, setThreeMaterialDebugSetting };
 })();
