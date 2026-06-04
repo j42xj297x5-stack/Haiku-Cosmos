@@ -1,0 +1,1 @@
+cmd /k "cd /d C:\Users\Legio\Documents\GitHub\Haiku-Cosmos && echo KATALOG OK && echo. && node -v && npm.cmd -v && echo. && npm.cmd run dev"
