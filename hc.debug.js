@@ -254,7 +254,7 @@
           envIntensity: Number.isFinite(Number(materialCfg.envIntensity)) ? Math.max(0, Math.min(1.5, Number(materialCfg.envIntensity))) : 0.38,
           toneExposure: Number.isFinite(Number(materialCfg.toneExposure)) ? Math.max(0.5, Math.min(1.8, Number(materialCfg.toneExposure))) : 1.0,
           forceAuditLog: materialCfg.forceAuditLog === true,
-          materialMode: ["imported", "standard_test", "normal_debug"].includes(String(materialCfg.materialMode)) ? String(materialCfg.materialMode) : "imported",
+          materialMode: ["imported", "standard_test", "normal_debug", "clay_lit"].includes(String(materialCfg.materialMode)) ? String(materialCfg.materialMode) : "imported",
         },
         prgFrameProbe: {
           enabled: prgProbePartial.enabled === true,
