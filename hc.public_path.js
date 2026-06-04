@@ -1,7 +1,13 @@
 export function publicPath(path) {
-  const cleanBase = String(import.meta.env.BASE_URL || "/").replace(/\/+$/, "/");
+  const envBase = import.meta.env && import.meta.env.BASE_URL;
+  const cleanBase = String(envBase || "/").replace(/\/+$/, "/");
   const cleanPath = String(path || "").replace(/^\/+/, "");
-  return `${cleanBase}${cleanPath}`;
+  const baseSegment = cleanBase.replace(/^\/+|\/+$/g, "");
+  const hasDuplicateBase = baseSegment && (cleanPath === baseSegment || cleanPath.startsWith(`${baseSegment}/`));
+  const pathWithoutDuplicateBase = hasDuplicateBase
+    ? cleanPath.slice(baseSegment.length).replace(/^\/+/, "")
+    : cleanPath;
+  return `${cleanBase}${pathWithoutDuplicateBase}`;
 }
 
 export const publicAssetPath = publicPath;
