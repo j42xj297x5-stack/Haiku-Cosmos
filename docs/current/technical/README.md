@@ -22,7 +22,7 @@ audytów i synchronizacji dokumentacji z runtime.
 ## Status dokumentów
 
 - `WORLD_FUNCTION_MAP.md` — **ROBOCZY** (aktywna mapa techniczna orientacyjna; nie zastępuje pełnego audytu runtime)
-- `WORLD_RENDERING_MODEL.md` — **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** (audyt i plan migracji modelu renderingu świata pod adapter Three.js/WebGL z fallbackiem Canvas2D; obejmuje Etap 2.x: local Three ESM vendor/bridge, Etap 3: meteor render pass oraz Etap 3.1: visible meteor checkpoint + transparent 2D overlay composition)
+- `WORLD_RENDERING_MODEL.md` — **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** (audyt i plan migracji modelu renderingu świata pod adapter Three.js/WebGL z fallbackiem Canvas2D; obejmuje Etap 2.x: local Three ESM vendor/bridge, Etap 3: meteor render pass, Etap 3.1: visible meteor checkpoint + transparent 2D overlay composition oraz Etap 4: asteroid render pass)
 - `SEQUENCE_STATE_CONTRACT.md` — **ROBOCZY / KONTRAKT TECHNICZNY** (single source-of-truth sekwencji + zasady evidence timeline)
 - `IMPLEMENTATION_TRACKER.md` — **ROBOCZY** (tracker wdrożeń i obszarów do weryfikacji)
 - `LIVE_VALIDATION_PACK.md` — **ROBOCZY** (roboczy kontrakt walidacji runów i evidence)
@@ -52,3 +52,5 @@ audytów i synchronizacji dokumentacji z runtime.
 - 2026-05-17: `WORLD_RENDERING_MODEL.md` rozszerzono o status Etapu 2.75 (repo-controlled delivery point dla Three.js dependency, diagnostyka `threeDependencySource`, manualny fallback provisioning local vendor).
 
 - 2026-05-17: WORLD_RENDERING_MODEL Etap 3 wdrożony — minimalny pass meteorów w Three.js działa na bazie snapshotu, przy zachowaniu fallbacku canvas2d.
+
+- 2026-06-04: WORLD_RENDERING_MODEL Etap 4 wdrożony — pass asteroidów w Three.js działa na bazie `renderSnapshot.world.asteroids`, z cache meshów, diagnostyką liczników i bez zmian mechaniki.

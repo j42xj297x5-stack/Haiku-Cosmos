@@ -1,10 +1,12 @@
-// HC world renderer adapter facade (Stage 3 - minimal Three.js meteor pass)
+// HC world renderer adapter facade (Stage 4 - Three.js meteor + asteroid passes)
 (function () {
   window.HC = window.HC || {};
 
   const ALLOWED_MODES = { canvas2d: true, three: true };
   const THREE_METEOR_RADIUS_SCALE = 1.8;
   const THREE_METEOR_MIN_RADIUS = 2.4;
+  const THREE_ASTEROID_MIN_RADIUS = 4.0;
+  const THREE_ASTEROID_DEFAULT_SIDES = 7;
   const THREE_DEBUG_MARKER_ENABLED = true;
   const THREE_DEBUG_MARKER_SIZE = 12;
   let requestedMode = "canvas2d";
@@ -30,13 +32,20 @@
     renderCalls: 0,
     resizeCalls: 0,
     meteorGroup: null,
+    asteroidGroup: null,
     meteorGeometry: null,
+    asteroidGeometries: new Map(),
     meteorMaterials: new Map(),
+    asteroidMaterials: new Map(),
     meteorMeshes: new Map(),
+    asteroidMeshes: new Map(),
     threeMeteorRenderEnabled: true,
+    threeAsteroidRenderEnabled: true,
     threeMeteorCount: 0,
+    threeAsteroidCount: 0,
     threeMeteorLastError: null,
-    threeObjectRenderPasses: ["meteors"],
+    threeAsteroidLastError: null,
+    threeObjectRenderPasses: ["meteors", "asteroids"],
     debugMarker: null,
     debugMarkerEnabled: THREE_DEBUG_MARKER_ENABLED,
     threeMeteorRadiusScale: THREE_METEOR_RADIUS_SCALE,
@@ -51,6 +60,7 @@
     cameraSnapshotWorldBounds: null,
     worldBoundsSource: "unknown",
     meteorGroupChildrenCount: 0,
+    asteroidGroupChildrenCount: 0,
     firstMeteorScreenEstimate: null,
     firstMeteorInCameraBounds: null,
     firstMeteorMarker: null,
@@ -69,7 +79,9 @@
     threeState.renderCalls = 0;
     threeState.resizeCalls = 0;
     threeState.threeMeteorCount = 0;
+    threeState.threeAsteroidCount = 0;
     threeState.threeMeteorLastError = null;
+    threeState.threeAsteroidLastError = null;
     threeDependencySource = "unknown";
     threeState.cameraSnapshotCenter = null;
     threeState.cameraSnapshotZoom = null;
@@ -78,6 +90,7 @@
     threeState.firstMeteorScreenEstimate = null;
     threeState.firstMeteorInCameraBounds = null;
     threeState.meteorGroupChildrenCount = 0;
+    threeState.asteroidGroupChildrenCount = 0;
   }
 
   function setMode(nextMode) {
@@ -285,6 +298,40 @@
     return mat;
   }
 
+  function sanitizeAsteroidSides(value) {
+    const n = Math.round(Number(value) || THREE_ASTEROID_DEFAULT_SIDES);
+    return Math.max(5, Math.min(12, n));
+  }
+
+  function getAsteroidGeometry(THREE, sides) {
+    const safeSides = sanitizeAsteroidSides(sides);
+    const existing = threeState.asteroidGeometries.get(safeSides);
+    if (existing) return existing;
+    const geometry = new THREE.CircleGeometry(1, safeSides);
+    threeState.asteroidGeometries.set(safeSides, geometry);
+    return geometry;
+  }
+
+  function getAsteroidMaterial(THREE, asteroid) {
+    const grayLight = Math.round(Math.max(28, Math.min(74, Number(asteroid?.grayLight) || 52)));
+    const colorKey = asteroid?.colorKey ? String(asteroid.colorKey).toLowerCase() : "neutral";
+    const key = `${colorKey}:${grayLight}`;
+    const existing = threeState.asteroidMaterials.get(key);
+    if (existing) return existing;
+    const channel = Math.round((grayLight / 100) * 255);
+    const color = (channel << 16) | (channel << 8) | channel;
+    const mat = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 1.0,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    });
+    threeState.asteroidMaterials.set(key, mat);
+    return mat;
+  }
+
   function initThree() {
     if (threeState.initialized) return true;
     const THREE = detectThreeDependency() || window.HC_THREE || window.THREE;
@@ -296,11 +343,13 @@
       const scene = new THREE.Scene();
       const camera = new THREE.OrthographicCamera(0, 1, 0, 1, 0.1, 1000);
       const meteorGroup = new THREE.Group();
+      const asteroidGroup = new THREE.Group();
+      scene.add(asteroidGroup);
       scene.add(meteorGroup);
       scene.background = new THREE.Color(0x05070a);
       canvas.style.display = "block";
       canvas.style.visibility = "visible";
-      Object.assign(threeState, { canvas, renderer, scene, camera, meteorGroup, meteorGeometry: new THREE.CircleGeometry(1, 16) });
+      Object.assign(threeState, { canvas, renderer, scene, camera, meteorGroup, asteroidGroup, meteorGeometry: new THREE.CircleGeometry(1, 16) });
       createDebugMarker(THREE);
       createFirstMeteorMarker(THREE);
       threeState.initialized = true;
@@ -364,17 +413,62 @@
     updateFirstMeteorDiagnostics();
   }
 
+  function syncAsteroidPass(renderSnapshot) {
+    const THREE = window.HC_THREE || window.THREE;
+    const asteroids = Array.isArray(renderSnapshot?.world?.asteroids) ? renderSnapshot.world.asteroids : [];
+    threeState.threeAsteroidCount = asteroids.length;
+    threeState.asteroidGroupChildrenCount = 0;
+    const seen = new Set();
+    for (let i = 0; i < asteroids.length; i += 1) {
+      const a = asteroids[i] || {};
+      const key = String(a.renderKey || a.id || `asteroid:${i}:${Math.round(a.x||0)}:${Math.round(a.y||0)}`);
+      seen.add(key);
+      let mesh = threeState.asteroidMeshes.get(key);
+      const geometry = getAsteroidGeometry(THREE, a.sides);
+      if (!mesh) {
+        mesh = new THREE.Mesh(geometry, getAsteroidMaterial(THREE, a));
+        mesh.frustumCulled = false;
+        threeState.asteroidGroup.add(mesh);
+        threeState.asteroidMeshes.set(key, mesh);
+      } else {
+        mesh.geometry = geometry;
+        mesh.material = getAsteroidMaterial(THREE, a);
+      }
+      const sourceRadius = Number(a.radius ?? a.r ?? a.scale) || THREE_ASTEROID_MIN_RADIUS;
+      const radius = Math.max(THREE_ASTEROID_MIN_RADIUS, sourceRadius);
+      mesh.position.set(Number(a.x) || 0, Number(a.y) || 0, -0.1);
+      mesh.scale.set(radius, radius, 1);
+      mesh.rotation.z = Number.isFinite(a.angle) ? a.angle : 0;
+      const collapseOpacity = a.visual?.isCollapsing || a.state === "collapsing" ? 0.86 : 1;
+      mesh.material.opacity = Number.isFinite(a.alpha) ? Math.max(0.25, Math.min(1, a.alpha)) : collapseOpacity;
+      mesh.renderOrder = 900;
+      mesh.visible = !a.flags?.dead && !a.visual?.absorbingIntoStarId;
+    }
+    for (const [key, mesh] of threeState.asteroidMeshes.entries()) {
+      if (seen.has(key)) continue;
+      threeState.asteroidGroup?.remove(mesh);
+      threeState.asteroidMeshes.delete(key);
+    }
+    threeState.asteroidGroupChildrenCount = threeState.asteroidGroup?.children?.length || 0;
+  }
+
   function destroyThree() {
     if (threeState.renderer?.dispose) threeState.renderer.dispose();
     threeState.meteorMeshes.forEach((mesh) => { threeState.meteorGroup?.remove(mesh); });
     threeState.meteorMeshes.clear();
+    threeState.asteroidMeshes.forEach((mesh) => { threeState.asteroidGroup?.remove(mesh); });
+    threeState.asteroidMeshes.clear();
     threeState.meteorMaterials.forEach((mat) => mat?.dispose?.());
     threeState.meteorMaterials.clear();
+    threeState.asteroidMaterials.forEach((mat) => mat?.dispose?.());
+    threeState.asteroidMaterials.clear();
+    threeState.asteroidGeometries.forEach((geometry) => geometry?.dispose?.());
+    threeState.asteroidGeometries.clear();
     threeState.meteorGeometry?.dispose?.();
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
     if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, asteroidGroup: null, meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -393,6 +487,13 @@
         } catch (err) {
           threeState.threeMeteorLastError = err?.message || String(err);
           threeState.threeMeteorCount = 0;
+        }
+        try {
+          if (threeState.threeAsteroidRenderEnabled) syncAsteroidPass(renderSnapshot || {});
+          threeState.threeAsteroidLastError = null;
+        } catch (err) {
+          threeState.threeAsteroidLastError = err?.message || String(err);
+          threeState.threeAsteroidCount = 0;
         }
         threeState.renderCalls += 1;
         threeState.rendererSize = {
@@ -468,7 +569,8 @@
       canvasLayerMode, layerProbe,
       threeRenderCalls: threeState.renderCalls, threeResizeCalls: threeState.resizeCalls, threeSceneReady: !!threeState.scene, threeCameraReady: !!threeState.camera, threeRendererReady: !!threeState.renderer,
       threeMeteorRenderEnabled: !!threeState.threeMeteorRenderEnabled, threeMeteorCount: threeState.threeMeteorCount, threeMeteorMeshes: threeState.meteorMeshes.size,
-      threeMeteorLastError: threeState.threeMeteorLastError, threeObjectRenderPasses: threeState.threeObjectRenderPasses.slice(),
+      threeAsteroidRenderEnabled: !!threeState.threeAsteroidRenderEnabled, threeAsteroidCount: threeState.threeAsteroidCount, threeAsteroidMeshes: threeState.asteroidMeshes.size, asteroidMeshCount: threeState.asteroidMeshes.size,
+      threeMeteorLastError: threeState.threeMeteorLastError, threeAsteroidLastError: threeState.threeAsteroidLastError, threeObjectRenderPasses: threeState.threeObjectRenderPasses.slice(),
       threeMeteorRadiusScale: threeState.threeMeteorRadiusScale,
       threeMeteorMinRadius: threeState.threeMeteorMinRadius,
       firstMeteor: threeState.firstMeteorSample,
@@ -478,6 +580,7 @@
       rendererSize: threeState.rendererSize,
       sceneChildrenCount: threeState.scene?.children?.length || 0,
       meteorGroupChildrenCount: threeState.meteorGroupChildrenCount,
+      asteroidGroupChildrenCount: threeState.asteroidGroupChildrenCount,
       cameraSnapshotCenter: threeState.cameraSnapshotCenter,
       cameraSnapshotZoom: threeState.cameraSnapshotZoom,
       cameraSnapshotWorldBounds: threeState.cameraSnapshotWorldBounds,
