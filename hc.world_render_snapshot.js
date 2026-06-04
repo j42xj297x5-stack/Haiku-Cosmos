@@ -10,13 +10,29 @@
     return Array.isArray(value) ? value : [];
   }
 
+  let nextRenderBodyId = 1;
+  const renderBodyIds = typeof WeakMap === "function" ? new WeakMap() : null;
+
+  function getStableRenderBodyId(body, fallbackKind) {
+    if (!body || typeof body !== "object") return null;
+    if (body.renderKey || body.id || body._id) return body.renderKey || body.id || body._id;
+    if (!renderBodyIds) return null;
+    let id = renderBodyIds.get(body);
+    if (!id) {
+      id = `${fallbackKind}:visual:${nextRenderBodyId++}`;
+      renderBodyIds.set(body, id);
+    }
+    return id;
+  }
+
   function mapBody(body, fallbackKind, index) {
     if (!body || typeof body !== "object") return null;
     const radius = toNumber(body.r, toNumber(body.radius, undefined));
     const scale = toNumber(body.scale, undefined);
+    const stableRenderKey = getStableRenderBodyId(body, fallbackKind) || `${fallbackKind}:snapshot:${index}`;
     return {
-      renderKey: body.renderKey || body.id || body._id || `${fallbackKind}:${index}:${Math.round(toNumber(body.x, 0))}:${Math.round(toNumber(body.y, 0))}`,
-      id: body.id || body._id || null,
+      renderKey: stableRenderKey,
+      id: body.id || body._id || stableRenderKey,
       kind: body.kind || body.type || fallbackKind,
       x: toNumber(body.x, 0),
       y: toNumber(body.y, 0),
