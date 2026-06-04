@@ -226,6 +226,7 @@
     const prgProbePartial = visualCfg.prgFrameProbe || {};
     const meteorGlbVisualScale = Number(visualCfg.meteorGlbVisualScale);
     const materialCfg = visualCfg.threeMaterials || {};
+    const lightsCfg = visualCfg.threeLights || {};
     return {
       enabled: isDebug,
       mode: isDebug ? "debug" : "normal",
@@ -256,6 +257,22 @@
           forceAuditLog: materialCfg.forceAuditLog === true,
           materialMode: ["imported", "standard_test", "normal_debug", "clay_lit", "diagnostic_unlit"].includes(String(materialCfg.materialMode)) ? String(materialCfg.materialMode) : "imported",
         },
+        threeLights: {
+          enabled: lightsCfg.enabled !== false,
+          pointIntensity: Number.isFinite(Number(lightsCfg.pointIntensity)) ? Math.max(0, Math.min(2.5, Number(lightsCfg.pointIntensity))) : 0.9,
+          distanceMultiplier: Number.isFinite(Number(lightsCfg.distanceMultiplier)) ? Math.max(0.25, Math.min(4.0, Number(lightsCfg.distanceMultiplier))) : 1.55,
+          decay: Number.isFinite(Number(lightsCfg.decay)) ? Math.max(0, Math.min(3.0, Number(lightsCfg.decay))) : 1.35,
+          zOffsetMultiplier: Number.isFinite(Number(lightsCfg.zOffsetMultiplier)) ? Math.max(0.05, Math.min(2.0, Number(lightsCfg.zOffsetMultiplier))) : 0.45,
+          ambientIntensity: Number.isFinite(Number(lightsCfg.ambientIntensity)) ? Math.max(0, Math.min(0.75, Number(lightsCfg.ambientIntensity))) : 0.24,
+          ambientIsolate: lightsCfg.ambientIsolate === true,
+          debugKeyLightEnabled: lightsCfg.debugKeyLightEnabled === true,
+          debugKeyLightIntensity: Number.isFinite(Number(lightsCfg.debugKeyLightIntensity)) ? Math.max(0, Math.min(5.0, Number(lightsCfg.debugKeyLightIntensity))) : 2.2,
+          debugRimLightEnabled: lightsCfg.debugRimLightEnabled !== false,
+          debugRimLightIntensity: Number.isFinite(Number(lightsCfg.debugRimLightIntensity)) ? Math.max(0, Math.min(2.5, Number(lightsCfg.debugRimLightIntensity))) : 0.65,
+          forceHeadlightEnabled: lightsCfg.forceHeadlightEnabled === true,
+          forceHeadlightIntensity: Number.isFinite(Number(lightsCfg.forceHeadlightIntensity)) ? Math.max(0, Math.min(8.0, Number(lightsCfg.forceHeadlightIntensity))) : 4.5,
+          showLightHelpers: lightsCfg.showLightHelpers === true,
+        },
         prgFrameProbe: {
           enabled: prgProbePartial.enabled === true,
           mode: typeof prgProbePartial.mode === "string" ? prgProbePartial.mode : defaultProbe.mode,
@@ -267,6 +284,158 @@
           showMetadata: prgProbePartial.showMetadata === true,
         },
       },
+    };
+  }
+
+
+  function cloneEvidenceValue(value) {
+    if (value == null) return value;
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch (_e) {
+      return null;
+    }
+  }
+
+  function pickThreeLightSetting(settings, key, fallback = null) {
+    const value = settings && Object.prototype.hasOwnProperty.call(settings, key) ? settings[key] : fallback;
+    return value == null ? fallback : value;
+  }
+
+  function buildThreeRendererEvidenceVisual() {
+    const getDiagnostics = window.HC?.WorldRenderer?.getDiagnostics;
+    const diagnostics = typeof getDiagnostics === "function" ? cloneEvidenceValue(getDiagnostics()) : null;
+    const fallbackLights = window.HC?.WorldRenderer?.getThreeLightsSettings?.() || window.HC?.WorldRendererDebug?.threeLights || null;
+    const fallbackMaterials = window.HC?.WorldRenderer?.getThreeMaterialSettings?.() || window.HC?.WorldRendererDebug?.materials || null;
+    const lights = diagnostics?.threeLights || fallbackLights || {};
+    const materials = diagnostics?.threeMaterialSettings || fallbackMaterials || {};
+    const materialOverride = diagnostics?.threeMaterialOverrideStatus || {};
+    const lightDiagnostics = diagnostics?.threeLightDiagnostics || null;
+    const helper = diagnostics?.threeLightHelpers || {};
+    const activeMaterialMode = materials.materialMode || materialOverride.currentMaterialMode || "imported";
+    const materialAuditEntries = Array.isArray(diagnostics?.glbMaterialAudit)
+      ? diagnostics.glbMaterialAudit.slice(-8).map((entry) => ({
+          asset: entry?.asset || null,
+          assetName: entry?.assetName || null,
+          meshCount: entry?.meshCount ?? null,
+          materialCount: entry?.materialCount ?? null,
+          importedPbrCount: entry?.importedPbrCount ?? null,
+          fallbackCount: entry?.fallbackCount ?? null,
+          lightReactiveCount: entry?.lightReactiveCount ?? null,
+          hasMaps: entry?.hasMaps === true,
+          hasNormalMaps: entry?.hasNormalMaps === true,
+          hasMetalness: entry?.hasMetalness === true,
+          materials: Array.isArray(entry?.materials) ? entry.materials.slice(0, 6).map((material) => ({
+            meshName: material?.meshName || null,
+            materialName: material?.name || null,
+            source: material?.source || null,
+            type: material?.type || null,
+            reactsToLight: material?.reactsToLight === true,
+            hasMaps: !!(material?.map || material?.metalnessMap || material?.roughnessMap || material?.emissiveMap || material?.aoMap),
+            hasNormalMap: material?.normalMap === true,
+            metalness: material?.metalness ?? null,
+            roughness: material?.roughness ?? null,
+          })) : [],
+        }))
+      : [];
+    return {
+      renderer: {
+        requested: diagnostics?.requestedMode || null,
+        effective: diagnostics?.effectiveMode || diagnostics?.mode || null,
+        fallback: diagnostics ? { used: diagnostics.fallbackUsed === true, reason: diagnostics.fallbackReason || null } : null,
+      },
+      dependency: {
+        hasThreeImplementation: diagnostics?.hasThreeImplementation === true,
+        hasThreeDependency: diagnostics?.hasThreeDependency === true,
+        source: diagnostics?.threeDependencySource || diagnostics?.threeSource || null,
+        ready: diagnostics?.threeReady === true,
+        loadStatus: diagnostics?.threeLoadStatus || null,
+        loadError: diagnostics?.threeLoadError || null,
+      },
+      activeMaterialMode,
+      materialMode: activeMaterialMode,
+      threeMaterials: {
+        enabled: materials.enabled === true,
+        materialMode: activeMaterialMode,
+        envIntensity: materials.envIntensity ?? null,
+        toneExposure: materials.toneExposure ?? null,
+        forceAuditLog: materials.forceAuditLog === true,
+      },
+      envIntensity: materials.envIntensity ?? null,
+      toneExposure: materials.toneExposure ?? null,
+      forceAuditLog: materials.forceAuditLog === true,
+      ambientIsolate: lights.ambientIsolate === true,
+      ambientEffectiveIntensity: lightDiagnostics?.effectiveAmbientIntensity ?? null,
+      threeLights: {
+        enabled: lights.enabled === true,
+        cornerLightIntensity: pickThreeLightSetting(lights, "pointIntensity"),
+        lightRangeXView: pickThreeLightSetting(lights, "distanceMultiplier"),
+        lightZXHeight: pickThreeLightSetting(lights, "zOffsetMultiplier"),
+        decay: pickThreeLightSetting(lights, "decay"),
+        ambientIntensity: pickThreeLightSetting(lights, "ambientIntensity"),
+        ambientIsolate: lights.ambientIsolate === true,
+        debugKeyLightEnabled: lights.debugKeyLightEnabled === true,
+        debugKeyLightIntensity: pickThreeLightSetting(lights, "debugKeyLightIntensity"),
+        debugRimLightEnabled: lights.debugRimLightEnabled === true,
+        debugRimLightIntensity: pickThreeLightSetting(lights, "debugRimLightIntensity"),
+        forceHeadlightEnabled: lights.forceHeadlightEnabled === true,
+        forceHeadlightIntensity: pickThreeLightSetting(lights, "forceHeadlightIntensity"),
+        showLightHelpers: lights.showLightHelpers === true,
+      },
+      debugKeyLight: {
+        enabled: lights.debugKeyLightEnabled === true,
+        intensity: pickThreeLightSetting(lights, "debugKeyLightIntensity"),
+        position: lightDiagnostics?.debugKeyLight?.position || null,
+      },
+      debugRimLight: {
+        enabled: lights.debugRimLightEnabled === true,
+        intensity: pickThreeLightSetting(lights, "debugRimLightIntensity"),
+        position: lightDiagnostics?.debugRimLight?.position || null,
+      },
+      forceHeadlight: {
+        enabled: lights.forceHeadlightEnabled === true,
+        intensity: pickThreeLightSetting(lights, "forceHeadlightIntensity"),
+        position: lightDiagnostics?.forceHeadlight?.position || null,
+      },
+      showLightHelpers: lights.showLightHelpers === true,
+      helper: {
+        mode: helper.mode || null,
+        count: Number(helper.count || 0),
+        visible: helper.visible === true,
+        enabled: helper.enabled === true || lights.showLightHelpers === true,
+      },
+      materials: {
+        activeGlbObjectCount: materialOverride.activeGlbObjects ?? diagnostics?.activeGlbInstances ?? null,
+        activeGlbMeshCount: materialOverride.activeGlbMeshCount ?? null,
+        meshesUsingCurrentMaterialMode: materialOverride.meshesUsingCurrentMaterialMode ?? null,
+        currentMaterialMode: materialOverride.currentMaterialMode || activeMaterialMode,
+        lastMaterialOverrideFrame: materialOverride.lastAppliedFrame ?? null,
+        lastMaterialOverrideTimestamp: materialOverride.lastAppliedAtMs ?? null,
+        restoredImportedMaterialCount: materialOverride.restoredImportedMaterials ?? null,
+        auditStatus: diagnostics?.glbMaterialAuditStatus || null,
+        auditEntries: materialAuditEntries,
+      },
+      lights: {
+        sampleObject: lightDiagnostics?.sampleObject || null,
+        positions: diagnostics?.threeLightPositions || [],
+        cornerLights: lightDiagnostics?.cornerLights || [],
+        debugKeyLight: lightDiagnostics?.debugKeyLight || null,
+        debugRimLight: lightDiagnostics?.debugRimLight || null,
+        forceHeadlight: lightDiagnostics?.forceHeadlight || null,
+        distanceDiagnostics: lightDiagnostics || null,
+      },
+      worldRendererDiagnostics: diagnostics,
+    };
+  }
+
+  function buildVisualEvidenceSnapshot(debugVisualConfig = null) {
+    const prgFrameProbe = debugVisualConfig?.prgFrameProbe || null;
+    const three = buildThreeRendererEvidenceVisual();
+    return {
+      prgFrameProbe,
+      three,
+      threeRenderer: three,
+      worldRendererDiagnostics: three.worldRendererDiagnostics,
     };
   }
 
@@ -535,6 +704,7 @@
           breakdown: cardBreakdown,
         },
         thresholdOverrides: World.__debugThresholdOverrides || null,
+        visual: buildVisualEvidenceSnapshot(this.config?.visual || window.HC?.Session?.debugConfig?.visual || null),
       };
     }
 
@@ -1357,9 +1527,7 @@
         },
         lastByCategory,
         recentEvents: recent.slice(-10),
-        visual: {
-          prgFrameProbe: this.debugConfig?.visual?.prgFrameProbe || null,
-        },
+        visual: buildVisualEvidenceSnapshot(this.debugConfig?.visual || null),
       };
     }
   };
