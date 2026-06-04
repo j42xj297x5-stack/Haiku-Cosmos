@@ -32,6 +32,7 @@ Haiku Cosmos to kontemplacyjna gra-system, w której decyzje gracza wpływają n
 
 ## Ostatnia większa aktualizacja dokumentacji
 
+- **2026-06-04** — snapshot dokumentacyjny Three GLB/PBR material pipeline po naprawie: runtime zachowuje PBR/`MeshStandardMaterial`, a aktualne `public/glb/*.glb` mają 21 materiałów, 12 z metalicznością, 0 tekstur i 0 normalMap; kolejny pass Blendera powinien eksportować mapy.
 - **2026-04-27** — reset visual SVG pipeline dla SUB-META/HUD: obecny pass `style_correction` przeniesiony do legacy/evidence, aktywny manifest SVG wyczyszczony, dodany prompt pod nowy modular frame kit Figma.
 
 ## Vite / GitHub Pages deployment

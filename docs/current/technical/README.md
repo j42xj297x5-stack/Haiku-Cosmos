@@ -1,3 +1,4 @@
+> Update 2026-06-04: `WORLD_RENDERING_MODEL.md` zawiera snapshot Three GLB PBR material pipeline po naprawie: `MeshStandardMaterial`/PBR zamiast `MeshBasicMaterial` dla obiektów światłoczułych, audyt 21 GLB bez tekstur/normalMap oraz wymagania bake/eksportu map z Blendera.
 > Update 2026-06-04: `WORLD_RENDERING_MODEL.md` zawiera snapshot Three GLB meteor pass v0.1: aktywne pule 4x5 GLB, stabilny wariant per wrapper, GLB cache per URL, fallback circle, rotacja XYZ, live debug scale `0.25`-`4.0` i granice visual-only.
 > Update 2026-06-04: `VITE_GITHUB_PAGES_DEPLOYMENT.md` zawiera snapshot po naprawie lokalnego Vite, GitHub Pages, base path `/Haiku-Cosmos/`, runtime script loading i hygiene zależności.
 > Update 2026-04-29: `SUB_META_V2_BOX_AUDIT.md` dodaje pelny audit obecnego SUB-META boxu i mapowanie do 9 stref v2.
@@ -56,6 +57,8 @@ audytów i synchronizacji dokumentacji z runtime.
 - 2026-05-17: WORLD_RENDERING_MODEL Etap 3 wdrożony — minimalny pass meteorów w Three.js działa na bazie snapshotu, przy zachowaniu fallbacku canvas2d.
 
 - 2026-06-04: WORLD_RENDERING_MODEL Etap 4 wdrożony — pass asteroidów w Three.js działa na bazie `renderSnapshot.world.asteroids`, z cache meshów, diagnostyką liczników i bez zmian mechaniki.
+
+- 2026-06-04: WORLD_RENDERING_MODEL utrwala snapshot Three GLB PBR material pipeline po commicie `f07c617`: runtime czyta PBR factory materiały GLB i debug controls, a aktualne `public/glb/*.glb` mają 21 materiałów, 12 z metalicznością, 0 tekstur i 0 normal map.
 
 ## Deployment
 

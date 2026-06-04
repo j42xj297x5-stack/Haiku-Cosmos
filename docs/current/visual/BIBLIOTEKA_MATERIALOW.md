@@ -985,3 +985,15 @@ W META bardziej rytuałem i przejściem.
 
 To nie ma być zwykła paleta barw.
 To ma być uporządkowany system sensu wizualnego.
+
+---
+
+## 18. NOTKA TECHNICZNA — GLB/PBR ASSET PIPELINE (2026-06-04)
+
+Ta sekcja jest krótkim stykiem kierunku materiałowego z technicznym eksportem GLB; szczegółowy kontrakt runtime pozostaje w `docs/current/technical/WORLD_RENDERING_MODEL.md`.
+
+- Obiekty świata renderowane przez Three.js, które mają reagować na światło, powinny używać materiałów PBR/standard; `MeshBasicMaterial` nie jest właściwym fallbackiem dla finalnych obiektów światłoczułych.
+- Aktualne `public/glb/*.glb` zawierają factory materiały PBR i wartości `baseColorFactor` / `metallicFactor` / `roughnessFactor`, ale nie zawierają tekstur ani normalMap. Oznacza to, że runtime pokaże kolor, metaliczność, chropowatość i światło, lecz nie pokaże malowanej lub proceduralnej faktury powierzchni.
+- Proceduralne node’y z Blendera muszą zostać wypalone albo poprawnie wyeksportowane do GLB jako standardowe mapy, jeśli mają być widoczne w Three.js.
+- Dla kolejnego passu assetów zalecane są: `normal map`, `roughness map`, `metallic-roughness map`, opcjonalnie `baseColor map` i opcjonalnie `AO map`.
+- Ocena finalnego charakteru materiałów meteorów/asteroidów powinna być wykonywana dopiero po eksporcie map, a nie wyłącznie po obecnych GLB bez danych teksturowych.
