@@ -2790,11 +2790,12 @@ const CardEngine = (() => {
 
     const order = ["red", "yellow", "green", "blue"];
     const pad = 12;
+    const hudTopSafeY = 130 + 18;
     const rectW = 10;
     const rectH = 24;
     const gap = 14;
     const x = Math.floor(screenW - pad - rectW);
-    const y0 = Math.floor(pad + 6);
+    const y0 = Math.floor(Math.max(pad + 6, hudTopSafeY));
     const frameH = rectH * order.length + gap * (order.length - 1) + 10;
     // TODO(FrameComposer): replace this simple HUD fallback frame with modular static frame parts.
     drawManifestSvg(ctx, "hud.frame.color_counter_axis_01", x - 16, y0 - 6, 44, frameH, 0.95);
