@@ -146,6 +146,28 @@
     return n;
   }
 
+  function getMeteorGlbVisualScaleForUi() {
+    if (window.HC?.WorldRenderer?.getMeteorGlbVisualScale) return window.HC.WorldRenderer.getMeteorGlbVisualScale();
+    const n = Number(window.HC?.WorldRendererDebug?.meteorGlbVisualScale ?? window.HC?.Session?.debugConfig?.visual?.meteorGlbVisualScale);
+    if (!Number.isFinite(n)) return 1.0;
+    return Math.max(0.25, Math.min(4.0, n));
+  }
+
+  function setMeteorGlbVisualScaleFromUi(value) {
+    const scale = window.HC?.WorldRenderer?.setMeteorGlbVisualScale
+      ? window.HC.WorldRenderer.setMeteorGlbVisualScale(value)
+      : Math.max(0.25, Math.min(4.0, Number(value) || 1.0));
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.meteorGlbVisualScale = scale;
+    if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.meteorGlbVisualScale = scale;
+    const valueNode = document.getElementById("dbgMeteorGlbScaleValue");
+    if (valueNode) valueNode.textContent = scale.toFixed(2);
+    const input = document.getElementById("dbgMeteorGlbScale");
+    if (input && Number(input.value) !== scale) input.value = String(scale);
+    return scale;
+  }
+
   function getDebugDefaults() {
     if (window.HC?.createDebugConfig) {
       return window.HC.createDebugConfig("debug");
@@ -347,10 +369,15 @@
           if (!tabBtn) return;
           runtimeOverlayTab = tabBtn.getAttribute("data-debug-tab") === "prg" ? "prg" : "session";
         });
-        runtimeDebugOverlayBody.addEventListener("change", (event) => {
+        const handleRuntimeDebugControl = (event) => {
           const target = event.target;
+          if (!target || !target.id) return;
+          if (target.id === "dbgMeteorGlbScale") {
+            setMeteorGlbVisualScaleFromUi(target.value);
+            return;
+          }
           const cfg = window.HC?.Session?.debugConfig?.visual?.prgFrameProbe;
-          if (!cfg || !target || !target.id) return;
+          if (!cfg) return;
           const boolMap = {
             dbgPrgEnabled: "enabled",
             dbgPrgGoldTint: "goldTint",
@@ -370,7 +397,9 @@
               window.HC.WorldRenderer.setMode(nextMode);
             }
           }
-        });
+        };
+        runtimeDebugOverlayBody.addEventListener("input", handleRuntimeDebugControl);
+        runtimeDebugOverlayBody.addEventListener("change", handleRuntimeDebugControl);
       }
       btnDebugOverlayToggle = document.getElementById("btnDebugOverlayToggle");
       btnDebugSelectFolder = document.getElementById("btnDebugSelectFolder");
@@ -650,6 +679,10 @@
         ])}</div>
         <div class="overlay-grid">
           <label class="overlay-select-row" for="dbgRendererMode">Renderer: canvas2d / three <select id="dbgRendererMode">${modeOptions}</select></label>
+          <label class="overlay-select-row" for="dbgMeteorGlbScale">GLB meteor scale
+            <input id="dbgMeteorGlbScale" type="range" min="0.25" max="4" step="0.05" value="${getMeteorGlbVisualScaleForUi()}">
+            <span id="dbgMeteorGlbScaleValue">${getMeteorGlbVisualScaleForUi().toFixed(2)}</span>
+          </label>
         </div>
         <div class="overlay-grid">${renderRows([
           ["Renderer requested", rendererDiag?.requestedMode || "canvas2d"],
@@ -677,6 +710,8 @@
           ["Three asteroid meshes", rendererDiag?.threeAsteroidMeshes ?? rendererDiag?.asteroidMeshCount ?? 0],
           ["Three asteroid pass error", String(rendererDiag?.threeAsteroidLastError || "none")],
           ["Three radius scale", rendererDiag?.threeMeteorRadiusScale ?? "-"],
+          ["GLB meteor scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
+          ["Active GLB instances", rendererDiag?.activeGlbInstances ?? 0],
           ["Three min radius", rendererDiag?.threeMeteorMinRadius ?? "-"],
           ["Three debug marker", rendererDiag?.threeDebugMarker?.visible ? "visible" : (rendererDiag?.threeDebugMarker?.enabled ? "enabled_hidden" : "off")],
           ["First meteor", rendererDiag?.firstMeteor ? JSON.stringify(rendererDiag.firstMeteor) : "none"],

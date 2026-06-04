@@ -224,6 +224,7 @@
     const defaultProbe = createDefaultPrgFrameProbeConfig();
     const visualCfg = partial.visual || {};
     const prgProbePartial = visualCfg.prgFrameProbe || {};
+    const meteorGlbVisualScale = Number(visualCfg.meteorGlbVisualScale);
     return {
       enabled: isDebug,
       mode: isDebug ? "debug" : "normal",
@@ -246,6 +247,7 @@
         planetToStar: partial.thresholdOverrides?.planetToStar == null ? null : clampInt(partial.thresholdOverrides.planetToStar, 0),
       },
       visual: {
+        meteorGlbVisualScale: Number.isFinite(meteorGlbVisualScale) ? Math.max(0.25, Math.min(4.0, meteorGlbVisualScale)) : 1.0,
         prgFrameProbe: {
           enabled: prgProbePartial.enabled === true,
           mode: typeof prgProbePartial.mode === "string" ? prgProbePartial.mode : defaultProbe.mode,

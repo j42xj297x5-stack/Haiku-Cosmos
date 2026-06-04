@@ -10,6 +10,9 @@
   const THREE_DEBUG_MARKER_ENABLED = true;
   const THREE_DEBUG_MARKER_SIZE = 12;
   const METEOR_GLB_RADIUS_SCALE = 1.0;
+  const METEOR_GLB_VISUAL_SCALE_DEFAULT = 1.0;
+  const METEOR_GLB_VISUAL_SCALE_MIN = 0.25;
+  const METEOR_GLB_VISUAL_SCALE_MAX = 4.0;
   const METEOR_GLB_ROTATION_TWO_PI = Math.PI * 2;
   const METEOR_GLB_ROTATION_MIN_SPEED = 0.08;
   const METEOR_GLB_ROTATION_SPEED_RANGES = Object.freeze({ x: 0.9, y: 1.1, z: 0.7 });
@@ -40,6 +43,11 @@
   let threeWarned = false;
   let threeModeActive = false;
   let threeDependencySource = "unknown";
+
+  window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+  if (!Number.isFinite(Number(window.HC.WorldRendererDebug.meteorGlbVisualScale))) {
+    window.HC.WorldRendererDebug.meteorGlbVisualScale = METEOR_GLB_VISUAL_SCALE_DEFAULT;
+  }
 
   const threeState = {
     initialized: false,
@@ -389,6 +397,29 @@
     if (threeState.meteorGlbWarnings.has(url)) return;
     threeState.meteorGlbWarnings.add(url);
     if (window.console?.warn) window.console.warn(`[HC.WorldRenderer] Meteor GLB fallback for ${url}: ${message}`);
+  }
+
+  function clampMeteorGlbVisualScale(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return METEOR_GLB_VISUAL_SCALE_DEFAULT;
+    return Math.max(METEOR_GLB_VISUAL_SCALE_MIN, Math.min(METEOR_GLB_VISUAL_SCALE_MAX, n));
+  }
+
+  function getMeteorGlbVisualScale() {
+    const debugValue = window.HC?.WorldRendererDebug?.meteorGlbVisualScale;
+    const sessionValue = window.HC?.Session?.debugConfig?.visual?.meteorGlbVisualScale;
+    return clampMeteorGlbVisualScale(debugValue ?? sessionValue ?? METEOR_GLB_VISUAL_SCALE_DEFAULT);
+  }
+
+  function setMeteorGlbVisualScale(value) {
+    const scale = clampMeteorGlbVisualScale(value);
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.meteorGlbVisualScale = scale;
+    if (window.HC.Session?.debugConfig?.visual) {
+      window.HC.Session.debugConfig.visual.meteorGlbVisualScale = scale;
+    }
+    return scale;
   }
 
   function getMeteorGlbCacheStats() {
@@ -821,6 +852,7 @@
     threeState.firstMeshSample = null;
     threeState.meteorGroupChildrenCount = 0;
     const rotationNowMs = getMeteorRotationNowMs(renderSnapshot, nowMs);
+    const meteorGlbVisualScale = getMeteorGlbVisualScale();
     const seen = new Set();
     for (let i = 0; i < meteors.length; i += 1) {
       const m = meteors[i] || {};
@@ -859,7 +891,7 @@
       visual.fallback.material.opacity = Number.isFinite(m.alpha) ? Math.max(0.9, m.alpha) : 1;
       if (visual.glb) {
         const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
-        const glbScale = (radius * METEOR_GLB_RADIUS_SCALE) / unitRadius;
+        const glbScale = ((radius * METEOR_GLB_RADIUS_SCALE) / unitRadius) * meteorGlbVisualScale;
         visual.glb.scale.setScalar(glbScale);
         applyMeteorGlbRotation(visual, rotationNowMs);
         visual.root.userData.rotationPhase = visual.rotationState?.rotationPhase || 0;
@@ -880,6 +912,8 @@
           glbAssetUrl: visual.assetUrl || null,
           glbVariantIndex: visual.variantIndex,
           glbVisible: !!visual.glb?.visible,
+          glbScale: visual.glb ? visual.glb.scale.x : null,
+          meteorGlbVisualScale,
         };
       }
     }
@@ -1054,6 +1088,8 @@
       threeMeteorRadiusScale: threeState.threeMeteorRadiusScale,
       threeMeteorMinRadius: threeState.threeMeteorMinRadius,
       meteorGlbAssets: METEOR_GLB_ASSETS,
+      meteorGlbVisualScale: getMeteorGlbVisualScale(),
+      meteorGlbScaleLiveControl: true,
       meteorGlbCacheStats: getMeteorGlbCacheStats(),
       meteorGlbAssignmentsCount: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.assetUrl).length,
       meteorGlbCacheSize: threeState.meteorGlbCache.size,
@@ -1081,5 +1117,5 @@
 
   function destroy() { destroyThree(); initialized = false; resetDiagnostics(); }
 
-  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode };
+  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, getMeteorGlbVisualScale, setMeteorGlbVisualScale };
 })();
