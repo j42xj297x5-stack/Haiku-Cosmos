@@ -1,3 +1,4 @@
+> Update 2026-06-04: `VITE_GITHUB_PAGES_DEPLOYMENT.md` zawiera snapshot po naprawie lokalnego Vite, GitHub Pages, base path `/Haiku-Cosmos/`, runtime script loading i hygiene zależności.
 > Update 2026-04-29: `SUB_META_V2_BOX_AUDIT.md` dodaje pelny audit obecnego SUB-META boxu i mapowanie do 9 stref v2.
 > Update 2026-04-29: `CENTER_BASED_POSITIONING_SPEC.md` definiuje kontrakt center-based positioning (mountCenter/mountSize/visualSize/bleed + named anchors).
 # docs/current/technical
@@ -13,7 +14,7 @@
 > Status: ROBOCZY
 > Obszar: mapa dokumentów technicznych
 > Źródło prawdy: NIE (warstwa pomocnicza do kanonu)
-> Ostatnia aktualizacja: 2026-05-17
+> Ostatnia aktualizacja: 2026-06-04
 > Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
 
 Katalog `docs/current/technical/` zawiera dokumenty techniczne używane do pracy operacyjnej,
@@ -57,4 +58,4 @@ audytów i synchronizacji dokumentacji z runtime.
 
 ## Deployment
 
-- `VITE_GITHUB_PAGES_DEPLOYMENT.md` - **CURRENT** - konfiguracja Vite, base path `/Haiku-Cosmos/`, lokalny build/preview i deployment GitHub Pages z brancha `Haiku-Cosmos`.
+- `VITE_GITHUB_PAGES_DEPLOYMENT.md` - **CURRENT** - konfiguracja Vite, base path `/Haiku-Cosmos/`, lokalny build/preview, legacy runtime sync do `public/runtime/`, poprawny URL `/Haiku-Cosmos/runtime/nazwa_pliku.js`, hygiene `node_modules`/`dist` i automatyczny deployment GitHub Pages z brancha `Haiku-Cosmos`.
