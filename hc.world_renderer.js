@@ -17,6 +17,21 @@
   const METEOR_GLB_ROTATION_MIN_SPEED = 0.08;
   const METEOR_GLB_ROTATION_SPEED_RANGES = Object.freeze({ x: 0.9, y: 1.1, z: 0.7 });
   const METEOR_GLB_VARIANTS_PER_COLOR = 5;
+  const THREE_LIGHTS_DEFAULTS = Object.freeze({
+    enabled: true,
+    pointIntensity: 0.9,
+    distanceMultiplier: 1.55,
+    decay: 1.35,
+    zOffsetMultiplier: 0.45,
+    ambientIntensity: 0.24,
+  });
+  const THREE_LIGHTS_LIMITS = Object.freeze({
+    pointIntensity: { min: 0, max: 2.5 },
+    distanceMultiplier: { min: 0.25, max: 4.0 },
+    decay: { min: 0, max: 3.0 },
+    zOffsetMultiplier: { min: 0.05, max: 2.0 },
+    ambientIntensity: { min: 0, max: 0.75 },
+  });
   function buildMeteorGlbAssetPool(fileStem) {
     return Object.freeze(Array.from(
       { length: METEOR_GLB_VARIANTS_PER_COLOR },
@@ -45,6 +60,11 @@
   if (!Number.isFinite(Number(window.HC.WorldRendererDebug.meteorGlbVisualScale))) {
     window.HC.WorldRendererDebug.meteorGlbVisualScale = METEOR_GLB_VISUAL_SCALE_DEFAULT;
   }
+  window.HC.WorldRendererDebug.threeLights = Object.assign(
+    {},
+    THREE_LIGHTS_DEFAULTS,
+    window.HC.WorldRendererDebug.threeLights || {}
+  );
 
   const threeState = {
     initialized: false,
@@ -58,6 +78,11 @@
     resizeCalls: 0,
     meteorGroup: null,
     asteroidGroup: null,
+    lightsGroup: null,
+    ambientLight: null,
+    cornerLights: [],
+    lightsSettings: Object.assign({}, THREE_LIGHTS_DEFAULTS),
+    lightsPositions: [],
     meteorGeometry: null,
     asteroidGeometries: new Map(),
     meteorMaterials: new Map(),
@@ -204,6 +229,92 @@
     return null;
   }
 
+  function clampNumber(value, fallback, min, max) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function getThreeLightsSettings() {
+    const debugLights = window.HC?.WorldRendererDebug?.threeLights || {};
+    const sessionLights = window.HC?.Session?.debugConfig?.visual?.threeLights || {};
+    const merged = Object.assign({}, THREE_LIGHTS_DEFAULTS, sessionLights, debugLights);
+    return {
+      enabled: merged.enabled !== false,
+      pointIntensity: clampNumber(merged.pointIntensity, THREE_LIGHTS_DEFAULTS.pointIntensity, THREE_LIGHTS_LIMITS.pointIntensity.min, THREE_LIGHTS_LIMITS.pointIntensity.max),
+      distanceMultiplier: clampNumber(merged.distanceMultiplier ?? merged.distanceRange, THREE_LIGHTS_DEFAULTS.distanceMultiplier, THREE_LIGHTS_LIMITS.distanceMultiplier.min, THREE_LIGHTS_LIMITS.distanceMultiplier.max),
+      decay: clampNumber(merged.decay, THREE_LIGHTS_DEFAULTS.decay, THREE_LIGHTS_LIMITS.decay.min, THREE_LIGHTS_LIMITS.decay.max),
+      zOffsetMultiplier: clampNumber(merged.zOffsetMultiplier ?? merged.zOffset, THREE_LIGHTS_DEFAULTS.zOffsetMultiplier, THREE_LIGHTS_LIMITS.zOffsetMultiplier.min, THREE_LIGHTS_LIMITS.zOffsetMultiplier.max),
+      ambientIntensity: clampNumber(merged.ambientIntensity, THREE_LIGHTS_DEFAULTS.ambientIntensity, THREE_LIGHTS_LIMITS.ambientIntensity.min, THREE_LIGHTS_LIMITS.ambientIntensity.max),
+    };
+  }
+
+  function setThreeLightsDebugSetting(key, value) {
+    const current = getThreeLightsSettings();
+    const next = Object.assign({}, current);
+    if (key === "enabled") next.enabled = value !== false && value !== "false" && value !== "0";
+    else if (key === "pointIntensity") next.pointIntensity = clampNumber(value, current.pointIntensity, THREE_LIGHTS_LIMITS.pointIntensity.min, THREE_LIGHTS_LIMITS.pointIntensity.max);
+    else if (key === "distanceMultiplier") next.distanceMultiplier = clampNumber(value, current.distanceMultiplier, THREE_LIGHTS_LIMITS.distanceMultiplier.min, THREE_LIGHTS_LIMITS.distanceMultiplier.max);
+    else if (key === "decay") next.decay = clampNumber(value, current.decay, THREE_LIGHTS_LIMITS.decay.min, THREE_LIGHTS_LIMITS.decay.max);
+    else if (key === "zOffsetMultiplier") next.zOffsetMultiplier = clampNumber(value, current.zOffsetMultiplier, THREE_LIGHTS_LIMITS.zOffsetMultiplier.min, THREE_LIGHTS_LIMITS.zOffsetMultiplier.max);
+    else if (key === "ambientIntensity") next.ambientIntensity = clampNumber(value, current.ambientIntensity, THREE_LIGHTS_LIMITS.ambientIntensity.min, THREE_LIGHTS_LIMITS.ambientIntensity.max);
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.threeLights = next;
+    if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.threeLights = Object.assign({}, next);
+    syncThreeLights();
+    return next;
+  }
+
+  function createThreeLights(THREE) {
+    const lightsGroup = new THREE.Group();
+    lightsGroup.name = "hc_three_corner_lights";
+    const ambientLight = new THREE.AmbientLight(0xffffff, THREE_LIGHTS_DEFAULTS.ambientIntensity);
+    ambientLight.name = "hc_three_fill_ambient";
+    const lightColors = [0xfff3df, 0xe8f1ff, 0xdff7ff, 0xffead6];
+    const cornerLights = lightColors.map((color, index) => {
+      const light = new THREE.PointLight(color, THREE_LIGHTS_DEFAULTS.pointIntensity, 1, THREE_LIGHTS_DEFAULTS.decay);
+      light.name = ["hc_light_top_left", "hc_light_top_right", "hc_light_bottom_left", "hc_light_bottom_right"][index];
+      return light;
+    });
+    lightsGroup.add(ambientLight);
+    cornerLights.forEach((light) => lightsGroup.add(light));
+    Object.assign(threeState, { lightsGroup, ambientLight, cornerLights });
+    return lightsGroup;
+  }
+
+  function syncThreeLights() {
+    if (!threeState.ambientLight || !Array.isArray(threeState.cornerLights)) return;
+    const settings = getThreeLightsSettings();
+    threeState.lightsSettings = settings;
+    const bounds = threeState.cameraBounds || { left: 0, right: 1, top: 0, bottom: 1, cx: 0.5, cy: 0.5 };
+    const width = Math.max(1, Math.abs(bounds.right - bounds.left));
+    const height = Math.max(1, Math.abs(bounds.bottom - bounds.top));
+    const maxDim = Math.max(width, height);
+    const z = Math.max(12, height * settings.zOffsetMultiplier);
+    const distance = Math.max(maxDim, maxDim * settings.distanceMultiplier);
+    const marginX = width * 0.08;
+    const marginY = height * 0.08;
+    const positions = [
+      { name: "topLeft", x: bounds.left + marginX, y: bounds.top + marginY, z },
+      { name: "topRight", x: bounds.right - marginX, y: bounds.top + marginY, z },
+      { name: "bottomLeft", x: bounds.left + marginX, y: bounds.bottom - marginY, z },
+      { name: "bottomRight", x: bounds.right - marginX, y: bounds.bottom - marginY, z },
+    ];
+    threeState.ambientLight.intensity = settings.enabled ? settings.ambientIntensity : 0;
+    threeState.ambientLight.visible = settings.enabled && settings.ambientIntensity > 0;
+    threeState.lightsPositions = positions;
+    threeState.cornerLights.forEach((light, index) => {
+      const pos = positions[index];
+      if (!light || !pos) return;
+      light.position.set(pos.x, pos.y, pos.z);
+      light.intensity = settings.enabled ? settings.pointIntensity : 0;
+      light.distance = distance;
+      light.decay = settings.decay;
+      light.visible = settings.enabled && settings.pointIntensity > 0;
+    });
+  }
+
   function applyThreeCameraSnapshot(renderSnapshot) {
     const cam = renderSnapshot?.camera || {};
     const diag = renderSnapshot?.diagnostics || {};
@@ -240,6 +351,7 @@
     threeState.cameraBounds = { left, right, top, bottom, cx, cy };
     threeState.camera.updateProjectionMatrix();
     syncDebugMarkerPosition();
+    syncThreeLights();
   }
 
   function createDebugMarker(THREE) {
@@ -655,8 +767,6 @@
     }
     root.traverse((object) => {
       if (!object.isMesh) return;
-      object.castShadow = false;
-      object.receiveShadow = false;
       object.renderOrder = 1000;
     });
     return root;
@@ -832,17 +942,15 @@
       const camera = new THREE.OrthographicCamera(0, 1, 0, 1, 0.1, 1000);
       const meteorGroup = new THREE.Group();
       const asteroidGroup = new THREE.Group();
-      const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
-      const keyLight = new THREE.DirectionalLight(0xffffff, 1.1);
-      keyLight.position.set(0.35, -0.45, 1.0);
-      scene.add(ambientLight);
-      scene.add(keyLight);
+      const lightsGroup = createThreeLights(THREE);
+      scene.add(lightsGroup);
       scene.add(asteroidGroup);
       scene.add(meteorGroup);
       scene.background = new THREE.Color(0x05070a);
       canvas.style.display = "block";
       canvas.style.visibility = "visible";
-      Object.assign(threeState, { canvas, renderer, scene, camera, meteorGroup, asteroidGroup, meteorGeometry: new THREE.CircleGeometry(1, 16) });
+      Object.assign(threeState, { canvas, renderer, scene, camera, meteorGroup, asteroidGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16) });
+      syncThreeLights();
       createDebugMarker(THREE);
       createFirstMeteorMarker(THREE);
       threeState.initialized = true;
@@ -990,7 +1098,7 @@
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
     if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, asteroidGroup: null, meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, meteorGroup: null, asteroidGroup: null, lightsGroup: null, ambientLight: null, cornerLights: [], lightsPositions: [], meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -1098,6 +1206,10 @@
       meteorGlbAssets: METEOR_GLB_ASSETS,
       meteorGlbVisualScale: getMeteorGlbVisualScale(),
       meteorGlbScaleLiveControl: true,
+      threeLightsLiveControl: true,
+      threeLights: Object.assign({}, threeState.lightsSettings || getThreeLightsSettings()),
+      threeLightPositions: Array.isArray(threeState.lightsPositions) ? threeState.lightsPositions.map((pos) => Object.assign({}, pos)) : [],
+      threeLightCount: Array.isArray(threeState.cornerLights) ? threeState.cornerLights.length : 0,
       meteorGlbCacheStats: getMeteorGlbCacheStats(),
       meteorGlbAssignmentsCount: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.assetUrl).length,
       meteorGlbCacheSize: threeState.meteorGlbCache.size,
@@ -1127,5 +1239,5 @@
 
   function destroy() { destroyThree(); initialized = false; resetDiagnostics(); }
 
-  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, getMeteorGlbVisualScale, setMeteorGlbVisualScale };
+  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getThreeLightsSettings, setThreeLightsDebugSetting };
 })();
