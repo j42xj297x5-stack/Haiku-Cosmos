@@ -170,7 +170,7 @@
 
   function getThreeLightsSettingsForUi() {
     if (window.HC?.WorldRenderer?.getThreeLightsSettings) return window.HC.WorldRenderer.getThreeLightsSettings();
-    const defaults = { enabled: true, pointIntensity: 0.9, distanceMultiplier: 1.55, zOffsetMultiplier: 0.45, ambientIntensity: 0.24, ambientIsolate: false, debugKeyLightEnabled: false, debugKeyLightIntensity: 2.2, debugRimLightEnabled: true, debugRimLightIntensity: 0.65, showLightHelpers: false };
+    const defaults = { enabled: true, pointIntensity: 0.9, distanceMultiplier: 1.55, zOffsetMultiplier: 0.45, ambientIntensity: 0.24, ambientIsolate: false, debugKeyLightEnabled: false, debugKeyLightIntensity: 2.2, debugRimLightEnabled: true, debugRimLightIntensity: 0.65, forceHeadlightEnabled: false, forceHeadlightIntensity: 4.5, showLightHelpers: false };
     return Object.assign({}, defaults, window.HC?.WorldRendererDebug?.threeLights || window.HC?.Session?.debugConfig?.visual?.threeLights || {});
   }
 
@@ -189,6 +189,7 @@
       ambientIntensity: "dbgThreeAmbientValue",
       debugKeyLightIntensity: "dbgThreeDebugKeyIntensityValue",
       debugRimLightIntensity: "dbgThreeDebugRimIntensityValue",
+      forceHeadlightIntensity: "dbgThreeForceHeadlightIntensityValue",
     };
     const valueNode = document.getElementById(valueMap[key]);
     if (valueNode && Number.isFinite(Number(next[key]))) valueNode.textContent = Number(next[key]).toFixed(2);
@@ -203,6 +204,8 @@
       debugKeyLightIntensity: "dbgThreeDebugKeyIntensity",
       debugRimLightEnabled: "dbgThreeDebugRimEnabled",
       debugRimLightIntensity: "dbgThreeDebugRimIntensity",
+      forceHeadlightEnabled: "dbgThreeForceHeadlightEnabled",
+      forceHeadlightIntensity: "dbgThreeForceHeadlightIntensity",
       showLightHelpers: "dbgThreeShowLightHelpers",
     };
     const input = document.getElementById(inputMap[key]);
@@ -467,6 +470,8 @@
             dbgThreeDebugKeyIntensity: "debugKeyLightIntensity",
             dbgThreeDebugRimEnabled: "debugRimLightEnabled",
             dbgThreeDebugRimIntensity: "debugRimLightIntensity",
+            dbgThreeForceHeadlightEnabled: "forceHeadlightEnabled",
+            dbgThreeForceHeadlightIntensity: "forceHeadlightIntensity",
             dbgThreeShowLightHelpers: "showLightHelpers",
           };
           if (threeLightControls[target.id]) {
@@ -772,7 +777,7 @@
     ].join("");
     const threeLights = getThreeLightsSettingsForUi();
     const threeMaterials = getThreeMaterialSettingsForUi();
-    const materialModeOptions = ["imported", "standard_test", "clay_lit", "normal_debug"].map((mode) =>
+    const materialModeOptions = ["imported", "standard_test", "clay_lit", "normal_debug", "diagnostic_unlit"].map((mode) =>
       `<option value="${mode}"${threeMaterials.materialMode === mode ? " selected" : ""}>${mode}</option>`
     ).join("");
 
@@ -834,6 +839,13 @@
             <input id="dbgThreeDebugRimIntensity" type="range" min="0" max="2.5" step="0.05" value="${threeLights.debugRimLightIntensity}">
             <span id="dbgThreeDebugRimIntensityValue">${Number(threeLights.debugRimLightIntensity).toFixed(2)}</span>
           </label>
+          <label class="overlay-select-row" for="dbgThreeForceHeadlightEnabled">Force headlight
+            <input id="dbgThreeForceHeadlightEnabled" type="checkbox"${threeLights.forceHeadlightEnabled === true ? " checked" : ""}>
+          </label>
+          <label class="overlay-select-row" for="dbgThreeForceHeadlightIntensity">Force headlight intensity
+            <input id="dbgThreeForceHeadlightIntensity" type="range" min="0" max="8" step="0.05" value="${threeLights.forceHeadlightIntensity}">
+            <span id="dbgThreeForceHeadlightIntensityValue">${Number(threeLights.forceHeadlightIntensity).toFixed(2)}</span>
+          </label>
           <label class="overlay-select-row" for="dbgThreeShowLightHelpers">Show light helpers
             <input id="dbgThreeShowLightHelpers" type="checkbox"${threeLights.showLightHelpers === true ? " checked" : ""}>
           </label>
@@ -887,13 +899,23 @@
           ["Three lights", rendererDiag?.threeLights ? JSON.stringify(rendererDiag.threeLights) : JSON.stringify(threeLights)],
           ["Light range/distance diag", rendererDiag?.threeLightDiagnostics ? JSON.stringify(rendererDiag.threeLightDiagnostics) : "none"],
           ["Light helpers", rendererDiag?.threeLightHelpers ? JSON.stringify(rendererDiag.threeLightHelpers) : "none"],
+          ["Helper mode", rendererDiag?.threeLightHelpers?.mode || "none"],
+          ["Helpers count", rendererDiag?.threeLightHelpers?.count ?? 0],
+          ["Helpers visible", rendererDiag?.threeLightHelpers?.visible ? "true" : "false"],
           ["Three material settings", rendererDiag?.threeMaterialSettings ? JSON.stringify(rendererDiag.threeMaterialSettings) : JSON.stringify(threeMaterials)],
+          ["Material override", rendererDiag?.threeMaterialOverrideStatus ? JSON.stringify(rendererDiag.threeMaterialOverrideStatus) : "none"],
           ["Scene environment", rendererDiag?.sceneEnvironmentEnabled ? "enabled" : "off"],
           ["Tone mapping/exposure", `${rendererDiag?.rendererToneMapping ?? "-"} / ${rendererDiag?.rendererToneMappingExposure ?? "-"}`],
           ["GLB material audit status", rendererDiag?.glbMaterialAuditStatus ? JSON.stringify(rendererDiag.glbMaterialAuditStatus) : "audit idle"],
           ["GLB material audit", rendererDiag?.glbMaterialAudit ? JSON.stringify(rendererDiag.glbMaterialAudit.slice(-3)) : "[]"],
           ["Three light count", rendererDiag?.threeLightCount ?? 0],
           ["Three light positions", rendererDiag?.threeLightPositions ? JSON.stringify(rendererDiag.threeLightPositions) : "none"],
+          ["Active GLB objects", rendererDiag?.threeMaterialOverrideStatus?.activeGlbObjects ?? rendererDiag?.activeGlbInstances ?? 0],
+          ["Active GLB mesh count", rendererDiag?.threeMaterialOverrideStatus?.activeGlbMeshCount ?? 0],
+          ["Meshes using material mode", rendererDiag?.threeMaterialOverrideStatus?.meshesUsingCurrentMaterialMode ?? 0],
+          ["Current material mode", rendererDiag?.threeMaterialOverrideStatus?.currentMaterialMode || threeMaterials.materialMode || "imported"],
+          ["Material applied frame/time", rendererDiag?.threeMaterialOverrideStatus ? `${rendererDiag.threeMaterialOverrideStatus.lastAppliedFrame ?? "-"}/${rendererDiag.threeMaterialOverrideStatus.lastAppliedAtMs ?? "-"}` : "-"],
+          ["Restored imported materials", rendererDiag?.threeMaterialOverrideStatus?.restoredImportedMaterials ?? 0],
           ["Active GLB instances", rendererDiag?.activeGlbInstances ?? 0],
           ["Active GLB by color", rendererDiag?.activeGlbInstancesByColor ? JSON.stringify(rendererDiag.activeGlbInstancesByColor) : "-"],
           ["Fallback GLB by color", rendererDiag?.fallbackVisualsByColor ? JSON.stringify(rendererDiag.fallbackVisualsByColor) : "-"],
