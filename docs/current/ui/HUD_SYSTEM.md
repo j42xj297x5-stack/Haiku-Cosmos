@@ -112,3 +112,17 @@ Ten dokument:
 - nie zmienia assetów,
 - nie definiuje finalnych wartości balansu,
 - nie zmienia zasady, że tylko `R1` są aktywowalne w RUN.
+
+## 10. Snapshot runtime HUD raster top layer — 2026-06-04
+
+Runtime top HUD używa trzech natywnie renderowanych rasterów z `public/png/`:
+- `hud_haiku_cosmos_logo.png` — identyfikacja gry w lewym górnym narożniku; element nieklikalny.
+- `hud_submeta_top.png` — przycisk wejścia do SUB-META wyśrodkowany na górze ekranu; tekst jest częścią grafiki, a runtime zachowuje dotychczasową logikę otwierania SUB-META.
+- `hud_rp.png` — panel RP w prawym górnym narożniku; grafika zawiera napis RP, więc runtime renderuje na niej wyłącznie wartość punktów w złotym kolorze.
+
+Pozycje runtime dla tego snapshotu:
+- logo: lewy górny narożnik HUD, natywny rozmiar `261x130`;
+- SUB-META: środek górnej krawędzi, natywny rozmiar `195x130`, hitbox zgodny z grafiką;
+- RP: prawy górny narożnik HUD, natywny rozmiar `279x130`.
+
+Debug UI (`DEBUG`, FPS i `Restart`) zostało przeniesione z lewego górnego rogu na lewy dół ekranu, żeby nie kolidować z logo. Tymczasowe prostokąty stanu sekwencji po prawej stronie zaczynają się poniżej wysokości nowego HUD-u (`130px`) z bezpiecznym marginesem, żeby nie nachodziły na panel RP. Ten snapshot nie zmienia mechaniki RP, SUB-META, PRG ani sekwencji.

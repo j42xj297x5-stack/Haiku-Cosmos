@@ -5,6 +5,8 @@
   let fpsLabel = null;
   let btnRestart = null;
   let btnSubMeta = null;
+  let hudLogo = null;
+  let hudSubMetaImage = null;
   let scoreLabel = null;
   let topBar = null;
   let debugBadge = null;
@@ -79,8 +81,27 @@
     if (!scoreLabel || !World) return;
     if (force || World.score !== lastScore) {
       lastScore = World.score;
-      scoreLabel.textContent = `RP: ${World.score}`;
+      const valueEl = scoreLabel.querySelector(".rp-value");
+      const scoreText = String(Math.max(0, Math.floor(Number(World.score || 0))));
+      if (valueEl) valueEl.textContent = scoreText;
+      else scoreLabel.textContent = scoreText;
+      scoreLabel.setAttribute("aria-label", `Punkty Rezonansu: ${scoreText}`);
     }
+  }
+
+  function resolvePublicAssetPath(path) {
+    if (window.HC && typeof window.HC.publicAssetPath === "function") return window.HC.publicAssetPath(path);
+    if (window.HC && typeof window.HC.publicPath === "function") return window.HC.publicPath(path);
+    return String(path || "").replace(/^\/+/, "");
+  }
+
+  function applyHudRasterAssets() {
+    const logoUrl = resolvePublicAssetPath("png/hud_haiku_cosmos_logo.png");
+    const subMetaUrl = resolvePublicAssetPath("png/hud_submeta_top.png");
+    const rpUrl = resolvePublicAssetPath("png/hud_rp.png");
+    if (hudLogo) hudLogo.src = logoUrl;
+    if (hudSubMetaImage) hudSubMetaImage.src = subMetaUrl;
+    if (scoreLabel) scoreLabel.style.backgroundImage = `url("${rpUrl}")`;
   }
 
   function getTotalCards(World) {
@@ -103,33 +124,21 @@
 
   function ensureScoreLabel() {
     if (!topBar) return null;
-    const el = document.createElement("div");
-    el.className = "pill";
+    const existing = document.getElementById("scoreLabel");
+    const el = existing || document.createElement("div");
     el.id = "scoreLabel";
-    el.textContent = "RP: 0";
-    topBar.appendChild(el);
+    el.className = "";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
+    el.innerHTML = '<span class="rp-value">0</span>';
+    if (!existing) topBar.appendChild(el);
     return el;
   }
 
   function applyHudSvgSkin() {
-    // Legacy style_correction SVG HUD skins are disabled; keep readable DOM fallback until FrameComposer/HUD kit lands.
-    const skinMap = [
-      { el: scoreLabel, text: null },
-      { el: btnSubMeta, text: "SUB-META" },
-      { el: btnRestart, text: "Wróć" }
-    ];
-    skinMap.forEach((entry) => {
-      const el = entry.el;
-      if (!el) return;
-      el.style.backgroundImage = "none";
-      el.style.backgroundRepeat = "no-repeat";
-      el.style.backgroundColor = "rgba(6,10,16,0.35)";
-      el.style.border = "1px solid rgba(180,210,255,0.35)";
-      el.style.borderRadius = "10px";
-      el.style.minHeight = "30px";
-      el.style.padding = "6px 12px";
-      if (entry.text) el.textContent = entry.text;
-    });
+    // Legacy SVG/text HUD skins are intentionally disabled for the raster HUD pass.
+    if (btnRestart) btnRestart.textContent = "Restart";
+    applyHudRasterAssets();
   }
 
   function sanitizeNonNegativeInt(value) {
@@ -476,6 +485,8 @@
       fpsLabel = document.getElementById("fpsLabel");
       btnRestart = document.getElementById("btnRestart");
       btnSubMeta = document.getElementById("btnSubMeta");
+      hudLogo = document.getElementById("hudLogo");
+      hudSubMetaImage = document.getElementById("hudSubMetaImage");
       topBar = document.getElementById("topBar");
       debugBadge = document.getElementById("debugBadge");
       startOverlay = document.getElementById("startOverlay");

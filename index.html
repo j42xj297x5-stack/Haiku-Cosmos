@@ -54,12 +54,97 @@
 
     #topBar {
       position: fixed;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 130px;
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    .hud-asset {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: none;
+      max-height: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    #hudLogo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 261px;
+      height: 130px;
+      pointer-events: none;
+    }
+
+    #btnSubMeta {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 195px;
+      height: 130px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: transparent;
+      transform: translateX(-50%);
+      cursor: pointer;
+      pointer-events: auto;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    #btnSubMeta:focus-visible {
+      outline: 2px solid rgba(255, 214, 122, 0.88);
+      outline-offset: -8px;
+    }
+
+    #hudSubMetaImage {
+      width: 195px;
+      height: 130px;
+      pointer-events: none;
+    }
+
+    #scoreLabel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 279px;
+      height: 130px;
+      box-sizing: border-box;
+      display: block;
+      pointer-events: none;
+      background-repeat: no-repeat;
+      background-position: top right;
+      background-size: auto;
+      color: #f6c86a;
+      text-shadow: 0 0 8px rgba(255, 184, 76, 0.45), 0 1px 2px rgba(0,0,0,0.75);
+      font: 700 30px/1 var(--hc-font-display);
+      letter-spacing: 0.04em;
+    }
+
+    #scoreLabel .rp-value {
+      position: absolute;
+      top: 48px;
+      right: 48px;
+      min-width: 74px;
+      text-align: center;
+    }
+
+    #debugHudControls {
+      position: fixed;
       left: 12px;
-      right: 12px;
-      top: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      max-width: min(420px, calc(100vw - 24px));
       pointer-events: none;
       z-index: 9998;
     }
@@ -166,8 +251,8 @@
 
     #runtimeDebugOverlay {
       position: fixed;
-      top: 10px;
-      left: 10px;
+      left: 12px;
+      bottom: calc(52px + env(safe-area-inset-bottom, 0px));
       color: rgba(245,247,255,0.95);
       font: 11px/1.4 var(--hc-font-mono);
       z-index: 9999;
@@ -295,10 +380,15 @@
 
   <div id="uiRoot">
     <div id="topBar">
+      <img id="hudLogo" class="hud-asset" width="261" height="130" alt="Haiku Cosmos" draggable="false">
+      <button id="btnSubMeta" type="button" aria-label="Otwórz SUB-META">
+        <img id="hudSubMetaImage" class="hud-asset" width="195" height="130" alt="" draggable="false">
+      </button>
+    </div>
+    <div id="debugHudControls">
       <div class="pill debug-badge" id="debugBadge" hidden>DEBUG</div>
       <div class="pill" id="fpsLabel">FPS: --</div>
       <button class="pill" id="btnRestart" type="button">Restart</button>
-      <button class="pill" id="btnSubMeta" type="button">META</button>
     </div>
     <aside id="runtimeDebugOverlay" hidden class="compact" aria-live="polite">
       <button id="btnDebugOverlayToggle" class="overlay-btn overlay-debug-handle" type="button" title="Hide debug overlay" aria-label="Hide debug overlay" aria-expanded="true">DEBUG ▾</button>
