@@ -1,7 +1,7 @@
 > Status: ROBOCZY
 > Obszar: mapa funkcji świata / runtime
 > Źródło prawdy: CZĘŚCIOWO — robocza mapa orientacyjna; NIE zastępuje audytu kodu
-> Ostatnia aktualizacja: 2026-04-26
+> Ostatnia aktualizacja: 2026-06-04
 > Powiązane dokumenty: ../maps/DEPENDENCY_MAP.md, SEQUENCE_STATE_CONTRACT.md, IMPLEMENTATION_TRACKER.md, LIVE_VALIDATION_PACK.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../ui/UI_WORLD.md
 
 # Haiku Cosmos — MAP_FUNCTIONS_WORLD_vNEXT
@@ -304,13 +304,16 @@
 
 ### 3.8a `hc.world_render_snapshot.js` + `hc.world_renderer.js` — World rendering adapter
 **STATE:**
-- `HC.WorldRenderer` utrzymuje tylko stan prezentacyjny adaptera: tryb `canvas2d|three`, osobny canvas Three, scene/camera/renderer oraz cache meshów meteorów i asteroidów.
+- `HC.WorldRenderer` utrzymuje tylko stan prezentacyjny adaptera: tryb `canvas2d|three`, osobny canvas Three, scene/camera/renderer, cache meshów meteorów i asteroidów oraz cache GLB meteorów per URL.
 - `HC.WorldRenderSnapshot.build(...)` tworzy read-only snapshot prezentacyjny na bazie `World/Camera/View`; nie mutuje świata.
+- Meteor GLB visual state jest per wrapper: stabilny wariant GLB, rotacja XYZ i prędkość rotacji są przypisywane raz na visual lifetime.
 
 **Funkcje kluczowe:**
 - `HC.WorldRenderSnapshot.build({ World, Camera, View, ... })` mapuje kolekcje świata do `renderSnapshot.world.*`, w tym `meteors[]` i `asteroids[]` z minimalnymi polami renderowymi.
 - `HC.WorldRenderer.render(renderSnapshot, now, dt)` wybiera `canvas2d` fallback albo `three`.
 - W trybie `three` adapter renderuje meteory i asteroidy wyłącznie ze snapshotu; planety/gwiazdy/PRG pozostają poza Three.
+- Meteor GLB pass ładuje aktywne pule `public/glb/` przez `publicAssetPath` / `publicPath`, pokazuje fallback circle podczas loading/failed i zachowuje Canvas2D jako fallback renderer.
+- Live debug scale meteorów GLB ma zakres `0.25`–`4.0`, działa bez reloadu i jest visual-only: nie zmienia promienia logicznego, kolizji, spawnu, kart, RP, HUD ani SUB-META.
 - Diagnostics raportują tryb/fallback, stan lokalnego Three ESM bridge, liczbę meshów meteorów, liczniki GLB meteorów (`meteorGlbAssignmentsCount`, `meteorGlbCacheSize`, `activeGlbInstances`, `activeFallbackMeteorVisuals`, `activeGlbInstancesByColor`, `fallbackVisualsByColor`) oraz liczby `threeAsteroidCount` / `threeAsteroidMeshes`.
 
 ---

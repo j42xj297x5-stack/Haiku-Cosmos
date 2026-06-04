@@ -675,13 +675,94 @@ Manualny screen/test potwierdził:
 - Wynik manualnego QA w tym środowisku: **pending / wymagany w przeglądarce**, ponieważ środowisko repo nie udostępnia lokalnej przeglądarki do uruchomienia runtime.
 - Checklist manualny do wykonania w przeglądarce: `canvas2d` działa jak wcześniej; w trybie `three` `effectiveMode=three`, `fallback=none`, meteory pozostają widoczne, a asteroidy po kolizjach meteorów pojawiają się w Three; brak Three lub błąd init/render zachowuje fallback `canvas2d`.
 
-## Three meteor GLB asset pools checkpoint (2026-06-04)
+## Three GLB meteor pass v0.1 snapshot (2026-06-04)
 
-- Three meteor visual pass ma centralna konfiguracje `METEOR_GLB_ASSETS` dla czterech kolorow meteorow: `red`, `yellow`, `green`, `blue`.
-- Kazdy kolor ma dokladnie 5 wariantow GLB w `public/glb/`, ladowanych przez deployment-safe helper public path (`publicAssetPath` / `publicPath`) zamiast absolutnych sciezek.
-- Przypisanie wariantu pozostaje stabilne na zycie wrappera wizualnego meteoru; zmiana debugowej skali GLB aktualizuje tylko skale child modelu w render pass i nie przebudowuje/nie losuje GLB ponownie.
-- Fallback circle pozostaje widoczny podczas loadingu, po bledzie ladowania i gdy asset nie istnieje; po gotowym GLB fallback dla danego meteoru jest ukrywany.
-- Diagnostyka obejmuje laczne liczniki GLB oraz per-color `activeGlbInstancesByColor` i `fallbackVisualsByColor`.
+### A. Cel passu
+- Snapshot zamyka aktualny etap wdrożenia meteorów GLB w Three rendererze jako **visual-only layer**.
+- Pass dokumentuje stan po technicznym wdrożeniu; nie uruchamia nowego zadania runtime i nie rozszerza mechaniki świata.
+- Three renderer nadal korzysta z granicy `renderSnapshot.world.meteors`, więc meteory poruszają się po XY zgodnie ze snapshotem symulacji.
+
+### B. Aktualny model renderowania GLB meteorów
+- Three meteor visual pass ma centralną konfigurację `METEOR_GLB_ASSETS` dla czterech kolorów meteorów: `red`, `yellow`, `green`, `blue`.
+- Każdy aktywny kolor ma dokładnie 5 wariantów GLB ładowanych z `public/glb/`; ścieżki są rozwiązywane przez deployment-safe helper public path (`publicAssetPath` / `publicPath`) zamiast hardcodowanych absolutnych URL.
+- Wrapper wizualny meteoru dostaje stabilny wariant GLB na czas życia wrappera; indeks wariantu wynika z `visualId`, a nie z losowania per frame.
+- Wariant GLB nie jest zmieniany co klatkę. Reassignment jest liczony diagnostycznie tylko przy zmianie URL wariantu dla istniejącego wrappera.
+- Cache modeli GLB działa per URL (`meteorGlbCache`), a gotowy template jest klonowany do instancji wizualnych.
+- Fallback circle pozostaje widoczny podczas loadingu, po błędzie ładowania i wtedy, gdy asset nie istnieje; po gotowym GLB fallback dla danego meteoru jest ukrywany.
+- Modele GLB obracają się wizualnie po osiach XYZ. Bazowa rotacja, dominująca oś i prędkości osi są losowane raz na życie wrappera/visual lifetime, a potem aktualizowane deterministycznie z upływem czasu.
+- Skala GLB jest liczona jako visual transform child modelu na podstawie promienia ze snapshotu oraz live debug scale; nie zmienia logicznego promienia meteoru.
+
+### C. Aktywna lista assetów GLB per kolor
+
+**BLUE**
+- `public/glb/meteor_blue_silence_crystal_01.glb`
+- `public/glb/meteor_blue_silence_crystal_02.glb`
+- `public/glb/meteor_blue_silence_crystal_03.glb`
+- `public/glb/meteor_blue_silence_crystal_04.glb`
+- `public/glb/meteor_blue_silence_crystal_05.glb`
+
+**GREEN**
+- `public/glb/meteor_green_flow_shard_01.glb`
+- `public/glb/meteor_green_flow_shard_02.glb`
+- `public/glb/meteor_green_flow_shard_03.glb`
+- `public/glb/meteor_green_flow_shard_04.glb`
+- `public/glb/meteor_green_flow_shard_05.glb`
+
+**RED**
+- `public/glb/meteor_red_form_core_01.glb`
+- `public/glb/meteor_red_form_core_02.glb`
+- `public/glb/meteor_red_form_core_03.glb`
+- `public/glb/meteor_red_form_core_04.glb`
+- `public/glb/meteor_red_form_core_05.glb`
+
+**YELLOW**
+- `public/glb/meteor_yellow_bond_resin_01.glb`
+- `public/glb/meteor_yellow_bond_resin_02.glb`
+- `public/glb/meteor_yellow_bond_resin_03.glb`
+- `public/glb/meteor_yellow_bond_resin_04.glb`
+- `public/glb/meteor_yellow_bond_resin_05.glb`
+
+### D. Granice odpowiedzialności
+- Pass jest **visual-only**: nie zmienia mechaniki świata, update loop, spawnu, kolizji ani hit-testów.
+- Kolizje nadal działają na logicznych danych meteoru, a nie na meshach GLB.
+- Canvas2D fallback pozostaje bez zmian i nadal jest obowiązkową ścieżką awaryjną.
+- HUD, SUB-META, META, karty i ekonomia RP pozostają poza tym passem oraz poza sceną Three.
+- Asteroidy pozostają osobnym Etapem 4; ten snapshot nie miesza meteorów GLB z FrameComposer/SUB-META visual pipeline.
+
+### E. Debug controls
+- Debug overlay ma live kontrolkę `Meteor GLB scale`, która zapisuje `WorldRendererDebug.meteorGlbVisualScale` / `Session.debugConfig.visual.meteorGlbVisualScale`.
+- Zakres wartości z runtime: `0.25`–`4.0`; domyślnie `1.0`.
+- Zmiana skali działa live bez reloadu strony.
+- Zmiana skali nie przebudowuje cache GLB, nie wymusza rekonstrukcji loadera i nie losuje ponownie wariantów; aktualizuje tylko `scale` child modelu w render pass.
+- Skala debugowa jest visual-only: nie zmienia logicznego promienia, kolizji, spawnu, RP ani sekwencji.
+
+### F. Diagnostyka runtime
+- `HC.WorldRenderer.getDiagnostics()` raportuje m.in. `meteorGlbAssets`, `meteorGlbVisualScale`, `meteorGlbScaleLiveControl`, `meteorGlbCacheStats`, `meteorGlbAssignmentsCount`, `meteorGlbCacheSize`, `activeGlbInstances`, `activeFallbackMeteorVisuals`, `activeGlbInstancesByColor`, `fallbackVisualsByColor`, `glbVariantReassignments` i `meteorGlbInstanceCreates`.
+- Diagnostyka first sample obejmuje `firstMeteor` oraz `firstMeteorMesh` z informacją o URL assetu, wariancie, widoczności GLB/fallbacku i aktualnej skali.
+
+### G. Manual QA checklist
+1. Uruchomić Vite po restarcie dev servera.
+2. Włączyć Three renderer.
+3. Sprawdzić po 5 wariantów dla RED/YELLOW/GREEN/BLUE.
+4. Potwierdzić, że wariant nie zmienia się w locie.
+5. Potwierdzić, że rotacja XYZ działa.
+6. Potwierdzić, że debug scale działa live bez reloadu.
+7. Potwierdzić, że fallback circle pojawia się przy loading/failed.
+8. Potwierdzić, że canvas2d fallback działa nadal.
+9. Potwierdzić, że kolizje, spawn, RP, karty, HUD i SUB-META są bez zmian.
+10. Potwierdzić reset świata bez zostawiania starych instancji GLB.
+
+### H. Znane ograniczenia
+- Loader GLB w `hc.world_renderer.js` jest lightweight loaderem pod obecne lekkie, self-contained GLB; nie jest pełnym upstreamowym `GLTFLoader`.
+- Obecny loader zakłada GLB v2 z JSON + BIN chunk i nie jest kontraktem dla pełnego spektrum glTF.
+- Jeśli przyszłe assety dostaną tekstury, kompresję, DRACO, Meshopt, animacje albo zewnętrzne pliki, trzeba rozważyć vendored `GLTFLoader` zamiast rozbudowy lightweight loadera ad hoc.
+- Vite/cache dev server może wymagać restartu po zmianach modułów lub assetów publicznych.
+
+### I. Następny krok
+- Dostroić domyślną skalę GLB meteorów po visual QA.
+- Dostroić światło/materiały sceny Three dla czytelności modeli.
+- Opcjonalnie wykonać snapshot visual QA z porównaniem wariantów per kolor.
+- Później rozważyć analogiczny pass dla asteroid/planetoid, jeśli projektant zatwierdzi kierunek.
 
 ## Plan kolejnych etapów po checkpointcie 4
 
