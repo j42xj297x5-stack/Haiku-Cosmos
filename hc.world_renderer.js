@@ -121,6 +121,9 @@
   let threeDependencySource = "unknown";
 
   window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+  if (window.HC.WorldRendererDebug.globalHelpersEnabled !== false) {
+    window.HC.WorldRendererDebug.globalHelpersEnabled = true;
+  }
   if (!Number.isFinite(Number(window.HC.WorldRendererDebug.meteorGlbVisualScale))) {
     window.HC.WorldRendererDebug.meteorGlbVisualScale = METEOR_GLB_VISUAL_SCALE_DEFAULT;
   }
@@ -342,6 +345,24 @@
     return Math.max(min, Math.min(max, n));
   }
 
+  function getGlobalHelpersEnabled() {
+    const debugValue = window.HC?.WorldRendererDebug?.globalHelpersEnabled;
+    const sessionValue = window.HC?.Session?.debugConfig?.visual?.globalHelpersEnabled;
+    return debugValue !== false && sessionValue !== false;
+  }
+
+  function setGlobalHelpersEnabled(value) {
+    const enabled = value !== false && value !== "false" && value !== "0";
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.globalHelpersEnabled = enabled;
+    if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.globalHelpersEnabled = enabled;
+    syncDebugMarkerPosition();
+    updateFirstMeteorDiagnostics();
+    syncLightHelpers();
+    return enabled;
+  }
+
   function getThreeLightsSettings() {
     const debugLights = window.HC?.WorldRendererDebug?.threeLights || {};
     const sessionLights = window.HC?.Session?.debugConfig?.visual?.threeLights || {};
@@ -559,17 +580,17 @@
     const THREE = window.HC_THREE || window.THREE;
     const settings = threeState.lightsSettings || getThreeLightsSettings();
     if (!THREE || !threeState.scene) return;
-    if (!settings.showLightHelpers) {
+    if (!getGlobalHelpersEnabled() || !settings.showLightHelpers) {
       if (threeState.lightHelpersGroup) threeState.lightHelpersGroup.visible = false;
-      threeState.lightHelperStatus = { mode: "off", count: threeState.lightHelpers.length, visible: false };
+      threeState.lightHelperStatus = { mode: getGlobalHelpersEnabled() ? "off" : "global_off", count: threeState.lightHelpers.length, visible: false };
       return;
     }
     if (!threeState.lightHelpersGroup || !threeState.lightHelpers.length) rebuildLightHelpers(THREE);
     if (!threeState.lightHelpersGroup) return;
-    threeState.lightHelpersGroup.visible = true;
+    threeState.lightHelpersGroup.visible = getGlobalHelpersEnabled();
     threeState.lightHelpers.forEach((entry) => {
       if (!entry?.helper || !entry.light) return;
-      entry.helper.visible = !!entry.light.visible;
+      entry.helper.visible = getGlobalHelpersEnabled() && !!entry.light.visible;
       if (entry.helper.position && !entry.helper.userData?.hcIsPointLightHelper && !entry.helper.userData?.hcIsSpotLightHelper) {
         const trackedPosition = entry.tracks === "target" ? entry.target?.position : entry.light.position;
         if (trackedPosition) entry.helper.position.copy(trackedPosition);
@@ -815,14 +836,14 @@
     if (threeState.firstMeteorMarker) {
       const markerPos = first.renderedPosition || applyRenderSpaceToVector(first.x, first.y, 2);
       threeState.firstMeteorMarker.position.set(markerPos.x, markerPos.y, 2);
-      threeState.firstMeteorMarker.visible = !!threeState.debugMarkerEnabled;
+      threeState.firstMeteorMarker.visible = getGlobalHelpersEnabled() && !!threeState.debugMarkerEnabled;
     }
   }
 
   function syncDebugMarkerPosition() {
     if (!threeState.debugMarker || !threeState.cameraBounds) return;
     threeState.debugMarker.position.set(threeState.cameraBounds.cx, threeState.cameraBounds.cy, 2);
-    threeState.debugMarker.visible = !!threeState.debugMarkerEnabled;
+    threeState.debugMarker.visible = getGlobalHelpersEnabled() && !!threeState.debugMarkerEnabled;
   }
 
   function resize(renderSnapshot) {
@@ -2450,6 +2471,7 @@
       meteorGlbScaleLiveControl: true,
       meteorGlbDepthScaleLiveControl: true,
       glbScaleWarning: threeState.glbScaleWarning,
+      globalHelpersEnabled: getGlobalHelpersEnabled(),
       threeLightsLiveControl: true,
       threeMaterialDebugLiveControl: true,
       threeMaterialSettings: Object.assign({}, threeState.materialSettings || getThreeMaterialSettings()),
@@ -2491,7 +2513,7 @@
         castShadow: !!threeState.debugSpotLight.castShadow,
       } : null,
       threeLightDiagnostics: getLightDistanceDiagnostics(),
-      threeLightHelpers: { enabled: !!(threeState.lightsSettings || getThreeLightsSettings()).showLightHelpers, visible: !!threeState.lightHelpersGroup?.visible, count: threeState.lightHelpers.length, mode: threeState.lightHelperStatus?.mode || "none" },
+      threeLightHelpers: { globalEnabled: getGlobalHelpersEnabled(), enabled: !!(threeState.lightsSettings || getThreeLightsSettings()).showLightHelpers, visible: !!threeState.lightHelpersGroup?.visible, count: threeState.lightHelpers.length, mode: threeState.lightHelperStatus?.mode || "none" },
       threeMaterialOverrideStatus: Object.assign({}, threeState.materialOverrideStatus),
       threeLightCount: Array.isArray(threeState.cornerLights) ? threeState.cornerLights.length : 0,
       meteorGlbCacheStats: getMeteorGlbCacheStats(),
@@ -2505,7 +2527,7 @@
       meteorGlbInstanceCreates: threeState.meteorGlbInstanceCreates,
       firstMeteor: threeState.firstMeteorSample,
       firstMeteorMesh: threeState.firstMeshSample,
-      threeDebugMarker: { enabled: !!threeState.debugMarkerEnabled, visible: !!threeState.debugMarker?.visible },
+      threeDebugMarker: { globalEnabled: getGlobalHelpersEnabled(), enabled: !!threeState.debugMarkerEnabled, visible: !!threeState.debugMarker?.visible },
       cameraBounds: threeState.cameraBounds,
       worldCameraBounds: threeState.worldCameraBounds,
       rendererSize: threeState.rendererSize,
@@ -2527,5 +2549,5 @@
 
   function destroy() { destroyThree(); initialized = false; resetDiagnostics(); }
 
-  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getMeteorGlbDepthScale, setMeteorGlbDepthScale, getThreeCameraModel, setThreeCameraModel, getThreeLightsSettings, setThreeLightsDebugSetting, getThreeMaterialSettings, setThreeMaterialDebugSetting };
+  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getMeteorGlbDepthScale, setMeteorGlbDepthScale, getThreeCameraModel, setThreeCameraModel, getGlobalHelpersEnabled, setGlobalHelpersEnabled, getThreeLightsSettings, setThreeLightsDebugSetting, getThreeMaterialSettings, setThreeMaterialDebugSetting };
 })();
