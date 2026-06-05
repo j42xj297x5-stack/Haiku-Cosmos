@@ -92,7 +92,8 @@ context.window.HC.WorldRenderer = {
         mainStageSpotTargetMode: "sampleObject",
         showLightHelpers: true,
       },
-      threeLightHelpers: { mode: "pointLightHelper", count: 6, visible: true, enabled: true },
+      globalHelpersEnabled: false,
+      threeLightHelpers: { mode: "global_off", count: 6, visible: false, enabled: true, globalEnabled: false },
       threeLightPositions: [{ name: "corner_0", position: { x: 1, y: 2, z: 3 } }],
       threeLightDiagnostics: {
         effectiveAmbientIntensity: 0,
@@ -157,6 +158,7 @@ assert.equal(snapshot.visual.three.threeMaterials.enabled, true);
 assert.equal(snapshot.visual.three.ambientIsolate, true);
 assert.equal(snapshot.visual.three.threeLights.debugKeyLightEnabled, true);
 assert.equal(snapshot.visual.three.showLightHelpers, true);
+assert.equal(snapshot.visual.three.globalHelpersEnabled, false);
 assert.equal(snapshot.visual.three.threeLights.mainStageSpotEnabled, true);
 assert.equal(snapshot.visual.three.mainStageSpot.targetMode, "sampleObject");
 assert.equal(snapshot.visual.three.mainStageSpot.castShadow, false);
@@ -164,6 +166,7 @@ assert.equal(snapshot.visual.three.lights.debugSpotLightHelperVisible, true);
 assert.equal(snapshot.visual.three.lights.legacyCornerLightsEnabled, false);
 assert.equal(snapshot.visual.three.lights.sampleObjectFrustumVisible, true);
 assert.equal(snapshot.visual.three.helper.count, 6);
+assert.equal(snapshot.visual.three.helper.globalEnabled, false);
 assert.equal(snapshot.visual.three.materials.activeGlbObjectCount, 3);
 assert.equal(snapshot.visual.three.materials.activeGlbMeshCount, 9);
 assert.equal(snapshot.visual.three.materials.auditEntries[0].assetName, "meteor.glb");
@@ -176,8 +179,17 @@ for (const eventType of [
   "debug.three_light_setting_changed",
   "debug.three_ambient_isolate_changed",
   "debug.three_helper_visibility_changed",
+  "debug.global_helper_visibility_changed",
 ]) {
   assert.match(uiDebugSource, new RegExp(eventType.replace(/[.]/g, "\\.")), `${eventType} event is wired`);
 }
+
+const cfg = context.window.HC.createDebugConfig("debug", {});
+assert.equal(cfg.loggingMode, "compact");
+assert.equal(cfg.heartbeatIntervalMs, 5000);
+assert.equal(cfg.verboseDiagnostics, false);
+assert.equal(cfg.visual.globalHelpersEnabled, true);
+assert.ok(context.window.HC.DebugEventTypes.SUBMETA_OPENED);
+assert.ok(context.window.HC.DebugEventTypes.DEBUG_HEARTBEAT);
 
 console.log("debug evidence Three snapshot contract ok");

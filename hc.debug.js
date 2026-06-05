@@ -59,7 +59,21 @@
     DEBUG_CONFIG_SECTION_APPLIED: "debug.config_section_applied",
     DEBUG_FLUSH: "debug.flush",
     DEBUG_SNAPSHOT_WRITTEN: "debug.snapshot_written",
+    DEBUG_HEARTBEAT: "debug.heartbeat",
+    DEBUG_FULL_DIAGNOSTICS_FORCED: "debug.full_diagnostics_forced",
     DEBUG_ERROR: "debug.error",
+
+    SUBMETA_OPENED: "submeta.opened",
+    SUBMETA_CLOSED: "submeta.closed",
+    SUBMETA_SLOT_UNLOCKED: "submeta.slot_unlocked",
+    SUBMETA_SLOT_ASSIGNED: "submeta.slot_assigned",
+    SUBMETA_SLOT_REMOVED: "submeta.slot_removed",
+    SUBMETA_CARD_MOVED: "submeta.card_moved",
+    SUBMETA_CARD_FORGED: "submeta.card_forged",
+    SUBMETA_INVENTORY_CHANGED: "submeta.inventory_changed",
+    SUBMETA_PRG_BINDING_CHANGED: "submeta.prg_binding_changed",
+    SUBMETA_PURCHASE: "submeta.purchase",
+    SUBMETA_ERROR: "submeta.error",
   });
 
   const DEFAULT_INITIAL_CARDS = Object.freeze({
@@ -234,6 +248,10 @@
       mode: isDebug ? "debug" : "normal",
       scenarioLabel: String(partial.scenarioLabel || "manual_session"),
       loggingEnabled: isDebug,
+      loggingMode: partial.loggingMode === "verbose" ? "verbose" : "compact",
+      verboseDiagnostics: partial.verboseDiagnostics === true,
+      heartbeatIntervalMs: clampInt(partial.heartbeatIntervalMs, 5000),
+      fullEvidenceOnFinalize: partial.fullEvidenceOnFinalize !== false,
       batchSizeEvents: clampInt(partial.batchSizeEvents, 20),
       flushIntervalMs: clampInt(partial.flushIntervalMs, 1000),
       includeSnapshots: partial.includeSnapshots !== false,
@@ -254,6 +272,7 @@
         meteorGlbVisualScale: Number.isFinite(meteorGlbVisualScale) ? Math.max(0.25, Math.min(4.0, meteorGlbVisualScale)) : 1.0,
         meteorGlbDepthScale: Number.isFinite(meteorGlbDepthScale) ? Math.max(0.25, Math.min(3.0, meteorGlbDepthScale)) : 1.0,
         cameraModel,
+        globalHelpersEnabled: visualCfg.globalHelpersEnabled !== false,
         threeMaterials: {
           enabled: materialCfg.enabled === true,
           envIntensity: Number.isFinite(Number(materialCfg.envIntensity)) ? Math.max(0, Math.min(1.5, Number(materialCfg.envIntensity))) : 0.38,
@@ -328,6 +347,7 @@
     const lightDiagnostics = diagnostics?.threeLightDiagnostics || null;
     const helper = diagnostics?.threeLightHelpers || {};
     const activeMaterialMode = materials.materialMode || materialOverride.currentMaterialMode || "imported";
+    const globalHelpersEnabled = diagnostics?.globalHelpersEnabled ?? window.HC?.WorldRendererDebug?.globalHelpersEnabled ?? window.HC?.Session?.debugConfig?.visual?.globalHelpersEnabled ?? true;
     const materialAuditEntries = Array.isArray(diagnostics?.glbMaterialAudit)
       ? diagnostics.glbMaterialAudit.slice(-8).map((entry) => ({
           asset: entry?.asset || null,
@@ -354,6 +374,7 @@
         }))
       : [];
     return {
+      globalHelpersEnabled: globalHelpersEnabled !== false,
       renderer: {
         requested: diagnostics?.requestedMode || null,
         effective: diagnostics?.effectiveMode || diagnostics?.mode || null,
@@ -416,6 +437,7 @@
         mainStageSpotDecay: pickThreeLightSetting(lights, "mainStageSpotDecay"),
         mainStageSpotTargetMode: pickThreeLightSetting(lights, "mainStageSpotTargetMode", "center"),
         showLightHelpers: lights.showLightHelpers === true,
+        globalHelpersEnabled: globalHelpersEnabled !== false,
       },
       debugKeyLight: {
         enabled: lights.debugKeyLightEnabled === true,
@@ -451,6 +473,7 @@
       debugSpotLight: null,
       showLightHelpers: lights.showLightHelpers === true,
       helper: {
+        globalEnabled: globalHelpersEnabled !== false,
         mode: helper.mode || null,
         count: Number(helper.count || 0),
         visible: helper.visible === true,
@@ -719,12 +742,45 @@
       this.lastExpectedColorEvent = null;
       this.recentEvents = [];
       this.maxRecentEvents = 10;
+      this.loggingMode = this.config.loggingMode === "verbose" ? "verbose" : "compact";
+      this.verboseDiagnostics = this.config.verboseDiagnostics === true || this.loggingMode === "verbose";
+      this.heartbeatIntervalMs = Math.max(1000, clampInt(this.config.heartbeatIntervalMs, 5000));
+      this.heartbeatTimer = null;
+      this.lastSignificantEventAtMs = 0;
+      this.counters = { events: 0, heartbeats: 0, fullSnapshots: 0, compactSnapshots: 0, flushes: 0, suppressed: 0 };
     }
 
     start() {
       if (!this.config.loggingEnabled || this.active) return;
       this.active = true;
       this.flushTimer = setInterval(() => this.flush("interval"), this.config.flushIntervalMs);
+      this.heartbeatTimer = setInterval(() => this.emitHeartbeat(), this.heartbeatIntervalMs);
+    }
+
+    buildCompactSnapshot() {
+      const World = window.HC.getWorld ? window.HC.getWorld() : window.World;
+      const sequence = window.CardEngine?.state?.sequence || null;
+      return {
+        ts: new Date().toISOString(),
+        frame: this.frame,
+        renderer: window.HC?.WorldRenderer?.getMode ? window.HC.WorldRenderer.getMode() : (window.HC?.RENDER_MODE || "canvas2d"),
+        cameraModel: window.HC?.WorldRenderer?.getThreeCameraModel ? window.HC.WorldRenderer.getThreeCameraModel() : (window.HC?.WorldRendererDebug?.cameraModel || null),
+        worldCounts: {
+          meteors: Array.isArray(World?.meteors) ? World.meteors.length : 0,
+          asteroids: Array.isArray(World?.asteroids) ? World.asteroids.length : 0,
+          planets: Array.isArray(World?.planets) ? World.planets.length : 0,
+          stars: Array.isArray(World?.stars) ? World.stars.length : 0,
+        },
+        rp: Math.max(0, Math.floor(Number(World?.score || 0))),
+        activeSequence: sequence ? {
+          active: Boolean(sequence.active),
+          stage: sequence.stage || null,
+          track: sequence.track || null,
+          expectedColor: sequence.expectedColor || null,
+          hitCount: Number(sequence.hitCount || sequence.hits || 0),
+        } : null,
+        loggingCounters: Object.assign({}, this.counters),
+      };
     }
 
     buildSnapshot() {
@@ -766,10 +822,33 @@
         },
         thresholdOverrides: World.__debugThresholdOverrides || null,
         visual: buildVisualEvidenceSnapshot(this.config?.visual || window.HC?.Session?.debugConfig?.visual || null),
+        logging: {
+          mode: this.loggingMode,
+          heartbeatIntervalMs: this.heartbeatIntervalMs,
+          verboseDiagnostics: this.verboseDiagnostics,
+          fullEvidenceOnFinalize: this.config.fullEvidenceOnFinalize !== false,
+          counters: Object.assign({}, this.counters),
+        },
+        submeta: {
+          loggingContractVersion: "future_event_based_v1",
+          eventTypes: Object.values(EVENT_TYPES).filter((type) => String(type).startsWith("submeta.")),
+          snapshotPolicy: "full snapshot only on open, close, finalize, or force evidence",
+        },
       };
     }
 
     buildThrottleKey(type, payload = {}) {
+      if (type === EVENT_TYPES.WORLD_OBJECT_DESPAWNED) {
+        const objectType = payload.objectType || payload.kind || "unknown";
+        if (objectType === "meteor") {
+          const key = `${type}|${objectType}`;
+          const previous = this.lastEventByThrottleKey.get(key);
+          if (previous && (eventFrame - previous.frame) < 15) return false;
+          this.lastEventByThrottleKey.set(key, { frame: eventFrame });
+        }
+        return true;
+      }
+
       if (type === EVENT_TYPES.WORLD_TRANSFORMATION_BLOCKED) {
         return [
           type,
@@ -799,6 +878,17 @@
           if (frameDelta < 30) return false;
         }
         this.lastWorldProgressBySource.set(sourceKey, { signature, frame: eventFrame });
+        return true;
+      }
+
+      if (type === EVENT_TYPES.WORLD_OBJECT_DESPAWNED) {
+        const objectType = payload.objectType || payload.kind || "unknown";
+        if (objectType === "meteor") {
+          const key = `${type}|${objectType}`;
+          const previous = this.lastEventByThrottleKey.get(key);
+          if (previous && (eventFrame - previous.frame) < 15) return false;
+          this.lastEventByThrottleKey.set(key, { frame: eventFrame });
+        }
         return true;
       }
 
@@ -837,7 +927,7 @@
     emit(category, type, payload = {}, opts = {}) {
       if (!this.config.loggingEnabled) return;
       const eventFrame = Number.isFinite(opts.frame) ? opts.frame : this.frame;
-      if (!this.shouldEmitEvent(type, payload, eventFrame)) return;
+      if (!this.shouldEmitEvent(type, payload, eventFrame)) { this.counters.suppressed += 1; return; }
       const event = {
         id: `${this.sessionId}:${Date.now()}:${Math.random().toString(16).slice(2, 8)}`,
         ts: new Date().toISOString(),
@@ -849,8 +939,13 @@
         source: opts.source || "runtime",
         payload: payload && typeof payload === "object" ? payload : {},
       };
-      if (this.config.includeSnapshots && opts.snapshot) {
-        event.snapshot = this.buildSnapshot();
+      const significant = opts.significant !== false && type !== EVENT_TYPES.DEBUG_FLUSH && type !== EVENT_TYPES.DEBUG_HEARTBEAT;
+      if (significant) this.lastSignificantEventAtMs = performance.now();
+      const forceFullSnapshot = opts.fullSnapshot === true || this.verboseDiagnostics === true;
+      const wantsSnapshot = this.config.includeSnapshots && opts.snapshot;
+      if (wantsSnapshot) {
+        event.snapshot = forceFullSnapshot ? this.buildSnapshot() : this.buildCompactSnapshot();
+        if (forceFullSnapshot) this.counters.fullSnapshots += 1; else this.counters.compactSnapshots += 1;
         this.buffer.push({
           id: `${event.id}:snapshot`,
           ts: new Date().toISOString(),
@@ -864,6 +959,7 @@
         });
       }
       this.buffer.push(event);
+      this.counters.events += 1;
       this.rememberRecentEvent(event);
       if (this.buffer.length >= this.config.batchSizeEvents) {
         this.flush("batch");
@@ -874,9 +970,65 @@
       this.frame = frame;
     }
 
+    emitHeartbeat() {
+      if (!this.config.loggingEnabled || !this.active) return;
+      const now = performance.now();
+      if (this.lastSignificantEventAtMs && now - this.lastSignificantEventAtMs < this.heartbeatIntervalMs) return;
+      const snapshot = this.buildCompactSnapshot();
+      this.buffer.push({
+        id: `${this.sessionId}:heartbeat:${Date.now()}`,
+        ts: new Date().toISOString(),
+        sessionTimeMs: Math.max(0, Math.floor(now - this.sessionStartedAt)),
+        frame: this.frame,
+        category: "debug",
+        type: EVENT_TYPES.DEBUG_HEARTBEAT,
+        severity: "trace",
+        source: "RuntimeEventLogger",
+        payload: snapshot,
+      });
+      this.counters.heartbeats += 1;
+      this.counters.compactSnapshots += 1;
+      if (this.buffer.length >= this.config.batchSizeEvents) this.flush("heartbeat_batch");
+    }
+
+    setLoggingMode(mode, verbose = null) {
+      this.loggingMode = mode === "verbose" || verbose === true ? "verbose" : "compact";
+      this.verboseDiagnostics = this.loggingMode === "verbose";
+      this.config.loggingMode = this.loggingMode;
+      this.config.verboseDiagnostics = this.verboseDiagnostics;
+      return this.loggingMode;
+    }
+
+    setHeartbeatIntervalMs(value) {
+      const next = Math.max(1000, clampInt(value, 5000));
+      this.heartbeatIntervalMs = next;
+      this.config.heartbeatIntervalMs = next;
+      if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = this.active ? setInterval(() => this.emitHeartbeat(), this.heartbeatIntervalMs) : null;
+      return next;
+    }
+
+    forceFullDiagnostics(reason = "manual") {
+      const snapshot = this.buildSnapshot();
+      this.buffer.push({
+        id: `${this.sessionId}:full:${Date.now()}`,
+        ts: new Date().toISOString(),
+        sessionTimeMs: Math.max(0, Math.floor(performance.now() - this.sessionStartedAt)),
+        frame: this.frame,
+        category: "debug",
+        type: EVENT_TYPES.DEBUG_FULL_DIAGNOSTICS_FORCED,
+        severity: "info",
+        source: "RuntimeEventLogger",
+        payload: { reason, snapshot },
+      });
+      this.counters.fullSnapshots += 1;
+      this.lastSignificantEventAtMs = performance.now();
+    }
+
     flush(reason = "manual") {
       if (!this.config.loggingEnabled || !this.buffer.length) return;
       const lines = this.buffer.map((entry) => JSON.stringify(entry));
+      this.counters.flushes += 1;
       this.buffer.length = 0;
       try {
         this.backend.appendLines(lines);
@@ -907,6 +1059,10 @@
       if (this.flushTimer) {
         clearInterval(this.flushTimer);
         this.flushTimer = null;
+      }
+      if (this.heartbeatTimer) {
+        clearInterval(this.heartbeatTimer);
+        this.heartbeatTimer = null;
       }
       this.flush(reason);
       this.active = false;
@@ -1191,7 +1347,7 @@
       this.applyInitialWorldState(World);
       this.emit("debug", EVENT_TYPES.DEBUG_CONFIG_SECTION_APPLIED, {
         section: "bootstrap_complete",
-      }, { source: "Session.applyDebugBootstrap", snapshot: true });
+      }, { source: "Session.applyDebugBootstrap", snapshot: true, fullSnapshot: true });
     },
 
     getScenarioPresets() {
@@ -1422,7 +1578,7 @@
         sessionId: this.sessionId,
         scenarioLabel: this.scenarioLabel,
         scenarioPresetId: this.scenarioPresetId,
-      }, { source: "Session", snapshot: true });
+      }, { source: "Session", snapshot: true, fullSnapshot: true });
 
       if (World) World.paused = false;
       if (window.HC.UI && typeof window.HC.UI.applySessionMode === "function") {
@@ -1432,7 +1588,7 @@
 
     restart() {
       if (!this.started) return;
-      this.emit("session", EVENT_TYPES.SESSION_ENDED, { reason: "restart" }, { source: "Session", snapshot: true });
+      this.emit("session", EVENT_TYPES.SESSION_ENDED, { reason: "restart" }, { source: "Session", snapshot: true, fullSnapshot: true });
       this.logger?.shutdown("restart");
       this.start(this.mode, this.sessionInputConfig);
     },
@@ -1443,7 +1599,7 @@
       this.finalizeState.message = "Flushing and finalizing session files...";
       this.endedAtIso = new Date().toISOString();
       const endingType = aborted ? EVENT_TYPES.SESSION_ABORTED : EVENT_TYPES.SESSION_ENDED;
-      this.emit("session", endingType, { reason }, { source: "Session", snapshot: true, severity: aborted ? "warn" : "info" });
+      this.emit("session", endingType, { reason }, { source: "Session", snapshot: true, fullSnapshot: true, severity: aborted ? "warn" : "info" });
       const finalSnapshot = this.getRuntimeSnapshot();
       const summary = {
         sessionId: this.sessionId,
@@ -1496,6 +1652,26 @@
 
     flush(reason) {
       this.logger?.flush(reason || "manual");
+    },
+
+    forceFullDiagnostics(reason = "manual") {
+      this.logger?.forceFullDiagnostics(reason);
+      this.flush("force_full_diagnostics");
+    },
+
+    setLoggingMode(mode) {
+      const next = this.logger?.setLoggingMode(mode) || (mode === "verbose" ? "verbose" : "compact");
+      if (this.debugConfig) {
+        this.debugConfig.loggingMode = next;
+        this.debugConfig.verboseDiagnostics = next === "verbose";
+      }
+      return next;
+    },
+
+    setHeartbeatIntervalMs(value) {
+      const next = this.logger?.setHeartbeatIntervalMs(value) || Math.max(1000, clampInt(value, 5000));
+      if (this.debugConfig) this.debugConfig.heartbeatIntervalMs = next;
+      return next;
     },
 
     reportIssue(issuePayload = {}) {
@@ -1551,6 +1727,10 @@
         loggingEnabled: Boolean(this.debugConfig?.loggingEnabled),
         loggingStatus: this.logger?.backend?.getStatus ? this.logger.backend.getStatus() : null,
         pendingLogBufferSize: logger?.buffer?.length || 0,
+        loggingMode: logger?.loggingMode || this.debugConfig?.loggingMode || "compact",
+        heartbeatIntervalMs: logger?.heartbeatIntervalMs || this.debugConfig?.heartbeatIntervalMs || 5000,
+        verboseDiagnostics: logger?.verboseDiagnostics === true || this.debugConfig?.verboseDiagnostics === true,
+        loggingCounters: logger?.counters ? Object.assign({}, logger.counters) : null,
         finalizeState: this.finalizeState,
         sequence: seq ? {
           active: Boolean(seq.active),
@@ -1589,6 +1769,11 @@
         lastByCategory,
         recentEvents: recent.slice(-10),
         visual: buildVisualEvidenceSnapshot(this.debugConfig?.visual || null),
+        submeta: {
+          loggingContractVersion: "future_event_based_v1",
+          eventTypes: Object.values(EVENT_TYPES).filter((type) => String(type).startsWith("submeta.")),
+          snapshotPolicy: "full snapshot only on open, close, finalize, or force evidence",
+        },
       };
     }
   };
@@ -1601,6 +1786,7 @@
   window.HC.reportDebugIssue = (issuePayload) => Session.reportIssue(issuePayload);
   window.HC.selectDebugLogFolder = async () => DebugFileBridge.pickRootDirectory();
   window.HC.finalizeDebugSession = async () => Session.finalize("user_finalize", false);
+  window.HC.forceFullDiagnostics = (reason) => Session.forceFullDiagnostics(reason || "manual");
 
   window.addEventListener("beforeunload", () => Session.abort("beforeunload"));
   window.addEventListener("pagehide", () => Session.flush("pagehide"));

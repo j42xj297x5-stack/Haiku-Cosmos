@@ -38,6 +38,7 @@
   let fpsFrames = 0;
   let initialized = false;
   let lastScore = null;
+  const lastDebugControlEventAt = new Map();
 
   const DEBUG_UI_TEXT = Object.freeze({
     "common.back": "Back",
@@ -163,6 +164,7 @@
   }
 
   function setMeteorGlbVisualScaleFromUi(value) {
+    const before = getMeteorGlbVisualScaleForUi();
     const scale = window.HC?.WorldRenderer?.setMeteorGlbVisualScale
       ? window.HC.WorldRenderer.setMeteorGlbVisualScale(value)
       : Math.max(0.25, Math.min(4.0, Number(value) || 1.0));
@@ -174,6 +176,7 @@
     if (valueNode) valueNode.textContent = scale.toFixed(2);
     const input = document.getElementById("dbgMeteorGlbScale");
     if (input && Number(input.value) !== scale) input.value = String(scale);
+    if (before !== scale) emitThreeDebugControlEvent("debug.glb_visual_scale_changed", { before, after: scale });
     return scale;
   }
 
@@ -186,6 +189,7 @@
   }
 
   function setMeteorGlbDepthScaleFromUi(value) {
+    const before = getMeteorGlbDepthScaleForUi();
     const scale = window.HC?.WorldRenderer?.setMeteorGlbDepthScale
       ? window.HC.WorldRenderer.setMeteorGlbDepthScale(value)
       : Math.max(0.25, Math.min(3.0, Number(value) || 1.0));
@@ -197,6 +201,7 @@
     if (valueNode) valueNode.textContent = scale.toFixed(2);
     const input = document.getElementById("dbgMeteorGlbDepthScale");
     if (input && Number(input.value) !== scale) input.value = String(scale);
+    if (before !== scale) emitThreeDebugControlEvent("debug.glb_depth_scale_changed", { before, after: scale });
     return scale;
   }
 
@@ -207,6 +212,7 @@
   }
 
   function setThreeCameraModelFromUi(value) {
+    const before = getThreeCameraModelForUi();
     const model = window.HC?.WorldRenderer?.setThreeCameraModel
       ? window.HC.WorldRenderer.setThreeCameraModel(value)
       : (String(value) === "stage_normalized" ? "stage_normalized" : "absolute_bounds");
@@ -216,15 +222,50 @@
     if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.cameraModel = model;
     const input = document.getElementById("dbgThreeCameraModel");
     if (input && input.value !== model) input.value = model;
+    if (before !== model) emitThreeDebugControlEvent("debug.camera_model_changed", { before, after: model });
     return model;
   }
 
+  function getGlobalHelpersEnabledForUi() {
+    if (window.HC?.WorldRenderer?.getGlobalHelpersEnabled) return window.HC.WorldRenderer.getGlobalHelpersEnabled();
+    const debugValue = window.HC?.WorldRendererDebug?.globalHelpersEnabled;
+    const sessionValue = window.HC?.Session?.debugConfig?.visual?.globalHelpersEnabled;
+    return debugValue !== false && sessionValue !== false;
+  }
+
+  function setGlobalHelpersEnabledFromUi(value) {
+    const before = getGlobalHelpersEnabledForUi();
+    const enabled = value !== false && value !== "false" && value !== "0";
+    const after = window.HC?.WorldRenderer?.setGlobalHelpersEnabled
+      ? window.HC.WorldRenderer.setGlobalHelpersEnabled(enabled)
+      : enabled;
+    window.HC = window.HC || {};
+    window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
+    window.HC.WorldRendererDebug.globalHelpersEnabled = after;
+    if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.globalHelpersEnabled = after;
+    const input = document.getElementById("dbgGlobalHelpersEnabled");
+    if (input) input.checked = after !== false;
+    if (before !== after) {
+      emitThreeDebugControlEvent("debug.global_helper_visibility_changed", {
+        key: "globalHelpersEnabled",
+        before,
+        after,
+      });
+    }
+    return after;
+  }
 
   function emitThreeDebugControlEvent(type, payload) {
     if (!window.HC?.Session?.started || typeof window.HC.Session.emit !== "function") return;
+    const throttleKey = `${type}:${payload?.key || "global"}`;
+    const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    const previous = lastDebugControlEventAt.get(throttleKey);
+    if (previous != null && now - previous < 1000) return;
+    lastDebugControlEventAt.set(throttleKey, now);
     window.HC.Session.emit("debug", type, Object.assign({ source: "ui_debug" }, payload || {}), {
       source: "ui_debug",
       snapshot: true,
+      fullSnapshot: true,
     });
   }
 
@@ -553,6 +594,11 @@
       if (runtimeDebugOverlayBody) {
         runtimeDebugOverlayBody.addEventListener("click", (event) => {
           const tabBtn = event.target && event.target.closest ? event.target.closest("[data-debug-tab]") : null;
+          const forceBtn = event.target && event.target.closest ? event.target.closest("#dbgForceFullDiagnostics") : null;
+          if (forceBtn) {
+            window.HC?.forceFullDiagnostics?.("ui_debug_button");
+            return;
+          }
           if (!tabBtn) return;
           runtimeOverlayTab = tabBtn.getAttribute("data-debug-tab") === "prg" ? "prg" : "session";
         });
@@ -569,6 +615,42 @@
           }
           if (target.id === "dbgThreeCameraModel") {
             setThreeCameraModelFromUi(target.value);
+            return;
+          }
+          if (target.id === "dbgGlobalHelpersEnabled") {
+            setGlobalHelpersEnabledFromUi(target.checked);
+            return;
+          }
+          if (target.id === "dbgForceFullDiagnostics") {
+            window.HC?.forceFullDiagnostics?.("ui_debug_button");
+            return;
+          }
+          if (target.id === "dbgVerboseDiagnostics") {
+            const nextMode = window.HC?.Session?.setLoggingMode
+              ? window.HC.Session.setLoggingMode(target.checked ? "verbose" : "compact")
+              : (target.checked ? "verbose" : "compact");
+            emitThreeDebugControlEvent("debug.logging_mode_changed", { after: nextMode });
+            return;
+          }
+          if (target.id === "dbgHeartbeatIntervalMs") {
+            const nextInterval = Math.max(1000, Math.floor(Number(target.value) || 5000));
+            const appliedInterval = window.HC?.Session?.setHeartbeatIntervalMs
+              ? window.HC.Session.setHeartbeatIntervalMs(nextInterval)
+              : nextInterval;
+            const valueNode = document.getElementById("dbgHeartbeatIntervalMsValue");
+            if (valueNode) valueNode.textContent = `${appliedInterval} ms`;
+            emitThreeDebugControlEvent("debug.heartbeat_interval_changed", { after: appliedInterval });
+            return;
+          }
+          if (target.id === "dbgRendererMode") {
+            const nextMode = target.value === "three" ? "three" : "canvas2d";
+            window.HC = window.HC || {};
+            const before = window.HC.RENDER_MODE || window.HC?.WorldRenderer?.getMode?.() || "canvas2d";
+            window.HC.RENDER_MODE = nextMode;
+            if (window.HC.WorldRenderer && typeof window.HC.WorldRenderer.setMode === "function") {
+              window.HC.WorldRenderer.setMode(nextMode);
+            }
+            if (before !== nextMode) emitThreeDebugControlEvent("debug.renderer_mode_changed", { before, after: nextMode });
             return;
           }
           const threeLightControls = {
@@ -626,14 +708,6 @@
           };
           if (boolMap[target.id]) cfg[boolMap[target.id]] = !!target.checked;
           if (target.id === "dbgPrgMode") cfg.mode = String(target.value || "sourceCutRectFitProbe");
-          if (target.id === "dbgRendererMode") {
-            const nextMode = target.value === "three" ? "three" : "canvas2d";
-            window.HC = window.HC || {};
-            window.HC.RENDER_MODE = nextMode;
-            if (window.HC.WorldRenderer && typeof window.HC.WorldRenderer.setMode === "function") {
-              window.HC.WorldRenderer.setMode(nextMode);
-            }
-          }
         };
         runtimeDebugOverlayBody.addEventListener("input", handleRuntimeDebugControl);
         runtimeDebugOverlayBody.addEventListener("change", handleRuntimeDebugControl);
@@ -905,308 +979,157 @@
       `<option value="${mode}"${threeMaterials.materialMode === mode ? " selected" : ""}>${mode}</option>`
     ).join("");
 
-    sections.push(`
-      <section class="overlay-section">
-        <h4>${t("overlay.section.session")}</h4>
-        <div class="overlay-grid">${renderRows([
-          ["mode", snap.mode || "-"],
-          ["sessionId", snap.sessionId || "-"],
-          ["time", fmtMs(snap.sessionTimeMs)],
-          ["frame", snap.frame ?? 0],
-          ["logging", snap.loggingEnabled ? t("overlay.loggingOn") : t("overlay.loggingOff")],
-          ["log status", fs.status || "idle"],
-          ["backend", ls.mode || "-"],
-          ["scenario", snap.scenarioLabel || "-"],
-          ["buffer", snap.pendingLogBufferSize ?? 0],
-        ])}</div>
-        <div class="overlay-grid">
-          <label class="overlay-select-row" for="dbgRendererMode">Renderer: canvas2d / three <select id="dbgRendererMode">${modeOptions}</select></label>
-          <label class="overlay-select-row" for="dbgMeteorGlbScale">GLB meteor XY/uniform scale
-            <input id="dbgMeteorGlbScale" type="range" min="0.25" max="4" step="0.05" value="${getMeteorGlbVisualScaleForUi()}">
-            <span id="dbgMeteorGlbScaleValue">${getMeteorGlbVisualScaleForUi().toFixed(2)}</span>
-          </label>
-          <label class="overlay-select-row" for="dbgMeteorGlbDepthScale">GLB depth scale Z
-            <input id="dbgMeteorGlbDepthScale" type="range" min="0.25" max="3" step="0.05" value="${getMeteorGlbDepthScaleForUi()}">
-            <span id="dbgMeteorGlbDepthScaleValue">${getMeteorGlbDepthScaleForUi().toFixed(2)}</span>
-          </label>
-          <label class="overlay-select-row" for="dbgThreeCameraModel">Camera model
-            <select id="dbgThreeCameraModel">
-              <option value="absolute_bounds"${getThreeCameraModelForUi() === "absolute_bounds" ? " selected" : ""}>absolute_bounds (legacy comparison)</option>
-              <option value="stage_normalized"${getThreeCameraModelForUi() === "stage_normalized" ? " selected" : ""}>stage_normalized (recommended GLB)</option>
-            </select>
-          </label>
-        </div>
-        <details class="overlay-collapsible" id="dbgThreeLightingPanel">
-          <summary>Three lighting / Stage light</summary>
-          <div class="overlay-grid">
-            <label class="overlay-select-row" for="dbgThreeLightsEnabled">Three lighting enabled
-              <input id="dbgThreeLightsEnabled" type="checkbox"${threeLights.enabled !== false ? " checked" : ""}>
-            </label>
-            <label class="overlay-select-row" for="dbgThreeMainStageSpotEnabled">Main stage SpotLight
-              <input id="dbgThreeMainStageSpotEnabled" type="checkbox"${threeLights.mainStageSpotEnabled !== false ? " checked" : ""}>
-            </label>
-            <label class="overlay-select-row" for="dbgThreeMainStageSpotIntensity">Spot intensity
-              <input id="dbgThreeMainStageSpotIntensity" type="range" min="0" max="25" step="0.1" value="${threeLights.mainStageSpotIntensity}">
-              <span id="dbgThreeMainStageSpotIntensityValue">${Number(threeLights.mainStageSpotIntensity).toFixed(1)}</span>
-            </label>
-            <label class="overlay-select-row" for="dbgThreeMainStageSpotAngle">Spot angle
-              <input id="dbgThreeMainStageSpotAngle" type="range" min="${Math.PI / 24}" max="${Math.PI / 2}" step="0.01" value="${threeLights.mainStageSpotAngle}">
-              <span id="dbgThreeMainStageSpotAngleValue">${Number(threeLights.mainStageSpotAngle).toFixed(2)}</span>
-            </label>
-            <label class="overlay-select-row" for="dbgThreeMainStageSpotPenumbra">Spot penumbra
-              <input id="dbgThreeMainStageSpotPenumbra" type="range" min="0" max="1" step="0.01" value="${threeLights.mainStageSpotPenumbra}">
-              <span id="dbgThreeMainStageSpotPenumbraValue">${Number(threeLights.mainStageSpotPenumbra).toFixed(2)}</span>
-            </label>
-            <label class="overlay-select-row" for="dbgThreeAmbient">Ambient fill only
-              <input id="dbgThreeAmbient" type="range" min="0" max="0.75" step="0.01" value="${threeLights.ambientIntensity}">
-              <span id="dbgThreeAmbientValue">${Number(threeLights.ambientIntensity).toFixed(2)}</span>
-            </label>
-            <label class="overlay-select-row" for="dbgThreeShowLightHelpers">Helpers
-              <input id="dbgThreeShowLightHelpers" type="checkbox"${threeLights.showLightHelpers === true ? " checked" : ""}>
-            </label>
-          </div>
-          <details class="overlay-collapsible overlay-collapsible-nested" id="dbgThreeLightingAdvanced">
-            <summary>Advanced debug / legacy corner lights</summary>
-            <div class="overlay-grid">
-              <label class="overlay-select-row" for="dbgThreeMainStageSpotXOffset">Spot X offset x stageWidth
-                <input id="dbgThreeMainStageSpotXOffset" type="range" min="-2" max="2" step="0.01" value="${threeLights.mainStageSpotXOffset}">
-                <span id="dbgThreeMainStageSpotXOffsetValue">${Number(threeLights.mainStageSpotXOffset).toFixed(2)}</span>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeMainStageSpotYOffset">Spot Y offset x stageHeight
-                <input id="dbgThreeMainStageSpotYOffset" type="range" min="-2" max="2" step="0.01" value="${threeLights.mainStageSpotYOffset}">
-                <span id="dbgThreeMainStageSpotYOffsetValue">${Number(threeLights.mainStageSpotYOffset).toFixed(2)}</span>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeMainStageSpotZHeight">Spot Z x stageHeight
-                <input id="dbgThreeMainStageSpotZHeight" type="range" min="0.25" max="4" step="0.05" value="${threeLights.mainStageSpotZHeight}">
-                <span id="dbgThreeMainStageSpotZHeightValue">${Number(threeLights.mainStageSpotZHeight).toFixed(2)}</span>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeMainStageSpotTargetMode">Spot target
-                <select id="dbgThreeMainStageSpotTargetMode">
-                  <option value="center"${threeLights.mainStageSpotTargetMode === "center" ? " selected" : ""}>center</option>
-                  <option value="sampleObject"${threeLights.mainStageSpotTargetMode === "sampleObject" ? " selected" : ""}>sampleObject</option>
-                </select>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeLegacyCornerLightsEnabled">Legacy corner lights enabled
-                <input id="dbgThreeLegacyCornerLightsEnabled" type="checkbox"${threeLights.legacyCornerLightsEnabled === true ? " checked" : ""}>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeLightIntensity">Legacy corner intensity
-                <input id="dbgThreeLightIntensity" type="range" min="0" max="2.5" step="0.05" value="${threeLights.pointIntensity}">
-                <span id="dbgThreeLightIntensityValue">${Number(threeLights.pointIntensity).toFixed(2)}</span>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeLightDistance">Legacy range x view
-                <input id="dbgThreeLightDistance" type="range" min="0.25" max="4" step="0.05" value="${threeLights.distanceMultiplier}">
-                <span id="dbgThreeLightDistanceValue">${Number(threeLights.distanceMultiplier).toFixed(2)}</span>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeLightZ">Legacy Z x height
-                <input id="dbgThreeLightZ" type="range" min="0.05" max="2" step="0.05" value="${threeLights.zOffsetMultiplier}">
-                <span id="dbgThreeLightZValue">${Number(threeLights.zOffsetMultiplier).toFixed(2)}</span>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeAmbientIsolate">Ambient fill = 0 quick test
-                <input id="dbgThreeAmbientIsolate" type="checkbox"${threeLights.ambientIsolate === true ? " checked" : ""}>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeDebugKeyEnabled">Debug key light enabled
-                <input id="dbgThreeDebugKeyEnabled" type="checkbox"${threeLights.debugKeyLightEnabled === true ? " checked" : ""}>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeDebugKeyIntensity">Debug key intensity
-                <input id="dbgThreeDebugKeyIntensity" type="range" min="0" max="5" step="0.05" value="${threeLights.debugKeyLightIntensity}">
-                <span id="dbgThreeDebugKeyIntensityValue">${Number(threeLights.debugKeyLightIntensity).toFixed(2)}</span>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeDebugRimEnabled">Debug rim light enabled
-                <input id="dbgThreeDebugRimEnabled" type="checkbox"${threeLights.debugRimLightEnabled !== false ? " checked" : ""}>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeDebugRimIntensity">Debug rim intensity
-                <input id="dbgThreeDebugRimIntensity" type="range" min="0" max="2.5" step="0.05" value="${threeLights.debugRimLightIntensity}">
-                <span id="dbgThreeDebugRimIntensityValue">${Number(threeLights.debugRimLightIntensity).toFixed(2)}</span>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeForceHeadlightEnabled">Force headlight
-                <input id="dbgThreeForceHeadlightEnabled" type="checkbox"${threeLights.forceHeadlightEnabled === true ? " checked" : ""}>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeForceHeadlightIntensity">Force headlight intensity
-                <input id="dbgThreeForceHeadlightIntensity" type="range" min="0" max="8" step="0.05" value="${threeLights.forceHeadlightIntensity}">
-                <span id="dbgThreeForceHeadlightIntensityValue">${Number(threeLights.forceHeadlightIntensity).toFixed(2)}</span>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeMainStageSpotDistance">Spot distance
-                <input id="dbgThreeMainStageSpotDistance" type="range" min="0" max="5000" step="25" value="${threeLights.mainStageSpotDistance}">
-                <span id="dbgThreeMainStageSpotDistanceValue">${Number(threeLights.mainStageSpotDistance).toFixed(0)}</span>
-              </label>
-              <label class="overlay-select-row" for="dbgThreeMainStageSpotDecay">Spot decay
-                <input id="dbgThreeMainStageSpotDecay" type="range" min="0" max="3" step="0.05" value="${threeLights.mainStageSpotDecay}">
-                <span id="dbgThreeMainStageSpotDecayValue">${Number(threeLights.mainStageSpotDecay).toFixed(2)}</span>
-              </label>
-            </div>
-          </details>
-        </details>
-        <div class="overlay-grid">
-          <label class="overlay-select-row" for="dbgThreeMaterialDebugEnabled">Material debug log
-            <input id="dbgThreeMaterialDebugEnabled" type="checkbox"${threeMaterials.enabled === true ? " checked" : ""}>
-          </label>
-          <label class="overlay-select-row" for="dbgThreeEnvIntensity">PBR env intensity
-            <input id="dbgThreeEnvIntensity" type="range" min="0" max="1.5" step="0.01" value="${threeMaterials.envIntensity}">
-            <span id="dbgThreeEnvIntensityValue">${Number(threeMaterials.envIntensity).toFixed(2)}</span>
-          </label>
-          <label class="overlay-select-row" for="dbgThreeToneExposure">Tone exposure
-            <input id="dbgThreeToneExposure" type="range" min="0.5" max="1.8" step="0.01" value="${threeMaterials.toneExposure}">
-            <span id="dbgThreeToneExposureValue">${Number(threeMaterials.toneExposure).toFixed(2)}</span>
-          </label>
-          <label class="overlay-select-row" for="dbgThreeForceMaterialAuditLog">Force material audit log
-            <input id="dbgThreeForceMaterialAuditLog" type="checkbox"${threeMaterials.forceAuditLog === true ? " checked" : ""}>
-          </label>
-          <label class="overlay-select-row" for="dbgThreeMaterialMode">Material mode
-            <select id="dbgThreeMaterialMode">${materialModeOptions}</select>
-          </label>
-          <label class="overlay-select-row" for="dbgRedMeteorTexturesEnabled">Red meteor textures enabled
-            <input id="dbgRedMeteorTexturesEnabled" type="checkbox"${threeMaterials.redMeteorTexturesEnabled !== false ? " checked" : ""}>
-          </label>
-        </div>
-        <div class="overlay-grid">${renderRows([
-          ["Renderer requested", rendererDiag?.requestedMode || "canvas2d"],
-          ["Renderer effective", rendererDiag?.effectiveMode || "canvas2d"],
-          ["Renderer fallback", rendererDiag?.fallbackReason || "none"],
-          ["Three dependency", rendererDiag?.hasThreeDependency ? "yes" : "no"],
-          ["Three bridge version", String(rendererDiag?.threeBridgeVersion || "bridge_missing")],
-          ["Three module URL", String(rendererDiag?.threeModuleUrl || "bridge_missing")],
-          ["Three vendor URLs", Array.isArray(rendererDiag?.threeVendorUrls) && rendererDiag.threeVendorUrls.length ? rendererDiag.threeVendorUrls.join("\n") : "bridge_missing"],
-          ["Three load status", rendererDiag?.threeBridgeVersion ? (rendererDiag?.threeLoadStatus || "unknown") : "bridge_missing"],
-          ["Three source", rendererDiag?.threeSource || "unknown"],
-          ["Three dependency source", rendererDiag?.threeDependencySource || "unknown"],
-          ["Three load error", String(rendererDiag?.threeLoadError || "none")],
-          ["Three initialized", rendererDiag?.threeInitialized ? "yes" : "no"],
-          ["Three canvas", rendererDiag?.threeCanvasPresent ? "yes" : "no"],
-          ["Three visible", rendererDiag?.threeCanvasVisible ? "yes" : "no"],
-          ["Canvas layer mode", rendererDiag?.canvasLayerMode || "canvas2d"],
-          ["Game canvas opacity/z", `${rendererDiag?.gameCanvasOpacity ?? "-"} / ${rendererDiag?.gameCanvasZIndex ?? "-"}`],
-          ["Three canvas opacity/z", `${rendererDiag?.threeCanvasOpacity ?? "-"} / ${rendererDiag?.threeCanvasZIndex ?? "-"}`],
-          ["Game canvas background", rendererDiag?.gameCanvasBackground || "-"],
-          ["Layer probe center top", rendererDiag?.layerProbe ? `${rendererDiag.layerProbe.elementFromPointAtCenterTag || "-"}#${rendererDiag.layerProbe.elementFromPointAtCenterId || ""}` : "none"],
-          ["Three meteors", rendererDiag?.threeMeteorCount ?? 0],
-          ["Three meteor meshes", rendererDiag?.threeMeteorMeshes ?? 0],
-          ["Three asteroids", rendererDiag?.threeAsteroidCount ?? 0],
-          ["Three asteroid meshes", rendererDiag?.threeAsteroidMeshes ?? rendererDiag?.asteroidMeshCount ?? 0],
-          ["Three asteroid pass error", String(rendererDiag?.threeAsteroidLastError || "none")],
-          ["Three radius scale", rendererDiag?.threeMeteorRadiusScale ?? "-"],
-          ["GLB meteor scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
-          ["GLB depth scale Z", rendererDiag?.meteorGlbDepthScale ?? getMeteorGlbDepthScaleForUi()],
-          ["GLB scale warning", rendererDiag?.glbScaleWarning || rendererDiag?.firstMeteorMesh?.warning || "none"],
-          ["Three lights", rendererDiag?.threeLights ? JSON.stringify(rendererDiag.threeLights) : JSON.stringify(threeLights)],
-          ["Light range/distance diag", rendererDiag?.threeLightDiagnostics ? JSON.stringify(rendererDiag.threeLightDiagnostics) : "none"],
-          ["Main stage SpotLight", rendererDiag?.mainStageSpot ? JSON.stringify(rendererDiag.mainStageSpot) : (rendererDiag?.debugSpotLight ? JSON.stringify(rendererDiag.debugSpotLight) : "none")],
-          ["Spot sample projected", rendererDiag?.threeLightDiagnostics?.sampleObjectProjected ? JSON.stringify(rendererDiag.threeLightDiagnostics.sampleObjectProjected) : "none"],
-          ["Spot sample frustum", rendererDiag?.threeLightDiagnostics?.sampleObjectFrustumVisible == null ? "n/a" : String(rendererDiag.threeLightDiagnostics.sampleObjectFrustumVisible)],
-          ["Light helpers", rendererDiag?.threeLightHelpers ? JSON.stringify(rendererDiag.threeLightHelpers) : "none"],
-          ["Helper mode", rendererDiag?.threeLightHelpers?.mode || "none"],
-          ["Helpers count", rendererDiag?.threeLightHelpers?.count ?? 0],
-          ["Helpers visible", rendererDiag?.threeLightHelpers?.visible ? "true" : "false"],
-          ["Three material settings", rendererDiag?.threeMaterialSettings ? JSON.stringify(rendererDiag.threeMaterialSettings) : JSON.stringify(threeMaterials)],
-          ["Red texture palette", rendererDiag?.redMeteorTexturePaletteEnabled ? "enabled" : "disabled"],
-          ["Red texture cache", rendererDiag?.redMeteorTextureCacheStats ? JSON.stringify(rendererDiag.redMeteorTextureCacheStats) : "none"],
-          ["Red texture usage", rendererDiag?.redMeteorTextureUsage ? JSON.stringify(rendererDiag.redMeteorTextureUsage) : "none"],
-          ["Red texture warnings", rendererDiag?.redMeteorTextureWarnings ?? 0],
-          ["Material override", rendererDiag?.threeMaterialOverrideStatus ? JSON.stringify(rendererDiag.threeMaterialOverrideStatus) : "none"],
-          ["Scene environment", rendererDiag?.sceneEnvironmentEnabled ? "enabled" : "off"],
-          ["Tone mapping/exposure", `${rendererDiag?.rendererToneMapping ?? "-"} / ${rendererDiag?.rendererToneMappingExposure ?? "-"}`],
-          ["GLB material audit status", rendererDiag?.glbMaterialAuditStatus ? JSON.stringify(rendererDiag.glbMaterialAuditStatus) : "audit idle"],
-          ["GLB material audit", rendererDiag?.glbMaterialAudit ? JSON.stringify(rendererDiag.glbMaterialAudit.slice(-3)) : "[]"],
-          ["Legacy corner lights", rendererDiag?.legacyCornerLights ? JSON.stringify(rendererDiag.legacyCornerLights) : (rendererDiag?.threeLightCount ?? 0)],
-          ["Three light positions", rendererDiag?.threeLightPositions ? JSON.stringify(rendererDiag.threeLightPositions) : "none"],
-          ["Active GLB objects", rendererDiag?.threeMaterialOverrideStatus?.activeGlbObjects ?? rendererDiag?.activeGlbInstances ?? 0],
-          ["Active GLB mesh count", rendererDiag?.threeMaterialOverrideStatus?.activeGlbMeshCount ?? 0],
-          ["Meshes using material mode", rendererDiag?.threeMaterialOverrideStatus?.meshesUsingCurrentMaterialMode ?? 0],
-          ["Current material mode", rendererDiag?.threeMaterialOverrideStatus?.currentMaterialMode || threeMaterials.materialMode || "imported"],
-          ["Material applied frame/time", rendererDiag?.threeMaterialOverrideStatus ? `${rendererDiag.threeMaterialOverrideStatus.lastAppliedFrame ?? "-"}/${rendererDiag.threeMaterialOverrideStatus.lastAppliedAtMs ?? "-"}` : "-"],
-          ["Restored imported materials", rendererDiag?.threeMaterialOverrideStatus?.restoredImportedMaterials ?? 0],
-          ["Active GLB instances", rendererDiag?.activeGlbInstances ?? 0],
-          ["Active GLB by color", rendererDiag?.activeGlbInstancesByColor ? JSON.stringify(rendererDiag.activeGlbInstancesByColor) : "-"],
-          ["Fallback GLB by color", rendererDiag?.fallbackVisualsByColor ? JSON.stringify(rendererDiag.fallbackVisualsByColor) : "-"],
-          ["Three min radius", rendererDiag?.threeMeteorMinRadius ?? "-"],
-          ["Three debug marker", rendererDiag?.threeDebugMarker?.visible ? "visible" : (rendererDiag?.threeDebugMarker?.enabled ? "enabled_hidden" : "off")],
-          ["First meteor", rendererDiag?.firstMeteor ? JSON.stringify(rendererDiag.firstMeteor) : "none"],
-          ["First mesh", rendererDiag?.firstMeteorMesh ? JSON.stringify(rendererDiag.firstMeteorMesh) : "none"],
-          ["First meteor screen est", rendererDiag?.firstMeteorScreenEstimate ? JSON.stringify(rendererDiag.firstMeteorScreenEstimate) : "none"],
-          ["First meteor in bounds", rendererDiag?.firstMeteorInCameraBounds == null ? "n/a" : (rendererDiag.firstMeteorInCameraBounds ? "true" : "false")],
-          ["Camera model", rendererDiag?.threeCameraModel || "unknown"],
-          ["Stage model enabled", rendererDiag?.stageModelEnabled ? "true" : "false"],
-          ["Stage settings", rendererDiag?.stageSettings ? JSON.stringify(rendererDiag.stageSettings) : "none"],
-          ["Camera snapshot center", rendererDiag?.cameraSnapshotCenter ? JSON.stringify(rendererDiag.cameraSnapshotCenter) : "none"],
-          ["Camera snapshot zoom", rendererDiag?.cameraSnapshotZoom ?? "none"],
-          ["Camera snapshot bounds", rendererDiag?.cameraSnapshotWorldBounds ? JSON.stringify(rendererDiag.cameraSnapshotWorldBounds) : "none"],
-          ["World bounds source", rendererDiag?.worldBoundsSource || "unknown"],
-          ["Camera bounds", rendererDiag?.cameraBounds ? JSON.stringify(rendererDiag.cameraBounds) : "none"],
-          ["Renderer size", rendererDiag?.rendererSize ? JSON.stringify(rendererDiag.rendererSize) : "none"],
-          ["Scene children", rendererDiag?.sceneChildrenCount ?? 0],
-          ["Meteor group children", rendererDiag?.meteorGroupChildrenCount ?? 0],
-        ])}</div>
-      </section>
-    `);
+    const loggingCounters = snap.loggingCounters || {};
+    const lightHelperStatus = rendererDiag?.threeLightHelpers || {};
+    const globalHelpersEnabled = getGlobalHelpersEnabledForUi();
+    const openAttr = (isOpen) => isOpen ? " open" : "";
+    const renderSection = (title, rows, controls = "", options = {}) => `
+      <details class="overlay-section overlay-collapsible${options.advanced ? " overlay-expanded-only" : ""}"${openAttr(options.open === true)}>
+        <summary>${title}</summary>
+        ${controls ? `<div class="overlay-grid">${controls}</div>` : ""}
+        <div class="overlay-grid">${renderRows(rows)}</div>
+        ${options.extra || ""}
+      </details>
+    `;
 
-    sections.push(`
-      <section class="overlay-section">
-        <h4>Log files</h4>
-        <div class="overlay-grid">${renderRows([
-          ["folder", ls.filesSavedTo || fs.filesSavedTo || "-"],
-          ["main", ls.mainLog || fs.mainLog || "events.jsonl"],
-          ["summary", ls.summary || fs.summary || "summary.json"],
-          ["hint", "send events.jsonl for analysis"],
-        ])}</div>
-      </section>
-    `);
+    sections.push(renderSection("Renderer / Scene", [
+      ["renderer mode", `${rendererDiag?.requestedMode || requestedMode} / ${rendererDiag?.effectiveMode || "canvas2d"}`],
+      ["cameraModel", rendererDiag?.threeCameraModel || getThreeCameraModelForUi()],
+      ["fallback status", rendererDiag?.fallbackUsed ? (rendererDiag?.fallbackReason || "fallback") : "none"],
+      ["canvas layer", rendererDiag?.canvasLayerMode || "canvas2d"],
+      ["stage status", rendererDiag?.stageModelEnabled ? JSON.stringify(rendererDiag.stageSettings || {}) : "absolute/canvas"],
+      ["Three dependency", rendererDiag?.hasThreeDependency ? "yes" : "no"],
+      ["Three initialized", rendererDiag?.threeInitialized ? "yes" : "no"],
+    ], `
+      <label class="overlay-select-row" for="dbgRendererMode">Renderer: canvas2d / three <select id="dbgRendererMode">${modeOptions}</select></label>
+      <label class="overlay-select-row" for="dbgThreeCameraModel">Camera model
+        <select id="dbgThreeCameraModel">
+          <option value="absolute_bounds"${getThreeCameraModelForUi() === "absolute_bounds" ? " selected" : ""}>absolute_bounds</option>
+          <option value="stage_normalized"${getThreeCameraModelForUi() === "stage_normalized" ? " selected" : ""}>stage_normalized</option>
+        </select>
+      </label>
+    `, { open: true }));
 
-    sections.push(`
-      <section class="overlay-section">
-        <h4>${t("overlay.section.sequence")}</h4>
-        <div class="overlay-grid">${renderRows([
-          ["active", seq.active ? "yes" : "no"],
-          ["stage", seq.stage || "IDLE"],
-          ["phase", seq.phase || "null"],
-          ["track", seq.track || "null"],
-          ["stepIndex", Number.isFinite(seq.stepIndex) ? seq.stepIndex : 0],
-          ["current", seq.currentColor || "null"],
-          ["expected", seq.expectedColor || "null"],
-          ["hitCount", seq.hitCount ?? 0],
-          ["chain", Array.isArray(seq.chainColors) ? seq.chainColors.join(",") || "-" : "-"],
-          ["loop", seq.loopMode || "null"],
-          ["lastRes", seq.lastResolution || "null"],
-          ["resLock", seq.resolutionLock ? "on" : "off"],
-        ])}</div>
-      </section>
-    `);
+    sections.push(renderSection("Lighting", [
+      ["main SpotLight", `${threeLights.mainStageSpotEnabled !== false ? "ON" : "OFF"} / ${Number(threeLights.mainStageSpotIntensity).toFixed(1)}`],
+      ["ambient fill", Number(threeLights.ambientIntensity || 0).toFixed(2)],
+      ["helpers global", globalHelpersEnabled ? "enabled" : "HIDE ALL"],
+      ["local light helpers", threeLights.showLightHelpers ? "enabled" : "off"],
+      ["compact status", rendererDiag?.mainStageSpot ? `target=${rendererDiag.mainStageSpot.targetMode || "center"}` : "no spot diagnostics"],
+    ], `
+      <label class="overlay-select-row" for="dbgGlobalHelpersEnabled">Helpers enabled / Hide all helpers
+        <input id="dbgGlobalHelpersEnabled" type="checkbox"${globalHelpersEnabled ? " checked" : ""}>
+      </label>
+      <label class="overlay-select-row" for="dbgThreeLightsEnabled">Three lighting enabled
+        <input id="dbgThreeLightsEnabled" type="checkbox"${threeLights.enabled !== false ? " checked" : ""}>
+      </label>
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotEnabled">Main stage SpotLight
+        <input id="dbgThreeMainStageSpotEnabled" type="checkbox"${threeLights.mainStageSpotEnabled !== false ? " checked" : ""}>
+      </label>
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotIntensity">Spot intensity
+        <input id="dbgThreeMainStageSpotIntensity" type="range" min="0" max="25" step="0.1" value="${threeLights.mainStageSpotIntensity}">
+        <span id="dbgThreeMainStageSpotIntensityValue">${Number(threeLights.mainStageSpotIntensity).toFixed(1)}</span>
+      </label>
+      <label class="overlay-select-row" for="dbgThreeAmbient">Ambient fill
+        <input id="dbgThreeAmbient" type="range" min="0" max="0.75" step="0.01" value="${threeLights.ambientIntensity}">
+        <span id="dbgThreeAmbientValue">${Number(threeLights.ambientIntensity).toFixed(2)}</span>
+      </label>
+      <label class="overlay-select-row" for="dbgThreeShowLightHelpers">Local light helpers
+        <input id="dbgThreeShowLightHelpers" type="checkbox"${threeLights.showLightHelpers === true ? " checked" : ""}>
+      </label>
+    `, { open: true }));
 
-    sections.push(`
-      <section class="overlay-section overlay-expanded-only">
-        <h4>${t("overlay.section.economy")}</h4>
-        <div class="overlay-grid">${renderRows([
-          ["RP", snap.economy?.rp ?? 0],
-          ["R1 DR", `${cards.R1_DR_RED || 0}/${cards.R1_DR_YELLOW || 0}/${cards.R1_DR_GREEN || 0}/${cards.R1_DR_BLUE || 0}`],
-          ["DS DR", `${cards.DS_DR_RED || 0}/${cards.DS_DR_YELLOW || 0}/${cards.DS_DR_GREEN || 0}/${cards.DS_DR_BLUE || 0}`],
-          ["R1 sDR", `${cards.R1_SDR_RED || 0}/${cards.R1_SDR_YELLOW || 0}/${cards.R1_SDR_GREEN || 0}/${cards.R1_SDR_BLUE || 0}`],
-          ["R1 pDR", `${cards.R1_PDR_RED || 0}/${cards.R1_PDR_YELLOW || 0}/${cards.R1_PDR_GREEN || 0}/${cards.R1_PDR_BLUE || 0}`],
-        ])}</div>
-      </section>
-    `);
+    sections.push(renderSection("Lighting Advanced", [
+      ["legacy corner lights", rendererDiag?.legacyCornerLights ? JSON.stringify(rendererDiag.legacyCornerLights) : "none"],
+      ["key/rim/headlight", `key=${threeLights.debugKeyLightEnabled ? "on" : "off"}, rim=${threeLights.debugRimLightEnabled ? "on" : "off"}, head=${threeLights.forceHeadlightEnabled ? "on" : "off"}`],
+      ["raw light positions", rendererDiag?.threeLightPositions ? JSON.stringify(rendererDiag.threeLightPositions) : "none"],
+      ["helper counts", `${lightHelperStatus.count ?? 0} / ${lightHelperStatus.mode || "none"}`],
+      ["Spot diagnostics", rendererDiag?.threeLightDiagnostics?.mainStageSpot ? JSON.stringify(rendererDiag.threeLightDiagnostics.mainStageSpot) : "none"],
+    ], `
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotAngle">Spot angle
+        <input id="dbgThreeMainStageSpotAngle" type="range" min="${Math.PI / 24}" max="${Math.PI / 2}" step="0.01" value="${threeLights.mainStageSpotAngle}">
+        <span id="dbgThreeMainStageSpotAngleValue">${Number(threeLights.mainStageSpotAngle).toFixed(2)}</span>
+      </label>
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotPenumbra">Spot penumbra
+        <input id="dbgThreeMainStageSpotPenumbra" type="range" min="0" max="1" step="0.01" value="${threeLights.mainStageSpotPenumbra}">
+        <span id="dbgThreeMainStageSpotPenumbraValue">${Number(threeLights.mainStageSpotPenumbra).toFixed(2)}</span>
+      </label>
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotTargetMode">Spot target
+        <select id="dbgThreeMainStageSpotTargetMode"><option value="center"${threeLights.mainStageSpotTargetMode === "center" ? " selected" : ""}>center</option><option value="sampleObject"${threeLights.mainStageSpotTargetMode === "sampleObject" ? " selected" : ""}>sampleObject</option></select>
+      </label>
+      <label class="overlay-select-row" for="dbgThreeLegacyCornerLightsEnabled">Legacy corner lights
+        <input id="dbgThreeLegacyCornerLightsEnabled" type="checkbox"${threeLights.legacyCornerLightsEnabled === true ? " checked" : ""}>
+      </label>
+      <label class="overlay-select-row" for="dbgThreeDebugKeyEnabled">Debug key <input id="dbgThreeDebugKeyEnabled" type="checkbox"${threeLights.debugKeyLightEnabled === true ? " checked" : ""}></label>
+      <label class="overlay-select-row" for="dbgThreeDebugRimEnabled">Debug rim <input id="dbgThreeDebugRimEnabled" type="checkbox"${threeLights.debugRimLightEnabled !== false ? " checked" : ""}></label>
+      <label class="overlay-select-row" for="dbgThreeForceHeadlightEnabled">Force headlight <input id="dbgThreeForceHeadlightEnabled" type="checkbox"${threeLights.forceHeadlightEnabled === true ? " checked" : ""}></label>
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotXOffset">Spot X <input id="dbgThreeMainStageSpotXOffset" type="range" min="-2" max="2" step="0.01" value="${threeLights.mainStageSpotXOffset}"><span id="dbgThreeMainStageSpotXOffsetValue">${Number(threeLights.mainStageSpotXOffset).toFixed(2)}</span></label>
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotYOffset">Spot Y <input id="dbgThreeMainStageSpotYOffset" type="range" min="-2" max="2" step="0.01" value="${threeLights.mainStageSpotYOffset}"><span id="dbgThreeMainStageSpotYOffsetValue">${Number(threeLights.mainStageSpotYOffset).toFixed(2)}</span></label>
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotZHeight">Spot Z <input id="dbgThreeMainStageSpotZHeight" type="range" min="0.25" max="4" step="0.05" value="${threeLights.mainStageSpotZHeight}"><span id="dbgThreeMainStageSpotZHeightValue">${Number(threeLights.mainStageSpotZHeight).toFixed(2)}</span></label>
+    `, { open: false, advanced: true }));
 
-    sections.push(`
-      <section class="overlay-section">
-        <h4>${t("overlay.section.worldThresholds")}</h4>
-        <div class="overlay-grid">${renderRows([
-          ["asteroids", wc.asteroids ?? 0],
-          ["rocky", wc.rockyPlanets ?? 0],
-          ["gas", wc.gasPlanets ?? 0],
-          ["stars", wc.stars ?? 0],
-          ["A→P", `${thr.asteroidToPlanet?.current ?? 0} (${thr.asteroidToPlanet?.source || "-"})`],
-          ["P→S", `${thr.planetToStar?.current ?? 0} (${thr.planetToStar?.source || "-"})`],
-        ])}</div>
-      </section>
-    `);
+    sections.push(renderSection("GLB / Materials", [
+      ["materialMode", rendererDiag?.threeMaterialOverrideStatus?.currentMaterialMode || threeMaterials.materialMode || "imported"],
+      ["GLB visual scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
+      ["GLB depth scale", rendererDiag?.meteorGlbDepthScale ?? getMeteorGlbDepthScaleForUi()],
+      ["material audit", rendererDiag?.glbMaterialAuditStatus ? JSON.stringify(rendererDiag.glbMaterialAuditStatus) : "audit idle"],
+      ["modes", "imported / clay_lit / normal_debug / diagnostic_unlit"],
+      ["active GLB meshes", rendererDiag?.threeMaterialOverrideStatus?.activeGlbMeshCount ?? 0],
+    ], `
+      <label class="overlay-select-row" for="dbgMeteorGlbScale">GLB visual scale <input id="dbgMeteorGlbScale" type="range" min="0.25" max="4" step="0.05" value="${getMeteorGlbVisualScaleForUi()}"><span id="dbgMeteorGlbScaleValue">${getMeteorGlbVisualScaleForUi().toFixed(2)}</span></label>
+      <label class="overlay-select-row" for="dbgMeteorGlbDepthScale">GLB depth scale <input id="dbgMeteorGlbDepthScale" type="range" min="0.25" max="3" step="0.05" value="${getMeteorGlbDepthScaleForUi()}"><span id="dbgMeteorGlbDepthScaleValue">${getMeteorGlbDepthScaleForUi().toFixed(2)}</span></label>
+      <label class="overlay-select-row" for="dbgThreeMaterialMode">Material mode <select id="dbgThreeMaterialMode">${materialModeOptions}</select></label>
+      <label class="overlay-select-row" for="dbgThreeMaterialDebugEnabled">Material debug log <input id="dbgThreeMaterialDebugEnabled" type="checkbox"${threeMaterials.enabled === true ? " checked" : ""}></label>
+      <label class="overlay-select-row" for="dbgThreeForceMaterialAuditLog">Force material audit log <input id="dbgThreeForceMaterialAuditLog" type="checkbox"${threeMaterials.forceAuditLog === true ? " checked" : ""}></label>
+      <label class="overlay-select-row" for="dbgRedMeteorTexturesEnabled">Red meteor textures <input id="dbgRedMeteorTexturesEnabled" type="checkbox"${threeMaterials.redMeteorTexturesEnabled !== false ? " checked" : ""}></label>
+    `, { open: false }));
 
-    sections.push(`
-      <section class="overlay-section">
-        <h4>${t("overlay.section.lastEvents")}</h4>
-        <div class="overlay-grid">${renderRows([
-          ["sequence", summarizeEvent(snap.lastByCategory?.sequence)],
-          ["world", summarizeEvent(snap.lastByCategory?.world)],
-          ["reward/rp", summarizeEvent(snap.lastByCategory?.rp)],
-        ])}</div>
-      </section>
-    `);
+    sections.push(renderSection("World / Mechanics", [
+      ["meteors", rendererDiag?.threeMeteorCount ?? 0],
+      ["asteroids", wc.asteroids ?? 0],
+      ["planets", `${wc.rockyPlanets ?? 0} rocky / ${wc.gasPlanets ?? 0} gas`],
+      ["stars", wc.stars ?? 0],
+      ["A→P threshold", `${thr.asteroidToPlanet?.current ?? 0} (${thr.asteroidToPlanet?.source || "-"})`],
+      ["P→S threshold", `${thr.planetToStar?.current ?? 0} (${thr.planetToStar?.source || "-"})`],
+    ], "", { open: false }));
+
+    sections.push(renderSection("Cards / Sequence / Economy", [
+      ["RP", snap.economy?.rp ?? 0],
+      ["active sequence", seq.active ? `${seq.stage || "ACTIVE"} ${seq.track || ""}` : "no"],
+      ["expected color", seq.expectedColor || "null"],
+      ["hit count", seq.hitCount ?? 0],
+      ["cards R1 DR", `${cards.R1_DR_RED || 0}/${cards.R1_DR_YELLOW || 0}/${cards.R1_DR_GREEN || 0}/${cards.R1_DR_BLUE || 0}`],
+      ["cards DS DR", `${cards.DS_DR_RED || 0}/${cards.DS_DR_YELLOW || 0}/${cards.DS_DR_GREEN || 0}/${cards.DS_DR_BLUE || 0}`],
+      ["last sequence event", summarizeEvent(snap.lastByCategory?.sequence)],
+      ["last RP event", summarizeEvent(snap.lastByCategory?.rp)],
+    ], "", { open: false }));
+
+    sections.push(renderSection("SUB-META / PRG", [
+      ["status", "placeholder / future diagnostics"],
+      ["SUB-META events", "opened, closed, slot_*, card_*, inventory_changed, prg_binding_changed, purchase, error"],
+      ["snapshot policy", "full snapshot on open/close/finalize/force evidence only"],
+    ], "", { open: false }));
+
+    sections.push(renderSection("Logging / Evidence", [
+      ["logging mode", snap.loggingMode || "compact"],
+      ["heartbeat interval", `${snap.heartbeatIntervalMs || 5000} ms`],
+      ["compact/verbose", snap.verboseDiagnostics ? "verbose" : "compact"],
+      ["buffer", snap.pendingLogBufferSize ?? 0],
+      ["events/heartbeats", `${loggingCounters.events ?? 0}/${loggingCounters.heartbeats ?? 0}`],
+      ["full/compact snapshots", `${loggingCounters.fullSnapshots ?? 0}/${loggingCounters.compactSnapshots ?? 0}`],
+      ["suppressed", loggingCounters.suppressed ?? 0],
+      ["backend", ls.mode || "-"],
+      ["files", ls.filesSavedTo || fs.filesSavedTo || "fallback/localStorage"],
+    ], `
+      <label class="overlay-select-row" for="dbgVerboseDiagnostics">Verbose diagnostics
+        <input id="dbgVerboseDiagnostics" type="checkbox"${snap.verboseDiagnostics ? " checked" : ""}>
+      </label>
+      <label class="overlay-select-row" for="dbgHeartbeatIntervalMs">Heartbeat interval
+        <input id="dbgHeartbeatIntervalMs" type="range" min="1000" max="30000" step="1000" value="${snap.heartbeatIntervalMs || 5000}">
+        <span id="dbgHeartbeatIntervalMsValue">${snap.heartbeatIntervalMs || 5000} ms</span>
+      </label>
+      <button id="dbgForceFullDiagnostics" type="button">Force full diagnostics</button>
+    `, { open: true }));
 
     if (!compact) {
       sections.push(`
