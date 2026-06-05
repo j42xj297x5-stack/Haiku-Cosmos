@@ -277,7 +277,7 @@
 
   function getThreeLightsSettingsForUi() {
     if (window.HC?.WorldRenderer?.getThreeLightsSettings) return window.HC.WorldRenderer.getThreeLightsSettings();
-    const defaults = { enabled: true, legacyCornerLightsEnabled: false, pointIntensity: 0.9, distanceMultiplier: 1.55, zOffsetMultiplier: 0.45, ambientIntensity: 0, ambientIsolate: false, debugKeyLightEnabled: false, debugKeyLightIntensity: 2.2, debugRimLightEnabled: false, debugRimLightIntensity: 0.65, forceHeadlightEnabled: false, forceHeadlightIntensity: 4.5, mainStageSpotEnabled: true, mainStageSpotIntensity: 6.5, mainStageSpotAngle: Math.PI / 2.8, mainStageSpotPenumbra: 0.72, mainStageSpotDistance: 0, mainStageSpotDecay: 0, mainStageSpotXOffset: -0.65, mainStageSpotYOffset: -0.55, mainStageSpotZHeight: 1.55, mainStageSpotTargetMode: "center", showLightHelpers: false };
+    const defaults = { enabled: true, ambientIntensity: 0, ambientIsolate: false, debugKeyLightEnabled: false, debugKeyLightIntensity: 2.2, debugRimLightEnabled: false, debugRimLightIntensity: 0.65, forceHeadlightEnabled: false, forceHeadlightIntensity: 4.5, mainStageSpotEnabled: true, mainStageSpotIntensity: 6.5, mainStageSpotAngle: Math.PI / 2.8, mainStageSpotPenumbra: 0.72, mainStageSpotDistance: 0, mainStageSpotDecay: 0, mainStageSpotXOffset: -0.65, mainStageSpotYOffset: -0.55, mainStageSpotZHeight: 1.55, mainStageSpotTargetMode: "center", showLightHelpers: false };
     return Object.assign({}, defaults, window.HC?.WorldRendererDebug?.threeLights || window.HC?.Session?.debugConfig?.visual?.threeLights || {});
   }
 
@@ -291,9 +291,6 @@
     window.HC.WorldRendererDebug.threeLights = Object.assign({}, next);
     if (window.HC.Session?.debugConfig?.visual) window.HC.Session.debugConfig.visual.threeLights = Object.assign({}, next);
     const valueMap = {
-      pointIntensity: "dbgThreeLightIntensityValue",
-      distanceMultiplier: "dbgThreeLightDistanceValue",
-      zOffsetMultiplier: "dbgThreeLightZValue",
       ambientIntensity: "dbgThreeAmbientValue",
       debugKeyLightIntensity: "dbgThreeDebugKeyIntensityValue",
       debugRimLightIntensity: "dbgThreeDebugRimIntensityValue",
@@ -311,9 +308,6 @@
     if (valueNode && Number.isFinite(Number(next[key]))) valueNode.textContent = Number(next[key]).toFixed(2);
     const inputMap = {
       enabled: "dbgThreeLightsEnabled",
-      pointIntensity: "dbgThreeLightIntensity",
-      distanceMultiplier: "dbgThreeLightDistance",
-      zOffsetMultiplier: "dbgThreeLightZ",
       ambientIntensity: "dbgThreeAmbient",
       ambientIsolate: "dbgThreeAmbientIsolate",
       debugKeyLightEnabled: "dbgThreeDebugKeyEnabled",
@@ -655,9 +649,6 @@
           }
           const threeLightControls = {
             dbgThreeLightsEnabled: "enabled",
-            dbgThreeLightIntensity: "pointIntensity",
-            dbgThreeLightDistance: "distanceMultiplier",
-            dbgThreeLightZ: "zOffsetMultiplier",
             dbgThreeAmbient: "ambientIntensity",
             dbgThreeAmbientIsolate: "ambientIsolate",
             dbgThreeDebugKeyEnabled: "debugKeyLightEnabled",
@@ -676,7 +667,6 @@
             dbgThreeMainStageSpotYOffset: "mainStageSpotYOffset",
             dbgThreeMainStageSpotZHeight: "mainStageSpotZHeight",
             dbgThreeMainStageSpotTargetMode: "mainStageSpotTargetMode",
-            dbgThreeLegacyCornerLightsEnabled: "legacyCornerLightsEnabled",
             dbgThreeShowLightHelpers: "showLightHelpers",
           };
           if (threeLightControls[target.id]) {
@@ -1011,7 +1001,7 @@
     `, { open: true }));
 
     sections.push(renderSection("Lighting", [
-      ["main SpotLight", `${threeLights.mainStageSpotEnabled !== false ? "ON" : "OFF"} / ${Number(threeLights.mainStageSpotIntensity).toFixed(1)}`],
+      ["Main Stage Spot", `${threeLights.mainStageSpotEnabled !== false ? "ON" : "OFF"} / ${Number(threeLights.mainStageSpotIntensity).toFixed(1)}`],
       ["ambient fill", Number(threeLights.ambientIntensity || 0).toFixed(2)],
       ["helpers global", globalHelpersEnabled ? "enabled" : "HIDE ALL"],
       ["local light helpers", threeLights.showLightHelpers ? "enabled" : "off"],
@@ -1020,13 +1010,13 @@
       <label class="overlay-select-row" for="dbgGlobalHelpersEnabled">Helpers enabled / Hide all helpers
         <input id="dbgGlobalHelpersEnabled" type="checkbox"${globalHelpersEnabled ? " checked" : ""}>
       </label>
-      <label class="overlay-select-row" for="dbgThreeLightsEnabled">Three lighting enabled
+      <label class="overlay-select-row" for="dbgThreeLightsEnabled">Stage lighting enabled
         <input id="dbgThreeLightsEnabled" type="checkbox"${threeLights.enabled !== false ? " checked" : ""}>
       </label>
-      <label class="overlay-select-row" for="dbgThreeMainStageSpotEnabled">Main stage SpotLight
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotEnabled">Main Stage Spot
         <input id="dbgThreeMainStageSpotEnabled" type="checkbox"${threeLights.mainStageSpotEnabled !== false ? " checked" : ""}>
       </label>
-      <label class="overlay-select-row" for="dbgThreeMainStageSpotIntensity">Spot intensity
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotIntensity">Main Stage Spot intensity
         <input id="dbgThreeMainStageSpotIntensity" type="range" min="0" max="25" step="0.1" value="${threeLights.mainStageSpotIntensity}">
         <span id="dbgThreeMainStageSpotIntensityValue">${Number(threeLights.mainStageSpotIntensity).toFixed(1)}</span>
       </label>
@@ -1040,32 +1030,28 @@
     `, { open: true }));
 
     sections.push(renderSection("Lighting Advanced", [
-      ["legacy corner lights", rendererDiag?.legacyCornerLights ? JSON.stringify(rendererDiag.legacyCornerLights) : "none"],
-      ["key/rim/headlight", `key=${threeLights.debugKeyLightEnabled ? "on" : "off"}, rim=${threeLights.debugRimLightEnabled ? "on" : "off"}, head=${threeLights.forceHeadlightEnabled ? "on" : "off"}`],
-      ["raw light positions", rendererDiag?.threeLightPositions ? JSON.stringify(rendererDiag.threeLightPositions) : "none"],
+      ["lighting model", rendererDiag?.lightingModelVersion || rendererDiag?.stageLighting?.lightingModelVersion || "stage_spot_v1"],
+      ["optional diagnostic lights", `debugKey=${threeLights.debugKeyLightEnabled ? "on" : "off"}, debugRim=${threeLights.debugRimLightEnabled ? "on" : "off"}, headlight=${threeLights.forceHeadlightEnabled ? "on" : "off"}`],
       ["helper counts", `${lightHelperStatus.count ?? 0} / ${lightHelperStatus.mode || "none"}`],
-      ["Spot diagnostics", rendererDiag?.threeLightDiagnostics?.mainStageSpot ? JSON.stringify(rendererDiag.threeLightDiagnostics.mainStageSpot) : "none"],
+      ["Main Stage Spot diagnostics", rendererDiag?.threeLightDiagnostics?.mainStageSpot ? JSON.stringify(rendererDiag.threeLightDiagnostics.mainStageSpot) : "none"],
     ], `
-      <label class="overlay-select-row" for="dbgThreeMainStageSpotAngle">Spot angle
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotAngle">Main Stage Spot angle
         <input id="dbgThreeMainStageSpotAngle" type="range" min="${Math.PI / 24}" max="${Math.PI / 2}" step="0.01" value="${threeLights.mainStageSpotAngle}">
         <span id="dbgThreeMainStageSpotAngleValue">${Number(threeLights.mainStageSpotAngle).toFixed(2)}</span>
       </label>
-      <label class="overlay-select-row" for="dbgThreeMainStageSpotPenumbra">Spot penumbra
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotPenumbra">Main Stage Spot penumbra
         <input id="dbgThreeMainStageSpotPenumbra" type="range" min="0" max="1" step="0.01" value="${threeLights.mainStageSpotPenumbra}">
         <span id="dbgThreeMainStageSpotPenumbraValue">${Number(threeLights.mainStageSpotPenumbra).toFixed(2)}</span>
       </label>
-      <label class="overlay-select-row" for="dbgThreeMainStageSpotTargetMode">Spot target
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotTargetMode">Main Stage Spot target
         <select id="dbgThreeMainStageSpotTargetMode"><option value="center"${threeLights.mainStageSpotTargetMode === "center" ? " selected" : ""}>center</option><option value="sampleObject"${threeLights.mainStageSpotTargetMode === "sampleObject" ? " selected" : ""}>sampleObject</option></select>
       </label>
-      <label class="overlay-select-row" for="dbgThreeLegacyCornerLightsEnabled">Legacy corner lights
-        <input id="dbgThreeLegacyCornerLightsEnabled" type="checkbox"${threeLights.legacyCornerLightsEnabled === true ? " checked" : ""}>
-      </label>
-      <label class="overlay-select-row" for="dbgThreeDebugKeyEnabled">Debug key <input id="dbgThreeDebugKeyEnabled" type="checkbox"${threeLights.debugKeyLightEnabled === true ? " checked" : ""}></label>
-      <label class="overlay-select-row" for="dbgThreeDebugRimEnabled">Debug rim <input id="dbgThreeDebugRimEnabled" type="checkbox"${threeLights.debugRimLightEnabled !== false ? " checked" : ""}></label>
-      <label class="overlay-select-row" for="dbgThreeForceHeadlightEnabled">Force headlight <input id="dbgThreeForceHeadlightEnabled" type="checkbox"${threeLights.forceHeadlightEnabled === true ? " checked" : ""}></label>
-      <label class="overlay-select-row" for="dbgThreeMainStageSpotXOffset">Spot X <input id="dbgThreeMainStageSpotXOffset" type="range" min="-2" max="2" step="0.01" value="${threeLights.mainStageSpotXOffset}"><span id="dbgThreeMainStageSpotXOffsetValue">${Number(threeLights.mainStageSpotXOffset).toFixed(2)}</span></label>
-      <label class="overlay-select-row" for="dbgThreeMainStageSpotYOffset">Spot Y <input id="dbgThreeMainStageSpotYOffset" type="range" min="-2" max="2" step="0.01" value="${threeLights.mainStageSpotYOffset}"><span id="dbgThreeMainStageSpotYOffsetValue">${Number(threeLights.mainStageSpotYOffset).toFixed(2)}</span></label>
-      <label class="overlay-select-row" for="dbgThreeMainStageSpotZHeight">Spot Z <input id="dbgThreeMainStageSpotZHeight" type="range" min="0.25" max="4" step="0.05" value="${threeLights.mainStageSpotZHeight}"><span id="dbgThreeMainStageSpotZHeightValue">${Number(threeLights.mainStageSpotZHeight).toFixed(2)}</span></label>
+      <label class="overlay-select-row" for="dbgThreeDebugKeyEnabled">Debug key (optional diagnostic) <input id="dbgThreeDebugKeyEnabled" type="checkbox"${threeLights.debugKeyLightEnabled === true ? " checked" : ""}></label>
+      <label class="overlay-select-row" for="dbgThreeDebugRimEnabled">Debug rim (optional diagnostic) <input id="dbgThreeDebugRimEnabled" type="checkbox"${threeLights.debugRimLightEnabled === true ? " checked" : ""}></label>
+      <label class="overlay-select-row" for="dbgThreeForceHeadlightEnabled">Force headlight (optional diagnostic) <input id="dbgThreeForceHeadlightEnabled" type="checkbox"${threeLights.forceHeadlightEnabled === true ? " checked" : ""}></label>
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotXOffset">Main Stage Spot X offset <input id="dbgThreeMainStageSpotXOffset" type="range" min="-2" max="2" step="0.01" value="${threeLights.mainStageSpotXOffset}"><span id="dbgThreeMainStageSpotXOffsetValue">${Number(threeLights.mainStageSpotXOffset).toFixed(2)}</span></label>
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotYOffset">Main Stage Spot Y offset <input id="dbgThreeMainStageSpotYOffset" type="range" min="-2" max="2" step="0.01" value="${threeLights.mainStageSpotYOffset}"><span id="dbgThreeMainStageSpotYOffsetValue">${Number(threeLights.mainStageSpotYOffset).toFixed(2)}</span></label>
+      <label class="overlay-select-row" for="dbgThreeMainStageSpotZHeight">Main Stage Spot Z offset <input id="dbgThreeMainStageSpotZHeight" type="range" min="0.25" max="4" step="0.05" value="${threeLights.mainStageSpotZHeight}"><span id="dbgThreeMainStageSpotZHeightValue">${Number(threeLights.mainStageSpotZHeight).toFixed(2)}</span></label>
     `, { open: false, advanced: true }));
 
     sections.push(renderSection("GLB / Materials", [

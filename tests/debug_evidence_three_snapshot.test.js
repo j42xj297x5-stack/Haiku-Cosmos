@@ -70,10 +70,6 @@ context.window.HC.WorldRenderer = {
       glbMaterialAuditStatus: { auditedAssets: 1, consoleWrites: 1 },
       threeLights: {
         enabled: true,
-        pointIntensity: 1.1,
-        distanceMultiplier: 1.8,
-        decay: 1.2,
-        zOffsetMultiplier: 0.5,
         ambientIntensity: 0.2,
         ambientIsolate: true,
         debugKeyLightEnabled: true,
@@ -82,7 +78,6 @@ context.window.HC.WorldRenderer = {
         debugRimLightIntensity: 0.7,
         forceHeadlightEnabled: false,
         forceHeadlightIntensity: 4.5,
-        legacyCornerLightsEnabled: false,
         mainStageSpotEnabled: true,
         mainStageSpotIntensity: 6.5,
         mainStageSpotAngle: Math.PI / 2.8,
@@ -93,12 +88,10 @@ context.window.HC.WorldRenderer = {
         showLightHelpers: true,
       },
       globalHelpersEnabled: false,
-      threeLightHelpers: { mode: "global_off", count: 6, visible: false, enabled: true, globalEnabled: false },
-      threeLightPositions: [{ name: "corner_0", position: { x: 1, y: 2, z: 3 } }],
+      threeLightHelpers: { mode: "global_off", count: 4, visible: false, enabled: true, globalEnabled: false },
       threeLightDiagnostics: {
         effectiveAmbientIntensity: 0,
         sampleObject: { kind: "meteor_glb", position: { x: 10, y: 20, z: 0 } },
-        cornerLights: [{ name: "corner_0", objectDistance: 10, distance: 20, objectInRange: true, decay: 1.2 }],
         debugKeyLight: { position: { x: 2, y: 3, z: 4 }, intensity: 2.4 },
         debugRimLight: { position: { x: 5, y: 6, z: 7 }, intensity: 0.7 },
         forceHeadlight: null,
@@ -113,9 +106,16 @@ context.window.HC.WorldRenderer = {
           targetPosition: { x: 10, y: 20, z: 0 },
         },
         mainStageSpotTargetMode: "sampleObject",
-        debugSpotLightHelperVisible: true,
         sampleObjectProjected: { x: 100, y: 110 },
         sampleObjectFrustumVisible: true,
+      },
+      lightingModelVersion: "stage_spot_v1",
+      removedLegacyCornerLights: true,
+      stageLighting: {
+        enabled: true,
+        model: "stage_spot",
+        lightingModelVersion: "stage_spot_v1",
+        ambientEffectiveIntensity: 0,
       },
       mainStageSpot: {
         enabled: true,
@@ -162,15 +162,18 @@ assert.equal(snapshot.visual.three.globalHelpersEnabled, false);
 assert.equal(snapshot.visual.three.threeLights.mainStageSpotEnabled, true);
 assert.equal(snapshot.visual.three.mainStageSpot.targetMode, "sampleObject");
 assert.equal(snapshot.visual.three.mainStageSpot.castShadow, false);
-assert.equal(snapshot.visual.three.lights.debugSpotLightHelperVisible, true);
-assert.equal(snapshot.visual.three.lights.legacyCornerLightsEnabled, false);
 assert.equal(snapshot.visual.three.lights.sampleObjectFrustumVisible, true);
-assert.equal(snapshot.visual.three.helper.count, 6);
+assert.equal(snapshot.visual.three.lightingModelVersion, "stage_spot_v1");
+assert.equal(snapshot.visual.three.stageLighting.model, "stage_spot");
+assert.equal(snapshot.visual.three.removedLegacyCornerLights, true);
+assert.equal(Object.prototype.hasOwnProperty.call(snapshot.visual.three, "debugSpotLight"), false);
+assert.equal(Object.prototype.hasOwnProperty.call(snapshot.visual.three.lights, "debugSpotLight"), false);
+assert.equal(Object.prototype.hasOwnProperty.call(snapshot.visual.three.lights, "cornerLights"), false);
+assert.equal(snapshot.visual.three.helper.count, 4);
 assert.equal(snapshot.visual.three.helper.globalEnabled, false);
 assert.equal(snapshot.visual.three.materials.activeGlbObjectCount, 3);
 assert.equal(snapshot.visual.three.materials.activeGlbMeshCount, 9);
 assert.equal(snapshot.visual.three.materials.auditEntries[0].assetName, "meteor.glb");
-assert.equal(snapshot.visual.three.lights.cornerLights[0].objectInRange, true);
 assert.equal(snapshot.visual.worldRendererDiagnostics.threeMaterialSettings.materialMode, "clay_lit");
 
 const uiDebugSource = fs.readFileSync("hc.ui_debug.js", "utf8");
