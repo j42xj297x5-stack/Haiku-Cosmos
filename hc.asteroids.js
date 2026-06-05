@@ -8,6 +8,7 @@
     const clamp = (window.HC.Util && window.HC.Util.clamp) || window.clamp;
     const rand = window.rand;
     const meteorBaseRadius = window.meteorBaseRadius;
+    const getMeteorCollisionRadius = window.getMeteorCollisionRadius || ((m) => Number(m && m.r) || meteorBaseRadius());
     const massFromR = window.massFromR;
     const hueFromName = window.hueFromName;
     const computeGravityFromPlanetRadius = window.computeGravityFromPlanetRadius;
@@ -185,7 +186,7 @@
       const Rm = meteorBaseRadius();
       const oldR = Number.isFinite(a.r) ? a.r : Rm;
       const maxR = Number.isFinite(a.maxR) ? a.maxR : (80.0 * Rm);
-      const meteorR = Number.isFinite(m.r) ? m.r : Rm;
+      const meteorR = getMeteorCollisionRadius(m);
       const meteorMass = 1;
       a.baseR = asteroidBaseRadius(a, oldR);
       a.massOneRadius = a.baseR;
@@ -220,7 +221,7 @@
       const dot = (meteor.vx || 0) * nx + (meteor.vy || 0) * ny;
       meteor.vx = (meteor.vx || 0) - 2 * dot * nx;
       meteor.vy = (meteor.vy || 0) - 2 * dot * ny;
-      const push = (Number(radius) || 0) + meteor.r + 0.5;
+      const push = (Number(radius) || 0) + getMeteorCollisionRadius(meteor) + 0.5;
       meteor.x = body.x + nx * push;
       meteor.y = body.y + ny * push;
     }
@@ -265,7 +266,7 @@
           const dx = m.x - a.x;
           const dy = m.y - a.y;
           const d2 = dx * dx + dy * dy;
-          const contactR = (Number(a.r) || 0) + (Number(m.r) || 0);
+          const contactR = (Number(a.r) || 0) + getMeteorCollisionRadius(m);
           if (d2 <= contactR * contactR) {
             const runTimers = window.HC && window.HC.RunTimers;
             const worldActive = runTimers && typeof runTimers.isWorldSlotsActive === "function"

@@ -104,8 +104,24 @@ console.log("[HC] game.boot.js loaded");
   function rand(min, max) { return min + Math.random() * (max - min); }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
+  const METEOR_BASE_SCALE = 3;
+
+  function meteorBaseScale() {
+    const worldScale = Number(window.World?.meteorBaseScale ?? METEOR_BASE_SCALE);
+    return Number.isFinite(worldScale) && worldScale > 0 ? worldScale : METEOR_BASE_SCALE;
+  }
+
   function meteorBaseRadius() {
-    return View.worldScale * 0.008;
+    return View.worldScale * 0.008 * meteorBaseScale();
+  }
+
+  function getMeteorCollisionRadius(meteor) {
+    const r = Number(meteor && (meteor.collisionRadius ?? meteor.physicalRadius ?? meteor.r ?? meteor.radius ?? meteor.size));
+    return Number.isFinite(r) && r > 0 ? r : meteorBaseRadius();
+  }
+
+  function getMeteorRenderScale(meteor) {
+    return getMeteorCollisionRadius(meteor);
   }
 
   function massFromR(r) { return r * r; }
@@ -134,6 +150,7 @@ pointerGlueDamp: 0.22,     // 0.0..0.6 (polecam 0.18–0.30)
 // Pomoc w kolizjach meteorów (większa strefa kontaktu)
 // 1.00 = fizycznie dokładnie, 1.08–1.18 = łatwiej trafić
 meteorCollisionFudge: 1.12,
+meteorBaseScale: METEOR_BASE_SCALE,
 
 
     // Difficulty knobs (cards / runs):
@@ -481,7 +498,11 @@ meteorCollisionFudge: 1.12,
   window.CardEngine = window.CardEngine || CardEngine;
   window.rand = rand;
   window.clamp = clamp;
+  window.METEOR_BASE_SCALE = METEOR_BASE_SCALE;
+  window.meteorBaseScale = meteorBaseScale;
   window.meteorBaseRadius = meteorBaseRadius;
+  window.getMeteorCollisionRadius = getMeteorCollisionRadius;
+  window.getMeteorRenderScale = getMeteorRenderScale;
   window.massFromR = massFromR;
   window.computeGravityFromPlanetRadius = computeGravityFromPlanetRadius;
   window.computeOmega = computeOmega;
@@ -537,6 +558,7 @@ meteorCollisionFudge: 1.12,
     World.planets = [];
     World.stars = [];
     World.spawnTimer = 0;
+    World.meteorBaseScale = METEOR_BASE_SCALE;
     World.score = 0;
     World.epoch = null;
     World.epochTriggered = false;
