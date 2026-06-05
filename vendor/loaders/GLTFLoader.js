@@ -326,7 +326,16 @@ class GLTFLoader extends Loader {
 
 				scope.parse( data, resourcePath, function ( gltf ) {
 
-					onLoad( gltf );
+					try {
+
+						onLoad( gltf );
+
+					} catch ( e ) {
+
+						_onError( e );
+						return;
+
+					}
 
 					scope.manager.itemEnd( url );
 
