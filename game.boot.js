@@ -139,6 +139,9 @@ meteorCollisionFudge: 1.12,
     // Difficulty knobs (cards / runs):
     asteroidDriftMul: 0.55,   // <- drift multiplier for new asteroids
 
+    // Asteroid mass threshold for collapse into a planet. planetCaptureTarget remains
+    // as a legacy card/debug alias for the same value.
+    asteroidGrowthTarget: 13,
     planetCaptureTarget: 13,
 
     // Star size thresholds (cards can tune)
@@ -396,7 +399,7 @@ meteorCollisionFudge: 1.12,
    /* =========================================================
      Part 3/3
      - Collisions meteor-meteor
-     - Capture -> add orbiter (full size) + orbit speed by radius
+     - Direct growth -> asteroid mass increments; no asteroid capture/orbit radius
      - Asteroid drift/bounce + collapse -> planet
      - Update/render loop + restart + FPS
      ========================================================= */

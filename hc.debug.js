@@ -1099,6 +1099,7 @@
   function createAsteroidSeed() {
     const p = randomPosition();
     const Rm = typeof window.meteorBaseRadius === "function" ? window.meteorBaseRadius() : 6;
+    const baseR = Rm * (2.8 + Math.random() * 1.6);
     return {
       type: "asteroid",
       _id: `debug_ast_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
@@ -1106,7 +1107,7 @@
       y: p.y,
       vx: 0,
       vy: 0,
-      r: Rm * (2.8 + Math.random() * 1.6),
+      r: baseR,
       sides: 6,
       angle: Math.random() * Math.PI * 2,
       spin: 0,
@@ -1118,21 +1119,23 @@
       maxOrbitPx: 0,
       minR: 0.9 * Rm,
       maxR: 80.0 * Rm,
+      baseR,
+      massOneRadius: baseR,
       orbiters: [],
       orbiterMinGapPx: 0,
       orbiterGapStepPx: 0,
       captureCooldown: 0,
       absorbedMeteorCount: 0,
       growthLevel: 0,
-      mass: Rm * Rm,
+      mass: 1,
       growthSumR: 0,
-      growthSumMass: Rm * Rm,
+      growthSumMass: 1,
       growthColorCounts: { blue: 0, green: 0, red: 0, yellow: 0 },
       captureCount: 0,
       captureSumR: 0,
-      captureSumMass: Rm * Rm,
+      captureSumMass: 1,
       liveSumR: 0,
-      liveSumMass: Rm * Rm,
+      liveSumMass: 1,
       liveColorCounts: { blue: 0, green: 0, red: 0, yellow: 0 },
       captureColorCounts: { blue: 0, green: 0, red: 0, yellow: 0 },
       cometHits: 0,
@@ -1235,7 +1238,7 @@
     ensureBaseThresholds(World) {
       if (this.baseThresholds || !World) return;
       this.baseThresholds = {
-        asteroidToPlanet: Number(World.planetCaptureTarget || 13),
+        asteroidToPlanet: Number(World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 13),
         planetToStar: {
           blue: Number(World.STAR_REQ_BLUE || 30),
           green: Number(World.STAR_REQ_GREEN || 30),
@@ -1248,6 +1251,7 @@
     restoreSessionThresholdDefaults(World) {
       this.ensureBaseThresholds(World);
       if (!World || !this.baseThresholds) return;
+      World.asteroidGrowthTarget = this.baseThresholds.asteroidToPlanet;
       World.planetCaptureTarget = this.baseThresholds.asteroidToPlanet;
       World.STAR_REQ_BLUE = this.baseThresholds.planetToStar.blue;
       World.STAR_REQ_GREEN = this.baseThresholds.planetToStar.green;
@@ -1262,8 +1266,9 @@
       const overrides = this.debugConfig.thresholdOverrides || {};
       const applied = {};
       if (overrides.asteroidToPlanet != null) {
-        World.planetCaptureTarget = clampInt(overrides.asteroidToPlanet, World.planetCaptureTarget);
-        applied.asteroidToPlanet = World.planetCaptureTarget;
+        World.asteroidGrowthTarget = clampInt(overrides.asteroidToPlanet, World.asteroidGrowthTarget ?? World.planetCaptureTarget);
+        World.planetCaptureTarget = World.asteroidGrowthTarget;
+        applied.asteroidToPlanet = World.asteroidGrowthTarget;
       }
       if (overrides.planetToStar != null) {
         const next = clampInt(overrides.planetToStar, 0);
@@ -1778,13 +1783,16 @@
         },
         worldCounts: {
           asteroids: Array.isArray(World?.asteroids) ? World.asteroids.length : 0,
+          asteroidMassTotal: Array.isArray(World?.asteroids) ? World.asteroids.reduce((sum, a) => sum + (Number.isFinite(Number(a?.mass)) ? Number(a.mass) : 0), 0) : 0,
+          asteroidMassMax: Array.isArray(World?.asteroids) ? World.asteroids.reduce((max, a) => Math.max(max, Number.isFinite(Number(a?.mass)) ? Number(a.mass) : 0), 0) : 0,
+          asteroidTargetMassToPlanet: Number(World?.asteroidGrowthTarget ?? World?.planetCaptureTarget ?? 0),
           rockyPlanets: Array.isArray(World?.planets) ? World.planets.filter((p) => p && p.isRocky).length : 0,
           gasPlanets: Array.isArray(World?.planets) ? World.planets.filter((p) => p && !p.isRocky).length : 0,
           stars: Array.isArray(World?.stars) ? World.stars.length : 0,
         },
         thresholds: {
           asteroidToPlanet: {
-            current: Number(World?.planetCaptureTarget || 0),
+            current: Number(World?.asteroidGrowthTarget ?? World?.planetCaptureTarget ?? 0),
             source: World?.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "override",
           },
           planetToStar: {

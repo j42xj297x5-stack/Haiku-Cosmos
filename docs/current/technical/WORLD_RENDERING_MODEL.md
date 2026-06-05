@@ -664,14 +664,14 @@ Manualny screen/test potwierdził:
 - `canvas2d` pozostaje pełnym fallbackiem i nadal renderuje klasyczną ścieżkę świata.
 
 ### C. Snapshot-only / no-mechanics-change
-- Snapshot asteroidów zawiera minimalne pola renderowe: `renderKey`, `id`, `x`, `y`, `radius`, `scale`, `color`, `colorKey` oraz bezpieczne pola wizualne istniejące w runtime (`sides`, `angle`, `grayLight`, `absorbedMeteorCount`, `growthLevel`, `mass`, collapse metadata).
+- Snapshot asteroidów zawiera minimalne pola renderowe: `renderKey`, `id`, `x`, `y`, `radius`, `scale`, `color`, `colorKey` oraz bezpieczne pola wizualne istniejące w runtime (`sides`, `angle`, `grayLight`, `absorbedMeteorCount`, `growthLevel`, liniowe `mass`, `baseR`, `sourceColors`, collapse metadata).
 - Snapshot pozostaje read-only: budowanie snapshotu mapuje dane do nowych obiektów prezentacyjnych i nie mutuje `World`.
-- Checkpoint 2026-06-05: asteroidy nie mają aktywnego orbit/capture/gravity radius w renderze; Canvas2D nie rysuje asteroidowego ringa, a Three asteroid pass skaluje mesh z realnego `radius`/`collapseVisualScale` po wzroście przez bezpośrednie zderzenia meteorów.
+- Checkpoint 2026-06-05: asteroidy nie mają aktywnego orbit/capture/gravity radius w renderze; Canvas2D nie rysuje asteroidowego ringa, a Three asteroid pass skaluje mesh z realnego `radius`/`collapseVisualScale`. `radius` wynika teraz z addytywnej masy asteroidy łagodzonej wizualnie przez model `sqrt(mass)`, po wzroście przez bezpośrednie zderzenia meteorów i po scalaniu asteroid–asteroid.
 - Mechanika planet i gwiazd pozostaje właścicielem aktywnych promieni orbitalnych/grawitacyjnych; zmiana nie dotyczy kart, RP, SUB-META ani PRG.
 
 ### D. Diagnostics / QA
 - Diagnostyka `HC.WorldRenderer.getDiagnostics()` raportuje `threeAsteroidCount`, `threeAsteroidMeshes`, `asteroidMeshCount`, `threeAsteroidLastError` i `asteroidGroupChildrenCount`.
-- Debug overlay pokazuje liczby asteroidów/meshy Three oraz błąd passu asteroidów bez dodawania nowego panelu.
+- Debug overlay pokazuje liczby asteroidów/meshy Three, sumaryczną/maksymalną masę asteroid, docelową masę do planety oraz błąd passu asteroidów bez dodawania nowego panelu.
 - QA automatyczne dla checkpointu: syntax check plików runtime i prosty test snapshot buildera w Node.
 - Wynik manualnego QA w tym środowisku: **pending / wymagany w przeglądarce**, ponieważ środowisko repo nie udostępnia lokalnej przeglądarki do uruchomienia runtime.
 - Checklist manualny do wykonania w przeglądarce: `canvas2d` działa jak wcześniej; w trybie `three` `effectiveMode=three`, `fallback=none`, meteory pozostają widoczne, a asteroidy po kolizjach meteorów pojawiają się w Three; brak Three lub błąd init/render zachowuje fallback `canvas2d`.

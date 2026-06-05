@@ -786,10 +786,14 @@ const CardEngine = (() => {
 
     addTarget(
       "world.planet_capture_target",
-      { label: "Planet capture target", group: "planets", desc: "Docelowa liczba meteorów do przejścia etapu/capture (wg Twojej logiki).", kind: "number", min: 3, max: 60, step: 1 },
+      { label: "Asteroid mass → planet", group: "planets", desc: "Docelowa masa asteroidy do przejścia w planetę; legacy alias planetCaptureTarget pozostaje zsynchronizowany.", kind: "number", min: 3, max: 60, step: 1 },
       {
-        get: () => World.planetCaptureTarget,
-        set: (v) => { World.planetCaptureTarget = clampInt(v, 3, 60); }
+        get: () => World.asteroidGrowthTarget ?? World.planetCaptureTarget,
+        set: (v) => {
+          const next = clampInt(v, 3, 60);
+          World.asteroidGrowthTarget = next;
+          World.planetCaptureTarget = next;
+        }
       }
     );
 
