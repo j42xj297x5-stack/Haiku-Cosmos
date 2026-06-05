@@ -664,9 +664,10 @@ Manualny screen/test potwierdził:
 - `canvas2d` pozostaje pełnym fallbackiem i nadal renderuje klasyczną ścieżkę świata.
 
 ### C. Snapshot-only / no-mechanics-change
-- Snapshot asteroidów zawiera minimalne pola renderowe: `renderKey`, `id`, `x`, `y`, `radius`, `scale`, `color`, `colorKey` oraz bezpieczne pola wizualne istniejące w runtime (`sides`, `angle`, `grayLight`, orbit/collapse metadata).
+- Snapshot asteroidów zawiera minimalne pola renderowe: `renderKey`, `id`, `x`, `y`, `radius`, `scale`, `color`, `colorKey` oraz bezpieczne pola wizualne istniejące w runtime (`sides`, `angle`, `grayLight`, `absorbedMeteorCount`, `growthLevel`, `mass`, collapse metadata).
 - Snapshot pozostaje read-only: budowanie snapshotu mapuje dane do nowych obiektów prezentacyjnych i nie mutuje `World`.
-- Nie zmieniono mechaniki, fizyki, inputu, kolizji, sekwencji, ekonomii RP ani powstawania/przechwytywania asteroidów.
+- Checkpoint 2026-06-05: asteroidy nie mają aktywnego orbit/capture/gravity radius w renderze; Canvas2D nie rysuje asteroidowego ringa, a Three asteroid pass skaluje mesh z realnego `radius`/`collapseVisualScale` po wzroście przez bezpośrednie zderzenia meteorów.
+- Mechanika planet i gwiazd pozostaje właścicielem aktywnych promieni orbitalnych/grawitacyjnych; zmiana nie dotyczy kart, RP, SUB-META ani PRG.
 
 ### D. Diagnostics / QA
 - Diagnostyka `HC.WorldRenderer.getDiagnostics()` raportuje `threeAsteroidCount`, `threeAsteroidMeshes`, `asteroidMeshCount`, `threeAsteroidLastError` i `asteroidGroupChildrenCount`.

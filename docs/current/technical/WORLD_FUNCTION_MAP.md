@@ -229,18 +229,25 @@
 
 ### 3.4 `hc.asteroids.js` — Asteroidy
 **STATE:**
-- `World.asteroids[]` + per-asteroid `orbiters`, `capture*`, `live*`, `isCollapsing`.
+- `World.asteroids[]` + per-asteroid material body fields: `r`, `mass`, `absorbedMeteorCount`, `growthLevel`, `growth*`, `isCollapsing`.
+- Legacy `orbiters` / `capture*` / `live*` fields may still exist for compatibility, but are not an active asteroid-orbit system.
 
 **PARAMS:**
-- `World.asteroidDriftMul`, `World.planetCaptureTarget`.
-- `World.metaOrbitMulAsteroid` (forma).
+- `World.asteroidDriftMul`, `World.asteroidGrowthTarget ?? World.planetCaptureTarget`.
+- Asteroids do **not** use `captureRadius`, `orbitRadius`, `gravityRadius`, `orbitPx` or `World.metaOrbitMulAsteroid` for meteor capture.
 
 **Funkcje kluczowe:**
-- `spawnAsteroidFromCollision(a, b)` (kolizje meteorów).
+- `spawnAsteroidFromCollision(a, b)` (kolizje dwóch meteorów różnych kolorów nadal tworzą asteroidę).
 - `captureMeteorsByAsteroids(dt, nowMs)`:
-  - blokada koloru `pack01ReleaseBlockColor`,
-  - odbicie meteorów wg `fxIntentBounceAsteroidPct` gdy aktywne sloty.
-- `startAsteroidCollapse` → `finishCollapseToPlanet` (emituje `ASTEROID_COLLAPSE_START`, `PLANET_CREATED`).
+  - nazwa pozostaje wrapperem kompatybilności dla boot order,
+  - nie przechwytuje meteorów na orbitę i nie tworzy asteroidowych orbiterów,
+  - rozwiązuje bezpośredni kontakt meteor–asteroida przez `resolveMeteorAsteroidContacts`.
+- `absorbMeteorIntoAsteroid(a, m)` zwiększa `absorbedMeteorCount`, masę i realny promień bryły asteroidy.
+- `startAsteroidCollapse` → `finishCollapseToPlanet` (emituje `ASTEROID_COLLAPSE_START`, `PLANET_CREATED`), a trigger to liczba bezpośrednio wchłoniętych meteorów / masa zamiast liczby orbiterów.
+
+**Zasada orbitalna:**
+- Aktywny promień orbitalny/grawitacyjny pozostaje tylko dla planet i gwiazd.
+- Asteroida jest ciałem materialnym rosnącym przez kontakt, bez rysowanego ringa i bez asteroidowego przechwytywania.
 
 ---
 
@@ -445,7 +452,7 @@
    - Aktualny stan R1 jest w `World.r1` (moduł `hc.collisions.js`).
 
 2) **`pack01ReleaseBlockColor`**
-   - Używane w `hc.asteroids.js` i `hc.planets.js` do blokowania przechwytu meteorów,
+   - Używane w `hc.asteroids.js` do blokowania direct-contact absorpcji oraz w `hc.planets.js` do blokowania przechwytu meteorów,
    - brak miejsca w kodzie, które ustawia `pack01ReleaseBlockColor`/`UntilMs`.
 
 3) **RunTimers vs spawn kolorów**

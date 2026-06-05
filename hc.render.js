@@ -114,14 +114,11 @@
     }
 
     function drawAsteroid(a) {
-      const orbitR = (typeof a.orbitCurrentRadius === "number") ? a.orbitCurrentRadius : a.orbitPx;
-      const nativeR = (typeof a.orbitNativeRadius === "number") ? a.orbitNativeRadius : orbitR;
-      drawOrbitRing(a.x, a.y, orbitR, nativeR, "rgba(220, 220, 220, 0.7)");
-
-      drawAsteroidOrbiters(a);
+      // Asteroids are material bodies only: no capture/orbit ring and no asteroid orbiters.
+      const visualR = a.r * (Number.isFinite(a.collapseVisualScale) ? a.collapseVisualScale : 1);
 
       ctx.save();
-      drawRegularPolygon(a.x, a.y, a.r, a.sides, a.angle);
+      drawRegularPolygon(a.x, a.y, visualR, a.sides, a.angle);
       ctx.fillStyle = `hsl(0 0% ${a.grayLight}%)`;
       ctx.fill();
       ctx.strokeStyle = "rgba(255,255,255,0.16)";
@@ -129,7 +126,7 @@
       ctx.stroke();
 
       ctx.globalAlpha = 0.35;
-      drawRegularPolygon(a.x - a.r * 0.12, a.y - a.r * 0.12, a.r * 0.55, a.sides, a.angle);
+      drawRegularPolygon(a.x - visualR * 0.12, a.y - visualR * 0.12, visualR * 0.55, a.sides, a.angle);
       ctx.fillStyle = "white";
       ctx.fill();
       ctx.restore();
