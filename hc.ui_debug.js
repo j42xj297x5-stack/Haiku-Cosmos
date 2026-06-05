@@ -342,7 +342,7 @@
 
   function getThreeMaterialSettingsForUi() {
     if (window.HC?.WorldRenderer?.getThreeMaterialSettings) return window.HC.WorldRenderer.getThreeMaterialSettings();
-    const defaults = { enabled: false, envIntensity: 0.38, toneExposure: 1.0, forceAuditLog: false, materialMode: "imported", redMeteorTexturesEnabled: true };
+    const defaults = { enabled: false, envIntensity: 0.38, toneExposure: 1.0, forceAuditLog: false, materialMode: "imported", meteorPngTexturesEnabled: true, redMeteorTexturesEnabled: true };
     return Object.assign({}, defaults, window.HC?.WorldRendererDebug?.materials || window.HC?.Session?.debugConfig?.visual?.threeMaterials || {});
   }
 
@@ -367,6 +367,7 @@
       toneExposure: "dbgThreeToneExposure",
       forceAuditLog: "dbgThreeForceMaterialAuditLog",
       materialMode: "dbgThreeMaterialMode",
+      meteorPngTexturesEnabled: "dbgRedMeteorTexturesEnabled",
       redMeteorTexturesEnabled: "dbgRedMeteorTexturesEnabled",
     };
     const input = document.getElementById(inputMap[key]);
@@ -679,7 +680,7 @@
             dbgThreeToneExposure: "toneExposure",
             dbgThreeForceMaterialAuditLog: "forceAuditLog",
             dbgThreeMaterialMode: "materialMode",
-            dbgRedMeteorTexturesEnabled: "redMeteorTexturesEnabled",
+            dbgRedMeteorTexturesEnabled: "meteorPngTexturesEnabled",
           };
           if (threeMaterialControls[target.id]) {
             setThreeMaterialSettingFromUi(threeMaterialControls[target.id], target.type === "checkbox" ? target.checked : target.value);
@@ -1067,7 +1068,7 @@
       <label class="overlay-select-row" for="dbgThreeMaterialMode">Material mode <select id="dbgThreeMaterialMode">${materialModeOptions}</select></label>
       <label class="overlay-select-row" for="dbgThreeMaterialDebugEnabled">Material debug log <input id="dbgThreeMaterialDebugEnabled" type="checkbox"${threeMaterials.enabled === true ? " checked" : ""}></label>
       <label class="overlay-select-row" for="dbgThreeForceMaterialAuditLog">Force material audit log <input id="dbgThreeForceMaterialAuditLog" type="checkbox"${threeMaterials.forceAuditLog === true ? " checked" : ""}></label>
-      <label class="overlay-select-row" for="dbgRedMeteorTexturesEnabled">Red meteor textures <input id="dbgRedMeteorTexturesEnabled" type="checkbox"${threeMaterials.redMeteorTexturesEnabled !== false ? " checked" : ""}></label>
+      <label class="overlay-select-row" for="dbgRedMeteorTexturesEnabled">Meteor PNG textures RED/YELLOW <input id="dbgRedMeteorTexturesEnabled" type="checkbox"${threeMaterials.meteorPngTexturesEnabled !== false && threeMaterials.redMeteorTexturesEnabled !== false ? " checked" : ""}></label>
     `, { open: false }));
 
     sections.push(renderSection("World / Mechanics", [
