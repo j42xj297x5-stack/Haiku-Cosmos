@@ -309,6 +309,10 @@
       gltfLoaderErrorCount: 0,
       gltfLoaderTimeoutCount: 0,
       gltfLoaderLastRequestedUrl: null,
+      gltfLoaderLastRequestedUrlRaw: null,
+      gltfLoaderLastRequestedUrlResolved: null,
+      gltfLoaderLastRequestedBaseUrl: null,
+      gltfLoaderUrlNormalizeError: null,
       gltfLoaderLastProgressUrl: null,
       gltfLoaderLastCompletedUrl: null,
       gltfLoaderLastFailedUrl: null,
@@ -395,8 +399,8 @@
 
   function syncGltfLoaderUrlDiagnostics() {
     const diagnostics = threeState.gltfLoaderDiagnostics || createGltfLoaderDiagnostics();
-    diagnostics.gltfLoaderPendingUrls = Array.from(threeState.glbTemplateCache.values()).filter((entry) => entry?.status === "loading").map((entry) => entry.url);
-    diagnostics.gltfLoaderFailedUrls = Array.from(threeState.glbTemplateCache.values()).filter((entry) => entry?.status === "failed").map((entry) => entry.url);
+    diagnostics.gltfLoaderPendingUrls = Array.from(threeState.glbTemplateCache.values()).filter((entry) => entry?.status === "loading").map((entry) => entry.resolvedUrl || entry.url);
+    diagnostics.gltfLoaderFailedUrls = Array.from(threeState.glbTemplateCache.values()).filter((entry) => entry?.status === "failed").map((entry) => entry.resolvedUrl || entry.url);
     diagnostics.gltfLoaderTimedOutUrls = Array.from(new Set((diagnostics.gltfLoaderTimedOutUrls || []).filter(Boolean)));
     threeState.gltfLoaderDiagnostics = diagnostics;
     return diagnostics;
@@ -1179,11 +1183,30 @@
   }
 
 
+  function getBrowserAssetBaseUrl() {
+    if (typeof document !== "undefined" && document.baseURI) return document.baseURI;
+    if (typeof window !== "undefined" && window.location?.href) return window.location.href;
+    return "";
+  }
+
+  function normalizeBrowserAssetUrl(url) {
+    if (!url) return "";
+    const raw = String(url);
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (raw.startsWith("/")) {
+      const origin = (typeof window !== "undefined" && window.location?.origin) || "";
+      return origin ? `${origin}${raw}` : raw;
+    }
+    return new URL(raw, getBrowserAssetBaseUrl() || window.location.href).href;
+  }
+
   function resolvePublicAssetPath(path) {
-    const cleanPath = String(path || "").replace(/^\/+/, "");
+    const rawPath = String(path || "");
+    if (/^https?:\/\//i.test(rawPath) || rawPath.startsWith("/")) return rawPath;
+    const cleanPath = rawPath.replace(/^\/+/, "");
     const helper = window.HC?.publicAssetPath || window.HC?.publicPath;
     if (typeof helper === "function") return helper(cleanPath);
-    try { return new URL(cleanPath, document.baseURI || window.location.href).href; }
+    try { return new URL(cleanPath, getBrowserAssetBaseUrl() || window.location.href).href; }
     catch { return cleanPath; }
   }
 
@@ -3046,22 +3069,38 @@
 
   function loadGltfSceneWithDiagnostics(THREE, GLTFLoader, url, assetKind, cacheEntry = null) {
     const startedAt = performance.now();
-    const cacheKey = cacheEntry?.cacheKey || url;
+    const rawUrl = String(url || "");
+    const baseUrl = getBrowserAssetBaseUrl();
+    let resolvedUrl = rawUrl;
     const timeoutMs = getGlbLoadTimeoutMs(assetKind);
     const diagnostics = refreshGltfLoaderAvailabilityDiagnostics();
     diagnostics.gltfLoaderRequestCount += 1;
-    diagnostics.gltfLoaderLastRequestedUrl = url;
+    diagnostics.gltfLoaderLastRequestedUrlRaw = rawUrl;
+    diagnostics.gltfLoaderLastRequestedBaseUrl = baseUrl;
+    diagnostics.gltfLoaderUrlNormalizeError = null;
+    try {
+      resolvedUrl = normalizeBrowserAssetUrl(rawUrl);
+    } catch (error) {
+      diagnostics.gltfLoaderUrlNormalizeError = formatGlbError(error);
+      resolvedUrl = rawUrl;
+    }
+    const cacheKey = cacheEntry?.cacheKey || resolvedUrl || rawUrl;
+    diagnostics.gltfLoaderLastRequestedUrl = resolvedUrl;
+    diagnostics.gltfLoaderLastRequestedUrlResolved = resolvedUrl;
     diagnostics.gltfLoaderLastProgressLoaded = null;
     diagnostics.gltfLoaderLastProgressTotal = null;
     diagnostics.gltfLoaderLastErrorName = null;
     diagnostics.gltfLoaderLastErrorMessage = null;
     diagnostics.gltfLoaderLastErrorStack = null;
-    pushUniqueLimited(diagnostics.gltfLoaderPendingUrls, url);
-    removeFromList(diagnostics.gltfLoaderFailedUrls, url);
-    emitGlbDebugEvent("world.glb_load_started", makeGlbEventPayload("started", { assetKind, url, cacheKey, startedAt, status: "loading" }));
+    pushUniqueLimited(diagnostics.gltfLoaderPendingUrls, resolvedUrl);
+    removeFromList(diagnostics.gltfLoaderFailedUrls, resolvedUrl);
+    emitGlbDebugEvent("world.glb_load_started", makeGlbEventPayload("started", { assetKind, url: resolvedUrl, cacheKey, startedAt, status: "loading" }));
     if (cacheEntry) {
       cacheEntry.status = "loading";
-      cacheEntry.url = url;
+      cacheEntry.url = resolvedUrl;
+      cacheEntry.rawUrl = rawUrl;
+      cacheEntry.resolvedUrl = resolvedUrl;
+      cacheEntry.baseUrl = baseUrl;
       cacheEntry.cacheKey = cacheKey;
       cacheEntry.assetKind = assetKind;
       cacheEntry.startedAt = startedAt;
@@ -3082,16 +3121,16 @@
       let timeoutId = null;
       const markFailure = (error, durationMs, timedOut = false) => {
         const message = formatGlbError(error);
-        diagnostics.gltfLoaderLastFailedUrl = url;
+        diagnostics.gltfLoaderLastFailedUrl = resolvedUrl;
         diagnostics.gltfLoaderLastDurationMs = durationMs;
         diagnostics.gltfLoaderLastErrorName = safeGlbErrorName(error);
         diagnostics.gltfLoaderLastErrorMessage = message;
         diagnostics.gltfLoaderLastErrorStack = safeGlbErrorStack(error);
-        removeFromList(diagnostics.gltfLoaderPendingUrls, url);
-        pushUniqueLimited(diagnostics.gltfLoaderFailedUrls, url);
+        removeFromList(diagnostics.gltfLoaderPendingUrls, resolvedUrl);
+        pushUniqueLimited(diagnostics.gltfLoaderFailedUrls, resolvedUrl);
         if (timedOut) {
-          diagnostics.gltfLoaderLastTimedOutUrl = url;
-          pushUniqueLimited(diagnostics.gltfLoaderTimedOutUrls, url);
+          diagnostics.gltfLoaderLastTimedOutUrl = resolvedUrl;
+          pushUniqueLimited(diagnostics.gltfLoaderTimedOutUrls, resolvedUrl);
         }
         if (cacheEntry) {
           cacheEntry.status = "failed";
@@ -3113,7 +3152,7 @@
       try {
         if (typeof GLTFLoader !== "function") throw new Error(`GLTFLoader is not a constructor/function (type: ${typeof GLTFLoader})`);
         const loader = new GLTFLoader();
-        const resourcePath = new URL("./", url).href;
+        const resourcePath = new URL("./", resolvedUrl).href;
         if (typeof loader.setResourcePath === "function") loader.setResourcePath(resourcePath);
         if (typeof loader.setPath === "function") loader.setPath("");
         timeoutId = window.setTimeout(() => {
@@ -3127,7 +3166,7 @@
           markFailure(error, durationMs, true);
           emitGlbDebugEvent("world.glb_load_timeout", makeGlbEventPayload("timeout", {
             assetKind,
-            url,
+            url: resolvedUrl,
             cacheKey,
             startedAt,
             durationMs,
@@ -3140,21 +3179,21 @@
         }, timeoutMs);
 
         loader.load(
-          url,
+          resolvedUrl,
           (gltf) => {
             if (settled) return;
             try {
               const durationMs = performance.now() - startedAt;
               const root = gltf?.scene || gltf?.scenes?.[0] || new THREE.Group();
               const template = normalizeGltfTemplate(THREE, root);
-              const stats = finalizeGltfLoaderDiagnostics(THREE, template, gltf, { assetKind, assetUrl: url });
+              const stats = finalizeGltfLoaderDiagnostics(THREE, template, gltf, { assetKind, assetUrl: resolvedUrl });
               diagnostics.gltfLoaderSuccessCount += 1;
-              diagnostics.gltfLoaderLastCompletedUrl = url;
+              diagnostics.gltfLoaderLastCompletedUrl = resolvedUrl;
               diagnostics.gltfLoaderLastDurationMs = durationMs;
               diagnostics.gltfLoaderLastErrorName = null;
               diagnostics.gltfLoaderLastErrorMessage = null;
               diagnostics.gltfLoaderLastErrorStack = null;
-              removeFromList(diagnostics.gltfLoaderPendingUrls, url);
+              removeFromList(diagnostics.gltfLoaderPendingUrls, resolvedUrl);
               if (cacheEntry) {
                 cacheEntry.status = "ready";
                 cacheEntry.template = template;
@@ -3166,7 +3205,7 @@
               syncGltfLoaderUrlDiagnostics();
               emitGlbDebugEvent("world.glb_load_ready", makeGlbEventPayload("ready", {
                 assetKind,
-                url,
+                url: resolvedUrl,
                 cacheKey,
                 startedAt,
                 durationMs,
@@ -3185,7 +3224,7 @@
               error.hcGlbEventEmitted = true;
               emitGlbDebugEvent("world.glb_load_failed", makeGlbEventPayload("failed", {
                 assetKind,
-                url,
+                url: resolvedUrl,
                 cacheKey,
                 startedAt,
                 durationMs,
@@ -3202,7 +3241,7 @@
             const loaded = Number.isFinite(event?.loaded) ? event.loaded : null;
             const total = Number.isFinite(event?.total) ? event.total : null;
             diagnostics.gltfLoaderProgressCount += 1;
-            diagnostics.gltfLoaderLastProgressUrl = url;
+            diagnostics.gltfLoaderLastProgressUrl = resolvedUrl;
             diagnostics.gltfLoaderLastProgressLoaded = loaded;
             diagnostics.gltfLoaderLastProgressTotal = total;
             if (cacheEntry) {
@@ -3214,7 +3253,7 @@
             if (shouldEmitProgress) {
               emitGlbDebugEvent("world.glb_load_progress", makeGlbEventPayload("progress", {
                 assetKind,
-                url,
+                url: resolvedUrl,
                 cacheKey,
                 startedAt,
                 loaded,
@@ -3226,14 +3265,14 @@
           },
           (error) => {
             if (settled) return;
-            const normalizedError = error || new Error(`GLTFLoader onError for ${url}`);
+            const normalizedError = error || new Error(`GLTFLoader onError for ${resolvedUrl}`);
             const durationMs = performance.now() - startedAt;
             diagnostics.gltfLoaderErrorCount += 1;
             markFailure(normalizedError, durationMs, false);
             normalizedError.hcGlbEventEmitted = true;
             emitGlbDebugEvent("world.glb_load_failed", makeGlbEventPayload("failed", {
               assetKind,
-              url,
+              url: resolvedUrl,
               cacheKey,
               startedAt,
               durationMs,
@@ -3253,7 +3292,7 @@
         error.hcGlbEventEmitted = true;
         emitGlbDebugEvent("world.glb_load_failed", makeGlbEventPayload("failed", {
           assetKind,
-          url,
+          url: resolvedUrl,
           cacheKey,
           startedAt,
           durationMs,
@@ -3293,7 +3332,7 @@
       return entry;
     }
     const startedAt = performance.now();
-    entry = { status: "loading", url, cacheKey: url, assetKind, loaderMode: "gltf_loader", loaderPrimary: "GLTFLoader", template: null, error: null, errorMessage: null, errorStack: null, startedAt, durationMs: null, timeoutMs: getGlbLoadTimeoutMs(assetKind), progressLoaded: null, progressTotal: null, progressEventEmitted: false, materialAudit: null, promise: null };
+    entry = { status: "loading", url, rawUrl: String(assetPath || ""), resolvedUrl: url, baseUrl: getBrowserAssetBaseUrl(), cacheKey: url, assetKind, loaderMode: "gltf_loader", loaderPrimary: "GLTFLoader", template: null, error: null, errorMessage: null, errorStack: null, startedAt, durationMs: null, timeoutMs: getGlbLoadTimeoutMs(assetKind), progressLoaded: null, progressTotal: null, progressEventEmitted: false, materialAudit: null, promise: null };
     threeState.glbTemplateCache.set(url, entry);
     entry.promise = parseGlbWithGltfLoader(THREE, url, assetKind, entry)
       .then((template) => {
@@ -3319,8 +3358,6 @@
         removeFromList(diagnostics.gltfLoaderPendingUrls, url);
         syncGltfLoaderUrlDiagnostics();
         if (!error?.hcGlbTimeout && !error?.hcGlbEventEmitted) emitGlbDebugEvent("world.glb_load_failed", makeGlbEventPayload("failed", { assetKind, url, cacheKey: entry.cacheKey, durationMs: entry.durationMs, loaded: entry.progressLoaded, total: entry.progressTotal, error, status: "failed" }));
-        threeState.glbLoaderFallbackUsed = true;
-        threeState.glbLoaderFallbackReason = entry.error;
         warnGlbLoadFailureOnce(url, entry.error, { assetKind, durationMs: entry.durationMs, progressLoaded: entry.progressLoaded, progressTotal: entry.progressTotal });
         if (assetKind === "asteroid") {
           threeState.asteroidGlbTextureDiagnostics = Object.assign(createAsteroidGlbTextureDiagnostics(), {
@@ -4351,6 +4388,10 @@
       gltfLoaderErrorCount: gltfLoaderDiagnostics.gltfLoaderErrorCount,
       gltfLoaderTimeoutCount: gltfLoaderDiagnostics.gltfLoaderTimeoutCount,
       gltfLoaderLastRequestedUrl: gltfLoaderDiagnostics.gltfLoaderLastRequestedUrl,
+      gltfLoaderLastRequestedUrlRaw: gltfLoaderDiagnostics.gltfLoaderLastRequestedUrlRaw,
+      gltfLoaderLastRequestedUrlResolved: gltfLoaderDiagnostics.gltfLoaderLastRequestedUrlResolved,
+      gltfLoaderLastRequestedBaseUrl: gltfLoaderDiagnostics.gltfLoaderLastRequestedBaseUrl,
+      gltfLoaderUrlNormalizeError: gltfLoaderDiagnostics.gltfLoaderUrlNormalizeError,
       gltfLoaderLastProgressUrl: gltfLoaderDiagnostics.gltfLoaderLastProgressUrl,
       gltfLoaderLastCompletedUrl: gltfLoaderDiagnostics.gltfLoaderLastCompletedUrl,
       gltfLoaderLastFailedUrl: gltfLoaderDiagnostics.gltfLoaderLastFailedUrl,
@@ -4365,6 +4406,7 @@
       gltfLoaderFailedUrls: (gltfLoaderDiagnostics.gltfLoaderFailedUrls || []).slice(),
       gltfLoaderTimedOutUrls: (gltfLoaderDiagnostics.gltfLoaderTimedOutUrls || []).slice(),
       gltfLoaderDebugEvents: threeState.gltfLoaderDebugEvents.slice(-12),
+      glbVisualFallbackActiveCount: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.fallback?.visible).length + Array.from(threeState.asteroidMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
       gltfProbeStarted: !!threeState.gltfDebugProbe?.startedAt,
       gltfProbeStatus: threeState.gltfDebugProbe?.status || "idle",
       gltfProbeUrl: threeState.gltfDebugProbe?.url || null,
