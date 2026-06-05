@@ -276,7 +276,7 @@
         meteorGlbVisualScale: Number.isFinite(meteorGlbVisualScale) ? Math.max(0.25, Math.min(4.0, meteorGlbVisualScale)) : 1.0,
         meteorGlbDepthScale: Number.isFinite(meteorGlbDepthScale) ? Math.max(0.25, Math.min(3.0, meteorGlbDepthScale)) : 1.0,
         cameraModel,
-        globalHelpersEnabled: visualCfg.globalHelpersEnabled !== false,
+        globalHelpersEnabled: visualCfg.globalHelpersEnabled === true,
         threeMaterials: {
           enabled: materialCfg.enabled === true,
           envIntensity: Number.isFinite(Number(materialCfg.envIntensity)) ? Math.max(0, Math.min(1.5, Number(materialCfg.envIntensity))) : 0.38,
@@ -286,7 +286,7 @@
         },
         threeLights: {
           enabled: lightsCfg.enabled !== false,
-          ambientIntensity: Number.isFinite(Number(lightsCfg.ambientIntensity)) ? Math.max(0, Math.min(0.75, Number(lightsCfg.ambientIntensity))) : 0,
+          ambientIntensity: Number.isFinite(Number(lightsCfg.ambientIntensity)) ? Math.max(0, Math.min(0.75, Number(lightsCfg.ambientIntensity))) : 0.13,
           ambientIsolate: lightsCfg.ambientIsolate === true,
           debugKeyLightEnabled: lightsCfg.debugKeyLightEnabled === true,
           debugKeyLightIntensity: Number.isFinite(Number(lightsCfg.debugKeyLightIntensity)) ? Math.max(0, Math.min(5.0, Number(lightsCfg.debugKeyLightIntensity))) : 2.2,
@@ -295,7 +295,7 @@
           forceHeadlightEnabled: lightsCfg.forceHeadlightEnabled === true,
           forceHeadlightIntensity: Number.isFinite(Number(lightsCfg.forceHeadlightIntensity)) ? Math.max(0, Math.min(8.0, Number(lightsCfg.forceHeadlightIntensity))) : 4.5,
           mainStageSpotEnabled: (lightsCfg.mainStageSpotEnabled ?? true) !== false,
-          mainStageSpotIntensity: Number.isFinite(Number(lightsCfg.mainStageSpotIntensity)) ? Math.max(0, Math.min(25.0, Number(lightsCfg.mainStageSpotIntensity))) : 6.5,
+          mainStageSpotIntensity: Number.isFinite(Number(lightsCfg.mainStageSpotIntensity)) ? Math.max(0, Math.min(25.0, Number(lightsCfg.mainStageSpotIntensity))) : 3.9,
           mainStageSpotAngle: Number.isFinite(Number(lightsCfg.mainStageSpotAngle)) ? Math.max(Math.PI / 24, Math.min(Math.PI / 2, Number(lightsCfg.mainStageSpotAngle))) : Math.PI / 2.8,
           mainStageSpotPenumbra: Number.isFinite(Number(lightsCfg.mainStageSpotPenumbra)) ? Math.max(0, Math.min(1, Number(lightsCfg.mainStageSpotPenumbra))) : 0.72,
           mainStageSpotDistance: Number.isFinite(Number(lightsCfg.mainStageSpotDistance)) ? Math.max(0, Math.min(100000, Number(lightsCfg.mainStageSpotDistance))) : 0,
@@ -358,7 +358,7 @@
     const activeLightCount = Number.isFinite(Number(diagnostics?.activeLightCount))
       ? Number(diagnostics.activeLightCount)
       : (stageLightingEnabled ? 1 : 0);
-    const globalHelpersEnabled = diagnostics?.globalHelpersEnabled ?? window.HC?.WorldRendererDebug?.globalHelpersEnabled ?? window.HC?.Session?.debugConfig?.visual?.globalHelpersEnabled ?? true;
+    const globalHelpersEnabled = diagnostics?.globalHelpersEnabled ?? window.HC?.WorldRendererDebug?.globalHelpersEnabled ?? window.HC?.Session?.debugConfig?.visual?.globalHelpersEnabled ?? false;
     const materialAuditEntries = Array.isArray(diagnostics?.glbMaterialAudit)
       ? diagnostics.glbMaterialAudit.slice(-8).map((entry) => ({
           asset: entry?.asset || null,
