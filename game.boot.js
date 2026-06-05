@@ -216,35 +216,22 @@ meteorCollisionFudge: 1.12,
 
   // ---------- API (future cards) ----------
   function setAsteroidOrbitRadius(asteroid, currentRadius) {
+    // Legacy compatibility no-op: asteroids no longer have capture/orbit radii.
     if (!asteroid) return;
-    const mul = (typeof World.metaOrbitMulAsteroid === "number") ? World.metaOrbitMulAsteroid : 1;
-    const safeMul = Number.isFinite(mul) ? mul : 1;
-    const baseRadius = safeMul !== 0 ? (currentRadius / safeMul) : currentRadius;
-    asteroid.orbitNativeRadius = baseRadius;
-    asteroid.orbitCurrentRadius = currentRadius;
-    asteroid.orbitPx = currentRadius;
+    asteroid.orbitNativeRadius = null;
+    asteroid.orbitCurrentRadius = null;
+    asteroid.orbitPx = null;
   }
 
   const WorldAPI = {
     adjustAsteroidOrbitByMeteorRadii(asteroid, deltaCount) {
-      const Rm = meteorBaseRadius();
-      const nextOrbit = clamp(
-        asteroid.orbitPx + deltaCount * Rm,
-        asteroid.minOrbitPx,
-        asteroid.maxOrbitPx
-      );
-      setAsteroidOrbitRadius(asteroid, nextOrbit);
-      this._clampOrbitersToOrbit(asteroid);
+      // Legacy compatibility no-op: asteroid orbit radius was retired in favor of direct-contact growth.
+      setAsteroidOrbitRadius(asteroid, null);
     },
 
     removeOrbiters(asteroid, count) {
-      const removed = [];
-      while (count > 0 && asteroid.orbiters.length > 0) {
-        removed.push(asteroid.orbiters.pop());
-        count--;
-      }
-      this._clampOrbitersToOrbit(asteroid);
-      return removed;
+      // Legacy compatibility: new asteroids do not own meteor orbiters.
+      return [];
     },
 
     countStarSystemOrbiters(star, opts = {}) {
@@ -305,18 +292,14 @@ meteorCollisionFudge: 1.12,
     },
 
     _clampOrbitersToOrbit(asteroid) {
-      const margin = asteroid.r + asteroid.orbiterMinGapPx;
-      for (const o of asteroid.orbiters) {
-        const maxAllowed = Math.max(margin, asteroid.orbitPx - o.r);
-        o.orbitR = clamp(o.orbitR, margin, maxAllowed);
-      }
+      // Legacy compatibility no-op: asteroids no longer maintain meteor orbiters.
     }
   };
 
   /* =========================================================
      Part 2/3
      - Meteors: spawn
-     - Asteroids: creation mapping + drift (vx/vy) + orbiters + capture stats
+     - Asteroids: creation mapping + drift (vx/vy) + direct-contact growth stats
      - Planets: gradient helper
      - Rendering helpers
      ========================================================= */

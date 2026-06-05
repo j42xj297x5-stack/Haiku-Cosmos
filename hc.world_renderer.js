@@ -4159,7 +4159,8 @@
       visual.asteroid = a;
       const sourceRadius = Number(a.radius ?? a.r ?? a.scale) || THREE_ASTEROID_MIN_RADIUS;
       const radius = Math.max(THREE_ASTEROID_MIN_RADIUS, sourceRadius);
-      const renderRadius = applyRenderSpaceToRadius(radius);
+      const asteroidVisualScale = Number.isFinite(a.collapseVisualScale) ? a.collapseVisualScale : 1;
+      const renderRadius = applyRenderSpaceToRadius(radius * asteroidVisualScale);
       const renderPosition = applyRenderSpaceToVector(Number(a.x) || 0, Number(a.y) || 0, -0.1);
       const hasGlbVisual = updateAsteroidGlbVisual(THREE, visual);
       visual.root.position.set(renderPosition.x, renderPosition.y, renderPosition.z);
