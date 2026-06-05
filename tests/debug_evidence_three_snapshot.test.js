@@ -70,7 +70,7 @@ context.window.HC.WorldRenderer = {
       glbMaterialAuditStatus: { auditedAssets: 1, consoleWrites: 1 },
       threeLights: {
         enabled: true,
-        ambientIntensity: 0.2,
+        ambientIntensity: 0.13,
         ambientIsolate: true,
         debugKeyLightEnabled: false,
         debugKeyLightIntensity: 0,
@@ -79,25 +79,25 @@ context.window.HC.WorldRenderer = {
         forceHeadlightEnabled: false,
         forceHeadlightIntensity: 0,
         mainStageSpotEnabled: true,
-        mainStageSpotIntensity: 6.5,
+        mainStageSpotIntensity: 3.9,
         mainStageSpotAngle: Math.PI / 2.8,
         mainStageSpotPenumbra: 0.72,
         mainStageSpotDistance: 0,
         mainStageSpotDecay: 0,
         mainStageSpotTargetMode: "sampleObject",
-        showLightHelpers: true,
+        showLightHelpers: false,
       },
       globalHelpersEnabled: false,
-      threeLightHelpers: { mode: "global_off", count: 4, visible: false, enabled: true, globalEnabled: false },
+      threeLightHelpers: { mode: "global_off", count: 4, visible: false, enabled: false, globalEnabled: false },
       threeLightDiagnostics: {
-        effectiveAmbientIntensity: 0,
+        effectiveAmbientIntensity: 0.13,
         sampleObject: { kind: "meteor_glb", position: { x: 10, y: 20, z: 0 } },
         debugKeyLight: { position: { x: 2, y: 3, z: 4 }, intensity: 0, visible: false },
         debugRimLight: { position: { x: 5, y: 6, z: 7 }, intensity: 0, visible: false },
         forceHeadlight: null,
         mainStageSpot: {
           visible: true,
-          intensity: 6.5,
+          intensity: 3.9,
           angle: Math.PI / 2.8,
           penumbra: 0.72,
           distance: 0,
@@ -120,11 +120,11 @@ context.window.HC.WorldRenderer = {
         enabled: true,
         model: "stage_spot",
         lightingModelVersion: "stage_spot_v1",
-        ambientEffectiveIntensity: 0,
+        ambientEffectiveIntensity: 0.13,
       },
       mainStageSpot: {
         enabled: true,
-        intensity: 6.5,
+        intensity: 3.9,
         angle: Math.PI / 2.8,
         penumbra: 0.72,
         distance: 0,
@@ -132,7 +132,7 @@ context.window.HC.WorldRenderer = {
         position: { x: -50, y: -30, z: 120 },
         targetPosition: { x: 10, y: 20, z: 0 },
         targetMode: "sampleObject",
-        helperVisible: true,
+        helperVisible: false,
         targetInScene: true,
         castShadow: false,
       },
@@ -162,9 +162,13 @@ assert.equal(snapshot.visual.three.materialMode, "clay_lit");
 assert.equal(snapshot.visual.three.threeMaterials.enabled, true);
 assert.equal(snapshot.visual.three.ambientIsolate, true);
 assert.equal(snapshot.visual.three.threeLights.debugKeyLightEnabled, false);
-assert.equal(snapshot.visual.three.showLightHelpers, true);
+assert.equal(snapshot.visual.three.showLightHelpers, false);
 assert.equal(snapshot.visual.three.globalHelpersEnabled, false);
 assert.equal(snapshot.visual.three.threeLights.mainStageSpotEnabled, true);
+assert.equal(snapshot.visual.three.threeLights.mainStageSpotIntensity, 3.9);
+assert.equal(snapshot.visual.three.threeLights.ambientIntensity, 0.13);
+assert.equal(snapshot.visual.three.mainStageSpot.intensity, 3.9);
+assert.equal(snapshot.visual.three.ambientEffectiveIntensity, 0.13);
 assert.equal(snapshot.visual.three.mainStageSpot.targetMode, "sampleObject");
 assert.equal(snapshot.visual.three.mainStageSpot.castShadow, false);
 assert.equal(snapshot.visual.three.lights.sampleObjectFrustumVisible, true);
@@ -206,7 +210,7 @@ const cfg = context.window.HC.createDebugConfig("debug", {});
 assert.equal(cfg.loggingMode, "compact");
 assert.equal(cfg.heartbeatIntervalMs, 5000);
 assert.equal(cfg.verboseDiagnostics, false);
-assert.equal(cfg.visual.globalHelpersEnabled, true);
+assert.equal(cfg.visual.globalHelpersEnabled, false);
 assert.ok(context.window.HC.DebugEventTypes.SUBMETA_OPENED);
 assert.ok(context.window.HC.DebugEventTypes.DEBUG_HEARTBEAT);
 

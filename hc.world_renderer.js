@@ -80,7 +80,7 @@
   });
   const THREE_LIGHTS_DEFAULTS = Object.freeze({
     enabled: true,
-    ambientIntensity: 0.0,
+    ambientIntensity: 0.13,
     ambientIsolate: false,
     debugKeyLightEnabled: false,
     debugKeyLightIntensity: 2.2,
@@ -89,7 +89,7 @@
     forceHeadlightEnabled: false,
     forceHeadlightIntensity: 4.5,
     mainStageSpotEnabled: true,
-    mainStageSpotIntensity: 6.5,
+    mainStageSpotIntensity: 3.9,
     mainStageSpotAngle: Math.PI / 2.8,
     mainStageSpotPenumbra: 0.72,
     mainStageSpotDistance: 0,
@@ -160,8 +160,8 @@
   let threeDependencySource = "unknown";
 
   window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
-  if (window.HC.WorldRendererDebug.globalHelpersEnabled !== false) {
-    window.HC.WorldRendererDebug.globalHelpersEnabled = true;
+  if (window.HC.WorldRendererDebug.globalHelpersEnabled !== true) {
+    window.HC.WorldRendererDebug.globalHelpersEnabled = false;
   }
   if (!Number.isFinite(Number(window.HC.WorldRendererDebug.meteorGlbVisualScale))) {
     window.HC.WorldRendererDebug.meteorGlbVisualScale = METEOR_GLB_VISUAL_SCALE_DEFAULT;
@@ -696,7 +696,7 @@
   function getGlobalHelpersEnabled() {
     const debugValue = window.HC?.WorldRendererDebug?.globalHelpersEnabled;
     const sessionValue = window.HC?.Session?.debugConfig?.visual?.globalHelpersEnabled;
-    return debugValue !== false && sessionValue !== false;
+    return (debugValue === true || sessionValue === true) && debugValue !== false && sessionValue !== false;
   }
 
   function setGlobalHelpersEnabled(value) {

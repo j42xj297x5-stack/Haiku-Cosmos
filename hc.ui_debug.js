@@ -230,7 +230,7 @@
     if (window.HC?.WorldRenderer?.getGlobalHelpersEnabled) return window.HC.WorldRenderer.getGlobalHelpersEnabled();
     const debugValue = window.HC?.WorldRendererDebug?.globalHelpersEnabled;
     const sessionValue = window.HC?.Session?.debugConfig?.visual?.globalHelpersEnabled;
-    return debugValue !== false && sessionValue !== false;
+    return (debugValue === true || sessionValue === true) && debugValue !== false && sessionValue !== false;
   }
 
   function setGlobalHelpersEnabledFromUi(value) {
@@ -277,7 +277,7 @@
 
   function getThreeLightsSettingsForUi() {
     if (window.HC?.WorldRenderer?.getThreeLightsSettings) return window.HC.WorldRenderer.getThreeLightsSettings();
-    const defaults = { enabled: true, ambientIntensity: 0, ambientIsolate: false, debugKeyLightEnabled: false, debugKeyLightIntensity: 2.2, debugRimLightEnabled: false, debugRimLightIntensity: 0.65, forceHeadlightEnabled: false, forceHeadlightIntensity: 4.5, mainStageSpotEnabled: true, mainStageSpotIntensity: 6.5, mainStageSpotAngle: Math.PI / 2.8, mainStageSpotPenumbra: 0.72, mainStageSpotDistance: 0, mainStageSpotDecay: 0, mainStageSpotXOffset: -0.65, mainStageSpotYOffset: -0.55, mainStageSpotZHeight: 1.55, mainStageSpotTargetMode: "center", showLightHelpers: false };
+    const defaults = { enabled: true, ambientIntensity: 0.13, ambientIsolate: false, debugKeyLightEnabled: false, debugKeyLightIntensity: 2.2, debugRimLightEnabled: false, debugRimLightIntensity: 0.65, forceHeadlightEnabled: false, forceHeadlightIntensity: 4.5, mainStageSpotEnabled: true, mainStageSpotIntensity: 3.9, mainStageSpotAngle: Math.PI / 2.8, mainStageSpotPenumbra: 0.72, mainStageSpotDistance: 0, mainStageSpotDecay: 0, mainStageSpotXOffset: -0.65, mainStageSpotYOffset: -0.55, mainStageSpotZHeight: 1.55, mainStageSpotTargetMode: "center", showLightHelpers: false };
     return Object.assign({}, defaults, window.HC?.WorldRendererDebug?.threeLights || window.HC?.Session?.debugConfig?.visual?.threeLights || {});
   }
 
@@ -1007,7 +1007,7 @@
     `, { open: true }));
 
     sections.push(renderSection("Lighting", [
-      ["Main Stage Spot", `${threeLights.mainStageSpotEnabled !== false ? "ON" : "OFF"} / ${Number(threeLights.mainStageSpotIntensity).toFixed(1)}`],
+      ["Main Stage Spot", `${threeLights.mainStageSpotEnabled !== false ? "ON" : "OFF"} / ${Number(threeLights.mainStageSpotIntensity).toFixed(2)}`],
       ["ambient fill", Number(threeLights.ambientIntensity || 0).toFixed(2)],
       ["helpers global", globalHelpersEnabled ? "enabled" : "HIDE ALL"],
       ["local light helpers", threeLights.showLightHelpers ? "enabled" : "off"],
@@ -1024,7 +1024,7 @@
       </label>
       <label class="overlay-select-row" for="dbgThreeMainStageSpotIntensity">Main Stage Spot intensity
         <input id="dbgThreeMainStageSpotIntensity" type="range" min="0" max="25" step="0.1" value="${threeLights.mainStageSpotIntensity}">
-        <span id="dbgThreeMainStageSpotIntensityValue">${Number(threeLights.mainStageSpotIntensity).toFixed(1)}</span>
+        <span id="dbgThreeMainStageSpotIntensityValue">${Number(threeLights.mainStageSpotIntensity).toFixed(2)}</span>
       </label>
       <label class="overlay-select-row" for="dbgThreeAmbient">Ambient fill
         <input id="dbgThreeAmbient" type="range" min="0" max="0.75" step="0.01" value="${threeLights.ambientIntensity}">

@@ -62,7 +62,7 @@ audytów i synchronizacji dokumentacji z runtime.
 
 - 2026-06-04: WORLD_RENDERING_MODEL utrwala snapshot Three GLB PBR material pipeline po commicie `f07c617`: runtime czyta PBR factory materiały GLB i debug controls, a aktualne `public/glb/*.glb` mają 21 materiałów, 12 z metalicznością, 0 tekstur i 0 normal map.
 
-- 2026-06-05: WORLD_RENDERING_MODEL utrwala checkpoint po stabilizacji Three renderer / `stage_spot_v1` / compact logging: evidence final snapshot potwierdza `renderer effective=three`, `cameraModel=stage_normalized`, `lightingModelVersion=stage_spot_v1`, `mainStageSpot` jako jedyne główne światło, `removedLegacyCornerLights=true`, `activeLightCount=1`, `ambientEffectiveIntensity=0`, `activeFallbackMeteorVisuals=0`, `globalHelpersEnabled=false`, `loggingMode=compact` i SUB-META logging contract `future_event_based_v1`.
+- 2026-06-05: WORLD_RENDERING_MODEL utrwala checkpoint po stabilizacji Three renderer / `stage_spot_v1` / compact logging: evidence final snapshot potwierdza `renderer effective=three`, `cameraModel=stage_normalized`, `lightingModelVersion=stage_spot_v1`, `mainStageSpot` jako jedyne główne światło, `removedLegacyCornerLights=true`, `activeLightCount=1`, `ambientEffectiveIntensity≈0.13`, `activeFallbackMeteorVisuals=0`, `globalHelpersEnabled=false`, `loggingMode=compact` i SUB-META logging contract `future_event_based_v1`.
 
 - 2026-06-05: WORLD_RENDERING_MODEL utrwala snapshot Three GLB + external meteor textures: meteory i asteroidy GLB ładują się przez lokalny `GLTFLoader`, custom parser nie jest aktywną ścieżką runtime, GLB cache ma lifecycle `loading`/`ready`/`failed`, palety PNG `red`/`yellow` mają `map` i `emissiveMap`, a zewnętrzne mapy uzupełniają tylko brakujące sloty imported materiałów GLB.
 

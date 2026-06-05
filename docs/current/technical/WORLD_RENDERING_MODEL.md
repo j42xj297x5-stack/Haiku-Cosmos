@@ -910,7 +910,7 @@ Evidence pass: `2026-06-05_07-19-05__sess_5-868Z__debug__custom__fallback_eviden
 ### C. Lighting model — `stage_spot_v1`
 
 - Aktualny model światła: `lightingModelVersion = "stage_spot_v1"`.
-- `mainStageSpot` jest jedynym głównym światłem scenicznym; evidence potwierdza `mainStageSpot.enabled = true` oraz intensity `6.5`.
+- `mainStageSpot` jest jedynym głównym światłem scenicznym; evidence potwierdza `mainStageSpot.enabled = true` oraz intensity `3.90`.
 - Legacy corner `PointLight` zostały usunięte z aktywnego runtime; evidence potwierdza `removedLegacyCornerLights = true`.
 - Aktywne liczniki modelu:
   - `stageLighting.enabled = true`,
@@ -920,7 +920,7 @@ Evidence pass: `2026-06-05_07-19-05__sess_5-868Z__debug__custom__fallback_eviden
   - `totalLightObjects = 4`.
 - `debugKey`, `debugRim` i `forceHeadlight` są opcjonalnymi advanced diagnostic lights i domyślnie pozostają OFF. Nie zastępują `mainStageSpot` jako światła produkcyjnego.
 - `threeLightCount` / `threeLightCountSemantics` należy traktować jako deprecated alias semantyki `totalLightObjects`; evidence raportuje `threeLightCountSemantics = "deprecated_totalLightObjects"`.
-- Ambient light jest fill-only i domyślnie ma wartość `0` albo bardzo niską. Evidence potwierdza `ambientEffectiveIntensity = 0`.
+- Ambient light jest fill-only i domyślnie ma wartość `0.13`. Evidence powinno potwierdzać `ambientEffectiveIntensity ≈ 0.13`.
 - Nie należy przywracać legacy corner lights jako domyślnego ani aktywnego modelu runtime.
 
 ### D. GLB / materials
@@ -935,9 +935,9 @@ Evidence pass: `2026-06-05_07-19-05__sess_5-868Z__debug__custom__fallback_eviden
 ### E. Debug overlay
 
 - Debug overlay został przebudowany w zwijane sekcje, żeby ograniczyć szum UI podczas pracy z rendererem, światłem i evidence.
-- Overlay ma globalną kontrolkę helperów; evidence potwierdza `globalHelpersEnabled = false` oraz helper mode `global_off`.
+- Overlay ma globalną kontrolkę helperów; helpery są domyślnie OFF, a evidence potwierdza `globalHelpersEnabled = false`, `showLightHelpers = false` oraz helper mode `global_off`.
 - `globalHelpersEnabled = false` ukrywa wszystkie helpery. Lokalne przełączniki diagnostyczne nie powinny wymuszać helperów, jeśli globalna kontrolka jest OFF.
-- Lighting UI pokazuje `Stage SpotLight` / `Main Stage Spot` i nie powinno zawierać aktywnych legacy corner controls.
+- Lighting UI pokazuje startowo: `Stage lighting enabled = checked`, `Main Stage Spot = checked`, `Main Stage Spot intensity = 3.90`, `Ambient fill = 0.13`, helpery OFF; UI nie powinno zawierać aktywnych legacy corner controls.
 
 ### F. Logging / evidence
 
@@ -1057,4 +1057,4 @@ Texture pipeline evidence powinno obejmować co najmniej:
 - Canvas2D nie jest usuwany: pozostaje ręcznie wybieralną opcją w debug jako `Canvas2D — legacy mechanics verification / fallback`, służącą do porównań mechaniki, fallbacku i regresji legacy.
 - Fallback do Canvas2D pozostaje obowiązkowy. Jeżeli dependency Three ESM nie jest gotowe (`loading`/`failed`/`missing`) albo adapter renderera zgłosi błąd, diagnostyka/evidence ma raportować `fallback.used = true` oraz powód (`fallbackReason`).
 - Three działa jako osobny canvas (`#hc-three-world-canvas`) pod transparentnym overlayem `gameCanvas`; HUD, debug overlay, SUB-META, META i Canvas2D overlay nie są wciągane do sceny Three.
-- Aktualny rekomendowany model renderingu GLB to `cameraModel = "stage_normalized"`, `stageModelEnabled = true` i `lightingModelVersion = "stage_spot_v1"`. Final evidence dla poprawnego startu Three powinno wskazywać `renderer.requested = "three"`, `renderer.effective = "three"`, `fallback.used = false`, `cameraModel = "stage_normalized"`, `stageModelEnabled = true` oraz `lightingModelVersion = "stage_spot_v1"`.
+- Aktualny rekomendowany model renderingu GLB to `cameraModel = "stage_normalized"`, `stageModelEnabled = true` i `lightingModelVersion = "stage_spot_v1"`. Final evidence dla poprawnego startu Three powinno wskazywać `renderer.requested = "three"`, `renderer.effective = "three"`, `fallback.used = false`, `cameraModel = "stage_normalized"`, `stageModelEnabled = true`, `lightingModelVersion = "stage_spot_v1"`, `mainStageSpot.intensity = 3.9`, `ambientEffectiveIntensity ≈ 0.13`, `activeLightCount = 1`, `diagnosticLightCount = 3`, `totalLightObjects = 4`, `globalHelpersEnabled = false`, helper mode `global_off`, `activeGlbInstances > 0` i `activeFallbackMeteorVisuals = 0`.
