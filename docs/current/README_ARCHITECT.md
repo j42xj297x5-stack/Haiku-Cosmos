@@ -133,6 +133,8 @@ Nie zastępuje dokumentów źródłowych — wskazuje, co doładować warunkowo.
 ## 10) Runtime / debug — skrót
 
 - `WORLD_FUNCTION_MAP.md` jest mapą orientacyjną runtime (roboczą).
+- `WORLD_RENDERING_MODEL.md` jest aktualnym entrypointem dla snapshotu renderera świata: Three.js jest domyślnym rendererem gry/debug, Canvas2D zostaje legacy/fallback/mechanics verification, rekomendowany model kamery to `stage_normalized`, a aktywny model światła to `stage_spot_v1` z `mainStageSpot` jako jedynym głównym światłem scenicznym.
+- Debug/evidence checkpoint 2026-06-05: legacy corner `PointLight` są usunięte z aktywnego runtime, ambient jest fill-only i domyślnie `0`/low, debug overlay ma zwijane sekcje + global helpers control, a compact event-based logging jest domyślnym modelem evidence.
 - `SEQUENCE_STATE_CONTRACT.md`, `IMPLEMENTATION_TRACKER.md`, `LIVE_VALIDATION_PACK.md` ładuj przy debugowaniu i walidacji.
 - Dla sekwencji aktywny runtime SoT: `CardEngine.state.sequence` (zgodnie z aktualnymi docs technical).
 - Runtime docs nie zastępują kanonu mechaniki z `docs/current/systems/*`.
@@ -225,4 +227,5 @@ Nie zastępuje dokumentów źródłowych — wskazuje, co doładować warunkowo.
 - Visual workflow jest ustawiony na raster-first/Inkscape (+ optional Figma fitting).
 - Hierarchia FrameComposera jest uporządkowana.
 - Runtime integration FrameComposera pozostaje future pass.
+- Snapshot renderer/debug 2026-06-05 utrwala Three + `stage_normalized` + `stage_spot_v1` + compact logging; nie zmienia mechaniki, PRG, SUB-META ani ekonomii.
 - `SUB_META_MEMORY_PACK.md` istnieje jako helper, ale ten plik jest głównym startem rozmowy z architektem.
