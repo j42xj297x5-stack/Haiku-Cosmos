@@ -1,3 +1,4 @@
+> Update 2026-06-05: `WORLD_RENDERING_MODEL.md` zawiera snapshot Three GLB + external meteor textures: lokalny `GLTFLoader` jest aktywną ścieżką GLB dla meteorów/asteroid, cache przechowuje template per URL i klonuje instancje, zewnętrzne PNG `map`/`emissiveMap` dla `red`/`yellow` są cache’owane przez `TextureLoader`, imported GLB maps nie są nadpisywane, a fallback visual pozostaje tylko dla `loading`/`failed`.
 > Update 2026-06-05: `WORLD_RENDERING_MODEL.md` zawiera checkpoint Three renderer + `stage_normalized` camera + `stage_spot_v1` lighting: Three jest domyślnym rendererem gry/debug, Canvas2D pozostaje legacy/fallback/mechanics verification, `mainStageSpot` jest jedynym głównym światłem scenicznym, legacy corner PointLight są usunięte z aktywnego runtime, debug overlay ma zwijane sekcje/global helpers, a evidence logging działa w trybie compact.
 > Update 2026-06-04: `WORLD_RENDERING_MODEL.md` zawiera snapshot Three GLB PBR material pipeline po naprawie: `MeshStandardMaterial`/PBR zamiast `MeshBasicMaterial` dla obiektów światłoczułych, audyt 21 GLB bez tekstur/normalMap oraz wymagania bake/eksportu map z Blendera.
 > Update 2026-06-04: `WORLD_RENDERING_MODEL.md` zawiera snapshot Three GLB meteor pass v0.1: aktywne pule 4x5 GLB, stabilny wariant per wrapper, GLB cache per URL, fallback circle, rotacja XYZ, live debug scale `0.25`-`4.0` i granice visual-only.
@@ -26,7 +27,7 @@ audytów i synchronizacji dokumentacji z runtime.
 ## Status dokumentów
 
 - `WORLD_FUNCTION_MAP.md` — **ROBOCZY** (aktywna mapa techniczna orientacyjna; nie zastępuje pełnego audytu runtime)
-- `WORLD_RENDERING_MODEL.md` — **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** (Three.js adapter, domyślny renderer Three dla gry/debug, Canvas2D jako legacy/fallback/mechanics verification, `stage_normalized` camera, `stage_spot_v1` lighting, debug overlay, compact evidence logging; obejmuje Etap 2.x: local Three ESM vendor/bridge, Etap 3: meteor render pass, Etap 3.1: visible meteor checkpoint + transparent 2D overlay composition oraz Etap 4: asteroid render pass)
+- `WORLD_RENDERING_MODEL.md` — **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** (Three.js adapter, domyślny renderer Three dla gry/debug, Canvas2D jako legacy/fallback/mechanics verification, `stage_normalized` camera, `stage_spot_v1` lighting, debug overlay, compact evidence logging; obejmuje GLTFLoader jako aktywną ścieżkę GLB dla meteorów/asteroid, GLB template/clone cache, zewnętrzne palety PNG `map`/`emissiveMap` red/yellow przez `TextureLoader`, no-overwrite imported materials oraz fallback visual tylko dla `loading`/`failed`)
 - `SEQUENCE_STATE_CONTRACT.md` — **ROBOCZY / KONTRAKT TECHNICZNY** (single source-of-truth sekwencji + zasady evidence timeline)
 - `IMPLEMENTATION_TRACKER.md` — **ROBOCZY** (tracker wdrożeń i obszarów do weryfikacji)
 - `LIVE_VALIDATION_PACK.md` — **ROBOCZY** (roboczy kontrakt walidacji runów i evidence)
@@ -62,6 +63,8 @@ audytów i synchronizacji dokumentacji z runtime.
 - 2026-06-04: WORLD_RENDERING_MODEL utrwala snapshot Three GLB PBR material pipeline po commicie `f07c617`: runtime czyta PBR factory materiały GLB i debug controls, a aktualne `public/glb/*.glb` mają 21 materiałów, 12 z metalicznością, 0 tekstur i 0 normal map.
 
 - 2026-06-05: WORLD_RENDERING_MODEL utrwala checkpoint po stabilizacji Three renderer / `stage_spot_v1` / compact logging: evidence final snapshot potwierdza `renderer effective=three`, `cameraModel=stage_normalized`, `lightingModelVersion=stage_spot_v1`, `mainStageSpot` jako jedyne główne światło, `removedLegacyCornerLights=true`, `activeLightCount=1`, `ambientEffectiveIntensity=0`, `activeFallbackMeteorVisuals=0`, `globalHelpersEnabled=false`, `loggingMode=compact` i SUB-META logging contract `future_event_based_v1`.
+
+- 2026-06-05: WORLD_RENDERING_MODEL utrwala snapshot Three GLB + external meteor textures: meteory i asteroidy GLB ładują się przez lokalny `GLTFLoader`, custom parser nie jest aktywną ścieżką runtime, GLB cache ma lifecycle `loading`/`ready`/`failed`, palety PNG `red`/`yellow` mają `map` i `emissiveMap`, a zewnętrzne mapy uzupełniają tylko brakujące sloty imported materiałów GLB.
 
 ## Deployment
 

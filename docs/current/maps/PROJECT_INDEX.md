@@ -69,7 +69,7 @@ Kanon jest mapowany warstwowo przez:
 
 - `docs/current/technical/README.md` (ROBOCZY)
 - `docs/current/technical/WORLD_FUNCTION_MAP.md` (ROBOCZY)
-- `docs/current/technical/WORLD_RENDERING_MODEL.md` (ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA; zawiera checkpoint 2026-06-05: Three jako domyślny renderer gry/debug, Canvas2D legacy/fallback, `stage_normalized` camera, `stage_spot_v1` lighting z `mainStageSpot`, usunięte legacy corner PointLight, debug overlay global helpers, compact evidence logging i SUB-META logging contract `future_event_based_v1`; zawiera też snapshot Three GLB/PBR material pipeline, audyt obecnych GLB bez tekstur/normalMap i wymagania eksportu map z Blendera)
+- `docs/current/technical/WORLD_RENDERING_MODEL.md` (ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA; zawiera checkpoint 2026-06-05: Three jako domyślny renderer gry/debug, Canvas2D legacy/fallback, `stage_normalized` camera, `stage_spot_v1` lighting z `mainStageSpot`, debug overlay/global helpers, compact evidence logging, SUB-META logging contract `future_event_based_v1` oraz snapshot Three GLB + external meteor textures: aktywny lokalny `GLTFLoader` dla meteorów/asteroid, cache template/clone GLB, cache PNG `map`/`emissiveMap` red/yellow przez `TextureLoader`, no-overwrite imported GLB materials i runtime asset policy)
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (ROBOCZY / ARCHITEKTURA TECHNICZNA)
 - `docs/current/technical/FONT_SYSTEM_SPEC.md` (ROBOCZY / DO WDROZENIA)
 - `docs/current/technical/FRAME_COMPOSER_SPEC.md` (ROBOCZY / KONTRAKT TECHNICZNY)

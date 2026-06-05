@@ -11,7 +11,7 @@ Ten katalog jest główną mapą dokumentacji projektu.
 
 ## Aktualne snapshoty techniczne
 
-- Snapshot techniczny GLB/PBR po naprawie Three material pipeline znajduje się w [`current/technical/WORLD_RENDERING_MODEL.md`](current/technical/WORLD_RENDERING_MODEL.md); krótka notka materiałowa jest w [`current/visual/BIBLIOTEKA_MATERIALOW.md`](current/visual/BIBLIOTEKA_MATERIALOW.md).
+- Snapshot techniczny Three GLB + external meteor textures znajduje się w [`current/technical/WORLD_RENDERING_MODEL.md`](current/technical/WORLD_RENDERING_MODEL.md): `GLTFLoader` jest aktywną ścieżką GLB dla meteorów/asteroid, a zewnętrzne palety PNG `map`/`emissiveMap` dla czerwonych i żółtych meteorów są cache’owane przez `TextureLoader`; krótka notka materiałowa jest w [`current/visual/BIBLIOTEKA_MATERIALOW.md`](current/visual/BIBLIOTEKA_MATERIALOW.md).
 
 ## Zasady
 

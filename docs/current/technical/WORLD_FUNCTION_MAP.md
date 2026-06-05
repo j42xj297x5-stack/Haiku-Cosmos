@@ -304,18 +304,20 @@
 
 ### 3.8a `hc.world_render_snapshot.js` + `hc.world_renderer.js` — World rendering adapter
 **STATE:**
-- `HC.WorldRenderer` utrzymuje tylko stan prezentacyjny adaptera: tryb `canvas2d|three`, osobny canvas Three, scene/camera/renderer, cache meshów meteorów i asteroidów oraz cache GLB meteorów per URL.
+- `HC.WorldRenderer` utrzymuje tylko stan prezentacyjny adaptera: tryb `canvas2d|three`, osobny canvas Three, scene/camera/renderer, cache meshów meteorów i asteroidów, cache GLB template per URL oraz cache tekstur meteorów.
 - `HC.WorldRenderSnapshot.build(...)` tworzy read-only snapshot prezentacyjny na bazie `World/Camera/View`; nie mutuje świata.
-- Meteor GLB visual state jest per wrapper: stabilny wariant GLB, rotacja XYZ i prędkość rotacji są przypisywane raz na visual lifetime.
+- Meteor GLB visual state jest per wrapper: stabilny wariant GLB, rotacja XYZ, prędkość rotacji oraz losowy przydział zewnętrznej tekstury/emissiveMap są przypisywane raz na visual lifetime.
 
 **Funkcje kluczowe:**
 - `HC.WorldRenderSnapshot.build({ World, Camera, View, ... })` mapuje kolekcje świata do `renderSnapshot.world.*`, w tym `meteors[]` i `asteroids[]` z minimalnymi polami renderowymi.
 - `HC.WorldRenderer.render(renderSnapshot, now, dt)` wybiera `canvas2d` fallback albo `three`.
 - W trybie `three` adapter renderuje meteory i asteroidy wyłącznie ze snapshotu; planety/gwiazdy/PRG pozostają poza Three.
-- Meteor GLB pass ładuje aktywne pule `public/glb/` przez `publicAssetPath` / `publicPath`, pokazuje fallback circle podczas loading/failed i zachowuje Canvas2D jako fallback renderer. Po naprawie pipeline materiały GLB pozostają PBR/`MeshStandardMaterial`; `MeshBasicMaterial` nie jest fallbackiem dla obiektów, które mają reagować na światło.
+- GLB pass ładuje aktywne pule `public/glb/` przez `publicAssetPath` / `publicPath`, pokazuje fallback visual podczas `loading`/`failed` i zachowuje Canvas2D jako fallback renderer/overlay. GLB meteory i asteroidy ładują się przez lokalny `GLTFLoader`; custom parser nie jest aktywną ścieżką runtime.
+- GLB cache ma lifecycle `loading` / `ready` / `failed`, przechowuje template per URL i klonuje go na instancje runtime. Po naprawie pipeline materiały GLB pozostają PBR/`MeshStandardMaterial`; `MeshBasicMaterial` nie jest fallbackiem dla obiektów, które mają reagować na światło.
+- Zewnętrzne PNG palety meteorów (`red`, `yellow`) są ładowane osobno przez `THREE.TextureLoader`, cache’owane i losowane stabilnie per instancja dla slotów `map` oraz `emissiveMap`. `green`/`blue` nie mają jeszcze palet i brak palety nie jest błędem.
+- Runtime nie nadpisuje imported GLB materials: zewnętrzne PNG uzupełniają tylko brakujące sloty; istniejące `material.map` lub `material.emissiveMap` z obrazem pozostają nietknięte.
 - Live debug scale meteorów GLB ma zakres `0.25`–`4.0`, działa bez reloadu i jest visual-only: nie zmienia promienia logicznego, kolizji, spawnu, kart, RP, HUD ani SUB-META.
-- Diagnostics raportują tryb/fallback, stan lokalnego Three ESM bridge, liczbę meshów meteorów, liczniki GLB meteorów (`meteorGlbAssignmentsCount`, `meteorGlbCacheSize`, `activeGlbInstances`, `activeFallbackMeteorVisuals`, `activeGlbInstancesByColor`, `fallbackVisualsByColor`), stan PBR/material debug (`threeMaterialSettings`, `glbMaterialAudit`, environment/tone exposure) oraz liczby `threeAsteroidCount` / `threeAsteroidMeshes`.
-- Aktualny audyt assetów `public/glb/*.glb`: 21 plików, 21 materiałów, 12 materiałów z `metallicFactor > 0`, 0 map tekstur i 0 normalMap; proceduralne detale Blendera wymagają bake/eksportu map do GLB, żeby były widoczne w Three.js.
+- Diagnostics raportują tryb/fallback, stan lokalnego Three ESM bridge, liczniki `GLTFLoader` (`gltfLoaderAvailable`, `gltfLoaderType`, request/success/error/timeout, pending/failed/timedOut URLs), cache GLB (`meteorGlbCacheStats`, `asteroidGlbCacheStats`), aktywne instancje/fallbacki (`activeMeteorGlbInstances`, `activeAsteroidGlbInstances`, `activeFallbackMeteorVisuals`, `activeFallbackAsteroidVisuals`), stan PBR/material debug oraz texture evidence (`meteorTexturePaletteEnabled`, `redMeteorTexturePaletteEnabled`, `yellowMeteorTexturePaletteEnabled`, `meteorTextureCacheStats`, `meteorTextureEvidence.*`, skip counters dla imported map/emissiveMap).
 
 ---
 

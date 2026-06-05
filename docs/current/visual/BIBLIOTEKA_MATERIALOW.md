@@ -997,3 +997,15 @@ Ta sekcja jest krótkim stykiem kierunku materiałowego z technicznym eksportem 
 - Proceduralne node’y z Blendera muszą zostać wypalone albo poprawnie wyeksportowane do GLB jako standardowe mapy, jeśli mają być widoczne w Three.js.
 - Dla kolejnego passu assetów zalecane są: `normal map`, `roughness map`, `metallic-roughness map`, opcjonalnie `baseColor map` i opcjonalnie `AO map`.
 - Ocena finalnego charakteru materiałów meteorów/asteroidów powinna być wykonywana dopiero po eksporcie map, a nie wyłącznie po obecnych GLB bez danych teksturowych.
+
+
+## 19. NOTKA TECHNICZNA — EXTERNAL METEOR TEXTURE PALETTES (2026-06-05)
+
+Ta sekcja jest krótkim stykiem kierunku materiałowego z aktualnym runtime texture pipeline; szczegółowy kontrakt pozostaje w `docs/current/technical/WORLD_RENDERING_MODEL.md`.
+
+- Zewnętrzne PNG tekstury meteorów nie są częścią GLB; runtime ładuje je osobno przez `THREE.TextureLoader` i cache’uje poza GLB template cache.
+- Aktywne palety materiałowe meteorów to obecnie `red` i `yellow`; każda ma sloty `map` oraz `emissiveMap`.
+- Przydział tekstur jest losowany per instancja i stabilny przez lifetime visual entry, więc nie zmienia się co frame.
+- Zewnętrzne mapy są dopuszczalne tylko jako uzupełnienie brakujących slotów materiału GLB: imported `material.map` i `material.emissiveMap` z obrazem mają pierwszeństwo i nie są nadpisywane.
+- `green` i `blue` nie mają jeszcze zewnętrznych palet; ich brak nie jest błędem, tylko stanem asset passu.
+- Następny visual/material pass powinien stroić `emissiveIntensity`, balans czerwieni/żółci, przyszłe palety `green`/`blue` oraz lekkość/kompresję assetów GLB.

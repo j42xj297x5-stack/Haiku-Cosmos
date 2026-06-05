@@ -3,7 +3,7 @@
 > Status: KIERUNEK
 > Obszar: mapa kierunku wizualnego
 > Źródło prawdy: TAK, dla kolejności czytania i ról dokumentów wizualnych
-> Ostatnia aktualizacja: 2026-05-01
+> Ostatnia aktualizacja: 2026-06-05
 > Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
 
 ## 1. Cel katalogu
@@ -45,7 +45,7 @@ Dla zadań Figma związanych z cięciem ramek czytaj wprost: `docs/current/visua
 
 - `ART_DIRECTION.md` - główny kierunek artystyczny i zasady wizualne.
 - `KOSMOLOGIA_WIZUALNA.md` - porządek sensu, symboliki, materiału i pięciu stanów.
-- `BIBLIOTEKA_MATERIALOW.md` - praktyczne zasady koloru, materiału i światła.
+- `BIBLIOTEKA_MATERIALOW.md` - praktyczne zasady koloru, materiału i światła; zawiera krótkie notki techniczne o GLB/PBR oraz zewnętrznych paletach PNG `map`/`emissiveMap` dla meteorów red/yellow, bez zastępowania technicznego kontraktu runtime.
 - `VISUAL_EXECUTION_GUIDE.md` - główny przewodnik wykonawczy visual/SVG/Figma po przeczytaniu core direction.
 - `MODULAR_FRAME_KIT.md` - aktualny kierunek nowego modular frame kit i decyzja o legacy obecnego passu SVG.
 - `MODULAR_FRAME_KIT_FIGMA_PROMPT.md` - aktualny prompt wykonawczy (CURRENT) dla kolejnego passu Figma/SVG preparation.
