@@ -1,3 +1,4 @@
+> Update 2026-06-05: `WORLD_RENDERING_MODEL.md` zawiera checkpoint Three renderer + `stage_normalized` camera + `stage_spot_v1` lighting: Three jest domyślnym rendererem gry/debug, Canvas2D pozostaje legacy/fallback/mechanics verification, `mainStageSpot` jest jedynym głównym światłem scenicznym, legacy corner PointLight są usunięte z aktywnego runtime, debug overlay ma zwijane sekcje/global helpers, a evidence logging działa w trybie compact.
 > Update 2026-06-04: `WORLD_RENDERING_MODEL.md` zawiera snapshot Three GLB PBR material pipeline po naprawie: `MeshStandardMaterial`/PBR zamiast `MeshBasicMaterial` dla obiektów światłoczułych, audyt 21 GLB bez tekstur/normalMap oraz wymagania bake/eksportu map z Blendera.
 > Update 2026-06-04: `WORLD_RENDERING_MODEL.md` zawiera snapshot Three GLB meteor pass v0.1: aktywne pule 4x5 GLB, stabilny wariant per wrapper, GLB cache per URL, fallback circle, rotacja XYZ, live debug scale `0.25`-`4.0` i granice visual-only.
 > Update 2026-06-04: `VITE_GITHUB_PAGES_DEPLOYMENT.md` zawiera snapshot po naprawie lokalnego Vite, GitHub Pages, base path `/Haiku-Cosmos/`, runtime script loading i hygiene zależności.
@@ -16,7 +17,7 @@
 > Status: ROBOCZY
 > Obszar: mapa dokumentów technicznych
 > Źródło prawdy: NIE (warstwa pomocnicza do kanonu)
-> Ostatnia aktualizacja: 2026-06-04
+> Ostatnia aktualizacja: 2026-06-05
 > Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
 
 Katalog `docs/current/technical/` zawiera dokumenty techniczne używane do pracy operacyjnej,
@@ -25,7 +26,7 @@ audytów i synchronizacji dokumentacji z runtime.
 ## Status dokumentów
 
 - `WORLD_FUNCTION_MAP.md` — **ROBOCZY** (aktywna mapa techniczna orientacyjna; nie zastępuje pełnego audytu runtime)
-- `WORLD_RENDERING_MODEL.md` — **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** (audyt i plan migracji modelu renderingu świata pod adapter Three.js/WebGL z fallbackiem Canvas2D; obejmuje Etap 2.x: local Three ESM vendor/bridge, Etap 3: meteor render pass, Etap 3.1: visible meteor checkpoint + transparent 2D overlay composition oraz Etap 4: asteroid render pass)
+- `WORLD_RENDERING_MODEL.md` — **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** (Three.js adapter, domyślny renderer Three dla gry/debug, Canvas2D jako legacy/fallback/mechanics verification, `stage_normalized` camera, `stage_spot_v1` lighting, debug overlay, compact evidence logging; obejmuje Etap 2.x: local Three ESM vendor/bridge, Etap 3: meteor render pass, Etap 3.1: visible meteor checkpoint + transparent 2D overlay composition oraz Etap 4: asteroid render pass)
 - `SEQUENCE_STATE_CONTRACT.md` — **ROBOCZY / KONTRAKT TECHNICZNY** (single source-of-truth sekwencji + zasady evidence timeline)
 - `IMPLEMENTATION_TRACKER.md` — **ROBOCZY** (tracker wdrożeń i obszarów do weryfikacji)
 - `LIVE_VALIDATION_PACK.md` — **ROBOCZY** (roboczy kontrakt walidacji runów i evidence)
@@ -59,6 +60,8 @@ audytów i synchronizacji dokumentacji z runtime.
 - 2026-06-04: WORLD_RENDERING_MODEL Etap 4 wdrożony — pass asteroidów w Three.js działa na bazie `renderSnapshot.world.asteroids`, z cache meshów, diagnostyką liczników i bez zmian mechaniki.
 
 - 2026-06-04: WORLD_RENDERING_MODEL utrwala snapshot Three GLB PBR material pipeline po commicie `f07c617`: runtime czyta PBR factory materiały GLB i debug controls, a aktualne `public/glb/*.glb` mają 21 materiałów, 12 z metalicznością, 0 tekstur i 0 normal map.
+
+- 2026-06-05: WORLD_RENDERING_MODEL utrwala checkpoint po stabilizacji Three renderer / `stage_spot_v1` / compact logging: evidence final snapshot potwierdza `renderer effective=three`, `cameraModel=stage_normalized`, `lightingModelVersion=stage_spot_v1`, `mainStageSpot` jako jedyne główne światło, `removedLegacyCornerLights=true`, `activeLightCount=1`, `ambientEffectiveIntensity=0`, `activeFallbackMeteorVisuals=0`, `globalHelpersEnabled=false`, `loggingMode=compact` i SUB-META logging contract `future_event_based_v1`.
 
 ## Deployment
 

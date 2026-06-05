@@ -1,7 +1,7 @@
 > Status: ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA
 > Obszar: model renderowania świata RUN (warstwa renderingu, bez zmian mechaniki)
 > Źródło prawdy: NIE (dokument roboczy do migracji etapowej)
-> Ostatnia aktualizacja: 2026-05-17
+> Ostatnia aktualizacja: 2026-06-05
 > Powiązane dokumenty: WORLD_FUNCTION_MAP.md, ../ui/UI_WORLD.md, ../systems/PRG_SYSTEM.md, ../visual/ART_DIRECTION.md, ../visual/KOSMOLOGIA_WIZUALNA.md, ../visual/BIBLIOTEKA_MATERIALOW.md
 
 # Haiku Cosmos — WORLD RENDERING MODEL
@@ -884,3 +884,91 @@ Ambient is fill-only and defaults to `0`; if used, it should remain very low (`0
 ### Portfolio comparison checklist
 
 No portfolio runtime setup is currently part of the active Haiku Cosmos repo. Manual comparison should check: camera type and distance, renderer `outputColorSpace`, tone mapping, exposure, scene environment, light positions/distances/decay, GLB root scale, material transparency/depth flags, and whether material overrides preserve light-reactive PBR materials.
+
+
+## 16. Snapshot 2026-06-05 — Three renderer, stage_spot_v1 lighting, debug overlay i compact evidence logging
+
+Status: CURRENT checkpoint dokumentacyjny po stabilizacji Three renderera, modelu światła `stage_spot_v1`, debug overlay i compact logging. Snapshot nie zmienia mechaniki gry, fizyki, kolizji, kart, RP, ekonomii, PRG runtime, SUB-META runtime ani Canvas2D fallbacku.
+
+Evidence pass: `2026-06-05_07-19-05__sess_5-868Z__debug__custom__fallback_evidence_pack.json`.
+
+### A. Renderer default
+
+- Three.js jest aktualnym domyślnym rendererem dla normalnej gry i debugowania; final evidence raportuje `renderer effective = three`.
+- Canvas2D zostaje w repo i runtime jako legacy / fallback / mechanics verification path. Nie należy go usuwać ani traktować jako błąd, jeśli jest użyty świadomie do porównań lub awaryjnej walidacji mechaniki.
+- Three działa jako osobny canvas renderujący świat pod transparentnym `gameCanvas` overlayem. Warstwy HUD, SUB-META, META, karty i pozostały UI pozostają poza sceną Three.
+- Wczesne bootstrap snapshoty mogą chwilowo pokazać `canvas2d` przed finalną inicjalizacją Three; finalny snapshot/evidence jest źródłem prawdy dla aktywnego runtime.
+
+### B. Camera model
+
+- Aktualny rekomendowany model kamery dla GLB/Three lighting to `cameraModel = stage_normalized`.
+- Evidence potwierdza `stageModelEnabled = true`.
+- `stage_normalized` mapuje aktywny widok świata do kontrolowanej sceny Three i stabilizuje odczyt światła na GLB/PBR bez przejmowania mechaniki świata.
+- `absolute_bounds` pozostaje legacy / comparison / debug mode i może być używany do porównań lub regresji, ale nie jest rekomendowaną ścieżką dla oceny finalnego oświetlenia GLB.
+
+### C. Lighting model — `stage_spot_v1`
+
+- Aktualny model światła: `lightingModelVersion = "stage_spot_v1"`.
+- `mainStageSpot` jest jedynym głównym światłem scenicznym; evidence potwierdza `mainStageSpot.enabled = true` oraz intensity `6.5`.
+- Legacy corner `PointLight` zostały usunięte z aktywnego runtime; evidence potwierdza `removedLegacyCornerLights = true`.
+- Aktywne liczniki modelu:
+  - `stageLighting.enabled = true`,
+  - `stageLightingEnabled = true`,
+  - `activeLightCount = 1`,
+  - `diagnosticLightCount = 3`,
+  - `totalLightObjects = 4`.
+- `debugKey`, `debugRim` i `forceHeadlight` są opcjonalnymi advanced diagnostic lights i domyślnie pozostają OFF. Nie zastępują `mainStageSpot` jako światła produkcyjnego.
+- `threeLightCount` / `threeLightCountSemantics` należy traktować jako deprecated alias semantyki `totalLightObjects`; evidence raportuje `threeLightCountSemantics = "deprecated_totalLightObjects"`.
+- Ambient light jest fill-only i domyślnie ma wartość `0` albo bardzo niską. Evidence potwierdza `ambientEffectiveIntensity = 0`.
+- Nie należy przywracać legacy corner lights jako domyślnego ani aktywnego modelu runtime.
+
+### D. GLB / materials
+
+- Meteory GLB renderują w Three; evidence potwierdza `activeGlbInstances = 21` oraz `activeFallbackMeteorVisuals = 0`.
+- GLB scale jest uniform XYZ: `scaleUniform = true`, `zScaleRatio = 1`.
+- Aktualny materiałowy tryb evidence: `materialMode = imported`.
+- Assety są light-reactive `MeshStandardMaterial`, ale większość obecnych GLB nie ma `normalMap` ani texture maps. Widoczny detal powierzchni zależy więc przede wszystkim od geometrii, koloru bazowego, metalness/roughness factors i światła, nie od wypalonych map.
+- Czerwone meteory mają eksperymentalną dynamiczną paletę PNG. Ten element pozostaje warstwą materiałowo-wizualną, a nie zmianą mechaniki meteoru.
+- Asteroidy nadal są proceduralnym passem Three, nie GLB.
+
+### E. Debug overlay
+
+- Debug overlay został przebudowany w zwijane sekcje, żeby ograniczyć szum UI podczas pracy z rendererem, światłem i evidence.
+- Overlay ma globalną kontrolkę helperów; evidence potwierdza `globalHelpersEnabled = false` oraz helper mode `global_off`.
+- `globalHelpersEnabled = false` ukrywa wszystkie helpery. Lokalne przełączniki diagnostyczne nie powinny wymuszać helperów, jeśli globalna kontrolka jest OFF.
+- Lighting UI pokazuje `Stage SpotLight` / `Main Stage Spot` i nie powinno zawierać aktywnych legacy corner controls.
+
+### F. Logging / evidence
+
+- Compact event-based logging jest domyślnym modelem evidence; evidence potwierdza `loggingMode = compact`.
+- Heartbeat jest rzadszy i kompaktowy: `heartbeatIntervalMs = 5000`.
+- Verbose diagnostics są domyślnie wyłączone: `verboseDiagnostics = false`.
+- Full snapshots powinny być emitowane tylko przy starcie, finalize, ważnych zmianach diagnostycznych albo wymuszonym evidence pass.
+- Heavy diagnostics nie powinny być spamowane w heartbeat.
+- Potwierdzony 34-sekundowy log po stabilizacji miał 59 eventów, 5 full snapshots i 3 compact snapshots.
+- Final snapshot/evidence jest źródłem prawdy dla aktywnego runtime i potwierdza `stage_spot_v1`.
+
+### G. SUB-META logging contract — `future_event_based_v1`
+
+- SUB-META ma przygotowany kontrakt logowania `future_event_based_v1`; nie oznacza to zmiany SUB-META runtime w tym checkpoincie.
+- Planowane eventy kontraktu:
+  - `submeta.opened`,
+  - `submeta.closed`,
+  - `submeta.slot_unlocked`,
+  - `submeta.slot_assigned`,
+  - `submeta.slot_removed`,
+  - `submeta.card_moved`,
+  - `submeta.card_forged`,
+  - `submeta.inventory_changed`,
+  - `submeta.prg_binding_changed`,
+  - `submeta.purchase`,
+  - `submeta.error`.
+- Pełny SUB-META snapshot powinien być emitowany tylko przy open, close, finalize albo force evidence.
+
+### H. Znane długi techniczne / uwagi
+
+- Wczesne bootstrap snapshoty mogą jeszcze pokazywać `canvas2d` przed finalną inicjalizacją Three; final snapshot/evidence rozstrzyga aktywny runtime.
+- `sampleObjectProjected` / `sampleObjectFrustumVisible` może wskazywać aktualnie wybrany sample spoza viewportu. To nie blokuje renderingu, ale diagnostyka sample selection może być później dopracowana.
+- GLB imported detail jest ograniczony brakiem `normalMap`, `roughnessMap` i `metalnessMap` w większości assetów.
+- Asteroidy nadal są proceduralnym passem Three, nie GLB.
+- Ten checkpoint jest dokumentacyjny. Nie należy na jego podstawie zmieniać fizyki, kolizji, kart, RP, ekonomii, SUB-META runtime, PRG runtime ani przywracać corner lights.
