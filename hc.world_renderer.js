@@ -27,6 +27,9 @@
   const METEOR_GLB_ROTATION_TWO_PI = Math.PI * 2;
   const METEOR_GLB_ROTATION_MIN_SPEED = 0.08;
   const METEOR_GLB_ROTATION_SPEED_RANGES = Object.freeze({ x: 0.9, y: 1.1, z: 0.7 });
+  const GLTF_LOAD_TIMEOUT_MS = 30000;
+  const GLTF_DEBUG_PROBE_ASSET = "glb/meteor_red_form_core_01.glb";
+  const GLTF_DEBUG_EVENT_LOG_LIMIT = 40;
   const METEOR_GLB_VARIANTS_PER_COLOR = 5;
   const METEOR_TEXTURE_PALETTES = Object.freeze({
     red: Object.freeze({
@@ -205,6 +208,10 @@
     environmentCanvas: null,
     glbBlobUrls: new Set(),
     glbMaterialAudit: [],
+    gltfLoaderDiagnostics: createGltfLoaderDiagnostics(),
+    gltfLoaderDebugEvents: [],
+    gltfLoaderWarnedFailures: new Set(),
+    gltfDebugProbe: createGltfDebugProbeDiagnostics(),
     glbMaterialAuditLoggedUrls: new Set(),
     glbMaterialAuditLogCount: 0,
     meteorGeometry: null,
@@ -284,6 +291,82 @@
     firstAsteroidInCameraBounds: null,
   };
 
+
+
+  function createGltfLoaderDiagnostics() {
+    const loader = typeof window !== "undefined" ? (window.HC_GLTFLoader || window.GLTFLoader || null) : null;
+    return {
+      gltfLoaderAvailable: typeof loader === "function",
+      gltfLoaderType: loader ? typeof loader : "undefined",
+      gltfLoaderImportUrl: (typeof window !== "undefined" && window.HC_GLTF_LOADER_MODULE_URL) || null,
+      gltfLoaderImportStatus: (typeof window !== "undefined" && (window.HC_GLTF_LOADER_IMPORT_STATUS || window.HC_THREE_LOAD_STATUS)) || "unknown",
+      gltfLoaderLastImportError: (typeof window !== "undefined" && (window.HC_GLTF_LOADER_IMPORT_ERROR || window.HC_THREE_LOAD_ERROR)) || null,
+      gltfLoaderRequestCount: 0,
+      gltfLoaderSuccessCount: 0,
+      gltfLoaderErrorCount: 0,
+      gltfLoaderTimeoutCount: 0,
+      gltfLoaderLastRequestedUrl: null,
+      gltfLoaderLastCompletedUrl: null,
+      gltfLoaderLastFailedUrl: null,
+      gltfLoaderLastErrorMessage: null,
+      gltfLoaderLastProgressLoaded: null,
+      gltfLoaderLastProgressTotal: null,
+      gltfLoaderLastDurationMs: null,
+    };
+  }
+
+  function createGltfDebugProbeDiagnostics() {
+    return {
+      enabled: true,
+      asset: GLTF_DEBUG_PROBE_ASSET,
+      url: null,
+      status: "idle",
+      startedAt: null,
+      durationMs: null,
+      meshCount: 0,
+      materialCount: 0,
+      textureCount: 0,
+      errorMessage: null,
+    };
+  }
+
+  function refreshGltfLoaderAvailabilityDiagnostics() {
+    const diagnostics = threeState.gltfLoaderDiagnostics || createGltfLoaderDiagnostics();
+    const loader = getGltfLoaderClass();
+    diagnostics.gltfLoaderAvailable = typeof loader === "function";
+    diagnostics.gltfLoaderType = loader ? typeof loader : "undefined";
+    diagnostics.gltfLoaderImportUrl = window.HC_GLTF_LOADER_MODULE_URL || diagnostics.gltfLoaderImportUrl || null;
+    diagnostics.gltfLoaderImportStatus = window.HC_GLTF_LOADER_IMPORT_STATUS || window.HC_THREE_LOAD_STATUS || diagnostics.gltfLoaderImportStatus || "unknown";
+    diagnostics.gltfLoaderLastImportError = window.HC_GLTF_LOADER_IMPORT_ERROR || window.HC_THREE_LOAD_ERROR || null;
+    threeState.gltfLoaderDiagnostics = diagnostics;
+    return diagnostics;
+  }
+
+  function formatGlbError(error) {
+    if (!error) return "Unknown GLTFLoader error";
+    if (typeof error === "string") return error;
+    return error.message || error.statusText || error.type || String(error);
+  }
+
+  function safeGlbErrorStack(error) {
+    const stack = typeof error?.stack === "string" ? error.stack : null;
+    return stack ? stack.slice(0, 4000) : null;
+  }
+
+  function emitGlbDebugEvent(type, payload = {}) {
+    const eventPayload = Object.assign({ type, atMs: Date.now() }, payload);
+    threeState.gltfLoaderDebugEvents.push(eventPayload);
+    if (threeState.gltfLoaderDebugEvents.length > GLTF_DEBUG_EVENT_LOG_LIMIT) threeState.gltfLoaderDebugEvents.shift();
+    try { window.dispatchEvent?.(new CustomEvent(type, { detail: eventPayload })); } catch (_) {}
+    return eventPayload;
+  }
+
+  function warnGlbLoadFailureOnce(url, message, payload = {}) {
+    const key = `${url}::${message}`;
+    if (threeState.gltfLoaderWarnedFailures.has(key)) return;
+    threeState.gltfLoaderWarnedFailures.add(key);
+    if (window.console?.warn) window.console.warn(`[HC.WorldRenderer] GLTFLoader failed for ${url}: ${message}`, payload);
+  }
 
   function createAsteroidGlbTextureDiagnostics() {
     return {
@@ -421,6 +504,10 @@
     threeState.asteroidGlbTextureDiagnostics = createAsteroidGlbTextureDiagnostics();
     threeState.asteroidGlbInstanceCreates = 0;
     threeState.glbMaterialAudit = [];
+    threeState.gltfLoaderDiagnostics = createGltfLoaderDiagnostics();
+    threeState.gltfLoaderDebugEvents = [];
+    threeState.gltfLoaderWarnedFailures = new Set();
+    threeState.gltfDebugProbe = createGltfDebugProbeDiagnostics();
     threeState.glbMaterialAuditLogCount = 0;
     threeState.meteorTextureUsage = new Map();
     threeState.meteorTextureDiagnostics = { enabled: true, applyAttempts: 0, mapApplied: 0, emissiveMapApplied: 0, materialConversions: 0, lastFallbackReason: null };
@@ -1817,6 +1904,28 @@
     if (window.console?.warn) window.console.warn(`[HC.WorldRenderer] Asteroid GLB fallback for ${url}: ${message}`);
   }
 
+
+  function summarizeGlbCacheEntries(cache, limit = 12) {
+    const rows = [];
+    for (const [key, entry] of cache.entries()) {
+      if (rows.length >= limit) break;
+      rows.push({
+        key,
+        status: entry?.status || "unknown",
+        url: entry?.url || key,
+        assetKind: entry?.assetKind || null,
+        loaderMode: entry?.loaderMode || null,
+        startedAt: entry?.startedAt || null,
+        durationMs: entry?.durationMs || null,
+        progressLoaded: entry?.progressLoaded ?? null,
+        progressTotal: entry?.progressTotal ?? null,
+        errorMessage: entry?.errorMessage || entry?.error || null,
+        hasTemplate: !!entry?.template,
+      });
+    }
+    return rows;
+  }
+
   function getAsteroidGlbAssetUrl() {
     return resolvePublicAssetPath(ASTEROID_GLB_ASSET);
   }
@@ -2863,32 +2972,144 @@
     return stats;
   }
 
-  function parseGlbWithGltfLoader(THREE, url, assetKind) {
+  function loadGltfSceneWithDiagnostics(THREE, GLTFLoader, url, assetKind, cacheEntry = null) {
+    const startedAt = performance.now();
+    const diagnostics = refreshGltfLoaderAvailabilityDiagnostics();
+    diagnostics.gltfLoaderRequestCount += 1;
+    diagnostics.gltfLoaderLastRequestedUrl = url;
+    diagnostics.gltfLoaderLastProgressLoaded = null;
+    diagnostics.gltfLoaderLastProgressTotal = null;
+    diagnostics.gltfLoaderLastErrorMessage = null;
+    emitGlbDebugEvent("world.glb_load_started", { assetKind, url, loaderMode: "gltf_loader" });
+    if (cacheEntry) {
+      cacheEntry.status = "loading";
+      cacheEntry.url = url;
+      cacheEntry.assetKind = assetKind;
+      cacheEntry.startedAt = startedAt;
+      cacheEntry.durationMs = null;
+      cacheEntry.progressLoaded = null;
+      cacheEntry.progressTotal = null;
+      cacheEntry.errorMessage = null;
+      cacheEntry.errorStack = null;
+      cacheEntry.loaderMode = "gltf_loader";
+    }
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let timeoutId = null;
+      const settle = (kind, value) => {
+        if (settled) return;
+        settled = true;
+        if (timeoutId != null) window.clearTimeout(timeoutId);
+        if (kind === "resolve") resolve(value);
+        else reject(value);
+      };
+
+      try {
+        if (typeof GLTFLoader !== "function") throw new Error(`GLTFLoader is not a constructor/function (type: ${typeof GLTFLoader})`);
+        const loader = new GLTFLoader();
+        const resourcePath = new URL("./", url).href;
+        if (typeof loader.setResourcePath === "function") loader.setResourcePath(resourcePath);
+        if (typeof loader.setPath === "function") loader.setPath("");
+        timeoutId = window.setTimeout(() => {
+          const durationMs = performance.now() - startedAt;
+          const error = new Error(`GLTFLoader timeout after ${GLTF_LOAD_TIMEOUT_MS} ms for ${url}`);
+          error.hcGlbTimeout = true;
+          error.hcDurationMs = durationMs;
+          diagnostics.gltfLoaderTimeoutCount += 1;
+          diagnostics.gltfLoaderErrorCount += 1;
+          diagnostics.gltfLoaderLastFailedUrl = url;
+          diagnostics.gltfLoaderLastErrorMessage = error.message;
+          diagnostics.gltfLoaderLastDurationMs = durationMs;
+          if (cacheEntry) {
+            cacheEntry.status = "failed";
+            cacheEntry.durationMs = durationMs;
+            cacheEntry.errorMessage = error.message;
+            cacheEntry.errorStack = safeGlbErrorStack(error);
+          }
+          emitGlbDebugEvent("world.glb_load_timeout", { assetKind, url, loaderMode: "gltf_loader", durationMs, errorMessage: error.message, progressLoaded: cacheEntry?.progressLoaded ?? null, progressTotal: cacheEntry?.progressTotal ?? null });
+          settle("reject", error);
+        }, GLTF_LOAD_TIMEOUT_MS);
+
+        loader.load(
+          url,
+          (gltf) => {
+            if (settled) return;
+            try {
+              const durationMs = performance.now() - startedAt;
+              const root = gltf?.scene || gltf?.scenes?.[0] || new THREE.Group();
+              const template = normalizeGltfTemplate(THREE, root);
+              const stats = finalizeGltfLoaderDiagnostics(THREE, template, gltf, { assetKind, assetUrl: url });
+              diagnostics.gltfLoaderSuccessCount += 1;
+              diagnostics.gltfLoaderLastCompletedUrl = url;
+              diagnostics.gltfLoaderLastDurationMs = durationMs;
+              if (cacheEntry) {
+                cacheEntry.status = "ready";
+                cacheEntry.template = template;
+                cacheEntry.durationMs = durationMs;
+                cacheEntry.errorMessage = null;
+                cacheEntry.errorStack = null;
+              }
+              emitGlbDebugEvent("world.glb_load_ready", { assetKind, url, loaderMode: "gltf_loader", durationMs, meshCount: stats.meshCount, materialCount: stats.materialCount, textureCount: stats.textureCount, progressLoaded: cacheEntry?.progressLoaded ?? null, progressTotal: cacheEntry?.progressTotal ?? null });
+              settle("resolve", { gltf, template, durationMs, stats });
+            } catch (error) {
+              settle("reject", error);
+            }
+          },
+          (event) => {
+            if (settled) return;
+            const loaded = Number.isFinite(event?.loaded) ? event.loaded : null;
+            const total = Number.isFinite(event?.total) ? event.total : null;
+            diagnostics.gltfLoaderLastProgressLoaded = loaded;
+            diagnostics.gltfLoaderLastProgressTotal = total;
+            if (cacheEntry) {
+              cacheEntry.progressLoaded = loaded;
+              cacheEntry.progressTotal = total;
+            }
+          },
+          (error) => {
+            if (settled) return;
+            settle("reject", error || new Error(`GLTFLoader onError for ${url}`));
+          }
+        );
+      } catch (error) {
+        settle("reject", error);
+      }
+    }).catch((error) => {
+      const durationMs = Number.isFinite(error?.hcDurationMs) ? error.hcDurationMs : performance.now() - startedAt;
+      const message = formatGlbError(error);
+      const timeout = error?.hcGlbTimeout === true || /timeout/i.test(message);
+      const diagnostics = refreshGltfLoaderAvailabilityDiagnostics();
+      if (!timeout) diagnostics.gltfLoaderErrorCount += 1;
+      diagnostics.gltfLoaderLastFailedUrl = url;
+      diagnostics.gltfLoaderLastErrorMessage = message;
+      diagnostics.gltfLoaderLastDurationMs = durationMs;
+      if (cacheEntry) {
+        cacheEntry.status = "failed";
+        cacheEntry.durationMs = durationMs;
+        cacheEntry.error = message;
+        cacheEntry.errorMessage = message;
+        cacheEntry.errorStack = safeGlbErrorStack(error);
+      }
+      emitGlbDebugEvent("world.glb_load_failed", { assetKind, url, loaderMode: "gltf_loader", durationMs, errorMessage: message, progressLoaded: cacheEntry?.progressLoaded ?? null, progressTotal: cacheEntry?.progressTotal ?? null });
+      throw error;
+    });
+  }
+
+  function parseGlbWithGltfLoader(THREE, url, assetKind, cacheEntry = null) {
     const LoaderClass = getGltfLoaderClass();
     if (!LoaderClass) return Promise.reject(new Error("GLTFLoader is unavailable"));
-    const loader = new LoaderClass();
-    const resourcePath = new URL("./", url).href;
-    if (typeof loader.setResourcePath === "function") loader.setResourcePath(resourcePath);
-    return new Promise((resolve, reject) => {
-      loader.load(url, (gltf) => {
-        try {
-          const template = normalizeGltfTemplate(THREE, gltf.scene || gltf.scenes?.[0] || new THREE.Group());
-          finalizeGltfLoaderDiagnostics(THREE, template, gltf, { assetKind, assetUrl: url });
-          resolve(template);
-        } catch (error) {
-          reject(error);
-        }
-      }, undefined, reject);
-    });
+    return loadGltfSceneWithDiagnostics(THREE, LoaderClass, url, assetKind, cacheEntry).then((result) => result.template);
   }
 
   function loadGlbWithGltfLoader(THREE, assetPath, assetKind = "generic") {
     const url = resolvePublicAssetPath(assetPath);
     let entry = threeState.glbTemplateCache.get(url);
     if (entry) return entry;
-    entry = { status: "loading", loaderMode: "gltf_loader", loaderPrimary: "GLTFLoader", template: null, error: null, materialAudit: null, promise: null };
+    const startedAt = performance.now();
+    entry = { status: "loading", url, assetKind, loaderMode: "gltf_loader", loaderPrimary: "GLTFLoader", template: null, error: null, errorMessage: null, errorStack: null, startedAt, durationMs: null, progressLoaded: null, progressTotal: null, materialAudit: null, promise: null };
     threeState.glbTemplateCache.set(url, entry);
-    entry.promise = parseGlbWithGltfLoader(THREE, url, assetKind)
+    entry.promise = parseGlbWithGltfLoader(THREE, url, assetKind, entry)
       .then((template) => {
         entry.template = template;
         entry.materialAudit = collectGlbMaterialAudit(template, url);
@@ -2898,9 +3119,12 @@
       })
       .catch((error) => {
         entry.status = "failed";
-        entry.error = error?.message || String(error);
+        entry.error = entry.errorMessage || formatGlbError(error);
+        entry.errorMessage = entry.error;
+        entry.errorStack = entry.errorStack || safeGlbErrorStack(error);
         threeState.glbLoaderFallbackUsed = true;
         threeState.glbLoaderFallbackReason = entry.error;
+        warnGlbLoadFailureOnce(url, entry.error, { assetKind, durationMs: entry.durationMs, progressLoaded: entry.progressLoaded, progressTotal: entry.progressTotal });
         if (assetKind === "asteroid") {
           threeState.asteroidGlbTextureDiagnostics = Object.assign(createAsteroidGlbTextureDiagnostics(), {
             asteroidGlbLoaderMode: "gltf_loader",
@@ -2918,6 +3142,42 @@
     threeState.meteorGlbCache.set(url, entry);
     if (entry.status === "failed") warnMeteorGlbOnce(url, entry.error || "GLTFLoader failed");
     return entry;
+  }
+
+  function runGltfDebugProbe(THREE) {
+    const probe = threeState.gltfDebugProbe || createGltfDebugProbeDiagnostics();
+    if (probe.status === "loading" || probe.status === "success" || probe.status === "failed") return probe;
+    if (window.HC?.WorldRendererDebug?.gltfDebugProbeEnabled === false) {
+      probe.enabled = false;
+      probe.status = "disabled";
+      threeState.gltfDebugProbe = probe;
+      return probe;
+    }
+    const url = resolvePublicAssetPath(GLTF_DEBUG_PROBE_ASSET);
+    const LoaderClass = getGltfLoaderClass();
+    Object.assign(probe, { enabled: true, asset: GLTF_DEBUG_PROBE_ASSET, url, status: "loading", startedAt: performance.now(), durationMs: null, meshCount: 0, materialCount: 0, textureCount: 0, errorMessage: null });
+    threeState.gltfDebugProbe = probe;
+    if (!LoaderClass) {
+      probe.status = "failed";
+      probe.errorMessage = "GLTFLoader is unavailable";
+      return probe;
+    }
+    loadGltfSceneWithDiagnostics(THREE, LoaderClass, url, "debug_probe", null)
+      .then((result) => {
+        const stats = result?.stats || collectGltfSceneStats(result?.template);
+        probe.status = "success";
+        probe.durationMs = result?.durationMs ?? (performance.now() - probe.startedAt);
+        probe.meshCount = stats?.meshCount || 0;
+        probe.materialCount = stats?.materialCount || 0;
+        probe.textureCount = stats?.textureCount || 0;
+        probe.errorMessage = null;
+      })
+      .catch((error) => {
+        probe.status = "failed";
+        probe.durationMs = performance.now() - probe.startedAt;
+        probe.errorMessage = formatGlbError(error);
+      });
+    return probe;
   }
 
   function cloneMeteorGlbTemplate(template) {
@@ -3334,6 +3594,8 @@
       syncThreeLights();
       createDebugMarker(THREE);
       createFirstMeteorMarker(THREE);
+      refreshGltfLoaderAvailabilityDiagnostics();
+      runGltfDebugProbe(THREE);
       threeState.initialized = true;
       threeState.lastError = null;
       resize();
@@ -3875,9 +4137,28 @@
     };
     const stageLightingEnabled = lightSettings.mainStageSpotEnabled !== false && mainStageSpotSnapshot.enabled === true;
     const stageLightCounts = getStageLightCounts();
+    const gltfLoaderDiagnostics = refreshGltfLoaderAvailabilityDiagnostics();
     return {
       requestedMode, effectiveMode, mode: effectiveMode, fallbackUsed, fallbackReason, lastError, initialized, renderCalls, fallbackCalls, snapshotVersion: "1",
       glbLoaderMode: "gltf_loader", glbLoaderPrimary: "GLTFLoader", glbLoaderFallbackUsed: !!threeState.glbLoaderFallbackUsed, glbLoaderFallbackReason: threeState.glbLoaderFallbackReason,
+      gltfLoaderAvailable: gltfLoaderDiagnostics.gltfLoaderAvailable,
+      gltfLoaderType: gltfLoaderDiagnostics.gltfLoaderType,
+      gltfLoaderImportUrl: gltfLoaderDiagnostics.gltfLoaderImportUrl,
+      gltfLoaderImportStatus: gltfLoaderDiagnostics.gltfLoaderImportStatus,
+      gltfLoaderLastImportError: gltfLoaderDiagnostics.gltfLoaderLastImportError,
+      gltfLoaderRequestCount: gltfLoaderDiagnostics.gltfLoaderRequestCount,
+      gltfLoaderSuccessCount: gltfLoaderDiagnostics.gltfLoaderSuccessCount,
+      gltfLoaderErrorCount: gltfLoaderDiagnostics.gltfLoaderErrorCount,
+      gltfLoaderTimeoutCount: gltfLoaderDiagnostics.gltfLoaderTimeoutCount,
+      gltfLoaderLastRequestedUrl: gltfLoaderDiagnostics.gltfLoaderLastRequestedUrl,
+      gltfLoaderLastCompletedUrl: gltfLoaderDiagnostics.gltfLoaderLastCompletedUrl,
+      gltfLoaderLastFailedUrl: gltfLoaderDiagnostics.gltfLoaderLastFailedUrl,
+      gltfLoaderLastErrorMessage: gltfLoaderDiagnostics.gltfLoaderLastErrorMessage,
+      gltfLoaderLastProgressLoaded: gltfLoaderDiagnostics.gltfLoaderLastProgressLoaded,
+      gltfLoaderLastProgressTotal: gltfLoaderDiagnostics.gltfLoaderLastProgressTotal,
+      gltfLoaderLastDurationMs: gltfLoaderDiagnostics.gltfLoaderLastDurationMs,
+      gltfLoaderDebugEvents: threeState.gltfLoaderDebugEvents.slice(-12),
+      gltfDebugProbe: Object.assign({}, threeState.gltfDebugProbe || createGltfDebugProbeDiagnostics()),
       hasThreeImplementation: true, hasThreeDependency: !!threeState.hasDependency, threeDependencySource, threeBridgeVersion: window.HC_THREE_BRIDGE_VERSION || null,
       threeReady: window.HC_THREE_READY === true, threeSource: window.HC_THREE_SOURCE || null, threeModuleUrl: window.HC_THREE_MODULE_URL || null,
       threeVendorUrls: Array.isArray(window.HC_THREE_VENDOR_URLS) ? window.HC_THREE_VENDOR_URLS.slice() : [], threeLoadStatus: window.HC_THREE_LOAD_STATUS || "missing",
@@ -3895,6 +4176,9 @@
       asteroidGlbAsset: ASTEROID_GLB_ASSET,
       asteroidGlbAssetUrl: getAsteroidGlbAssetUrl(),
       asteroidGlbCacheStats: getAsteroidGlbCacheStats(),
+      glbTemplateCacheEntries: summarizeGlbCacheEntries(threeState.glbTemplateCache),
+      meteorGlbCacheEntries: summarizeGlbCacheEntries(threeState.meteorGlbCache),
+      asteroidGlbCacheEntries: summarizeGlbCacheEntries(threeState.asteroidGlbCache),
       glbTemplateCacheSize: threeState.glbTemplateCache.size,
       asteroidGlbCacheSize: threeState.asteroidGlbCache.size,
       asteroidGlbStatus: threeState.asteroidGlbCache.get(getAsteroidGlbAssetUrl())?.status || "not_requested",
