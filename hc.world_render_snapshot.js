@@ -48,6 +48,10 @@
       orbitNativeRadius: toNumber(body.orbitNativeRadius, undefined),
       orbitPx: toNumber(body.orbitPx, undefined),
       orbiterCount: Array.isArray(body.orbiters) ? body.orbiters.length : undefined,
+      absorbedMeteorCount: toNumber(body.absorbedMeteorCount, undefined),
+      growthLevel: toNumber(body.growthLevel, undefined),
+      mass: toNumber(body.mass, undefined),
+      collapseVisualScale: toNumber(body.collapseVisualScale, undefined),
       state: body.state || body.phase || (body.isCollapsing ? "collapsing" : null),
       visual: {
         isCollapsing: !!body.isCollapsing,
