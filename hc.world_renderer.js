@@ -566,11 +566,24 @@
 
   function getAllDiagnosticLights() {
     const entries = [];
-    if (threeState.debugKeyLight) entries.push({ name: "debugKey", light: threeState.debugKeyLight, color: 0xfff0d8, role: "debug_key" });
-    if (threeState.debugRimLight) entries.push({ name: "debugRim", light: threeState.debugRimLight, color: 0xcfe2ff, role: "debug_rim" });
-    if (threeState.forceHeadlight) entries.push({ name: "forceHeadlight", light: threeState.forceHeadlight, color: 0xffffff, role: "force_headlight" });
-    if (threeState.mainStageSpot) entries.push({ name: "mainStageSpot", light: threeState.mainStageSpot, target: threeState.mainStageSpotTarget, color: 0xffffff, role: "main_stage_spot" });
+    if (threeState.debugKeyLight) entries.push({ name: "debugKey", light: threeState.debugKeyLight, color: 0xfff0d8, role: "debug_key", diagnostic: true });
+    if (threeState.debugRimLight) entries.push({ name: "debugRim", light: threeState.debugRimLight, color: 0xcfe2ff, role: "debug_rim", diagnostic: true });
+    if (threeState.forceHeadlight) entries.push({ name: "forceHeadlight", light: threeState.forceHeadlight, color: 0xffffff, role: "force_headlight", diagnostic: true });
+    if (threeState.mainStageSpot) entries.push({ name: "mainStageSpot", light: threeState.mainStageSpot, target: threeState.mainStageSpotTarget, color: 0xffffff, role: "main_stage_spot", diagnostic: false });
     return entries;
+  }
+
+  function isLightActivelyAffectingScene(light) {
+    return !!light?.visible && Number(light?.intensity || 0) > 0;
+  }
+
+  function getStageLightCounts() {
+    const lights = getAllDiagnosticLights();
+    return {
+      activeLightCount: lights.filter((entry) => isLightActivelyAffectingScene(entry.light)).length,
+      diagnosticLightCount: lights.filter((entry) => entry.diagnostic === true).length,
+      totalLightObjects: lights.length,
+    };
   }
 
 
@@ -2401,6 +2414,8 @@
       targetInScene: !!threeState.mainStageSpotTarget?.parent,
       castShadow: !!threeState.mainStageSpot?.castShadow,
     };
+    const stageLightingEnabled = lightSettings.mainStageSpotEnabled !== false && mainStageSpotSnapshot.enabled === true;
+    const stageLightCounts = getStageLightCounts();
     return {
       requestedMode, effectiveMode, mode: effectiveMode, fallbackUsed, fallbackReason, lastError, initialized, renderCalls, fallbackCalls, snapshotVersion: "1",
       hasThreeImplementation: true, hasThreeDependency: !!threeState.hasDependency, threeDependencySource, threeBridgeVersion: window.HC_THREE_BRIDGE_VERSION || null,
@@ -2442,11 +2457,16 @@
       threeLightDiagnostics: lightDiagnostics,
       threeLightHelpers: { globalEnabled: getGlobalHelpersEnabled(), enabled: !!lightSettings.showLightHelpers, visible: !!threeState.lightHelpersGroup?.visible, count: threeState.lightHelpers.length, mode: threeState.lightHelperStatus?.mode || "none" },
       threeMaterialOverrideStatus: Object.assign({}, threeState.materialOverrideStatus),
-      threeLightCount: getAllDiagnosticLights().length,
+      activeLightCount: stageLightCounts.activeLightCount,
+      diagnosticLightCount: stageLightCounts.diagnosticLightCount,
+      totalLightObjects: stageLightCounts.totalLightObjects,
+      threeLightCount: stageLightCounts.totalLightObjects,
+      threeLightCountSemantics: "deprecated_totalLightObjects",
       lightingModelVersion: "stage_spot_v1",
       removedLegacyCornerLights: true,
       stageLighting: {
-        enabled: !!lightSettings.enabled,
+        enabled: stageLightingEnabled,
+        stageLightingEnabled,
         model: "stage_spot",
         lightingModelVersion: "stage_spot_v1",
         removedLegacyCornerLights: true,

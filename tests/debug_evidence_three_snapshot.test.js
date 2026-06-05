@@ -72,12 +72,12 @@ context.window.HC.WorldRenderer = {
         enabled: true,
         ambientIntensity: 0.2,
         ambientIsolate: true,
-        debugKeyLightEnabled: true,
-        debugKeyLightIntensity: 2.4,
-        debugRimLightEnabled: true,
-        debugRimLightIntensity: 0.7,
+        debugKeyLightEnabled: false,
+        debugKeyLightIntensity: 0,
+        debugRimLightEnabled: false,
+        debugRimLightIntensity: 0,
         forceHeadlightEnabled: false,
-        forceHeadlightIntensity: 4.5,
+        forceHeadlightIntensity: 0,
         mainStageSpotEnabled: true,
         mainStageSpotIntensity: 6.5,
         mainStageSpotAngle: Math.PI / 2.8,
@@ -92,8 +92,8 @@ context.window.HC.WorldRenderer = {
       threeLightDiagnostics: {
         effectiveAmbientIntensity: 0,
         sampleObject: { kind: "meteor_glb", position: { x: 10, y: 20, z: 0 } },
-        debugKeyLight: { position: { x: 2, y: 3, z: 4 }, intensity: 2.4 },
-        debugRimLight: { position: { x: 5, y: 6, z: 7 }, intensity: 0.7 },
+        debugKeyLight: { position: { x: 2, y: 3, z: 4 }, intensity: 0, visible: false },
+        debugRimLight: { position: { x: 5, y: 6, z: 7 }, intensity: 0, visible: false },
         forceHeadlight: null,
         mainStageSpot: {
           visible: true,
@@ -109,6 +109,11 @@ context.window.HC.WorldRenderer = {
         sampleObjectProjected: { x: 100, y: 110 },
         sampleObjectFrustumVisible: true,
       },
+      activeLightCount: 1,
+      diagnosticLightCount: 3,
+      totalLightObjects: 4,
+      threeLightCount: 4,
+      threeLightCountSemantics: "deprecated_totalLightObjects",
       lightingModelVersion: "stage_spot_v1",
       removedLegacyCornerLights: true,
       stageLighting: {
@@ -156,7 +161,7 @@ const snapshot = session.getRuntimeSnapshot();
 assert.equal(snapshot.visual.three.materialMode, "clay_lit");
 assert.equal(snapshot.visual.three.threeMaterials.enabled, true);
 assert.equal(snapshot.visual.three.ambientIsolate, true);
-assert.equal(snapshot.visual.three.threeLights.debugKeyLightEnabled, true);
+assert.equal(snapshot.visual.three.threeLights.debugKeyLightEnabled, false);
 assert.equal(snapshot.visual.three.showLightHelpers, true);
 assert.equal(snapshot.visual.three.globalHelpersEnabled, false);
 assert.equal(snapshot.visual.three.threeLights.mainStageSpotEnabled, true);
@@ -164,11 +169,21 @@ assert.equal(snapshot.visual.three.mainStageSpot.targetMode, "sampleObject");
 assert.equal(snapshot.visual.three.mainStageSpot.castShadow, false);
 assert.equal(snapshot.visual.three.lights.sampleObjectFrustumVisible, true);
 assert.equal(snapshot.visual.three.lightingModelVersion, "stage_spot_v1");
+assert.equal(snapshot.visual.three.stageLighting.enabled, true);
+assert.equal(snapshot.visual.three.stageLightingEnabled, true);
+assert.equal(snapshot.visual.three.threeLights.enabled, true);
+assert.equal(snapshot.visual.three.threeLights.deprecatedEnabledSemantics, "stageLightingEnabled");
 assert.equal(snapshot.visual.three.stageLighting.model, "stage_spot");
 assert.equal(snapshot.visual.three.removedLegacyCornerLights, true);
+assert.equal(snapshot.visual.three.activeLightCount, 1);
+assert.equal(snapshot.visual.three.diagnosticLightCount, 3);
+assert.equal(snapshot.visual.three.totalLightObjects, 4);
+assert.equal(snapshot.visual.three.threeLightCount, 4);
+assert.equal(snapshot.visual.three.threeLightCountSemantics, "deprecated_totalLightObjects");
 assert.equal(Object.prototype.hasOwnProperty.call(snapshot.visual.three, "debugSpotLight"), false);
 assert.equal(Object.prototype.hasOwnProperty.call(snapshot.visual.three.lights, "debugSpotLight"), false);
 assert.equal(Object.prototype.hasOwnProperty.call(snapshot.visual.three.lights, "cornerLights"), false);
+assert.equal(Object.prototype.hasOwnProperty.call(snapshot.visual.three.lights, "legacyCornerLights"), false);
 assert.equal(snapshot.visual.three.helper.count, 4);
 assert.equal(snapshot.visual.three.helper.globalEnabled, false);
 assert.equal(snapshot.visual.three.materials.activeGlbObjectCount, 3);
