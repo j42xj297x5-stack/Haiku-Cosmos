@@ -64,9 +64,13 @@ import {
 	VectorKeyframeTrack,
 	SRGBColorSpace,
 	InstancedBufferAttribute
-} from 'three';
-import { toTrianglesDrawMode } from '../utils/BufferGeometryUtils.js';
-import { clone } from '../utils/SkeletonUtils.js';
+} from '../three/three.module.min.js';
+
+// Haiku Cosmos vendors GLTFLoader without the full three/examples utils tree.
+// Keep the loader self-contained for local ESM use; common static GLB meshes do not need
+// skeleton cloning or primitive-mode conversion beyond preserving the geometry object.
+function toTrianglesDrawMode( geometry ) { return geometry; }
+function clone( source ) { return source && source.clone ? source.clone( true ) : source; }
 
 /**
  * A loader for the glTF 2.0 format.
