@@ -108,8 +108,8 @@ Wprowadzić globalny tryb np.:
 RENDER_MODE = "canvas2d" | "three"
 ```
 
-- `canvas2d` → obecny `HC.Render` (fallback/default),
-- `three` → nowy adapter Three.js.
+- `three` → domyślny adapter Three.js dla normal game i debug,
+- `canvas2d` → obecny `HC.Render` jako legacy/fallback oraz tryb mechanics verification w debug.
 
 ### 6.3. Fallback i niezmienność gameplay
 - fallback do starego `HC.Render` pozostaje dostępny,
@@ -277,9 +277,9 @@ Docelowy tryb:
 - `renderMode: "canvas2d" | "three"`
 
 Zasady:
-- default: `"canvas2d"`,
-- `"canvas2d"` używa obecnego `HC.Render` jako bezpiecznego fallbacku,
-- `"three"` używa przyszłego `HC.ThreeWorldRenderer`,
+- default: `"three"`,
+- `"three"` używa `HC.ThreeWorldRenderer` jako natywnej ścieżki normal game i debug,
+- `"canvas2d"` używa obecnego `HC.Render` jako legacy/fallback/mechanics verification,
 - brak/niepoprawny tryb nie może blokować uruchomienia gry,
 - fallback `canvas2d` musi być dostępny na każdym etapie migracji.
 
@@ -314,7 +314,7 @@ Finalne zastąpienie obecnego canvasu świata może zostać rozważone dopiero p
 
 ### 9.8. Fallback and rollback rules
 Reguły bezpieczeństwa migracji:
-- `canvas2d` jest zawsze ścieżką startową i rollbackową,
+- `three` jest ścieżką startową normal game i debug,
 - awaria inicjalizacji `three` automatycznie przełącza render na `canvas2d`,
 - brak assetu/warstwy/shadera nie może zatrzymać loopa gry,
 - rollback dotyczy wyłącznie warstwy renderingu świata (bez zmian mechaniki i UI overlay),
@@ -413,7 +413,7 @@ Status na **2026-05-17**: etap 1 został wdrożony jako minimalna infrastruktura
 
 - Dodano `hc.world_render_snapshot.js` z namespace `HC.WorldRenderSnapshot` i API `build(options)` tworzącym minimalny, defensywny snapshot danych renderingu świata.
 - Dodano `hc.world_renderer.js` z namespace `HC.WorldRenderer` i API: `init`, `resize`, `render`, `destroy`, `getDiagnostics`, `setMode`, `getMode`.
-- `renderMode` działa w trybach `"canvas2d" | "three"`, z domyślnym `canvas2d` i bezpiecznym fallbackiem do `HC.Render.frame(now, dt)`.
+- `renderMode` działa w trybach `"canvas2d" | "three"`; aktualny default runtime to `three`, a `canvas2d` pozostaje bezpiecznym fallbackiem do `HC.Render.frame(now, dt)` i opcją legacy w debug.
 - Tryb `three` pozostaje placeholderem diagnostycznym; implementacja Three.js nadal **nie** istnieje (`hasThreeImplementation: false`).
 - Boot flow używa snapshot buildera i adaptera tylko jako cienkiej fasady; przy braku adaptera/błędzie pozostaje legacy render path Canvas2D.
 - UI/HUD/SUB-META/META pozostają poza rendererem świata (bez przenoszenia odpowiedzialności do adaptera).
@@ -1049,3 +1049,12 @@ Texture pipeline evidence powinno obejmować co najmniej:
 - Runtime applies external maps only to GLB materials missing their own `map` / `emissiveMap`.
 - Fallback visuals remain only for loading/failed GLB assets.
 - Next step: tuning `emissiveIntensity`, visual balance, green/blue palettes, and asset optimization.
+
+
+## Default Three renderer update (2026-06-05)
+
+- Three.js jest domyślnym rendererem zarówno dla normal game, jak i debug. Bootstrap ustawia `HC.RENDER_MODE = "three"`, a debug session defaults (`visual.rendererMode`, `visual.worldRendererMode`, `visual.defaultRenderer`) również wskazują `three`.
+- Canvas2D nie jest usuwany: pozostaje ręcznie wybieralną opcją w debug jako `Canvas2D — legacy mechanics verification / fallback`, służącą do porównań mechaniki, fallbacku i regresji legacy.
+- Fallback do Canvas2D pozostaje obowiązkowy. Jeżeli dependency Three ESM nie jest gotowe (`loading`/`failed`/`missing`) albo adapter renderera zgłosi błąd, diagnostyka/evidence ma raportować `fallback.used = true` oraz powód (`fallbackReason`).
+- Three działa jako osobny canvas (`#hc-three-world-canvas`) pod transparentnym overlayem `gameCanvas`; HUD, debug overlay, SUB-META, META i Canvas2D overlay nie są wciągane do sceny Three.
+- Aktualny rekomendowany model renderingu GLB to `cameraModel = "stage_normalized"`, `stageModelEnabled = true` i `lightingModelVersion = "stage_spot_v1"`. Final evidence dla poprawnego startu Three powinno wskazywać `renderer.requested = "three"`, `renderer.effective = "three"`, `fallback.used = false`, `cameraModel = "stage_normalized"`, `stageModelEnabled = true` oraz `lightingModelVersion = "stage_spot_v1"`.

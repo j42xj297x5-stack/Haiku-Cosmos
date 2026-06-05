@@ -35,7 +35,7 @@ console.log("[HC] game.boot.js loaded");
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d", { alpha: true });
   window.HC = window.HC || {};
-  if (!window.HC.RENDER_MODE) window.HC.RENDER_MODE = "canvas2d";
+  if (!window.HC.RENDER_MODE) window.HC.RENDER_MODE = "three";
   // UI/DEBUG moved to hc.ui_debug.js
 
   const CardEngine = window.CardEngine;
@@ -580,7 +580,7 @@ meteorCollisionFudge: 1.12,
     window.HC.UI.init();
   }
   if (window.HC && window.HC.WorldRenderer && typeof window.HC.WorldRenderer.init === "function") {
-    window.HC.WorldRenderer.init({ mode: window.HC.RENDER_MODE || "canvas2d" });
+    window.HC.WorldRenderer.init({ mode: window.HC.RENDER_MODE || "three" });
   }
   bootState.cardBound = tryBindCardEngine();
 
