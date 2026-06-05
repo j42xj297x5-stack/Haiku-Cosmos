@@ -251,6 +251,7 @@
     meteorGroupChildrenCount: 0,
     meteorGlbCacheStats: { loading: 0, ready: 0, failed: 0 },
     asteroidGlbCacheStats: { loading: 0, ready: 0, failed: 0 },
+    asteroidGlbTextureDiagnostics: createAsteroidGlbTextureDiagnostics(),
     asteroidGlbInstanceCreates: 0,
     asteroidGroupChildrenCount: 0,
     firstMeteorScreenEstimate: null,
@@ -259,6 +260,24 @@
     glbScaleWarning: null,
   };
 
+
+  function createAsteroidGlbTextureDiagnostics() {
+    return {
+      asteroidGlbEmbeddedTextureCount: 0,
+      asteroidGlbTextureReadyCount: 0,
+      asteroidGlbTextureMissingImageCount: 0,
+      asteroidGlbTextureFallbackMaterialCount: 0,
+      asteroidGlbLoaderMode: "custom_parser",
+      imageBufferViewCount: 0,
+      imageUriCount: 0,
+      imageDataUriCount: 0,
+      imagePngCount: 0,
+      imageJpegCount: 0,
+      imageUnsupportedMimeCount: 0,
+      lastAssetUrl: null,
+      lastError: null,
+    };
+  }
 
   function createMeteorTextureDiagnostics() {
     return {
@@ -375,6 +394,7 @@
     threeState.meteorGlbCacheStats = getMeteorGlbCacheStats();
     threeState.meteorGlbVariantReassignments = 0;
     threeState.meteorGlbInstanceCreates = 0;
+    threeState.asteroidGlbTextureDiagnostics = createAsteroidGlbTextureDiagnostics();
     threeState.asteroidGlbInstanceCreates = 0;
     threeState.glbMaterialAudit = [];
     threeState.glbMaterialAuditLogCount = 0;
@@ -2026,6 +2046,131 @@
     return binaryChunk.slice(start, start + length);
   }
 
+  function imageHasUsableSourceData(image) {
+    if (!image) return false;
+    if ((Number(image.width) > 0 && Number(image.height) > 0) || (Number(image.naturalWidth) > 0 && Number(image.naturalHeight) > 0)) return true;
+    if (Number(image.videoWidth) > 0 && Number(image.videoHeight) > 0) return true;
+    if (image.data || image.buffer || image.src || image.currentSrc) return true;
+    return false;
+  }
+
+  function glbTextureHasImageData(texture) {
+    return imageHasUsableSourceData(texture?.image) || imageHasUsableSourceData(texture?.source?.data);
+  }
+
+  function getGlbTextureLoadPromises(root) {
+    const promises = [];
+    root?.traverse?.((object) => {
+      if (!object?.isMesh) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) {
+        for (const slot of ["map", "metalnessMap", "roughnessMap", "normalMap", "aoMap", "emissiveMap"]) {
+          const texture = material?.[slot];
+          const promise = texture?.userData?.hcGlbTextureReadyPromise;
+          if (promise && !promises.includes(promise)) promises.push(promise);
+        }
+      }
+    });
+    return promises;
+  }
+
+  function classifyGlbImages(gltf) {
+    const counts = { embedded: 0, bufferView: 0, uri: 0, dataUri: 0, png: 0, jpeg: 0, unsupportedMime: 0 };
+    for (const imageDef of gltf.images || []) {
+      const mimeType = String(imageDef?.mimeType || "").toLowerCase();
+      const hasBufferView = imageDef?.bufferView != null;
+      const hasUri = typeof imageDef?.uri === "string" && imageDef.uri.length > 0;
+      if (hasBufferView || (hasUri && /^data:/i.test(imageDef.uri))) counts.embedded += 1;
+      if (hasBufferView) counts.bufferView += 1;
+      if (hasUri) counts.uri += 1;
+      if (hasUri && /^data:/i.test(imageDef.uri)) counts.dataUri += 1;
+      if (mimeType === "image/png" || (!mimeType && hasUri && /\.png(?:$|[?#])/i.test(imageDef.uri))) counts.png += 1;
+      else if (mimeType === "image/jpeg" || mimeType === "image/jpg" || (!mimeType && hasUri && /\.jpe?g(?:$|[?#])/i.test(imageDef.uri))) counts.jpeg += 1;
+      else if (mimeType) counts.unsupportedMime += 1;
+    }
+    return counts;
+  }
+
+  function collectGlbTextureReadiness(root) {
+    const textures = new Set();
+    root?.traverse?.((object) => {
+      if (!object?.isMesh) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      for (const material of materials) {
+        for (const slot of ["map", "metalnessMap", "roughnessMap", "normalMap", "aoMap", "emissiveMap"]) {
+          if (material?.[slot]) textures.add(material[slot]);
+        }
+      }
+    });
+    let ready = 0;
+    let missing = 0;
+    for (const texture of textures) {
+      if (glbTextureHasImageData(texture)) ready += 1;
+      else missing += 1;
+    }
+    return { total: textures.size, ready, missing };
+  }
+
+  function applyAsteroidFallbackMaterialsForMissingTextures(THREE, root) {
+    let fallbackCount = 0;
+    root?.traverse?.((object) => {
+      if (!object?.isMesh) return;
+      const sourceMaterials = Array.isArray(object.material) ? object.material : [object.material];
+      let changed = false;
+      const nextMaterials = sourceMaterials.map((material, slotIndex) => {
+        if (!material) return material;
+        const textureSlots = ["map", "metalnessMap", "roughnessMap", "normalMap", "aoMap", "emissiveMap"];
+        const expectedTexture = textureSlots.some((slot) => !!material[slot]);
+        const missingTexture = textureSlots.some((slot) => material[slot] && !glbTextureHasImageData(material[slot]));
+        if (!expectedTexture || !missingTexture) return material;
+        const fallback = createFallbackPbrMaterial(THREE, material.userData?.hcGlbMaterialIndex ?? slotIndex, "asteroid_embedded_texture_missing_image");
+        fallback.name = `hc_asteroid_fallback_material_${slotIndex}`;
+        fallback.userData = Object.assign({}, fallback.userData, {
+          hcMaterialSource: "fallback",
+          hcFallbackReason: "asteroid_embedded_texture_missing_image",
+          hcOriginalMaterialName: material.name || null,
+        });
+        changed = true;
+        fallbackCount += 1;
+        return fallback;
+      });
+      if (changed) object.material = Array.isArray(object.material) ? nextMaterials : nextMaterials[0];
+    });
+    return fallbackCount;
+  }
+
+  function finalizeGlbTextureDiagnostics(THREE, root, gltf, { assetKind = "generic", assetUrl = null } = {}) {
+    const imageCounts = classifyGlbImages(gltf);
+    const readinessBeforeFallback = collectGlbTextureReadiness(root);
+    let fallbackMaterialCount = 0;
+    if (assetKind === "asteroid" && readinessBeforeFallback.missing > 0) {
+      fallbackMaterialCount = applyAsteroidFallbackMaterialsForMissingTextures(THREE, root);
+    }
+    const readiness = collectGlbTextureReadiness(root);
+    root.userData.hcGlbEmbeddedTextureCount = imageCounts.embedded;
+    root.userData.hcGlbTextureReadyCount = readiness.ready;
+    root.userData.hcGlbTextureMissingImageCount = readinessBeforeFallback.missing;
+    root.userData.hcGlbTextureFallbackMaterialCount = fallbackMaterialCount;
+    root.userData.hcGlbLoaderMode = fallbackMaterialCount > 0 ? "fallback_material" : "custom_parser";
+    if (assetKind === "asteroid") {
+      threeState.asteroidGlbTextureDiagnostics = {
+        asteroidGlbEmbeddedTextureCount: imageCounts.embedded,
+        asteroidGlbTextureReadyCount: readiness.ready,
+        asteroidGlbTextureMissingImageCount: readinessBeforeFallback.missing,
+        asteroidGlbTextureFallbackMaterialCount: fallbackMaterialCount,
+        asteroidGlbLoaderMode: fallbackMaterialCount > 0 ? "fallback_material" : "custom_parser",
+        imageBufferViewCount: imageCounts.bufferView,
+        imageUriCount: imageCounts.uri,
+        imageDataUriCount: imageCounts.dataUri,
+        imagePngCount: imageCounts.png,
+        imageJpegCount: imageCounts.jpeg,
+        imageUnsupportedMimeCount: imageCounts.unsupportedMime,
+        lastAssetUrl: assetUrl,
+        lastError: null,
+      };
+    }
+  }
+
   function createGlbTexture(THREE, gltf, binaryChunk, textureInfo, colorSpace) {
     const textureIndex = textureInfo?.index;
     const textureDef = gltf.textures?.[textureIndex];
@@ -2044,16 +2189,49 @@
       url = imageDef.uri;
     }
     if (!url || !THREE.TextureLoader) return null;
-    const texture = new THREE.TextureLoader().load(url, () => { texture.needsUpdate = true; });
+    const sampler = gltf.samplers?.[textureDef.sampler] || {};
+    const texture = new THREE.Texture();
     texture.flipY = false;
     if (colorSpace && "colorSpace" in texture) texture.colorSpace = colorSpace;
     else if (colorSpace && "encoding" in texture && THREE.sRGBEncoding) texture.encoding = THREE.sRGBEncoding;
-    const sampler = gltf.samplers?.[textureDef.sampler] || {};
     texture.wrapS = getThreeWrapping(THREE, sampler.wrapS);
     texture.wrapT = getThreeWrapping(THREE, sampler.wrapT);
     texture.magFilter = getThreeFilter(THREE, sampler.magFilter, THREE.LinearFilter);
     texture.minFilter = getThreeFilter(THREE, sampler.minFilter, THREE.LinearMipmapLinearFilter);
-    texture.userData = Object.assign({}, texture.userData, { hcGlbTextureIndex: textureIndex, hcTexCoord: textureInfo.texCoord || 0 });
+    texture.userData = Object.assign({}, texture.userData, {
+      hcGlbTextureIndex: textureIndex,
+      hcGlbImageSource: textureDef.source,
+      hcGlbImageName: imageDef.name || null,
+      hcGlbImageMimeType: imageDef.mimeType || null,
+      hcGlbImageEmbedded: imageDef.bufferView != null || /^data:/i.test(imageDef.uri || ""),
+      hcGlbTextureUrl: url,
+      hcTexCoord: textureInfo.texCoord || 0,
+      hcGlbTextureStatus: "loading",
+    });
+    texture.userData.hcGlbTextureReadyPromise = new Promise((resolve) => {
+      const loader = new THREE.TextureLoader();
+      loader.load(
+        url,
+        (loadedTexture) => {
+          const image = loadedTexture?.image || loadedTexture?.source?.data || null;
+          if (imageHasUsableSourceData(image)) {
+            texture.image = image;
+            texture.source = loadedTexture.source || texture.source;
+            texture.userData.hcGlbTextureStatus = "ready";
+            texture.needsUpdate = true;
+          } else {
+            texture.userData.hcGlbTextureStatus = "missing_image";
+          }
+          resolve(texture);
+        },
+        undefined,
+        (error) => {
+          texture.userData.hcGlbTextureStatus = "failed";
+          texture.userData.hcGlbTextureError = error?.message || String(error || "texture_load_failed");
+          resolve(texture);
+        }
+      );
+    });
     return texture;
   }
 
@@ -2147,7 +2325,7 @@
     if (Array.isArray(nodeDef.scale)) target.scale.fromArray(nodeDef.scale);
   }
 
-  function parseGlbToObject3D(THREE, arrayBuffer) {
+  function parseGlbToObject3D(THREE, arrayBuffer, options = {}) {
     const header = new DataView(arrayBuffer, 0, 12);
     if (header.getUint32(0, true) !== 0x46546c67) throw new Error("Invalid GLB magic");
     if (header.getUint32(4, true) !== 2) throw new Error("Only GLB v2 is supported");
@@ -2243,6 +2421,8 @@
       if (!object.isMesh) return;
       object.renderOrder = 1000;
     });
+    root.userData.hcGlbTextureReadyPromises = getGlbTextureLoadPromises(root);
+    root.userData.hcGlbTextureFinalize = () => finalizeGlbTextureDiagnostics(THREE, root, json, options);
     return root;
   }
 
@@ -2567,11 +2747,14 @@
         return response.arrayBuffer();
       })
       .then((buffer) => {
-        entry.template = parseGlbToObject3D(THREE, buffer);
-        entry.materialAudit = collectGlbMaterialAudit(entry.template, url);
-        logGlbMaterialAudit();
-        entry.status = "ready";
-        return entry.template;
+        entry.template = parseGlbToObject3D(THREE, buffer, { assetKind: "meteor", assetUrl: url });
+        return Promise.allSettled(entry.template.userData?.hcGlbTextureReadyPromises || []).then(() => {
+          entry.template.userData?.hcGlbTextureFinalize?.();
+          entry.materialAudit = collectGlbMaterialAudit(entry.template, url);
+          logGlbMaterialAudit();
+          entry.status = "ready";
+          return entry.template;
+        });
       })
       .catch((error) => {
         entry.status = "failed";
@@ -2588,6 +2771,11 @@
     clone.userData.hcUnitRadius = template.userData?.hcUnitRadius || 1;
     clone.userData.hcLocalBoundingBox = template.userData?.hcLocalBoundingBox || null;
     clone.userData.hcLocalSize = template.userData?.hcLocalSize || null;
+    clone.userData.hcGlbEmbeddedTextureCount = template.userData?.hcGlbEmbeddedTextureCount || 0;
+    clone.userData.hcGlbTextureReadyCount = template.userData?.hcGlbTextureReadyCount || 0;
+    clone.userData.hcGlbTextureMissingImageCount = template.userData?.hcGlbTextureMissingImageCount || 0;
+    clone.userData.hcGlbTextureFallbackMaterialCount = template.userData?.hcGlbTextureFallbackMaterialCount || 0;
+    clone.userData.hcGlbLoaderMode = template.userData?.hcGlbLoaderMode || "custom_parser";
     clone.traverse((object) => {
       if (!object.isMesh) return;
       if (Array.isArray(object.material)) object.material = object.material.map((material) => material?.clone ? material.clone() : material);
@@ -2704,15 +2892,23 @@
         return response.arrayBuffer();
       })
       .then((buffer) => {
-        entry.template = parseGlbToObject3D(THREE, buffer);
-        entry.materialAudit = collectGlbMaterialAudit(entry.template, url);
-        logGlbMaterialAudit();
-        entry.status = "ready";
-        return entry.template;
+        entry.template = parseGlbToObject3D(THREE, buffer, { assetKind: "asteroid", assetUrl: url });
+        return Promise.allSettled(entry.template.userData?.hcGlbTextureReadyPromises || []).then(() => {
+          entry.template.userData?.hcGlbTextureFinalize?.();
+          entry.materialAudit = collectGlbMaterialAudit(entry.template, url);
+          logGlbMaterialAudit();
+          entry.status = "ready";
+          return entry.template;
+        });
       })
       .catch((error) => {
         entry.status = "failed";
         entry.error = error?.message || String(error);
+        threeState.asteroidGlbTextureDiagnostics = Object.assign(createAsteroidGlbTextureDiagnostics(), {
+          asteroidGlbLoaderMode: "fallback_material",
+          lastAssetUrl: url,
+          lastError: entry.error,
+        });
         warnAsteroidGlbOnce(url, entry.error);
         return null;
       });
@@ -3392,6 +3588,12 @@
       asteroidGlbCacheSize: threeState.asteroidGlbCache.size,
       asteroidGlbStatus: threeState.asteroidGlbCache.get(getAsteroidGlbAssetUrl())?.status || "not_requested",
       asteroidGlbInstanceCreates: threeState.asteroidGlbInstanceCreates,
+      asteroidGlbEmbeddedTextureCount: threeState.asteroidGlbTextureDiagnostics?.asteroidGlbEmbeddedTextureCount || 0,
+      asteroidGlbTextureReadyCount: threeState.asteroidGlbTextureDiagnostics?.asteroidGlbTextureReadyCount || 0,
+      asteroidGlbTextureMissingImageCount: threeState.asteroidGlbTextureDiagnostics?.asteroidGlbTextureMissingImageCount || 0,
+      asteroidGlbTextureFallbackMaterialCount: threeState.asteroidGlbTextureDiagnostics?.asteroidGlbTextureFallbackMaterialCount || 0,
+      asteroidGlbLoaderMode: threeState.asteroidGlbTextureDiagnostics?.asteroidGlbLoaderMode || "custom_parser",
+      asteroidGlbTextureDiagnostics: Object.assign({}, threeState.asteroidGlbTextureDiagnostics || createAsteroidGlbTextureDiagnostics()),
       activeAsteroidGlbInstances: Array.from(threeState.asteroidMeshes.values()).filter((entry) => !!entry.glb).length,
       activeFallbackAsteroidVisuals: Array.from(threeState.asteroidMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
       meteorGlbVisualScale: getMeteorGlbVisualScale(),
