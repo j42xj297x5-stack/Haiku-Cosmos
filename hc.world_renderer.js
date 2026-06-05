@@ -272,6 +272,19 @@
       materialsConvertedToStandard: 0,
       materialConversions: 0,
       appliedThisFrame: 0,
+      mapApplied: 0,
+      emissiveMapApplied: 0,
+      activeGlbEntries: 0,
+      activeGlbEntriesWithSceneObject: 0,
+      activeGlbEntriesWithColor: 0,
+      activeGlbEntriesMissingColor: 0,
+      activeGlbEntriesUnsupportedColor: 0,
+      activeGlbEntriesEligibleRedYellow: 0,
+      sourceMeteorColorSamples: [],
+      entryColorFieldSamples: [],
+      skippedMissingColor: 0,
+      skippedUnsupportedColor: 0,
+      syncActiveEntriesCalls: 0,
       mapLostAfterApply: 0,
       emissiveMapLostAfterApply: 0,
       strippedAfterApply: 0,
@@ -295,6 +308,18 @@
     diagnostics.materialSlotsWithEmissiveImage = 0;
     diagnostics.materialsVisited = 0;
     diagnostics.materialsConvertedToStandard = 0;
+    diagnostics.mapApplied = 0;
+    diagnostics.emissiveMapApplied = 0;
+    diagnostics.activeGlbEntries = 0;
+    diagnostics.activeGlbEntriesWithSceneObject = 0;
+    diagnostics.activeGlbEntriesWithColor = 0;
+    diagnostics.activeGlbEntriesMissingColor = 0;
+    diagnostics.activeGlbEntriesUnsupportedColor = 0;
+    diagnostics.activeGlbEntriesEligibleRedYellow = 0;
+    diagnostics.sourceMeteorColorSamples = [];
+    diagnostics.entryColorFieldSamples = [];
+    diagnostics.skippedMissingColor = 0;
+    diagnostics.skippedUnsupportedColor = 0;
     const cacheStats = getMeteorTextureCacheStats();
     diagnostics.cacheLoading = cacheStats.loading;
     diagnostics.cacheReady = cacheStats.ready;
@@ -951,22 +976,75 @@
       red: "red",
       czerwony: "red",
       czerwona: "red",
+      form: "red",
       yellow: "yellow",
       zolty: "yellow",
       zolta: "yellow",
       żółty: "yellow",
       żółta: "yellow",
+      bond: "yellow",
       green: "green",
       zielony: "green",
+      flow: "green",
       blue: "blue",
       niebieski: "blue",
+      silence: "blue",
     };
     return aliases[raw] || raw;
   }
 
+  function getMeteorColorFields(source) {
+    if (!source || typeof source !== "object") return {};
+    return {
+      meteorColorKey: source.meteorColorKey ?? null,
+      colorKey: source.colorKey ?? null,
+      colorName: source.colorName ?? null,
+      color: source.color ?? null,
+      col: source.col ?? null,
+      fill: source.fill ?? null,
+      dominantKey: source.dominantKey ?? null,
+      type: source.type ?? null,
+      kind: source.kind ?? null,
+      assetKey: source.assetKey ?? source.modelKey ?? source.glbAssetKey ?? null,
+      assetUrl: source.assetUrl ?? source.glbAssetUrl ?? source.root?.userData?.glbAssetUrl ?? null,
+      rootUserDataColorKey: source.root?.userData?.colorKey ?? source.root?.userData?.meteorColorKey ?? null,
+      glbUserDataColorKey: source.glb?.userData?.colorKey ?? source.glb?.userData?.meteorColorKey ?? null,
+    };
+  }
+
+  function extractMeteorColorFromAssetKey(value) {
+    const raw = String(value || "").trim().toLowerCase();
+    if (!raw) return null;
+    const match = raw.match(/(?:^|[_\-/])(red|yellow|green|blue|form|bond|flow|silence)(?:$|[_\-.])/);
+    return match ? normalizeMeteorColorKey(match[1]) : null;
+  }
+
+  function firstMeteorColorCandidate(fields) {
+    const directKeys = ["meteorColorKey", "colorKey", "colorName", "dominantKey", "rootUserDataColorKey", "glbUserDataColorKey", "color", "col", "fill"];
+    for (const key of directKeys) {
+      const normalized = normalizeMeteorColorKey(fields?.[key]);
+      if (normalized && normalized !== "neutral") return normalized;
+    }
+    const typeKey = normalizeMeteorColorKey(fields?.type);
+    if (["red", "yellow", "green", "blue"].includes(typeKey)) return typeKey;
+    const kindKey = normalizeMeteorColorKey(fields?.kind);
+    if (["red", "yellow", "green", "blue"].includes(kindKey)) return kindKey;
+    return null;
+  }
+
   function getMeteorColorKey(source, fallback = "neutral") {
     if (source && typeof source === "object") {
-      return normalizeMeteorColorKey(source.colorKey || source.colorName || source.color || source.type || fallback);
+      const fields = getMeteorColorFields(source);
+      const direct = firstMeteorColorCandidate(fields);
+      if (direct) return direct;
+      const nestedSource = source.sourceMeteor || source.meteor || source.source || null;
+      if (nestedSource && nestedSource !== source) {
+        const nested = getMeteorColorKey(nestedSource, null);
+        if (nested && nested !== "neutral") return nested;
+      }
+      const assetFallback = extractMeteorColorFromAssetKey(fields?.assetKey) || extractMeteorColorFromAssetKey(fields?.assetUrl);
+      if (assetFallback) return assetFallback;
+      return normalizeMeteorColorKey(fallback);
     }
     return normalizeMeteorColorKey(source || fallback);
   }
@@ -1117,9 +1195,25 @@
       cacheReady: cacheStats.ready,
       cacheFailed: cacheStats.failed,
       cache: cacheStats,
+      activeGlbEntries: 0,
+      activeGlbEntriesWithSceneObject: 0,
+      activeGlbEntriesWithColor: 0,
+      activeGlbEntriesMissingColor: 0,
+      activeGlbEntriesUnsupportedColor: 0,
+      activeGlbEntriesEligibleRedYellow: 0,
     });
     for (const entry of threeState.meteorMeshes.values()) {
-      if (!entry || !METEOR_TEXTURE_PALETTES[entry.colorKey]) continue;
+      if (!entry?.glb) continue;
+      evidence.activeGlbEntries += 1;
+      if (getEntryScenePresence(entry)) evidence.activeGlbEntriesWithSceneObject += 1;
+      const colorKey = getMeteorEntryColorKey(entry);
+      const hasColor = !!colorKey && colorKey !== "neutral";
+      const supported = !!getMeteorTextureConfig(colorKey);
+      if (hasColor) evidence.activeGlbEntriesWithColor += 1;
+      else evidence.activeGlbEntriesMissingColor += 1;
+      if (hasColor && !supported) evidence.activeGlbEntriesUnsupportedColor += 1;
+      if (!supported) continue;
+      evidence.activeGlbEntriesEligibleRedYellow += 1;
       evidence.eligibleInstances += 1;
       entry.glb?.traverse?.((object) => {
         if (!object.isMesh || !isObjectInThreeScene(object)) return;
@@ -1306,6 +1400,101 @@
     });
   }
 
+
+  function countGlbChildMeshes(entry) {
+    let count = 0;
+    entry?.glb?.traverse?.((object) => { if (object?.isMesh) count += 1; });
+    return count;
+  }
+
+  function getEntryScenePresence(entry) {
+    return !!entry?.glb && isObjectInThreeScene(entry.glb);
+  }
+
+  function getMeteorEntryColorKey(entry) {
+    return getMeteorColorKey(entry, null) || getMeteorColorKey(entry?.sourceMeteor, null) || getMeteorColorKey(entry?.meteor, null) || "neutral";
+  }
+
+  function ensureMeteorEntryColorBinding(entry) {
+    if (!entry) return "neutral";
+    const colorKey = getMeteorEntryColorKey(entry);
+    const normalized = normalizeMeteorColorKey(colorKey);
+    if (normalized && normalized !== "neutral" && entry.colorKey !== normalized) {
+      assignMeteorGlbAsset(entry, normalized, { countReassignment: true });
+    }
+    entry.meteorColorKey = normalized;
+    if (entry.root?.userData) entry.root.userData.meteorColorKey = normalized;
+    if (entry.glb?.userData) entry.glb.userData.meteorColorKey = normalized;
+    return normalized;
+  }
+
+  function appendLimitedSample(target, sample, limit = 8) {
+    if (!Array.isArray(target) || target.length >= limit) return;
+    target.push(sample);
+  }
+
+  function updateMeteorTextureActiveEntryDiagnostics(entry, colorKey, skipReason = null) {
+    const diagnostics = threeState.meteorTextureDiagnostics || createMeteorTextureDiagnostics();
+    const hasGlb = !!entry?.glb;
+    if (!hasGlb) return diagnostics;
+    diagnostics.activeGlbEntries += 1;
+    if (getEntryScenePresence(entry)) diagnostics.activeGlbEntriesWithSceneObject += 1;
+    const normalizedColor = normalizeMeteorColorKey(colorKey || getMeteorEntryColorKey(entry));
+    const hasColor = !!normalizedColor && normalizedColor !== "neutral";
+    const supported = !!getMeteorTextureConfig(normalizedColor);
+    if (hasColor) diagnostics.activeGlbEntriesWithColor += 1;
+    else {
+      diagnostics.activeGlbEntriesMissingColor += 1;
+      diagnostics.skippedMissingColor += 1;
+      diagnostics.lastFallbackReason = "missing_color_key";
+    }
+    if (hasColor && !supported) {
+      diagnostics.activeGlbEntriesUnsupportedColor += 1;
+      diagnostics.skippedUnsupportedColor += 1;
+    }
+    if (supported) diagnostics.activeGlbEntriesEligibleRedYellow += 1;
+    appendLimitedSample(diagnostics.entryColorFieldSamples, {
+      visualId: entry?.visualId ?? null,
+      colorKey: entry?.colorKey ?? null,
+      meteorColorKey: entry?.meteorColorKey ?? null,
+      rootUserDataColorKey: entry?.root?.userData?.colorKey ?? null,
+      rootUserDataMeteorColorKey: entry?.root?.userData?.meteorColorKey ?? null,
+      assetUrl: entry?.assetUrl ?? null,
+      normalizedColor,
+      skipReason,
+    });
+    appendLimitedSample(diagnostics.sourceMeteorColorSamples, Object.assign({
+      visualId: entry?.visualId ?? null,
+      normalizedColor,
+    }, getMeteorColorFields(entry?.sourceMeteor || entry?.meteor)));
+    return diagnostics;
+  }
+
+  function buildActiveGlbEntryAuditRows(limit = 8) {
+    const rows = [];
+    for (const [entryKey, entry] of threeState.meteorMeshes.entries()) {
+      if (rows.length >= limit) break;
+      if (!entry?.glb) continue;
+      const normalizedColor = getMeteorEntryColorKey(entry);
+      const hasColor = !!normalizedColor && normalizedColor !== "neutral";
+      const isEligibleRedYellow = !!getMeteorTextureConfig(normalizedColor);
+      const skipReason = isEligibleRedYellow ? null : (hasColor ? "unsupported_color" : "missing_color_key");
+      rows.push({
+        entryKey,
+        visualId: entry.visualId ?? null,
+        hasGlb: !!entry.glb,
+        inScene: getEntryScenePresence(entry),
+        entryColorFields: JSON.stringify(getMeteorColorFields(entry)),
+        sourceMeteorColorFields: JSON.stringify(getMeteorColorFields(entry.sourceMeteor || entry.meteor)),
+        normalizedColor,
+        isEligibleRedYellow,
+        skipReason,
+        glbChildMeshCount: countGlbChildMeshes(entry),
+      });
+    }
+    return rows;
+  }
+
   function syncMeteorTexturePaletteForEntry(THREE, entry) {
     if (!entry?.glb) return;
     const settings = threeState.materialSettings || getThreeMaterialSettings();
@@ -1313,12 +1502,16 @@
     const diagnostics = threeState.meteorTextureDiagnostics || createMeteorTextureDiagnostics();
     diagnostics.enabled = enabled;
     diagnostics.materialMode = settings.materialMode || "imported";
-    const config = getMeteorTextureConfig(entry.colorKey);
+    const colorKey = ensureMeteorEntryColorBinding(entry);
+    const config = getMeteorTextureConfig(colorKey);
+    const hasColor = !!colorKey && colorKey !== "neutral";
+    const skipReason = config ? null : (hasColor ? "unsupported_color" : "missing_color_key");
+    updateMeteorTextureActiveEntryDiagnostics(entry, colorKey, skipReason);
     if (config) diagnostics.eligibleInstances += 1;
     if (!config || !enabled || !entry.meteorTextureAssignments?.map || !entry.meteorTextureAssignments?.emissiveMap) {
       if (entry.meteorTextureRestorePending || entry.meteorTextureAppliedUrls?.map || entry.meteorTextureAppliedUrls?.emissiveMap) restoreMeteorTextureStateForEntry(entry);
-      entry.meteorTextureStatus = config ? "disabled" : "unsupported_color";
-      diagnostics.lastFallbackReason = !config ? `unsupported_color:${entry.colorKey || "unknown"}` : "disabled";
+      entry.meteorTextureStatus = config ? "disabled" : skipReason;
+      diagnostics.lastFallbackReason = !config ? skipReason : "disabled";
       return;
     }
     diagnostics.applyAttempts += 1;
@@ -1350,7 +1543,7 @@
           diagnostics.emissiveMapLostAfterApply += 1;
           diagnostics.strippedAfterApply += 1;
         }
-        const result = applyMeteorTexturesToMaterial(THREE, material, entry.colorKey, mapEntry, emissiveEntry);
+        const result = applyMeteorTexturesToMaterial(THREE, material, colorKey, mapEntry, emissiveEntry);
         if (result.hasMap) materialsWithMap += 1;
         if (result.hasEmissiveMap) materialsWithEmissiveMap += 1;
         return result.material || material;
@@ -1366,7 +1559,7 @@
     if (currentMapUrl) diagnostics.mapApplied += 1;
     if (currentEmissiveUrl) diagnostics.emissiveMapApplied += 1;
     if (materialsWithMap > 0 || materialsWithEmissiveMap > 0) diagnostics.appliedThisFrame += 1;
-    diagnostics.lastAppliedColor = entry.colorKey || null;
+    diagnostics.lastAppliedColor = colorKey || null;
     diagnostics.lastAppliedMapUrl = currentMapUrl;
     diagnostics.lastAppliedEmissiveMapUrl = currentEmissiveUrl;
     auditMeteorTextureSceneMaterialsForEntry(entry);
@@ -1409,7 +1602,10 @@
     const assignment = chooseMeteorGlbAsset(colorKey, entry.visualId);
     const previousUrl = entry.assetUrl || null;
     entry.colorKey = colorKey;
+    entry.meteorColorKey = colorKey;
     entry.root.userData.colorKey = colorKey;
+    entry.root.userData.meteorColorKey = colorKey;
+    if (entry.glb?.userData) entry.glb.userData.meteorColorKey = colorKey;
     if (getMeteorTextureConfig(colorKey)) {
       const assignmentColorKey = entry.meteorTextureAssignments?.map?.colorKey || entry.meteorTextureAssignments?.emissiveMap?.colorKey || null;
       if (assignmentColorKey && assignmentColorKey !== colorKey && entry.meteorTextureRestorePending) restoreMeteorTextureStateForEntry(entry);
@@ -2012,14 +2208,15 @@
   function collectMeteorTextureAuditRows(limit = 8) {
     const rows = [];
     for (const entry of threeState.meteorMeshes.values()) {
-      if (!entry || !METEOR_TEXTURE_PALETTES[entry.colorKey] || !entry.glb) continue;
+      const colorKey = getMeteorEntryColorKey(entry);
+      if (!entry || !getMeteorTextureConfig(colorKey) || !entry.glb) continue;
       entry.glb.traverse?.((object) => {
         if (!object.isMesh || rows.length >= limit) return;
         const materials = Array.isArray(object.material) ? object.material : [object.material];
         materials.forEach((material) => {
           if (rows.length >= limit) return;
           rows.push({
-            colorKey: normalizeMeteorColorKey(entry.colorKey),
+            colorKey: normalizeMeteorColorKey(colorKey),
             meshName: object.name || object.parent?.name || "mesh",
             materialType: material?.type || "missing",
             hasMap: !!material?.map,
@@ -2040,12 +2237,15 @@
   function logMeteorTextureEvidenceAudit({ force = false } = {}) {
     const settings = threeState.materialSettings || getThreeMaterialSettings();
     if (!force && !settings.forceAuditLog) return;
-    const rows = collectMeteorTextureAuditRows(8);
+    const entryRows = buildActiveGlbEntryAuditRows(8);
+    const materialRows = collectMeteorTextureAuditRows(8);
     const evidence = getMeteorTextureEvidence();
     if (window.console?.debug) window.console.debug("[HC.WorldRenderer] Meteor texture evidence", evidence);
     else if (window.console?.log) window.console.log("[HC.WorldRenderer] Meteor texture evidence", evidence);
-    if (rows.length && window.console?.table) window.console.table(rows);
-    else if (rows.length && window.console?.log) window.console.log("[HC.WorldRenderer] Meteor texture material rows", rows);
+    if (entryRows.length && window.console?.table) window.console.table(entryRows);
+    else if (entryRows.length && window.console?.log) window.console.log("[HC.WorldRenderer] Active GLB meteor entries", entryRows);
+    if (materialRows.length && window.console?.table) window.console.table(materialRows);
+    else if (materialRows.length && window.console?.log) window.console.log("[HC.WorldRenderer] Meteor texture material rows", materialRows);
   }
 
 
@@ -2160,6 +2360,9 @@
 
   function syncMeteorTexturePalettesForActiveEntries(THREE) {
     if (!THREE) return;
+    const diagnostics = threeState.meteorTextureDiagnostics || createMeteorTextureDiagnostics();
+    diagnostics.syncActiveEntriesCalls += 1;
+    threeState.meteorTextureDiagnostics = diagnostics;
     for (const entry of threeState.meteorMeshes.values()) {
       if (entry?.glb) syncMeteorTexturePaletteForEntry(THREE, entry);
     }
@@ -2291,7 +2494,7 @@
     root.userData.rotationSpeed = rotationState.rotationSpeed;
     root.userData.rotationPhase = rotationState.rotationPhase;
     root.userData.rotationDominantAxis = rotationState.dominantAxis;
-    const entry = { root, fallback, glb: null, visualId, colorKey: null, assetUrl: null, variantIndex: null, glbStatus: "fallback", rotationState, meteorTextureAssignments: null, meteorTextureAppliedUrls: { map: null, emissiveMap: null }, meteorTextureStatus: "idle", meteorTextureRestorePending: false };
+    const entry = { root, fallback, glb: null, visualId, colorKey: null, meteorColorKey: colorKey, sourceMeteor: null, meteor: null, assetUrl: null, variantIndex: null, glbStatus: "fallback", rotationState, meteorTextureAssignments: null, meteorTextureAppliedUrls: { map: null, emissiveMap: null }, meteorTextureStatus: "idle", meteorTextureRestorePending: false };
     assignMeteorGlbAsset(entry, colorKey);
     return entry;
   }
@@ -2330,6 +2533,8 @@
     if (!entry.glb) {
       entry.glb = cloneMeteorGlbTemplate(cacheEntry.template);
       entry.glb.userData.hcAssetUrl = assetUrl;
+      entry.glb.userData.meteorColorKey = entry.meteorColorKey || entry.colorKey || null;
+      entry.glb.userData.colorKey = entry.colorKey || null;
       applyDebugMaterialMode(THREE, entry.glb);
       syncMeteorTexturePaletteForEntry(THREE, entry);
       entry.root.add(entry.glb);
@@ -2492,6 +2697,11 @@
         visual.isUnkeyedMeteorVisual = false;
       }
       seen.add(key);
+      visual.sourceMeteor = m;
+      visual.meteor = m;
+      visual.meteorColorKey = colorKey;
+      if (visual.root?.userData) visual.root.userData.meteorColorKey = colorKey;
+      if (visual.glb?.userData) visual.glb.userData.meteorColorKey = colorKey;
       if (visual.colorKey !== colorKey) {
         visual.fallback.material = getMeteorMaterial(THREE, colorKey);
         assignMeteorGlbAsset(visual, colorKey, { countReassignment: true });
