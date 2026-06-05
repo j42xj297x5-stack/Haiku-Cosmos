@@ -803,10 +803,11 @@ Manual QA po zmianach PBR powinien obejmować:
 2. Tryb `standard_test` — potwierdzić, że testowy `MeshStandardMaterial` reaguje na światło, environment i exposure.
 3. Tryb `normal_debug` — potwierdzić orientację normalnych i brak oczywistych błędów geometrii.
 4. `material audit log` / `Force material audit log` — sprawdzić typ materiału, metalness, roughness, mapy i normalMap w diagnostyce.
-5. `corner light intensity` — przetestować wpływ świateł narożnych na czytelność modeli.
-6. `ambient fill` — przetestować minimalne doświetlenie bez przepalenia koloru.
-7. `PBR env intensity` — przetestować czytelność metaliczności/roughness.
-8. `tone exposure` — przetestować zakres ekspozycji bez utraty detalu.
+5. `main stage SpotLight` — przetestować rekomendowany szeroki stage spot jako główne światło GLB.
+6. `legacy corner lights` — opcjonalnie włączyć tylko porównawczo; manual QA 2026-06-05 pokazał spłaszczenie brył przy narożnych point lightach.
+7. `ambient fill` — przetestować minimalne doświetlenie bez przepalenia koloru i bez zabijania kierunku światła.
+8. `PBR env intensity` — przetestować czytelność metaliczności/roughness.
+9. `tone exposure` — przetestować zakres ekspozycji bez utraty detalu.
 
 ### E. Granice i ryzyka
 - Aktualne GLB są PBR factory-material assets bez tekstur; brak map jest ograniczeniem assetów, nie błędem runtime.
@@ -860,22 +861,25 @@ Status: CURRENT diagnostic pass for Three renderer only; Canvas2D fallback and g
 
 A debug camera model switch is available in the runtime overlay:
 
-- `absolute_bounds` — current default behavior; world coordinates and orthographic bounds remain the default low-risk path.
-- `stage_normalized` — prototype mode that maps the current world camera center to `(0,0,0)`, scales the visible world area to a controlled stage size (`180–240`, default `220`), and uses a `PerspectiveCamera` looking at stage origin from positive Z.
+- `stage_normalized` — recommended GLB/PBR lighting path. It maps the current world camera center to `(0,0,0)`, scales the visible world area to a controlled stage size (`180–240`, default `220`), and uses a `PerspectiveCamera` looking at stage origin from positive Z.
+- `absolute_bounds` — legacy/comparison mode kept for safety; world coordinates and orthographic bounds remain available, but manual QA reported darker and less consistent GLB lighting.
 
 In `stage_normalized`, meteor and asteroid render positions/scales are mapped only in Three presentation space. Spawn, physics, collision, cards, RP, HUD, SUB-META, META and Canvas2D fallback are not changed.
 
 ### Lighting model notes
 
-The existing corner/debug/headlight/spotlight setup is rescaled against the active render bounds. In `stage_normalized`, those render bounds are the normalized stage bounds, so light distances and Z offsets are comparable to object size. Shadows remain disabled.
+Manual QA 2026-06-05 changed the active Three lighting model: the four corner `PointLight` objects are now legacy/debug-only because they visually flattened GLB solids and mixed surface modeling. Production/default lighting uses one broad `mainStageSpot` `SpotLight` in `stage_normalized`, placed behind the scene/from a rear corner direction at approximately `x=-0.65*stageWidth`, `y=-0.55*stageHeight`, `z=1.55*stageHeight`, targeting stage center by default. The spot has broad angle (`Math.PI / 2.8`), soft penumbra (`0.72`), `distance=0`, `decay=0`, and `castShadow=false`.
+
+Ambient is fill-only and defaults to `0`; if used, it should remain very low (`0–0.05`) so it does not remove the directional read from the stage SpotLight. `absolute_bounds` remains available only as a comparison/legacy camera model and can still look darker/inconsistent. Shadows remain disabled.
 
 ### Manual QA checklist
 
-1. Current default: `renderer=three`, `cameraModel=absolute_bounds`, `meteorGlbDepthScale=1`.
-2. Debug material pass: `materialMode=clay_lit`, ambient isolate on, debug SpotLight or force headlight enabled.
-3. Imported material pass: switch `materialMode=imported` and compare facet response.
-4. Depth comparison: test `meteorGlbDepthScale=0.25`, `1`, and `2`; if lighting appears only at `1+`, Z flattening was the primary issue.
-5. If absolute bounds still gives weak light modeling, switch `cameraModel=stage_normalized` and compare light/object scale.
+1. Recommended default: `renderer=three`, `cameraModel=stage_normalized`, `materialMode=clay_lit`, `mainStageSpot=ON`, `legacyCornerLights=OFF`, `ambient=0` or very low.
+2. Confirm clay-lit solids show bright/dark facets during rotation and that the wide SpotLight covers the whole normalized stage.
+3. Imported material pass: switch `materialMode=imported`; if detail is still absent, report the asset limitation explicitly (`public/glb` currently has no texture maps/normalMap).
+4. Legacy comparison: turn `legacyCornerLights=ON` only in advanced debug to compare whether corner point lights flatten the solids again; never set them as default.
+5. Absolute-bounds comparison: switch `cameraModel=absolute_bounds` and record that it may remain darker/inconsistent; `stage_normalized` is the recommended model for GLB lighting.
+6. Depth comparison: test `meteorGlbDepthScale=0.25`, `1`, and `2`; if lighting appears only at `1+`, Z flattening was the primary issue.
 
 ### Portfolio comparison checklist
 

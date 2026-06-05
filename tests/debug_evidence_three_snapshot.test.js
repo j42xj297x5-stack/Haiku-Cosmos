@@ -82,13 +82,14 @@ context.window.HC.WorldRenderer = {
         debugRimLightIntensity: 0.7,
         forceHeadlightEnabled: false,
         forceHeadlightIntensity: 4.5,
-        debugSpotLightEnabled: true,
-        debugSpotLightIntensity: 12,
-        debugSpotLightAngle: Math.PI / 5,
-        debugSpotLightPenumbra: 0.35,
-        debugSpotLightDistance: 0,
-        debugSpotLightDecay: 1,
-        debugSpotLightTargetMode: "sampleObject",
+        legacyCornerLightsEnabled: false,
+        mainStageSpotEnabled: true,
+        mainStageSpotIntensity: 6.5,
+        mainStageSpotAngle: Math.PI / 2.8,
+        mainStageSpotPenumbra: 0.72,
+        mainStageSpotDistance: 0,
+        mainStageSpotDecay: 0,
+        mainStageSpotTargetMode: "sampleObject",
         showLightHelpers: true,
       },
       threeLightHelpers: { mode: "pointLightHelper", count: 6, visible: true, enabled: true },
@@ -100,28 +101,28 @@ context.window.HC.WorldRenderer = {
         debugKeyLight: { position: { x: 2, y: 3, z: 4 }, intensity: 2.4 },
         debugRimLight: { position: { x: 5, y: 6, z: 7 }, intensity: 0.7 },
         forceHeadlight: null,
-        debugSpotLight: {
+        mainStageSpot: {
           visible: true,
-          intensity: 12,
-          angle: Math.PI / 5,
-          penumbra: 0.35,
+          intensity: 6.5,
+          angle: Math.PI / 2.8,
+          penumbra: 0.72,
           distance: 0,
-          decay: 1,
+          decay: 0,
           position: { x: -50, y: -30, z: 120 },
           targetPosition: { x: 10, y: 20, z: 0 },
         },
-        debugSpotLightTargetMode: "sampleObject",
+        mainStageSpotTargetMode: "sampleObject",
         debugSpotLightHelperVisible: true,
         sampleObjectProjected: { x: 100, y: 110 },
         sampleObjectFrustumVisible: true,
       },
-      debugSpotLight: {
+      mainStageSpot: {
         enabled: true,
-        intensity: 12,
-        angle: Math.PI / 5,
-        penumbra: 0.35,
+        intensity: 6.5,
+        angle: Math.PI / 2.8,
+        penumbra: 0.72,
         distance: 0,
-        decay: 1,
+        decay: 0,
         position: { x: -50, y: -30, z: 120 },
         targetPosition: { x: 10, y: 20, z: 0 },
         targetMode: "sampleObject",
@@ -156,10 +157,11 @@ assert.equal(snapshot.visual.three.threeMaterials.enabled, true);
 assert.equal(snapshot.visual.three.ambientIsolate, true);
 assert.equal(snapshot.visual.three.threeLights.debugKeyLightEnabled, true);
 assert.equal(snapshot.visual.three.showLightHelpers, true);
-assert.equal(snapshot.visual.three.threeLights.debugSpotLightEnabled, true);
-assert.equal(snapshot.visual.three.debugSpotLight.targetMode, "sampleObject");
-assert.equal(snapshot.visual.three.debugSpotLight.castShadow, false);
+assert.equal(snapshot.visual.three.threeLights.mainStageSpotEnabled, true);
+assert.equal(snapshot.visual.three.mainStageSpot.targetMode, "sampleObject");
+assert.equal(snapshot.visual.three.mainStageSpot.castShadow, false);
 assert.equal(snapshot.visual.three.lights.debugSpotLightHelperVisible, true);
+assert.equal(snapshot.visual.three.lights.legacyCornerLightsEnabled, false);
 assert.equal(snapshot.visual.three.lights.sampleObjectFrustumVisible, true);
 assert.equal(snapshot.visual.three.helper.count, 6);
 assert.equal(snapshot.visual.three.materials.activeGlbObjectCount, 3);
