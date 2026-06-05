@@ -194,11 +194,13 @@
 
 **PARAMS:**
 - Spawny: `World.spawnInterval`, `World.spawnIntervalMul`, `World.maxMeteors`.
+- Bazowa wielkość: `METEOR_BASE_SCALE = 3` / `World.meteorBaseScale`; `meteorBaseRadius()` zawiera ten mnożnik już przy spawnie.
 - PRG: `World.pointerRadius`, `World.pointerStrength`, `World.pointerGlueDamp`.
 - CardEngine: `engineStats.pointer_*`, `engineStats.meteor_mouse_control`.
 
 **Funkcje kluczowe:**
 - `spawnMeteor` i `spawnStreamMeteor`.
+- `getMeteorCollisionRadius(meteor)` i `getMeteorRenderScale(meteor)` są wspólnym kontraktem efektywnego rozmiaru: Canvas2D fallback, Three snapshot/render oraz kolizje nie powinny powielać lokalnych wzorów promienia meteoru.
 - `updateMeteors(dt, nowMs)`:
   - spawn zwykły i strumieniowy (tylko gdy `epoch=STAR` i `meteorStreams.enabled`),
   - filtruje kolor na bazie `RunTimers.isColorDisabled` i `fxSilenceOnlyColors*`,
@@ -214,7 +216,8 @@
 - `World.r1 = { color, streak }` (runtime sekwencji R1).
 
 **PARAMS:**
-- `World.meteorCollisionFudge`.
+- `World.meteorCollisionFudge` — drobna tolerancja kontaktu; nie jest źródłem bazowego powiększenia meteorów.
+- Kolizje meteor–meteor liczą kontakt jako suma `getMeteorCollisionRadius(...)` obu meteorów, więc bazowy mnożnik 3× rośnie razem z fizycznym promieniem.
 
 **Funkcje kluczowe:**
 - `resolveMeteorCollisionsSafe()`:
@@ -320,12 +323,12 @@
 **Funkcje kluczowe:**
 - `HC.WorldRenderSnapshot.build({ World, Camera, View, ... })` mapuje kolekcje świata do `renderSnapshot.world.*`, w tym `meteors[]` i `asteroids[]` z minimalnymi polami renderowymi.
 - `HC.WorldRenderer.render(renderSnapshot, now, dt)` wybiera `canvas2d` fallback albo `three`.
-- W trybie `three` adapter renderuje meteory i asteroidy wyłącznie ze snapshotu; planety/gwiazdy/PRG pozostają poza Three.
+- W trybie `three` adapter renderuje meteory i asteroidy wyłącznie ze snapshotu; planety/gwiazdy/PRG pozostają poza Three. Meteory pobierają efektywny rozmiar przez `getMeteorRenderScale(...)`, który jest sprzężony z `getMeteorCollisionRadius(...)` i bazowym `meteorBaseScale = 3`.
 - GLB pass ładuje aktywne pule `public/glb/` przez `publicAssetPath` / `publicPath`, pokazuje fallback visual podczas `loading`/`failed` i zachowuje Canvas2D jako fallback renderer/overlay. GLB meteory i asteroidy ładują się przez lokalny `GLTFLoader`; custom parser nie jest aktywną ścieżką runtime.
 - GLB cache ma lifecycle `loading` / `ready` / `failed`, przechowuje template per URL i klonuje go na instancje runtime. Po naprawie pipeline materiały GLB pozostają PBR/`MeshStandardMaterial`; `MeshBasicMaterial` nie jest fallbackiem dla obiektów, które mają reagować na światło.
 - Zewnętrzne PNG palety meteorów (`red`, `yellow`) są ładowane osobno przez `THREE.TextureLoader`, cache’owane i losowane stabilnie per instancja dla slotów `map` oraz `emissiveMap`. `green`/`blue` nie mają jeszcze palet i brak palety nie jest błędem.
 - Runtime nie nadpisuje imported GLB materials: zewnętrzne PNG uzupełniają tylko brakujące sloty; istniejące `material.map` lub `material.emissiveMap` z obrazem pozostają nietknięte.
-- Live debug scale meteorów GLB ma zakres `0.25`–`4.0`, działa bez reloadu i jest visual-only: nie zmienia promienia logicznego, kolizji, spawnu, kart, RP, HUD ani SUB-META.
+- Live debug scale meteorów GLB ma zakres `0.25`–`4.0`, działa bez reloadu i jest oznaczony jako visual-only: nie zmienia promienia logicznego, kolizji, spawnu, kart, RP, HUD ani SUB-META; nie wolno traktować go jako gameplay collision scale bez równoległej aktualizacji fizyki.
 - Diagnostics raportują tryb/fallback, stan lokalnego Three ESM bridge, liczniki `GLTFLoader` (`gltfLoaderAvailable`, `gltfLoaderType`, request/success/error/timeout, pending/failed/timedOut URLs), cache GLB (`meteorGlbCacheStats`, `asteroidGlbCacheStats`), aktywne instancje/fallbacki (`activeMeteorGlbInstances`, `activeAsteroidGlbInstances`, `activeFallbackMeteorVisuals`, `activeFallbackAsteroidVisuals`), stan PBR/material debug oraz texture evidence (`meteorTexturePaletteEnabled`, `redMeteorTexturePaletteEnabled`, `yellowMeteorTexturePaletteEnabled`, `meteorTextureCacheStats`, `meteorTextureEvidence.*`, skip counters dla imported map/emissiveMap).
 
 ---

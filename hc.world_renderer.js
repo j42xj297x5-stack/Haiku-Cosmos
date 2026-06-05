@@ -4056,7 +4056,7 @@
         visual.fallback.material = getMeteorMaterial(THREE, colorKey);
         assignMeteorGlbAsset(visual, colorKey, { countReassignment: true });
       }
-      const sourceRadius = Number(m.radius ?? m.r ?? m.size) || 2;
+      const sourceRadius = (window.getMeteorRenderScale ? window.getMeteorRenderScale(m) : (Number(m.radius ?? m.r ?? m.size) || 2));
       const radius = Math.max(THREE_METEOR_MIN_RADIUS, sourceRadius * THREE_METEOR_RADIUS_SCALE);
       const renderRadius = applyRenderSpaceToRadius(radius);
       const renderPosition = applyRenderSpaceToVector(x, y, 0);

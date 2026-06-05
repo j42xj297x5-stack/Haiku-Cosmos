@@ -19,6 +19,8 @@
     const CardEngine = window.CardEngine;
     const rand = window.rand;
     const meteorBaseRadius = window.meteorBaseRadius;
+    const getMeteorCollisionRadius = window.getMeteorCollisionRadius || ((m) => Number(m && m.r) || meteorBaseRadius());
+    const getMeteorRenderScale = window.getMeteorRenderScale || getMeteorCollisionRadius;
     const massFromR = window.massFromR;
     const getWorldViewBounds = window.getWorldViewBounds;
     const ctx = window.ctx;
@@ -128,7 +130,8 @@
       for (let i = 0; i < m.trail.length; i++) {
         const t = m.trail[i];
         const k = (i + 1) / m.trail.length;
-        const rr = m.r * (0.6 + 0.8 * k);
+        const renderR = getMeteorRenderScale(m);
+        const rr = renderR * (0.6 + 0.8 * k);
         ctx.beginPath();
         ctx.fillStyle = `hsl(${m.hue} 90% 70%)`;
         ctx.arc(t.x, t.y, rr, 0, Math.PI * 2);
@@ -138,13 +141,14 @@
 
       ctx.beginPath();
       ctx.fillStyle = `hsl(${m.hue} 90% 70%)`;
-      ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+      const renderR = getMeteorRenderScale(m);
+      ctx.arc(m.x, m.y, renderR, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.globalAlpha = 0.65;
       ctx.beginPath();
       ctx.fillStyle = "white";
-      ctx.arc(m.x - m.r * 0.25, m.y - m.r * 0.25, m.r * 0.25, 0, Math.PI * 2);
+      ctx.arc(m.x - renderR * 0.25, m.y - renderR * 0.25, renderR * 0.25, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = 1;
     }
@@ -238,10 +242,11 @@
         if (World.meteorBounceEnabled) {
           const bounceLoss = 0.92;
           const b = getWorldViewBounds();
-          if (m.x - m.r < b.l) { m.x = b.l + m.r; m.vx = Math.abs(m.vx) * bounceLoss; }
-          if (m.x + m.r > b.r) { m.x = b.r - m.r; m.vx = -Math.abs(m.vx) * bounceLoss; }
-          if (m.y - m.r < b.t) { m.y = b.t + m.r; m.vy = Math.abs(m.vy) * bounceLoss; }
-          if (m.y + m.r > b.b) { m.y = b.b - m.r; m.vy = -Math.abs(m.vy) * bounceLoss; }
+          const collisionR = getMeteorCollisionRadius(m);
+          if (m.x - collisionR < b.l) { m.x = b.l + collisionR; m.vx = Math.abs(m.vx) * bounceLoss; }
+          if (m.x + collisionR > b.r) { m.x = b.r - collisionR; m.vx = -Math.abs(m.vx) * bounceLoss; }
+          if (m.y - collisionR < b.t) { m.y = b.t + collisionR; m.vy = Math.abs(m.vy) * bounceLoss; }
+          if (m.y + collisionR > b.b) { m.y = b.b - collisionR; m.vy = -Math.abs(m.vy) * bounceLoss; }
         }
 
         if (World.epoch === "STAR" && m.isStream) {
@@ -265,9 +270,10 @@
           for (const s of World.stars) {
             const dx = m.x - s.x;
             const dy = m.y - s.y;
-            const rr = s.r + m.r;
+            const collisionR = getMeteorCollisionRadius(m);
+            const rr = s.r + collisionR;
             if (dx * dx + dy * dy <= rr * rr) {
-              s.mass = (s.mass || 0) + massFromR(m.r);
+              s.mass = (s.mass || 0) + massFromR(collisionR);
               window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_DESPAWNED, {
                 objectType: "meteor",
                 reason: "absorbed_by_star",

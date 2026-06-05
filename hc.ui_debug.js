@@ -1062,14 +1062,14 @@
 
     sections.push(renderSection("GLB / Materials", [
       ["materialMode", rendererDiag?.threeMaterialOverrideStatus?.currentMaterialMode || threeMaterials.materialMode || "imported"],
-      ["GLB visual scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
+      ["GLB visual-only scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
       ["GLB depth scale", rendererDiag?.meteorGlbDepthScale ?? getMeteorGlbDepthScaleForUi()],
       ["material audit", rendererDiag?.glbMaterialAuditStatus ? JSON.stringify(rendererDiag.glbMaterialAuditStatus) : "audit idle"],
       ["meteor texture evidence", rendererDiag?.meteorTextureEvidence ? JSON.stringify(rendererDiag.meteorTextureEvidence) : "evidence unavailable"],
       ["modes", "imported / clay_lit / normal_debug / diagnostic_unlit"],
       ["active GLB meshes", rendererDiag?.threeMaterialOverrideStatus?.activeGlbMeshCount ?? 0],
     ], `
-      <label class="overlay-select-row" for="dbgMeteorGlbScale">GLB visual scale <input id="dbgMeteorGlbScale" type="range" min="0.25" max="4" step="0.05" value="${getMeteorGlbVisualScaleForUi()}"><span id="dbgMeteorGlbScaleValue">${getMeteorGlbVisualScaleForUi().toFixed(2)}</span></label>
+      <label class="overlay-select-row" for="dbgMeteorGlbScale">GLB visual-only scale <input id="dbgMeteorGlbScale" type="range" min="0.25" max="4" step="0.05" value="${getMeteorGlbVisualScaleForUi()}"><span id="dbgMeteorGlbScaleValue">${getMeteorGlbVisualScaleForUi().toFixed(2)}</span><small>debug only; collision radius stays on meteorBaseScale</small></label>
       <label class="overlay-select-row" for="dbgMeteorGlbDepthScale">GLB depth scale <input id="dbgMeteorGlbDepthScale" type="range" min="0.25" max="3" step="0.05" value="${getMeteorGlbDepthScaleForUi()}"><span id="dbgMeteorGlbDepthScaleValue">${getMeteorGlbDepthScaleForUi().toFixed(2)}</span></label>
       <label class="overlay-select-row" for="dbgThreeMaterialMode">Material mode <select id="dbgThreeMaterialMode">${materialModeOptions}</select></label>
       <label class="overlay-select-row" for="dbgThreeMaterialDebugEnabled">Material debug log <input id="dbgThreeMaterialDebugEnabled" type="checkbox"${threeMaterials.enabled === true ? " checked" : ""}></label>

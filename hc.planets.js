@@ -9,6 +9,7 @@
     const clamp = (util && util.clamp) || window.clamp;
     const rand = window.rand;
     const meteorBaseRadius = window.meteorBaseRadius;
+    const getMeteorCollisionRadius = window.getMeteorCollisionRadius || ((m) => Number(m && m.r) || meteorBaseRadius());
     const massFromR = window.massFromR;
     const computeGravityFromPlanetRadius = window.computeGravityFromPlanetRadius;
     const computeOmega = window.computeOmega;
@@ -588,7 +589,8 @@
           const dx = m.x - p.x;
           const dy = m.y - p.y;
           const d2 = dx * dx + dy * dy;
-          const collideR = p.r + m.r;
+          const meteorCollisionR = getMeteorCollisionRadius(m);
+          const collideR = p.r + meteorCollisionR;
 
           if (p.isRocky) {
             const currentCount = countSystemOrbitersForRocky(p);
@@ -614,7 +616,7 @@
             }
           }
 
-          const capR = (p.orbitPx || (p.r * 2.4)) + m.r;
+          const capR = (p.orbitPx || (p.r * 2.4)) + meteorCollisionR;
           if (d2 <= capR * capR) {
             const runTimers = window.HC && window.HC.RunTimers;
             const worldActive = runTimers && typeof runTimers.isWorldSlotsActive === "function"
@@ -626,10 +628,10 @@
             }
             meteors.splice(mi, 1);
 
-            const rEff = (typeof m.orbitContributionR === "number") ? m.orbitContributionR : (m.r * 0.5);
+            const rEff = (typeof m.orbitContributionR === "number") ? m.orbitContributionR : (getMeteorCollisionRadius(m) * 0.5);
             p.captureCount = (p.captureCount || 0) + 1;
             p.captureSumR = (p.captureSumR || 0) + rEff;
-            p.captureSumMass = (p.captureSumMass || 0) + massFromR(m.r);
+            p.captureSumMass = (p.captureSumMass || 0) + massFromR(getMeteorCollisionRadius(m));
             if (!p.captureColorCounts) p.captureColorCounts = Object.create(null);
             p.captureColorCounts[m.colorName] = (p.captureColorCounts[m.colorName] || 0) + 1;
 

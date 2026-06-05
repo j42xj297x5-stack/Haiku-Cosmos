@@ -6,6 +6,7 @@
     const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
     const Events = window.Events;
     const spawnAsteroidFromCollision = window.spawnAsteroidFromCollision;
+    const getMeteorCollisionRadius = window.getMeteorCollisionRadius || ((m) => Number(m && m.r) || 0);
 
     function notifyHitColor(colorName, collisionContext = null) {
       const CE = window.CardEngine;
@@ -46,7 +47,9 @@
           const dx = b.x - a.x;
           const dy = b.y - a.y;
           const dist2 = dx * dx + dy * dy;
-          const minDist = (a.r + b.r) * World.meteorCollisionFudge;
+          const radiusA = getMeteorCollisionRadius(a);
+          const radiusB = getMeteorCollisionRadius(b);
+          const minDist = (radiusA + radiusB) * World.meteorCollisionFudge;
 
           if (dist2 <= minDist * minDist) {
 
