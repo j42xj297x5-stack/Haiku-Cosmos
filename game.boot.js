@@ -104,7 +104,7 @@ console.log("[HC] game.boot.js loaded");
   function rand(min, max) { return min + Math.random() * (max - min); }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-  const METEOR_BASE_SCALE = 3;
+  const METEOR_BASE_SCALE = 2;
 
   function meteorBaseScale() {
     const worldScale = Number(window.World?.meteorBaseScale ?? METEOR_BASE_SCALE);

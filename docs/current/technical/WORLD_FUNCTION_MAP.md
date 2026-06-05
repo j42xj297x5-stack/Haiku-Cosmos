@@ -194,7 +194,7 @@
 
 **PARAMS:**
 - Spawny: `World.spawnInterval`, `World.spawnIntervalMul`, `World.maxMeteors`.
-- Bazowa wielkość: `METEOR_BASE_SCALE = 3` / `World.meteorBaseScale`; `meteorBaseRadius()` zawiera ten mnożnik już przy spawnie.
+- Bazowa wielkość: `METEOR_BASE_SCALE = 2` / `World.meteorBaseScale`; `meteorBaseRadius()` zawiera ten mnożnik już przy spawnie.
 - PRG: `World.pointerRadius`, `World.pointerStrength`, `World.pointerGlueDamp`.
 - CardEngine: `engineStats.pointer_*`, `engineStats.meteor_mouse_control`.
 
@@ -217,7 +217,7 @@
 
 **PARAMS:**
 - `World.meteorCollisionFudge` — drobna tolerancja kontaktu; nie jest źródłem bazowego powiększenia meteorów.
-- Kolizje meteor–meteor liczą kontakt jako suma `getMeteorCollisionRadius(...)` obu meteorów, więc bazowy mnożnik 3× rośnie razem z fizycznym promieniem.
+- Kolizje meteor–meteor liczą kontakt jako suma `getMeteorCollisionRadius(...)` obu meteorów, więc bazowy mnożnik 2× rośnie razem z fizycznym promieniem.
 
 **Funkcje kluczowe:**
 - `resolveMeteorCollisionsSafe()`:
@@ -323,7 +323,7 @@
 **Funkcje kluczowe:**
 - `HC.WorldRenderSnapshot.build({ World, Camera, View, ... })` mapuje kolekcje świata do `renderSnapshot.world.*`, w tym `meteors[]` i `asteroids[]` z minimalnymi polami renderowymi.
 - `HC.WorldRenderer.render(renderSnapshot, now, dt)` wybiera `canvas2d` fallback albo `three`.
-- W trybie `three` adapter renderuje meteory i asteroidy wyłącznie ze snapshotu; planety/gwiazdy/PRG pozostają poza Three. Meteory pobierają efektywny rozmiar przez `getMeteorRenderScale(...)`, który jest sprzężony z `getMeteorCollisionRadius(...)` i bazowym `meteorBaseScale = 3`.
+- W trybie `three` adapter renderuje meteory i asteroidy wyłącznie ze snapshotu; planety/gwiazdy/PRG pozostają poza Three. Meteory pobierają efektywny rozmiar przez `getMeteorRenderScale(...)`, który jest sprzężony z `getMeteorCollisionRadius(...)` i bazowym `meteorBaseScale = 2`.
 - GLB pass ładuje aktywne pule `public/glb/` przez `publicAssetPath` / `publicPath`, pokazuje fallback visual podczas `loading`/`failed` i zachowuje Canvas2D jako fallback renderer/overlay. GLB meteory i asteroidy ładują się przez lokalny `GLTFLoader`; custom parser nie jest aktywną ścieżką runtime.
 - GLB cache ma lifecycle `loading` / `ready` / `failed`, przechowuje template per URL i klonuje go na instancje runtime. Po naprawie pipeline materiały GLB pozostają PBR/`MeshStandardMaterial`; `MeshBasicMaterial` nie jest fallbackiem dla obiektów, które mają reagować na światło.
 - Zewnętrzne PNG palety meteorów (`red`, `yellow`) są ładowane osobno przez `THREE.TextureLoader`, cache’owane i losowane stabilnie per instancja dla slotów `map` oraz `emissiveMap`. `green`/`blue` nie mają jeszcze palet i brak palety nie jest błędem.
