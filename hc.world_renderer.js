@@ -121,12 +121,15 @@
     toneExposure: 1.0,
     forceAuditLog: false,
     materialMode: "imported",
-    meteorPngTexturesEnabled: false,
-    redMeteorTexturesEnabled: false,
+    meteorPngTexturesEnabled: true,
+    redMeteorTexturesEnabled: true,
+    yellowMeteorTexturesEnabled: true,
+    meteorTextureEmissiveIntensity: 1.2,
   });
   const THREE_MATERIAL_DEBUG_LIMITS = Object.freeze({
     envIntensity: { min: 0, max: 1.5 },
     toneExposure: { min: 0.5, max: 1.8 },
+    meteorTextureEmissiveIntensity: { min: 0.8, max: 1.6 },
   });
   const THREE_MATERIAL_AUDIT_LOG_LIMIT = 8;
   const THREE_MATERIAL_MODES = Object.freeze(["imported", "standard_test", "normal_debug", "clay_lit", "diagnostic_unlit"]);
@@ -508,6 +511,15 @@
       lastAppliedMapUrl: null,
       lastAppliedEmissiveMapUrl: null,
       lastFallbackReason: null,
+      meteorTextureAssignmentsByColor: {},
+      meteorTextureMapReadyByColor: {},
+      meteorTextureEmissiveReadyByColor: {},
+      meteorTextureLastError: null,
+      meteorTexturePendingApplyCount: 0,
+      meteorTextureInstancesWithExternalMap: 0,
+      meteorTextureInstancesWithExternalEmissiveMap: 0,
+      meteorTextureInstancesSkippedBecauseGlbHadMap: 0,
+      meteorTextureInstancesSkippedBecauseGlbHadEmissiveMap: 0,
     };
   }
 
@@ -536,6 +548,14 @@
     diagnostics.entryColorFieldSamples = [];
     diagnostics.skippedMissingColor = 0;
     diagnostics.skippedUnsupportedColor = 0;
+    diagnostics.meteorTextureAssignmentsByColor = {};
+    diagnostics.meteorTextureMapReadyByColor = {};
+    diagnostics.meteorTextureEmissiveReadyByColor = {};
+    diagnostics.meteorTexturePendingApplyCount = 0;
+    diagnostics.meteorTextureInstancesWithExternalMap = 0;
+    diagnostics.meteorTextureInstancesWithExternalEmissiveMap = 0;
+    diagnostics.meteorTextureInstancesSkippedBecauseGlbHadMap = 0;
+    diagnostics.meteorTextureInstancesSkippedBecauseGlbHadEmissiveMap = 0;
     const cacheStats = getMeteorTextureCacheStats();
     diagnostics.cacheLoading = cacheStats.loading;
     diagnostics.cacheReady = cacheStats.ready;
@@ -586,7 +606,7 @@
     threeState.gltfDebugProbe = createGltfDebugProbeDiagnostics();
     threeState.glbMaterialAuditLogCount = 0;
     threeState.meteorTextureUsage = new Map();
-    threeState.meteorTextureDiagnostics = { enabled: true, applyAttempts: 0, mapApplied: 0, emissiveMapApplied: 0, materialConversions: 0, lastFallbackReason: null };
+    threeState.meteorTextureDiagnostics = createMeteorTextureDiagnostics();
   }
 
   function setMode(nextMode) {
@@ -760,8 +780,10 @@
       toneExposure: clampNumber(merged.toneExposure, THREE_MATERIAL_DEBUG_DEFAULTS.toneExposure, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.min, THREE_MATERIAL_DEBUG_LIMITS.toneExposure.max),
       forceAuditLog: merged.forceAuditLog === true,
       materialMode: isThreeMaterialMode(mode) ? mode : "imported",
-      meteorPngTexturesEnabled: merged.meteorPngTexturesEnabled === true || merged.redMeteorTexturesEnabled === true,
-      redMeteorTexturesEnabled: merged.redMeteorTexturesEnabled === true || merged.meteorPngTexturesEnabled === true,
+      meteorPngTexturesEnabled: merged.meteorPngTexturesEnabled !== false,
+      redMeteorTexturesEnabled: merged.redMeteorTexturesEnabled !== false && merged.meteorPngTexturesEnabled !== false,
+      yellowMeteorTexturesEnabled: merged.yellowMeteorTexturesEnabled !== false && merged.meteorPngTexturesEnabled !== false,
+      meteorTextureEmissiveIntensity: clampNumber(merged.meteorTextureEmissiveIntensity, THREE_MATERIAL_DEBUG_DEFAULTS.meteorTextureEmissiveIntensity, THREE_MATERIAL_DEBUG_LIMITS.meteorTextureEmissiveIntensity.min, THREE_MATERIAL_DEBUG_LIMITS.meteorTextureEmissiveIntensity.max),
     };
   }
 
@@ -776,11 +798,17 @@
     else if (key === "meteorPngTexturesEnabled") {
       next.meteorPngTexturesEnabled = value === true || value === "true" || value === "1";
       next.redMeteorTexturesEnabled = next.meteorPngTexturesEnabled;
+      next.yellowMeteorTexturesEnabled = next.meteorPngTexturesEnabled;
     }
     else if (key === "redMeteorTexturesEnabled") {
       next.redMeteorTexturesEnabled = value === true || value === "true" || value === "1";
-      next.meteorPngTexturesEnabled = next.redMeteorTexturesEnabled;
+      next.meteorPngTexturesEnabled = next.redMeteorTexturesEnabled || next.yellowMeteorTexturesEnabled;
     }
+    else if (key === "yellowMeteorTexturesEnabled") {
+      next.yellowMeteorTexturesEnabled = value === true || value === "true" || value === "1";
+      next.meteorPngTexturesEnabled = next.redMeteorTexturesEnabled || next.yellowMeteorTexturesEnabled;
+    }
+    else if (key === "meteorTextureEmissiveIntensity") next.meteorTextureEmissiveIntensity = clampNumber(value, current.meteorTextureEmissiveIntensity, THREE_MATERIAL_DEBUG_LIMITS.meteorTextureEmissiveIntensity.min, THREE_MATERIAL_DEBUG_LIMITS.meteorTextureEmissiveIntensity.max);
     window.HC = window.HC || {};
     window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
     window.HC.WorldRendererDebug.materials = next;
@@ -1201,10 +1229,11 @@
   }
 
   function resolvePublicAssetPath(path) {
-    const rawPath = String(path || "");
-    if (/^https?:\/\//i.test(rawPath) || rawPath.startsWith("/")) return rawPath;
-    const cleanPath = rawPath.replace(/^\/+/, "");
+    const rawPath = String(path || "").trim();
+    if (!rawPath) return "";
+    if (/^https?:\/\//i.test(rawPath)) return rawPath;
     const helper = window.HC?.publicAssetPath || window.HC?.publicPath;
+    const cleanPath = rawPath.replace(/^\/+/, "");
     if (typeof helper === "function") return helper(cleanPath);
     try { return new URL(cleanPath, getBrowserAssetBaseUrl() || window.location.href).href; }
     catch { return cleanPath; }
@@ -1300,6 +1329,23 @@
     return paths.map((path) => ({ colorKey: normalizedColorKey, kind, path, url: resolvePublicAssetPath(path) }));
   }
 
+  function isMeteorTextureColorEnabled(colorKey, settings = getThreeMaterialSettings()) {
+    const normalizedColorKey = normalizeMeteorColorKey(colorKey);
+    if (settings.meteorPngTexturesEnabled === false) return false;
+    if (normalizedColorKey === "red") return settings.redMeteorTexturesEnabled !== false;
+    if (normalizedColorKey === "yellow") return settings.yellowMeteorTexturesEnabled !== false;
+    return false;
+  }
+
+  function buildMeteorTextureAssignment(colorKey) {
+    const normalizedColorKey = normalizeMeteorColorKey(colorKey);
+    return {
+      colorKey: normalizedColorKey,
+      map: chooseMeteorTexture(normalizedColorKey, "map"),
+      emissiveMap: chooseMeteorTexture(normalizedColorKey, "emissiveMap"),
+    };
+  }
+
   function chooseMeteorTexture(colorKey, kind) {
     const palette = buildMeteorTexturePalette(colorKey, kind);
     if (!palette.length) return null;
@@ -1311,6 +1357,10 @@
     if (threeState.meteorTextureWarnings.has(url)) return;
     threeState.meteorTextureWarnings.add(url);
     if (window.console?.warn) window.console.warn(`[HC.WorldRenderer] Meteor texture fallback for ${url}: ${message}`);
+  }
+
+  function emitMeteorTextureDebugEvent(type, payload = {}) {
+    return emitGlbDebugEvent(type, Object.assign({ assetKind: "meteor_texture" }, payload));
   }
 
   function configureMeteorTexture(THREE, texture, kind) {
@@ -1335,44 +1385,68 @@
 
   function loadMeteorTexture(THREE, assignment) {
     if (!assignment?.url || !THREE?.TextureLoader) return null;
-    let entry = threeState.meteorTextureCache.get(assignment.url);
+    const resolvedUrl = resolvePublicAssetPath(assignment.url || assignment.path);
+    let entry = threeState.meteorTextureCache.get(resolvedUrl);
     if (entry) return entry;
     if (!threeState.textureLoader) threeState.textureLoader = new THREE.TextureLoader();
+    const startedAt = performance.now();
     entry = {
       status: "loading",
-      texture: null,
-      error: null,
-      url: assignment.url,
+      url: resolvedUrl,
+      rawUrl: assignment.url || assignment.path,
       path: assignment.path,
-      name: assignment.path?.split("/").pop() || assignment.url,
-      kind: assignment.kind,
+      name: assignment.path?.split("/").pop() || resolvedUrl,
       colorKey: assignment.colorKey,
+      kind: assignment.kind,
+      texture: null,
+      errorMessage: null,
+      error: null,
+      startedAt,
+      durationMs: null,
       materials: new Set(),
+      promise: null,
     };
-    threeState.meteorTextureCache.set(assignment.url, entry);
+    threeState.meteorTextureCache.set(resolvedUrl, entry);
     threeState.meteorTextureDiagnostics.textureLoadRequests += 1;
-    const texture = threeState.textureLoader.load(
-      assignment.url,
-      (loadedTexture) => {
-        entry.texture = configureMeteorTexture(THREE, loadedTexture || texture, assignment.kind);
-        const image = entry.texture?.image || loadedTexture?.image || null;
+    emitMeteorTextureDebugEvent("world.texture_load_started", { url: resolvedUrl, colorKey: entry.colorKey, kind: entry.kind, status: "loading" });
+    entry.promise = threeState.textureLoader.loadAsync(resolvedUrl)
+      .then((loadedTexture) => {
+        entry.texture = configureMeteorTexture(THREE, loadedTexture, assignment.kind);
+        const image = entry.texture?.image || null;
         entry.imageWidth = Number(image?.naturalWidth || image?.videoWidth || image?.width) || null;
         entry.imageHeight = Number(image?.naturalHeight || image?.videoHeight || image?.height) || null;
+        entry.durationMs = performance.now() - startedAt;
         entry.status = "ready";
         if (entry.texture) entry.texture.needsUpdate = true;
         markMeteorTextureMaterialsForUpdate(entry);
-      },
-      undefined,
-      (error) => {
+        emitMeteorTextureDebugEvent("world.texture_load_ready", { url: resolvedUrl, colorKey: entry.colorKey, kind: entry.kind, status: "ready", durationMs: entry.durationMs, width: entry.imageWidth, height: entry.imageHeight });
+        syncMeteorTexturePalettesForActiveEntries(THREE);
+        return entry.texture;
+      })
+      .catch((error) => {
+        entry.durationMs = performance.now() - startedAt;
         entry.status = "failed";
-        entry.error = error?.message || String(error || "load error");
+        entry.errorMessage = error?.message || String(error || "load error");
+        entry.error = entry.errorMessage;
         threeState.meteorTextureDiagnostics.lastFallbackReason = `texture_failed:${entry.name}`;
+        threeState.meteorTextureDiagnostics.meteorTextureLastError = `${entry.name}: ${entry.errorMessage}`;
         markMeteorTextureMaterialsForUpdate(entry);
-        warnMeteorTextureOnce(assignment.url, entry.error);
-      }
-    );
-    entry.texture = configureMeteorTexture(THREE, texture, assignment.kind);
+        warnMeteorTextureOnce(resolvedUrl, entry.errorMessage);
+        emitMeteorTextureDebugEvent("world.texture_load_failed", { url: resolvedUrl, colorKey: entry.colorKey, kind: entry.kind, status: "failed", durationMs: entry.durationMs, errorMessage: entry.errorMessage });
+        return null;
+      });
     return entry;
+  }
+
+  function preloadMeteorTexturePalettes(THREE) {
+    if (!THREE?.TextureLoader) return;
+    const settings = getThreeMaterialSettings();
+    for (const colorKey of Object.keys(METEOR_TEXTURE_PALETTES)) {
+      if (!isMeteorTextureColorEnabled(colorKey, settings)) continue;
+      for (const kind of ["map", "emissiveMap"]) {
+        buildMeteorTexturePalette(colorKey, kind).forEach((assignment) => loadMeteorTexture(THREE, assignment));
+      }
+    }
   }
 
   function getMeteorTextureCacheStats() {
@@ -1398,6 +1472,10 @@
     return size.width > 0 && size.height > 0;
   }
 
+  function materialHasUsableTexture(texture) {
+    return Boolean(texture && texture.image);
+  }
+
   function countMeteorTextureUsage() {
     const counts = {};
     for (const colorKey of Object.keys(METEOR_TEXTURE_PALETTES)) {
@@ -1413,6 +1491,28 @@
         const path = entry?.meteorTextureAssignments?.[kind]?.path;
         if (path) counts[colorKey][kind][path] = (counts[colorKey][kind][path] || 0) + 1;
       }
+    }
+    return counts;
+  }
+
+  function getMeteorTextureReadinessByColor(kind) {
+    const counts = {};
+    for (const colorKey of Object.keys(METEOR_TEXTURE_PALETTES)) {
+      counts[colorKey] = 0;
+      for (const paletteEntry of buildMeteorTexturePalette(colorKey, kind)) {
+        const cacheEntry = threeState.meteorTextureCache.get(paletteEntry.url);
+        if (cacheEntry?.status === "ready" && materialHasUsableTexture(cacheEntry.texture)) counts[colorKey] += 1;
+      }
+    }
+    return counts;
+  }
+
+  function countMeteorTextureAssignmentsByColor() {
+    const counts = {};
+    for (const colorKey of Object.keys(METEOR_TEXTURE_PALETTES)) counts[colorKey] = 0;
+    for (const entry of threeState.meteorMeshes.values()) {
+      const colorKey = entry?.textureAssignment?.colorKey || entry?.meteorTextureAssignments?.map?.colorKey || null;
+      if (counts[colorKey] != null) counts[colorKey] += 1;
     }
     return counts;
   }
@@ -1442,6 +1542,10 @@
       activeGlbEntriesMissingColor: 0,
       activeGlbEntriesUnsupportedColor: 0,
       activeGlbEntriesEligibleRedYellow: 0,
+      meteorTextureAssignmentsByColor: countMeteorTextureAssignmentsByColor(),
+      meteorTextureMapReadyByColor: getMeteorTextureReadinessByColor("map"),
+      meteorTextureEmissiveReadyByColor: getMeteorTextureReadinessByColor("emissiveMap"),
+      meteorTextureLastError: diagnostics.meteorTextureLastError || null,
     });
     for (const entry of threeState.meteorMeshes.values()) {
       if (!entry?.glb) continue;
@@ -1470,6 +1574,10 @@
         });
       });
     }
+    evidence.meteorTextureAssignmentsByColor = countMeteorTextureAssignmentsByColor();
+    evidence.meteorTextureMapReadyByColor = getMeteorTextureReadinessByColor("map");
+    evidence.meteorTextureEmissiveReadyByColor = getMeteorTextureReadinessByColor("emissiveMap");
+    evidence.meteorTextureLastError = diagnostics.meteorTextureLastError || null;
     evidence.lastFallbackReason = diagnostics.lastFallbackReason || null;
     return evidence;
   }
@@ -1560,43 +1668,64 @@
   }
 
   function applyMeteorTexturesToMaterial(THREE, material, colorKey, mapTextureEntry, emissiveTextureEntry) {
-    if (!material) return { material, changed: false, hasMap: false, hasEmissiveMap: false };
+    if (!material) return { material, changed: false, hasMap: false, hasEmissiveMap: false, skippedImportedMap: false, skippedImportedEmissiveMap: false, appliedMap: false, appliedEmissiveMap: false };
     const config = getMeteorTextureConfig(colorKey);
-    if (!config) return { material, changed: false, hasMap: false, hasEmissiveMap: false };
-    const targetMaterial = ensureMeteorTextureCompatibleMaterial(THREE, material, colorKey) || material;
+    if (!config) return { material, changed: false, hasMap: false, hasEmissiveMap: false, skippedImportedMap: false, skippedImportedEmissiveMap: false, appliedMap: false, appliedEmissiveMap: false };
+    rememberOriginalMeteorMaterialState(material);
+    const hasImportedMap = materialHasUsableTexture(material.map) && !material.userData?.hcMeteorTextureAppliedMapUrl;
+    const hasImportedEmissiveMap = materialHasUsableTexture(material.emissiveMap) && !material.userData?.hcMeteorTextureAppliedEmissiveUrl;
+    const canConvert = !hasImportedMap && !hasImportedEmissiveMap;
+    const targetMaterial = (materialSupportsMeteorEmission(material) || !canConvert) ? material : (ensureMeteorTextureCompatibleMaterial(THREE, material, colorKey) || material);
     rememberOriginalMeteorMaterialState(targetMaterial);
     let changed = targetMaterial !== material;
-    const mapTexture = mapTextureEntry?.status !== "failed" ? mapTextureEntry?.texture : null;
-    const emissiveTexture = emissiveTextureEntry?.status !== "failed" ? emissiveTextureEntry?.texture : null;
-    if (mapTexture && targetMaterial.map !== mapTexture) {
+    let appliedMap = false;
+    let appliedEmissiveMap = false;
+    const mapTexture = mapTextureEntry?.status === "ready" && materialHasUsableTexture(mapTextureEntry?.texture) ? mapTextureEntry.texture : null;
+    const emissiveTexture = emissiveTextureEntry?.status === "ready" && materialHasUsableTexture(emissiveTextureEntry?.texture) ? emissiveTextureEntry.texture : null;
+    const skipMap = materialHasUsableTexture(targetMaterial.map) && targetMaterial.userData?.hcMeteorTextureAppliedMapUrl !== mapTextureEntry?.url;
+    const skipEmissive = materialHasUsableTexture(targetMaterial.emissiveMap) && targetMaterial.userData?.hcMeteorTextureAppliedEmissiveUrl !== emissiveTextureEntry?.url;
+    if (!skipMap && mapTexture && targetMaterial.map !== mapTexture) {
       targetMaterial.map = mapTexture;
       targetMaterial.userData.hcMeteorTextureAppliedMapUrl = mapTextureEntry.url;
       registerMeteorTextureMaterial(mapTextureEntry, targetMaterial);
       changed = true;
+      appliedMap = true;
     }
-    if (emissiveTexture && targetMaterial.emissiveMap !== emissiveTexture) {
+    if (!skipEmissive && emissiveTexture && targetMaterial.emissiveMap !== emissiveTexture) {
       targetMaterial.emissiveMap = emissiveTexture;
       targetMaterial.userData.hcMeteorTextureAppliedEmissiveUrl = emissiveTextureEntry.url;
       registerMeteorTextureMaterial(emissiveTextureEntry, targetMaterial);
       changed = true;
+      appliedEmissiveMap = true;
     }
-    if (targetMaterial.color && config.baseColor != null && targetMaterial.color.getHex?.() !== config.baseColor) {
+    if (targetMaterial.color && config.baseColor != null && targetMaterial.color.getHex?.() !== config.baseColor && (appliedMap || appliedEmissiveMap)) {
       targetMaterial.color.setHex(config.baseColor);
       targetMaterial.userData.hcMeteorTextureBoostBaseColor = `#${config.baseColor.toString(16).padStart(6, "0")}`;
       changed = true;
     }
-    if (targetMaterial.emissive && config.emissiveColor != null && targetMaterial.emissive.getHex?.() !== config.emissiveColor) {
+    if ((appliedEmissiveMap || targetMaterial.userData?.hcMeteorTextureAppliedEmissiveUrl) && targetMaterial.emissive && config.emissiveColor != null && targetMaterial.emissive.getHex?.() !== config.emissiveColor) {
       targetMaterial.emissive.setHex(config.emissiveColor);
       changed = true;
     }
-    if ("emissiveIntensity" in targetMaterial && targetMaterial.emissiveIntensity !== config.emissiveIntensity) {
-      targetMaterial.emissiveIntensity = config.emissiveIntensity;
+    const settings = threeState.materialSettings || getThreeMaterialSettings();
+    const emissiveIntensity = Number.isFinite(settings.meteorTextureEmissiveIntensity) ? settings.meteorTextureEmissiveIntensity : config.emissiveIntensity;
+    if ((appliedEmissiveMap || targetMaterial.userData?.hcMeteorTextureAppliedEmissiveUrl) && "emissiveIntensity" in targetMaterial && targetMaterial.emissiveIntensity !== emissiveIntensity) {
+      targetMaterial.emissiveIntensity = emissiveIntensity;
       changed = true;
     }
-    if ("roughness" in targetMaterial && Number.isFinite(config.roughness) && targetMaterial.roughness !== config.roughness) { targetMaterial.roughness = config.roughness; changed = true; }
-    if ("metalness" in targetMaterial && Number.isFinite(config.metalness) && targetMaterial.metalness !== config.metalness) { targetMaterial.metalness = config.metalness; changed = true; }
+    if ((appliedMap || appliedEmissiveMap) && "roughness" in targetMaterial && Number.isFinite(config.roughness) && targetMaterial.roughness !== config.roughness) { targetMaterial.roughness = config.roughness; changed = true; }
+    if ((appliedMap || appliedEmissiveMap) && "metalness" in targetMaterial && Number.isFinite(config.metalness) && targetMaterial.metalness !== config.metalness) { targetMaterial.metalness = config.metalness; changed = true; }
     if (changed) targetMaterial.needsUpdate = true;
-    return { material: targetMaterial, changed, hasMap: !!targetMaterial.map, hasEmissiveMap: !!targetMaterial.emissiveMap };
+    return {
+      material: targetMaterial,
+      changed,
+      hasMap: !!targetMaterial.map,
+      hasEmissiveMap: !!targetMaterial.emissiveMap,
+      skippedImportedMap: skipMap,
+      skippedImportedEmissiveMap: skipEmissive,
+      appliedMap,
+      appliedEmissiveMap,
+    };
   }
 
   function restoreMeteorTextureStateForEntry(entry) {
@@ -1617,7 +1746,9 @@
   }
 
   function getMeteorTexturePassEnabled(settings) {
-    return settings.meteorPngTexturesEnabled !== false && settings.redMeteorTexturesEnabled !== false && (settings.materialMode || "imported") === "imported";
+    return settings.meteorPngTexturesEnabled !== false
+      && (settings.redMeteorTexturesEnabled !== false || settings.yellowMeteorTexturesEnabled !== false)
+      && (settings.materialMode || "imported") === "imported";
   }
 
   function isObjectInThreeScene(object) {
@@ -1636,6 +1767,8 @@
       selectedEmissiveMapUrl: entry?.meteorTextureAssignments?.emissiveMap?.url || null,
       materialMode: settings?.materialMode || "imported",
       meteorPngTexturesEnabled: getMeteorTexturePassEnabled(settings),
+      redMeteorTexturesEnabled: settings?.redMeteorTexturesEnabled !== false,
+      yellowMeteorTexturesEnabled: settings?.yellowMeteorTexturesEnabled !== false,
     });
   }
 
@@ -1660,8 +1793,10 @@
         if (material?.emissiveMap) coverage.materialSlotsWithEmissiveMap += 1;
         if (textureHasLoadedImage(material?.map)) coverage.materialSlotsWithMapImage += 1;
         if (textureHasLoadedImage(material?.emissiveMap)) coverage.materialSlotsWithEmissiveImage += 1;
-        if (expectedMapUrl && (!material?.map || appliedMapUrl !== expectedMapUrl)) coverage.missingExpectedMap += 1;
-        if (expectedEmissiveUrl && (!material?.emissiveMap || appliedEmissiveUrl !== expectedEmissiveUrl)) coverage.missingExpectedEmissiveMap += 1;
+        if (expectedMapUrl && !materialHasUsableTexture(material?.map)) coverage.missingExpectedMap += 1;
+        if (expectedMapUrl && materialHasUsableTexture(material?.map) && appliedMapUrl && appliedMapUrl !== expectedMapUrl) coverage.missingExpectedMap += 1;
+        if (expectedEmissiveUrl && !materialHasUsableTexture(material?.emissiveMap)) coverage.missingExpectedEmissiveMap += 1;
+        if (expectedEmissiveUrl && materialHasUsableTexture(material?.emissiveMap) && appliedEmissiveUrl && appliedEmissiveUrl !== expectedEmissiveUrl) coverage.missingExpectedEmissiveMap += 1;
       });
     });
     return coverage;
@@ -1681,11 +1816,10 @@
     if (!entry?.glb || entry.meteorTextureApplySignature !== signature) return false;
     const expectedMapUrl = entry?.meteorTextureAssignments?.map?.url || null;
     const expectedEmissiveUrl = entry?.meteorTextureAssignments?.emissiveMap?.url || null;
-    if (!expectedMapUrl || !expectedEmissiveUrl) return false;
     const coverage = getMeteorTextureMaterialCoverage(entry, expectedMapUrl, expectedEmissiveUrl);
     addMeteorTextureCoverageToDiagnostics(coverage);
     if (coverage.materialSlots <= 0) return false;
-    return coverage.missingExpectedMap <= 0 && coverage.missingExpectedEmissiveMap <= 0;
+    return (!expectedMapUrl || coverage.missingExpectedMap <= 0) && (!expectedEmissiveUrl || coverage.missingExpectedEmissiveMap <= 0);
   }
 
   function countMeteorTextureReapplyReason(entry, signature, settings, enabled) {
@@ -1824,17 +1958,18 @@
     diagnostics.materialMode = settings.materialMode || "imported";
     const colorKey = ensureMeteorEntryColorBinding(entry);
     const config = getMeteorTextureConfig(colorKey);
+    const colorEnabled = isMeteorTextureColorEnabled(colorKey, settings);
     const hasColor = !!colorKey && colorKey !== "neutral";
-    const skipReason = config ? null : (hasColor ? "unsupported_color" : "missing_color_key");
+    const skipReason = config ? (colorEnabled ? null : "disabled_color") : (hasColor ? "unsupported_color" : "missing_color_key");
     updateMeteorTextureActiveEntryDiagnostics(entry, colorKey, skipReason);
     if (config) diagnostics.eligibleInstances += 1;
     const signature = buildMeteorTextureApplySignature(entry, colorKey, settings);
-    if (!config || !enabled || !entry.meteorTextureAssignments?.map || !entry.meteorTextureAssignments?.emissiveMap) {
+    if (!config || !enabled || !colorEnabled || !entry.meteorTextureAssignments?.map || !entry.meteorTextureAssignments?.emissiveMap) {
       if (entry.meteorTextureRestorePending || entry.meteorTextureAppliedUrls?.map || entry.meteorTextureAppliedUrls?.emissiveMap) restoreMeteorTextureStateForEntry(entry);
       entry.meteorTextureLastMaterialMode = settings.materialMode || "imported";
       entry.meteorTextureLastToggleEnabled = enabled;
-      entry.meteorTextureStatus = config ? "disabled" : skipReason;
-      diagnostics.lastFallbackReason = !config ? skipReason : "disabled";
+      entry.meteorTextureStatus = config ? (colorEnabled ? "disabled" : "disabled_color") : skipReason;
+      diagnostics.lastFallbackReason = !config ? skipReason : (colorEnabled ? "disabled" : "disabled_color");
       return;
     }
     if (meteorTextureEntryAlreadyCurrent(entry, signature)) {
@@ -1850,14 +1985,17 @@
     const mapEntry = loadMeteorTexture(THREE, entry.meteorTextureAssignments.map);
     const emissiveEntry = loadMeteorTexture(THREE, entry.meteorTextureAssignments.emissiveMap);
     entry.meteorTextureStatus = { map: mapEntry?.status || "unavailable", emissiveMap: emissiveEntry?.status || "unavailable" };
-    if (!mapEntry?.texture && !emissiveEntry?.texture) {
+    if (!mapEntry && !emissiveEntry) {
       diagnostics.lastFallbackReason = "texture_unavailable";
       return;
     }
-    const currentMapUrl = mapEntry?.texture && mapEntry.status !== "failed" ? mapEntry.url : null;
-    const currentEmissiveUrl = emissiveEntry?.texture && emissiveEntry.status !== "failed" ? emissiveEntry.url : null;
+    const currentMapUrl = mapEntry?.status === "ready" && materialHasUsableTexture(mapEntry?.texture) ? mapEntry.url : null;
+    const currentEmissiveUrl = emissiveEntry?.status === "ready" && materialHasUsableTexture(emissiveEntry?.texture) ? emissiveEntry.url : null;
+    if (!currentMapUrl || !currentEmissiveUrl) diagnostics.meteorTexturePendingApplyCount += 1;
     let materialsWithMap = 0;
     let materialsWithEmissiveMap = 0;
+    let mapAppliedToSlot = 0;
+    let emissiveAppliedToSlot = 0;
     entry.glb.traverse?.((object) => {
       if (!object.isMesh) return;
       const inScene = isObjectInThreeScene(object);
@@ -1876,6 +2014,24 @@
           diagnostics.strippedAfterApply += 1;
         }
         const result = applyMeteorTexturesToMaterial(THREE, material, colorKey, mapEntry, emissiveEntry);
+        if (result.skippedImportedMap) {
+          diagnostics.meteorTextureInstancesSkippedBecauseGlbHadMap += 1;
+          material.userData = material.userData || {};
+          if (!material.userData.hcMeteorSkippedImportedMapEvent) {
+            material.userData.hcMeteorSkippedImportedMapEvent = true;
+            emitMeteorTextureDebugEvent("world.meteor_texture_skipped_imported_map", { visualId: entry.visualId, colorKey, url: currentMapUrl, materialName: material?.name || null });
+          }
+        }
+        if (result.skippedImportedEmissiveMap) {
+          diagnostics.meteorTextureInstancesSkippedBecauseGlbHadEmissiveMap += 1;
+          material.userData = material.userData || {};
+          if (!material.userData.hcMeteorSkippedImportedEmissiveEvent) {
+            material.userData.hcMeteorSkippedImportedEmissiveEvent = true;
+            emitMeteorTextureDebugEvent("world.meteor_texture_skipped_imported_emissive", { visualId: entry.visualId, colorKey, url: currentEmissiveUrl, materialName: material?.name || null });
+          }
+        }
+        if (result.appliedMap) mapAppliedToSlot += 1;
+        if (result.appliedEmissiveMap) emissiveAppliedToSlot += 1;
         if (result.hasMap) materialsWithMap += 1;
         if (result.hasEmissiveMap) materialsWithEmissiveMap += 1;
         return result.material || material;
@@ -1883,7 +2039,8 @@
       object.material = Array.isArray(object.material) ? nextMaterials : nextMaterials[0];
     });
     entry.meteorTextureAppliedUrls = { map: currentMapUrl, emissiveMap: currentEmissiveUrl };
-    entry.meteorTextureApplySignature = currentMapUrl && currentEmissiveUrl ? signature : null;
+    const allTextureRequestsSettled = (!mapEntry || mapEntry.status !== "loading") && (!emissiveEntry || emissiveEntry.status !== "loading");
+    entry.meteorTextureApplySignature = (currentMapUrl && currentEmissiveUrl) || allTextureRequestsSettled ? signature : null;
     entry.meteorTextureLastMaterialMode = settings.materialMode || "imported";
     entry.meteorTextureLastToggleEnabled = enabled;
     entry.meteorTextureRestorePending = true;
@@ -1891,8 +2048,8 @@
     entry.root.userData.meteorTextureMapName = currentMapUrl ? mapEntry?.name || null : null;
     entry.root.userData.meteorTextureEmissiveUrl = currentEmissiveUrl;
     entry.root.userData.meteorTextureEmissiveName = currentEmissiveUrl ? emissiveEntry?.name || null : null;
-    if (currentMapUrl) diagnostics.mapApplied += 1;
-    if (currentEmissiveUrl) diagnostics.emissiveMapApplied += 1;
+    if (mapAppliedToSlot > 0) { diagnostics.mapApplied += 1; diagnostics.meteorTextureInstancesWithExternalMap += 1; }
+    if (emissiveAppliedToSlot > 0) { diagnostics.emissiveMapApplied += 1; diagnostics.meteorTextureInstancesWithExternalEmissiveMap += 1; }
     if (materialsWithMap > 0 || materialsWithEmissiveMap > 0) diagnostics.appliedThisFrame += 1;
     diagnostics.lastAppliedColor = colorKey || null;
     diagnostics.lastAppliedMapUrl = currentMapUrl;
@@ -1904,6 +2061,9 @@
       diagnostics.lastFallbackReason = "material_application_empty";
     } else {
       diagnostics.lastFallbackReason = null;
+    }
+    if (mapAppliedToSlot > 0 || emissiveAppliedToSlot > 0) {
+      emitMeteorTextureDebugEvent("world.meteor_texture_applied", { visualId: entry.visualId, colorKey, mapUrl: currentMapUrl, emissiveMapUrl: currentEmissiveUrl, mapSlots: mapAppliedToSlot, emissiveSlots: emissiveAppliedToSlot });
     }
   }
 
@@ -1948,9 +2108,19 @@
       entry.meteorTextureAssignments = entry.meteorTextureAssignments || {};
       if (!entry.meteorTextureAssignments.map) entry.meteorTextureAssignments.map = chooseMeteorTexture(colorKey, "map");
       if (!entry.meteorTextureAssignments.emissiveMap) entry.meteorTextureAssignments.emissiveMap = chooseMeteorTexture(colorKey, "emissiveMap");
+      entry.textureAssignment = {
+        colorKey,
+        mapUrl: entry.meteorTextureAssignments.map?.url || null,
+        emissiveMapUrl: entry.meteorTextureAssignments.emissiveMap?.url || null,
+      };
+      entry.root.userData.meteorTextureAssignment = Object.assign({}, entry.textureAssignment);
+      if (entry.glb?.userData) entry.glb.userData.meteorTextureAssignment = Object.assign({}, entry.textureAssignment);
+      emitMeteorTextureDebugEvent("world.meteor_texture_assigned", { visualId: entry.visualId, colorKey, mapUrl: entry.textureAssignment.mapUrl, emissiveMapUrl: entry.textureAssignment.emissiveMapUrl });
     } else {
       if (entry.meteorTextureRestorePending) restoreMeteorTextureStateForEntry(entry);
       entry.meteorTextureAssignments = null;
+      entry.textureAssignment = null;
+      entry.root.userData.meteorTextureAssignment = null;
       entry.meteorTextureAppliedUrls = { map: null, emissiveMap: null };
       entry.meteorTextureApplySignature = null;
       entry.meteorTextureLastMaterialMode = null;
@@ -3830,6 +4000,7 @@
       createFirstMeteorMarker(THREE);
       refreshGltfLoaderAvailabilityDiagnostics();
       runGltfDebugProbe(THREE);
+      preloadMeteorTexturePalettes(THREE);
       threeState.initialized = true;
       threeState.lastError = null;
       resize();
@@ -4478,15 +4649,29 @@
         yellow: { map: buildMeteorTexturePalette("yellow", "map"), emissiveMap: buildMeteorTexturePalette("yellow", "emissiveMap") },
       },
       meteorTexturePaletteEnabled: getMeteorTexturePassEnabled(getThreeMaterialSettings()),
+      redMeteorTexturePaletteEnabled: isMeteorTextureColorEnabled("red", getThreeMaterialSettings()) && getMeteorTexturePassEnabled(getThreeMaterialSettings()),
+      yellowMeteorTexturePaletteEnabled: isMeteorTextureColorEnabled("yellow", getThreeMaterialSettings()) && getMeteorTexturePassEnabled(getThreeMaterialSettings()),
       meteorTextureCacheStats: getMeteorTextureCacheStats(),
       meteorTextureUsage: countMeteorTextureUsage(),
+      meteorTextureAssignmentsByColor: countMeteorTextureAssignmentsByColor(),
+      meteorTextureMapReadyByColor: getMeteorTextureReadinessByColor("map"),
+      meteorTextureEmissiveReadyByColor: getMeteorTextureReadinessByColor("emissiveMap"),
+      meteorTextureLastError: threeState.meteorTextureDiagnostics?.meteorTextureLastError || null,
+      meteorTexturePendingApplyCount: threeState.meteorTextureDiagnostics?.meteorTexturePendingApplyCount || 0,
+      meteorTextureInstancesWithExternalMap: threeState.meteorTextureDiagnostics?.meteorTextureInstancesWithExternalMap || 0,
+      meteorTextureInstancesWithExternalEmissiveMap: threeState.meteorTextureDiagnostics?.meteorTextureInstancesWithExternalEmissiveMap || 0,
+      meteorTextureInstancesSkippedBecauseGlbHadMap: threeState.meteorTextureDiagnostics?.meteorTextureInstancesSkippedBecauseGlbHadMap || 0,
+      meteorTextureInstancesSkippedBecauseGlbHadEmissiveMap: threeState.meteorTextureDiagnostics?.meteorTextureInstancesSkippedBecauseGlbHadEmissiveMap || 0,
       meteorTextureEvidence: getMeteorTextureEvidence(),
       meteorTextureWarnings: threeState.meteorTextureWarnings.size,
       redMeteorTexturePalette: buildMeteorTexturePalette("red", "map"),
-      redMeteorTexturePaletteEnabled: getMeteorTexturePassEnabled(getThreeMaterialSettings()),
+      redMeteorTexturePaletteEnabled: isMeteorTextureColorEnabled("red", getThreeMaterialSettings()) && getMeteorTexturePassEnabled(getThreeMaterialSettings()),
       redMeteorTextureCacheStats: getMeteorTextureCacheStats(),
       redMeteorTextureUsage: countMeteorTextureUsage()?.red?.map || {},
       redMeteorTextureWarnings: threeState.meteorTextureWarnings.size,
+      yellowMeteorTexturePalette: buildMeteorTexturePalette("yellow", "map"),
+      yellowMeteorTextureCacheStats: getMeteorTextureCacheStats(),
+      yellowMeteorTextureUsage: countMeteorTextureUsage()?.yellow?.map || {},
       glbMaterialAudit: threeState.glbMaterialAudit.slice(-8),
       glbMaterialAuditStatus: getMaterialAuditOverlayStatus(),
       sceneEnvironmentEnabled: !!threeState.scene?.environment,
