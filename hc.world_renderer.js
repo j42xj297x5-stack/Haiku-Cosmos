@@ -25,15 +25,48 @@
   const METEOR_GLB_ROTATION_MIN_SPEED = 0.08;
   const METEOR_GLB_ROTATION_SPEED_RANGES = Object.freeze({ x: 0.9, y: 1.1, z: 0.7 });
   const METEOR_GLB_VARIANTS_PER_COLOR = 5;
-  const RED_METEOR_TEXTURE_PATHS = Object.freeze([
-    "png/texture_meteor_red_01.png",
-    "png/texture_meteor_red_02.png",
-    "png/texture_meteor_red_03.png",
-    "png/texture_meteor_red_04.png",
-    "png/texture_meteor_red_05.png",
-  ]);
-  const RED_METEOR_TEXTURE_ROUGHNESS = 0.86;
-  const RED_METEOR_TEXTURE_METALNESS = 0.04;
+  const METEOR_TEXTURE_PALETTES = Object.freeze({
+    red: Object.freeze({
+      map: Object.freeze([
+        "png/texture_meteor_red_01.png",
+        "png/texture_meteor_red_02.png",
+        "png/texture_meteor_red_03.png",
+        "png/texture_meteor_red_04.png",
+        "png/texture_meteor_red_05.png",
+      ]),
+      emissiveMap: Object.freeze([
+        "png/texture_meteor_red_emission_01.png",
+        "png/texture_meteor_red_emission_02.png",
+        "png/texture_meteor_red_emission_03.png",
+        "png/texture_meteor_red_emission_04.png",
+        "png/texture_meteor_red_emission_05.png",
+      ]),
+      emissiveColor: 0xb72a18,
+      emissiveIntensity: 0.62,
+      roughness: 0.86,
+      metalness: 0.04,
+    }),
+    yellow: Object.freeze({
+      map: Object.freeze([
+        "png/texture_meteor_yellow_01.png",
+        "png/texture_meteor_yellow_02.png",
+        "png/texture_meteor_yellow_03.png",
+        "png/texture_meteor_yellow_04.png",
+        "png/texture_meteor_yellow_05.png",
+      ]),
+      emissiveMap: Object.freeze([
+        "png/texture_meteor_yellow_emission_01.png",
+        "png/texture_meteor_yellow_emission_02.png",
+        "png/texture_meteor_yellow_emission_03.png",
+        "png/texture_meteor_yellow_emission_04.png",
+        "png/texture_meteor_yellow_emission_05.png",
+      ]),
+      emissiveColor: 0xd99021,
+      emissiveIntensity: 0.55,
+      roughness: 0.78,
+      metalness: 0.08,
+    }),
+  });
   const THREE_LIGHTS_DEFAULTS = Object.freeze({
     enabled: true,
     ambientIntensity: 0.0,
@@ -176,9 +209,9 @@
     meteorGlbCache: new Map(),
     meteorGlbWarnings: new Set(),
     textureLoader: null,
-    redMeteorTextureCache: new Map(),
-    redMeteorTextureWarnings: new Set(),
-    redMeteorTextureUsage: new Map(),
+    meteorTextureCache: new Map(),
+    meteorTextureWarnings: new Set(),
+    meteorTextureUsage: new Map(),
     nextMeteorVisualId: 1,
     meteorGlbVariantReassignments: 0,
     meteorGlbInstanceCreates: 0,
@@ -248,7 +281,7 @@
     threeState.meteorGlbInstanceCreates = 0;
     threeState.glbMaterialAudit = [];
     threeState.glbMaterialAuditLogCount = 0;
-    threeState.redMeteorTextureUsage = new Map();
+    threeState.meteorTextureUsage = new Map();
   }
 
   function setMode(nextMode) {
@@ -845,60 +878,67 @@
     catch { return cleanPath; }
   }
 
-  function buildRedMeteorTexturePalette() {
-    return RED_METEOR_TEXTURE_PATHS.map((path) => ({ path, url: resolvePublicAssetPath(path) }));
+  function getMeteorTextureConfig(colorKey) {
+    return METEOR_TEXTURE_PALETTES[colorKey] || null;
   }
 
-  function chooseRedMeteorTexture() {
-    const palette = buildRedMeteorTexturePalette();
+  function buildMeteorTexturePalette(colorKey, kind) {
+    const paths = getMeteorTextureConfig(colorKey)?.[kind] || [];
+    return paths.map((path) => ({ colorKey, kind, path, url: resolvePublicAssetPath(path) }));
+  }
+
+  function chooseMeteorTexture(colorKey, kind) {
+    const palette = buildMeteorTexturePalette(colorKey, kind);
     if (!palette.length) return null;
     const index = Math.floor(Math.random() * palette.length) % palette.length;
     return Object.assign({ index }, palette[index]);
   }
 
-  function warnRedMeteorTextureOnce(url, message) {
-    if (threeState.redMeteorTextureWarnings.has(url)) return;
-    threeState.redMeteorTextureWarnings.add(url);
-    if (window.console?.warn) window.console.warn(`[HC.WorldRenderer] Red meteor texture fallback for ${url}: ${message}`);
+  function warnMeteorTextureOnce(url, message) {
+    if (threeState.meteorTextureWarnings.has(url)) return;
+    threeState.meteorTextureWarnings.add(url);
+    if (window.console?.warn) window.console.warn(`[HC.WorldRenderer] Meteor texture fallback for ${url}: ${message}`);
   }
 
-  function configureRedMeteorTexture(THREE, texture) {
+  function configureMeteorTexture(THREE, texture, kind) {
     if (!texture) return texture;
-    if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
-    else if (THREE.sRGBEncoding) texture.encoding = THREE.sRGBEncoding;
+    const colorSpace = THREE.SRGBColorSpace || null;
+    if (colorSpace && "colorSpace" in texture) texture.colorSpace = colorSpace;
+    else if (THREE.sRGBEncoding && "encoding" in texture) texture.encoding = THREE.sRGBEncoding;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.flipY = false;
+    texture.userData = Object.assign({}, texture.userData, { hcMeteorTextureKind: kind });
     texture.needsUpdate = true;
     return texture;
   }
 
-  function loadRedMeteorTexture(THREE, assignment) {
+  function loadMeteorTexture(THREE, assignment) {
     if (!assignment?.url || !THREE?.TextureLoader) return null;
-    let entry = threeState.redMeteorTextureCache.get(assignment.url);
+    let entry = threeState.meteorTextureCache.get(assignment.url);
     if (entry) return entry;
     if (!threeState.textureLoader) threeState.textureLoader = new THREE.TextureLoader();
-    entry = { status: "loading", texture: null, error: null, url: assignment.url, path: assignment.path, name: assignment.path?.split("/").pop() || assignment.url };
-    threeState.redMeteorTextureCache.set(assignment.url, entry);
+    entry = { status: "loading", texture: null, error: null, url: assignment.url, path: assignment.path, name: assignment.path?.split("/").pop() || assignment.url, kind: assignment.kind, colorKey: assignment.colorKey };
+    threeState.meteorTextureCache.set(assignment.url, entry);
     threeState.textureLoader.load(
       assignment.url,
       (texture) => {
-        entry.texture = configureRedMeteorTexture(THREE, texture);
+        entry.texture = configureMeteorTexture(THREE, texture, assignment.kind);
         entry.status = "ready";
       },
       undefined,
       (error) => {
         entry.status = "failed";
         entry.error = error?.message || String(error || "load error");
-        warnRedMeteorTextureOnce(assignment.url, entry.error);
+        warnMeteorTextureOnce(assignment.url, entry.error);
       }
     );
     return entry;
   }
 
-  function getRedMeteorTextureCacheStats() {
-    const stats = { loading: 0, ready: 0, failed: 0, total: threeState.redMeteorTextureCache.size };
-    for (const entry of threeState.redMeteorTextureCache.values()) {
+  function getMeteorTextureCacheStats() {
+    const stats = { loading: 0, ready: 0, failed: 0, total: threeState.meteorTextureCache.size };
+    for (const entry of threeState.meteorTextureCache.values()) {
       if (entry?.status === "ready") stats.ready += 1;
       else if (entry?.status === "failed") stats.failed += 1;
       else stats.loading += 1;
@@ -906,77 +946,131 @@
     return stats;
   }
 
-  function countRedMeteorTextureUsage() {
+  function countMeteorTextureUsage() {
     const counts = {};
-    for (const paletteEntry of buildRedMeteorTexturePalette()) counts[paletteEntry.path] = 0;
+    for (const colorKey of Object.keys(METEOR_TEXTURE_PALETTES)) {
+      counts[colorKey] = { map: {}, emissiveMap: {} };
+      for (const kind of ["map", "emissiveMap"]) {
+        for (const paletteEntry of buildMeteorTexturePalette(colorKey, kind)) counts[colorKey][kind][paletteEntry.path] = 0;
+      }
+    }
     for (const entry of threeState.meteorMeshes.values()) {
-      const path = entry?.redTextureAssignment?.path;
-      if (entry?.colorKey === "red" && path) counts[path] = (counts[path] || 0) + 1;
+      const colorKey = entry?.colorKey;
+      if (!counts[colorKey]) continue;
+      for (const kind of ["map", "emissiveMap"]) {
+        const path = entry?.meteorTextureAssignments?.[kind]?.path;
+        if (path) counts[colorKey][kind][path] = (counts[colorKey][kind][path] || 0) + 1;
+      }
     }
     return counts;
   }
 
-  function rememberOriginalMaterialMap(material) {
+  function rememberOriginalMeteorMaterialState(material) {
     if (!material) return;
     material.userData = material.userData || {};
-    if (!Object.prototype.hasOwnProperty.call(material.userData, "hcRedMeteorOriginalMap")) {
-      material.userData.hcRedMeteorOriginalMap = material.map || null;
-    }
+    if (!Object.prototype.hasOwnProperty.call(material.userData, "hcMeteorOriginalMap")) material.userData.hcMeteorOriginalMap = material.map || null;
+    if (!Object.prototype.hasOwnProperty.call(material.userData, "hcMeteorOriginalEmissiveMap")) material.userData.hcMeteorOriginalEmissiveMap = material.emissiveMap || null;
+    if (!Object.prototype.hasOwnProperty.call(material.userData, "hcMeteorOriginalEmissive")) material.userData.hcMeteorOriginalEmissive = material.emissive?.clone ? material.emissive.clone() : null;
+    if (!Object.prototype.hasOwnProperty.call(material.userData, "hcMeteorOriginalEmissiveIntensity")) material.userData.hcMeteorOriginalEmissiveIntensity = Number.isFinite(material.emissiveIntensity) ? material.emissiveIntensity : null;
+    if (!Object.prototype.hasOwnProperty.call(material.userData, "hcMeteorOriginalRoughness")) material.userData.hcMeteorOriginalRoughness = Number.isFinite(material.roughness) ? material.roughness : null;
+    if (!Object.prototype.hasOwnProperty.call(material.userData, "hcMeteorOriginalMetalness")) material.userData.hcMeteorOriginalMetalness = Number.isFinite(material.metalness) ? material.metalness : null;
   }
 
-  function restoreRedMeteorMaterialMap(material) {
+  function restoreMeteorMaterialTextures(material) {
     if (!material) return;
-    rememberOriginalMaterialMap(material);
-    const originalMap = material.userData.hcRedMeteorOriginalMap || null;
-    if (material.map !== originalMap || material.userData.hcRedMeteorTextureAppliedUrl) {
-      material.map = originalMap;
-      material.userData.hcRedMeteorTextureAppliedUrl = null;
-      material.needsUpdate = true;
+    rememberOriginalMeteorMaterialState(material);
+    const data = material.userData || {};
+    let changed = false;
+    if (material.map !== (data.hcMeteorOriginalMap || null)) { material.map = data.hcMeteorOriginalMap || null; changed = true; }
+    if (material.emissiveMap !== (data.hcMeteorOriginalEmissiveMap || null)) { material.emissiveMap = data.hcMeteorOriginalEmissiveMap || null; changed = true; }
+    if (material.emissive && data.hcMeteorOriginalEmissive?.isColor && !material.emissive.equals(data.hcMeteorOriginalEmissive)) { material.emissive.copy(data.hcMeteorOriginalEmissive); changed = true; }
+    if (Number.isFinite(data.hcMeteorOriginalEmissiveIntensity) && material.emissiveIntensity !== data.hcMeteorOriginalEmissiveIntensity) { material.emissiveIntensity = data.hcMeteorOriginalEmissiveIntensity; changed = true; }
+    if (Number.isFinite(data.hcMeteorOriginalRoughness) && "roughness" in material && material.roughness !== data.hcMeteorOriginalRoughness) { material.roughness = data.hcMeteorOriginalRoughness; changed = true; }
+    if (Number.isFinite(data.hcMeteorOriginalMetalness) && "metalness" in material && material.metalness !== data.hcMeteorOriginalMetalness) { material.metalness = data.hcMeteorOriginalMetalness; changed = true; }
+    if (data.hcMeteorTextureAppliedMapUrl || data.hcMeteorTextureAppliedEmissiveUrl) {
+      data.hcMeteorTextureAppliedMapUrl = null;
+      data.hcMeteorTextureAppliedEmissiveUrl = null;
+      changed = true;
     }
+    if (changed) material.needsUpdate = true;
   }
 
-  function applyRedMeteorTextureToMaterial(material, texture, textureUrl) {
-    if (!material || !texture) return;
-    rememberOriginalMaterialMap(material);
-    if (material.map !== texture) {
-      material.map = texture;
-      material.needsUpdate = true;
+  function applyMeteorTexturesToMaterial(THREE, material, colorKey, mapTextureEntry, emissiveTextureEntry) {
+    if (!material) return false;
+    const config = getMeteorTextureConfig(colorKey);
+    if (!config) return false;
+    rememberOriginalMeteorMaterialState(material);
+    let changed = false;
+    if (mapTextureEntry?.texture && material.map !== mapTextureEntry.texture) {
+      material.map = mapTextureEntry.texture;
+      material.userData.hcMeteorTextureAppliedMapUrl = mapTextureEntry.url;
+      changed = true;
     }
-    if ("roughness" in material) material.roughness = RED_METEOR_TEXTURE_ROUGHNESS;
-    if ("metalness" in material) material.metalness = RED_METEOR_TEXTURE_METALNESS;
-    material.userData.hcRedMeteorTextureAppliedUrl = textureUrl;
+    if (emissiveTextureEntry?.texture && material.emissiveMap !== emissiveTextureEntry.texture) {
+      material.emissiveMap = emissiveTextureEntry.texture;
+      material.userData.hcMeteorTextureAppliedEmissiveUrl = emissiveTextureEntry.url;
+      changed = true;
+    }
+    if (material.emissive && config.emissiveColor != null) {
+      material.emissive.setHex(config.emissiveColor);
+      changed = true;
+    }
+    if ("emissiveIntensity" in material) {
+      material.emissiveIntensity = config.emissiveIntensity;
+      changed = true;
+    }
+    if ("roughness" in material) material.roughness = config.roughness;
+    if ("metalness" in material) material.metalness = config.metalness;
+    if (changed) material.needsUpdate = true;
+    return changed;
   }
 
-  function syncRedMeteorTexturePaletteForEntry(THREE, entry) {
+  function restoreMeteorTextureStateForEntry(entry) {
     if (!entry?.glb) return;
-    const settings = threeState.materialSettings || getThreeMaterialSettings();
-    const enabled = settings.redMeteorTexturesEnabled !== false && (settings.materialMode || "imported") === "imported";
-    if (entry.colorKey !== "red" || !enabled || !entry.redTextureAssignment) {
-      if (entry.redTextureAppliedUrl || entry.redTextureRestorePending) {
-        entry.glb.traverse?.((object) => {
-          if (!object.isMesh) return;
-          const materials = Array.isArray(object.material) ? object.material : [object.material];
-          const originalMaterials = Array.isArray(object.userData?.hcOriginalMaterial) ? object.userData.hcOriginalMaterial : [object.userData?.hcOriginalMaterial];
-          Array.from(new Set(materials.concat(originalMaterials).filter(Boolean))).forEach(restoreRedMeteorMaterialMap);
-        });
-        entry.redTextureAppliedUrl = null;
-        entry.redTextureRestorePending = false;
-      }
-      return;
-    }
-    const textureEntry = loadRedMeteorTexture(THREE, entry.redTextureAssignment);
-    entry.redTextureStatus = textureEntry?.status || "unavailable";
-    if (textureEntry?.status !== "ready" || !textureEntry.texture) return;
-    if (entry.redTextureAppliedUrl === textureEntry.url) return;
     entry.glb.traverse?.((object) => {
       if (!object.isMesh) return;
       const materials = Array.isArray(object.material) ? object.material : [object.material];
-      materials.forEach((material) => applyRedMeteorTextureToMaterial(material, textureEntry.texture, textureEntry.url));
+      const originalMaterials = Array.isArray(object.userData?.hcOriginalMaterial) ? object.userData.hcOriginalMaterial : [object.userData?.hcOriginalMaterial];
+      Array.from(new Set(materials.concat(originalMaterials).filter(Boolean))).forEach(restoreMeteorMaterialTextures);
     });
-    entry.redTextureAppliedUrl = textureEntry.url;
-    entry.redTextureRestorePending = true;
-    entry.root.userData.redMeteorTextureUrl = textureEntry.url;
-    entry.root.userData.redMeteorTextureName = textureEntry.name;
+    entry.meteorTextureAppliedUrls = { map: null, emissiveMap: null };
+    entry.meteorTextureRestorePending = false;
+    entry.root.userData.meteorTextureMapUrl = null;
+    entry.root.userData.meteorTextureMapName = null;
+    entry.root.userData.meteorTextureEmissiveUrl = null;
+    entry.root.userData.meteorTextureEmissiveName = null;
+  }
+
+  function syncMeteorTexturePaletteForEntry(THREE, entry) {
+    if (!entry?.glb) return;
+    const settings = threeState.materialSettings || getThreeMaterialSettings();
+    const enabled = settings.redMeteorTexturesEnabled !== false && (settings.materialMode || "imported") === "imported";
+    const config = getMeteorTextureConfig(entry.colorKey);
+    if (!config || !enabled || !entry.meteorTextureAssignments?.map || !entry.meteorTextureAssignments?.emissiveMap) {
+      if (entry.meteorTextureRestorePending || entry.meteorTextureAppliedUrls?.map || entry.meteorTextureAppliedUrls?.emissiveMap) restoreMeteorTextureStateForEntry(entry);
+      entry.meteorTextureStatus = config ? "disabled" : "unsupported_color";
+      return;
+    }
+    const mapEntry = loadMeteorTexture(THREE, entry.meteorTextureAssignments.map);
+    const emissiveEntry = loadMeteorTexture(THREE, entry.meteorTextureAssignments.emissiveMap);
+    entry.meteorTextureStatus = { map: mapEntry?.status || "unavailable", emissiveMap: emissiveEntry?.status || "unavailable" };
+    const readyMap = mapEntry?.status === "ready" && mapEntry.texture ? mapEntry : null;
+    const readyEmissive = emissiveEntry?.status === "ready" && emissiveEntry.texture ? emissiveEntry : null;
+    if (!readyMap && !readyEmissive) return;
+    const currentMapUrl = readyMap?.url || entry.meteorTextureAppliedUrls?.map || null;
+    const currentEmissiveUrl = readyEmissive?.url || entry.meteorTextureAppliedUrls?.emissiveMap || null;
+    if (entry.meteorTextureAppliedUrls?.map === currentMapUrl && entry.meteorTextureAppliedUrls?.emissiveMap === currentEmissiveUrl) return;
+    entry.glb.traverse?.((object) => {
+      if (!object.isMesh) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach((material) => applyMeteorTexturesToMaterial(THREE, material, entry.colorKey, readyMap, readyEmissive));
+    });
+    entry.meteorTextureAppliedUrls = { map: currentMapUrl, emissiveMap: currentEmissiveUrl };
+    entry.meteorTextureRestorePending = true;
+    entry.root.userData.meteorTextureMapUrl = currentMapUrl;
+    entry.root.userData.meteorTextureMapName = readyMap?.name || null;
+    entry.root.userData.meteorTextureEmissiveUrl = currentEmissiveUrl;
+    entry.root.userData.meteorTextureEmissiveName = readyEmissive?.name || null;
   }
 
   function chooseMeteorGlbAsset(colorKey, visualId) {
@@ -1008,13 +1102,22 @@
     const previousUrl = entry.assetUrl || null;
     entry.colorKey = colorKey;
     entry.root.userData.colorKey = colorKey;
-    if (colorKey === "red" && !entry.redTextureAssignment) entry.redTextureAssignment = chooseRedMeteorTexture();
-    if (colorKey !== "red") {
-      entry.redTextureAssignment = null;
-      entry.redTextureAppliedUrl = null;
-      entry.redTextureStatus = "disabled";
-      entry.root.userData.redMeteorTextureUrl = null;
-      entry.root.userData.redMeteorTextureName = null;
+    if (getMeteorTextureConfig(colorKey)) {
+      const assignmentColorKey = entry.meteorTextureAssignments?.map?.colorKey || entry.meteorTextureAssignments?.emissiveMap?.colorKey || null;
+      if (assignmentColorKey && assignmentColorKey !== colorKey && entry.meteorTextureRestorePending) restoreMeteorTextureStateForEntry(entry);
+      if (assignmentColorKey !== colorKey) entry.meteorTextureAssignments = null;
+      entry.meteorTextureAssignments = entry.meteorTextureAssignments || {};
+      if (!entry.meteorTextureAssignments.map) entry.meteorTextureAssignments.map = chooseMeteorTexture(colorKey, "map");
+      if (!entry.meteorTextureAssignments.emissiveMap) entry.meteorTextureAssignments.emissiveMap = chooseMeteorTexture(colorKey, "emissiveMap");
+    } else {
+      if (entry.meteorTextureRestorePending) restoreMeteorTextureStateForEntry(entry);
+      entry.meteorTextureAssignments = null;
+      entry.meteorTextureAppliedUrls = { map: null, emissiveMap: null };
+      entry.meteorTextureStatus = "unsupported_color";
+      entry.root.userData.meteorTextureMapUrl = null;
+      entry.root.userData.meteorTextureMapName = null;
+      entry.root.userData.meteorTextureEmissiveUrl = null;
+      entry.root.userData.meteorTextureEmissiveName = null;
     }
     if (!assignment) {
       if (previousUrl) disposeMeteorGlbInstance(entry);
@@ -1826,7 +1929,7 @@
     root.userData.rotationSpeed = rotationState.rotationSpeed;
     root.userData.rotationPhase = rotationState.rotationPhase;
     root.userData.rotationDominantAxis = rotationState.dominantAxis;
-    const entry = { root, fallback, glb: null, visualId, colorKey: null, assetUrl: null, variantIndex: null, glbStatus: "fallback", rotationState, redTextureAssignment: null, redTextureAppliedUrl: null, redTextureStatus: "idle", redTextureRestorePending: false };
+    const entry = { root, fallback, glb: null, visualId, colorKey: null, assetUrl: null, variantIndex: null, glbStatus: "fallback", rotationState, meteorTextureAssignments: null, meteorTextureAppliedUrls: { map: null, emissiveMap: null }, meteorTextureStatus: "idle", meteorTextureRestorePending: false };
     assignMeteorGlbAsset(entry, colorKey);
     return entry;
   }
@@ -1866,11 +1969,11 @@
       entry.glb = cloneMeteorGlbTemplate(cacheEntry.template);
       entry.glb.userData.hcAssetUrl = assetUrl;
       applyDebugMaterialMode(THREE, entry.glb);
-      syncRedMeteorTexturePaletteForEntry(THREE, entry);
+      syncMeteorTexturePaletteForEntry(THREE, entry);
       entry.root.add(entry.glb);
       threeState.meteorGlbInstanceCreates += 1;
     }
-    syncRedMeteorTexturePaletteForEntry(THREE, entry);
+    syncMeteorTexturePaletteForEntry(THREE, entry);
     entry.glbStatus = "ready";
     entry.root.userData.glbStatus = entry.glbStatus;
     entry.fallback.visible = false;
@@ -2080,9 +2183,11 @@
           objectDepthVisibleEstimate: glbDiagnostics?.objectDepthVisibleEstimate ?? null,
           warning: glbDiagnostics?.warning || null,
           glbStatus: visual.glbStatus,
-          redMeteorTextureUrl: visual.redTextureAppliedUrl || visual.redTextureAssignment?.url || null,
-          redMeteorTextureName: visual.redTextureAssignment?.path?.split("/").pop() || null,
-          redMeteorTextureStatus: visual.redTextureStatus || null,
+          meteorTextureMapUrl: visual.meteorTextureAppliedUrls?.map || visual.meteorTextureAssignments?.map?.url || null,
+          meteorTextureMapName: visual.meteorTextureAssignments?.map?.path?.split("/").pop() || null,
+          meteorTextureEmissiveUrl: visual.meteorTextureAppliedUrls?.emissiveMap || visual.meteorTextureAssignments?.emissiveMap?.url || null,
+          meteorTextureEmissiveName: visual.meteorTextureAssignments?.emissiveMap?.path?.split("/").pop() || null,
+          meteorTextureStatus: visual.meteorTextureStatus || null,
         };
       }
     }
@@ -2441,11 +2546,19 @@
       threeLightsLiveControl: true,
       threeMaterialDebugLiveControl: true,
       threeMaterialSettings: Object.assign({}, threeState.materialSettings || getThreeMaterialSettings()),
-      redMeteorTexturePalette: buildRedMeteorTexturePalette(),
+      meteorTexturePalettes: {
+        red: { map: buildMeteorTexturePalette("red", "map"), emissiveMap: buildMeteorTexturePalette("red", "emissiveMap") },
+        yellow: { map: buildMeteorTexturePalette("yellow", "map"), emissiveMap: buildMeteorTexturePalette("yellow", "emissiveMap") },
+      },
+      meteorTexturePaletteEnabled: getThreeMaterialSettings().redMeteorTexturesEnabled !== false,
+      meteorTextureCacheStats: getMeteorTextureCacheStats(),
+      meteorTextureUsage: countMeteorTextureUsage(),
+      meteorTextureWarnings: threeState.meteorTextureWarnings.size,
+      redMeteorTexturePalette: buildMeteorTexturePalette("red", "map"),
       redMeteorTexturePaletteEnabled: getThreeMaterialSettings().redMeteorTexturesEnabled !== false,
-      redMeteorTextureCacheStats: getRedMeteorTextureCacheStats(),
-      redMeteorTextureUsage: countRedMeteorTextureUsage(),
-      redMeteorTextureWarnings: threeState.redMeteorTextureWarnings.size,
+      redMeteorTextureCacheStats: getMeteorTextureCacheStats(),
+      redMeteorTextureUsage: countMeteorTextureUsage()?.red?.map || {},
+      redMeteorTextureWarnings: threeState.meteorTextureWarnings.size,
       glbMaterialAudit: threeState.glbMaterialAudit.slice(-8),
       glbMaterialAuditStatus: getMaterialAuditOverlayStatus(),
       sceneEnvironmentEnabled: !!threeState.scene?.environment,
