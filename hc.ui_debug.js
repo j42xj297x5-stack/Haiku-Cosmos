@@ -207,7 +207,7 @@
 
   function getThreeCameraModelForUi() {
     if (window.HC?.WorldRenderer?.getThreeCameraModel) return window.HC.WorldRenderer.getThreeCameraModel();
-    const model = String(window.HC?.WorldRendererDebug?.cameraModel || window.HC?.Session?.debugConfig?.visual?.cameraModel || "absolute_bounds");
+    const model = String(window.HC?.WorldRendererDebug?.cameraModel || window.HC?.Session?.debugConfig?.visual?.cameraModel || "stage_normalized");
     return model === "stage_normalized" ? model : "absolute_bounds";
   }
 
@@ -640,8 +640,13 @@
           if (target.id === "dbgRendererMode") {
             const nextMode = target.value === "three" ? "three" : "canvas2d";
             window.HC = window.HC || {};
-            const before = window.HC.RENDER_MODE || window.HC?.WorldRenderer?.getMode?.() || "canvas2d";
+            const before = window.HC.RENDER_MODE || window.HC?.WorldRenderer?.getMode?.() || "three";
             window.HC.RENDER_MODE = nextMode;
+            if (window.HC.Session?.debugConfig?.visual) {
+              window.HC.Session.debugConfig.visual.rendererMode = nextMode;
+              window.HC.Session.debugConfig.visual.worldRendererMode = nextMode;
+              window.HC.Session.debugConfig.visual.defaultRenderer = nextMode;
+            }
             if (window.HC.WorldRenderer && typeof window.HC.WorldRenderer.setMode === "function") {
               window.HC.WorldRenderer.setMode(nextMode);
             }
@@ -959,10 +964,10 @@
     const sections = [];
 
     const rendererDiag = window.HC?.WorldRenderer?.getDiagnostics ? window.HC.WorldRenderer.getDiagnostics() : null;
-    const requestedMode = rendererDiag?.requestedMode || window.HC?.RENDER_MODE || "canvas2d";
+    const requestedMode = rendererDiag?.requestedMode || window.HC?.RENDER_MODE || "three";
     const modeOptions = [
-      `<option value="canvas2d"${requestedMode === "canvas2d" ? " selected" : ""}>canvas2d</option>`,
-      `<option value="three"${requestedMode === "three" ? " selected" : ""}>three</option>`,
+      `<option value="three"${requestedMode === "three" ? " selected" : ""}>Three.js — default / recommended</option>`,
+      `<option value="canvas2d"${requestedMode === "canvas2d" ? " selected" : ""}>Canvas2D — legacy mechanics verification / fallback</option>`,
     ].join("");
     const threeLights = getThreeLightsSettingsForUi();
     const threeMaterials = getThreeMaterialSettingsForUi();
@@ -984,7 +989,7 @@
     `;
 
     sections.push(renderSection("Renderer / Scene", [
-      ["renderer mode", `${rendererDiag?.requestedMode || requestedMode} / ${rendererDiag?.effectiveMode || "canvas2d"}`],
+      ["renderer mode", `${rendererDiag?.requestedMode || requestedMode} / ${rendererDiag?.effectiveMode || "three"}`],
       ["cameraModel", rendererDiag?.threeCameraModel || getThreeCameraModelForUi()],
       ["fallback status", rendererDiag?.fallbackUsed ? (rendererDiag?.fallbackReason || "fallback") : "none"],
       ["canvas layer", rendererDiag?.canvasLayerMode || "canvas2d"],
@@ -992,7 +997,7 @@
       ["Three dependency", rendererDiag?.hasThreeDependency ? "yes" : "no"],
       ["Three initialized", rendererDiag?.threeInitialized ? "yes" : "no"],
     ], `
-      <label class="overlay-select-row" for="dbgRendererMode">Renderer: canvas2d / three <select id="dbgRendererMode">${modeOptions}</select></label>
+      <label class="overlay-select-row" for="dbgRendererMode">Renderer <select id="dbgRendererMode">${modeOptions}</select></label>
       <label class="overlay-select-row" for="dbgThreeCameraModel">Camera model
         <select id="dbgThreeCameraModel">
           <option value="absolute_bounds"${getThreeCameraModelForUi() === "absolute_bounds" ? " selected" : ""}>absolute_bounds</option>

@@ -3,6 +3,7 @@
   window.HC = window.HC || {};
 
   const ALLOWED_MODES = { canvas2d: true, three: true };
+  const DEFAULT_RENDER_MODE = "three";
   const THREE_METEOR_RADIUS_SCALE = 1.8;
   const THREE_METEOR_MIN_RADIUS = 2.4;
   const THREE_ASTEROID_MIN_RADIUS = 4.0;
@@ -146,8 +147,8 @@
     green: buildMeteorGlbAssetPool("meteor_green_flow_shard"),
     blue: buildMeteorGlbAssetPool("meteor_blue_silence_crystal"),
   });
-  let requestedMode = "canvas2d";
-  let effectiveMode = "canvas2d";
+  let requestedMode = DEFAULT_RENDER_MODE;
+  let effectiveMode = DEFAULT_RENDER_MODE;
   let initialized = false;
   let fallbackUsed = false;
   let fallbackReason = null;
@@ -574,7 +575,7 @@
     fallbackCalls = 0;
     threeWarned = false;
     threeModeActive = false;
-    effectiveMode = "canvas2d";
+    effectiveMode = requestedMode === "three" ? "three" : "canvas2d";
     threeState.lastError = null;
     threeState.renderCalls = 0;
     threeState.resizeCalls = 0;
@@ -610,7 +611,7 @@
   }
 
   function setMode(nextMode) {
-    requestedMode = ALLOWED_MODES[nextMode] ? nextMode : "canvas2d";
+    requestedMode = ALLOWED_MODES[nextMode] ? nextMode : DEFAULT_RENDER_MODE;
     if (window.HC) window.HC.RENDER_MODE = requestedMode;
     return requestedMode;
   }
@@ -629,7 +630,7 @@
     initialized = true;
     resetDiagnostics();
     const opts = options || {};
-    setMode(opts.mode || (window.HC && window.HC.RENDER_MODE) || "canvas2d");
+    setMode(opts.mode || (window.HC && window.HC.RENDER_MODE) || DEFAULT_RENDER_MODE);
   }
 
   function ensureThreeCanvas() {

@@ -237,6 +237,7 @@
     const initialWorldState = { ...DEFAULT_INITIAL_WORLD_STATE, ...(partial.initialWorldState || {}) };
     const defaultProbe = createDefaultPrgFrameProbeConfig();
     const visualCfg = partial.visual || {};
+    const rendererMode = ["canvas2d", "three"].includes(String(visualCfg.rendererMode || partial.rendererMode)) ? String(visualCfg.rendererMode || partial.rendererMode) : "three";
     const prgProbePartial = visualCfg.prgFrameProbe || {};
     const meteorGlbVisualScale = Number(visualCfg.meteorGlbVisualScale);
     const meteorGlbDepthScale = Number(visualCfg.meteorGlbDepthScale);
@@ -269,6 +270,9 @@
         planetToStar: partial.thresholdOverrides?.planetToStar == null ? null : clampInt(partial.thresholdOverrides.planetToStar, 0),
       },
       visual: {
+        rendererMode,
+        worldRendererMode: rendererMode,
+        defaultRenderer: rendererMode,
         meteorGlbVisualScale: Number.isFinite(meteorGlbVisualScale) ? Math.max(0.25, Math.min(4.0, meteorGlbVisualScale)) : 1.0,
         meteorGlbDepthScale: Number.isFinite(meteorGlbDepthScale) ? Math.max(0.25, Math.min(3.0, meteorGlbDepthScale)) : 1.0,
         cameraModel,
@@ -773,7 +777,7 @@
       return {
         ts: new Date().toISOString(),
         frame: this.frame,
-        renderer: window.HC?.WorldRenderer?.getMode ? window.HC.WorldRenderer.getMode() : (window.HC?.RENDER_MODE || "canvas2d"),
+        renderer: window.HC?.WorldRenderer?.getMode ? window.HC.WorldRenderer.getMode() : (window.HC?.RENDER_MODE || "three"),
         cameraModel: window.HC?.WorldRenderer?.getThreeCameraModel ? window.HC.WorldRenderer.getThreeCameraModel() : (window.HC?.WorldRendererDebug?.cameraModel || null),
         worldCounts: {
           meteors: Array.isArray(World?.meteors) ? World.meteors.length : 0,
@@ -1551,6 +1555,12 @@
       this.sessionId = `s_${new Date().toISOString().replace(/[:.]/g, "-")}`;
       this.debugConfig = createDebugConfig(this.mode, this.mode === "debug" ? runtimeConfig : {});
       this.debugConfig.scenarioLabel = this.scenarioLabel;
+      const configuredRendererMode = this.debugConfig.visual?.rendererMode === "canvas2d" ? "canvas2d" : "three";
+      window.HC = window.HC || {};
+      window.HC.RENDER_MODE = configuredRendererMode;
+      if (window.HC.WorldRenderer && typeof window.HC.WorldRenderer.setMode === "function") {
+        window.HC.WorldRenderer.setMode(configuredRendererMode);
+      }
       const ts = formatSessionTimestamp(new Date());
       const shortId = this.sessionId.slice(-6);
       const scenario = slugifyLabel(this.debugConfig.scenarioLabel || "manual_session");
