@@ -36,11 +36,6 @@
   const RED_METEOR_TEXTURE_METALNESS = 0.04;
   const THREE_LIGHTS_DEFAULTS = Object.freeze({
     enabled: true,
-    legacyCornerLightsEnabled: false,
-    pointIntensity: 0.9,
-    distanceMultiplier: 1.55,
-    decay: 1.35,
-    zOffsetMultiplier: 0.45,
     ambientIntensity: 0.0,
     ambientIsolate: false,
     debugKeyLightEnabled: false,
@@ -62,10 +57,6 @@
     showLightHelpers: false,
   });
   const THREE_LIGHTS_LIMITS = Object.freeze({
-    pointIntensity: { min: 0, max: 2.5 },
-    distanceMultiplier: { min: 0.25, max: 4.0 },
-    decay: { min: 0, max: 3.0 },
-    zOffsetMultiplier: { min: 0.05, max: 2.0 },
     ambientIntensity: { min: 0, max: 0.75 },
     debugKeyLightIntensity: { min: 0, max: 5.0 },
     debugRimLightIntensity: { min: 0, max: 2.5 },
@@ -160,19 +151,17 @@
     asteroidGroup: null,
     lightsGroup: null,
     ambientLight: null,
-    cornerLights: [],
     debugKeyLight: null,
     debugRimLight: null,
     forceHeadlight: null,
-    debugSpotLight: null,
-    debugSpotLightTarget: null,
+    mainStageSpot: null,
+    mainStageSpotTarget: null,
     lightHelpersGroup: null,
     lightHelpers: [],
     lightsSettings: Object.assign({}, THREE_LIGHTS_DEFAULTS),
     materialSettings: Object.assign({}, THREE_MATERIAL_DEBUG_DEFAULTS),
     materialOverrideStatus: { activeGlbObjects: 0, activeGlbMeshCount: 0, meshesUsingCurrentMaterialMode: 0, currentMaterialMode: "imported", lastAppliedFrame: null, lastAppliedAtMs: null, restoredImportedMaterials: 0 },
     lightHelperStatus: { mode: "none", count: 0, visible: false },
-    lightsPositions: [],
     environment: null,
     environmentCanvas: null,
     glbBlobUrls: new Set(),
@@ -369,36 +358,24 @@
     const merged = Object.assign({}, THREE_LIGHTS_DEFAULTS, sessionLights, debugLights);
     return {
       enabled: merged.enabled !== false,
-      legacyCornerLightsEnabled: merged.legacyCornerLightsEnabled === true,
-      pointIntensity: clampNumber(merged.pointIntensity, THREE_LIGHTS_DEFAULTS.pointIntensity, THREE_LIGHTS_LIMITS.pointIntensity.min, THREE_LIGHTS_LIMITS.pointIntensity.max),
-      distanceMultiplier: clampNumber(merged.distanceMultiplier ?? merged.distanceRange, THREE_LIGHTS_DEFAULTS.distanceMultiplier, THREE_LIGHTS_LIMITS.distanceMultiplier.min, THREE_LIGHTS_LIMITS.distanceMultiplier.max),
-      decay: clampNumber(merged.decay, THREE_LIGHTS_DEFAULTS.decay, THREE_LIGHTS_LIMITS.decay.min, THREE_LIGHTS_LIMITS.decay.max),
-      zOffsetMultiplier: clampNumber(merged.zOffsetMultiplier ?? merged.zOffset, THREE_LIGHTS_DEFAULTS.zOffsetMultiplier, THREE_LIGHTS_LIMITS.zOffsetMultiplier.min, THREE_LIGHTS_LIMITS.zOffsetMultiplier.max),
       ambientIntensity: clampNumber(merged.ambientIntensity, THREE_LIGHTS_DEFAULTS.ambientIntensity, THREE_LIGHTS_LIMITS.ambientIntensity.min, THREE_LIGHTS_LIMITS.ambientIntensity.max),
       ambientIsolate: merged.ambientIsolate === true,
       debugKeyLightEnabled: merged.debugKeyLightEnabled === true,
       debugKeyLightIntensity: clampNumber(merged.debugKeyLightIntensity, THREE_LIGHTS_DEFAULTS.debugKeyLightIntensity, THREE_LIGHTS_LIMITS.debugKeyLightIntensity.min, THREE_LIGHTS_LIMITS.debugKeyLightIntensity.max),
-      debugRimLightEnabled: merged.debugRimLightEnabled !== false,
+      debugRimLightEnabled: merged.debugRimLightEnabled === true,
       debugRimLightIntensity: clampNumber(merged.debugRimLightIntensity, THREE_LIGHTS_DEFAULTS.debugRimLightIntensity, THREE_LIGHTS_LIMITS.debugRimLightIntensity.min, THREE_LIGHTS_LIMITS.debugRimLightIntensity.max),
       forceHeadlightEnabled: merged.forceHeadlightEnabled === true,
       forceHeadlightIntensity: clampNumber(merged.forceHeadlightIntensity, THREE_LIGHTS_DEFAULTS.forceHeadlightIntensity, THREE_LIGHTS_LIMITS.forceHeadlightIntensity.min, THREE_LIGHTS_LIMITS.forceHeadlightIntensity.max),
-      mainStageSpotEnabled: (merged.mainStageSpotEnabled ?? merged.debugSpotLightEnabled ?? THREE_LIGHTS_DEFAULTS.mainStageSpotEnabled) !== false,
-      mainStageSpotIntensity: clampNumber(merged.mainStageSpotIntensity ?? merged.debugSpotLightIntensity, THREE_LIGHTS_DEFAULTS.mainStageSpotIntensity, THREE_LIGHTS_LIMITS.mainStageSpotIntensity.min, THREE_LIGHTS_LIMITS.mainStageSpotIntensity.max),
-      mainStageSpotAngle: clampNumber(merged.mainStageSpotAngle ?? merged.debugSpotLightAngle, THREE_LIGHTS_DEFAULTS.mainStageSpotAngle, THREE_LIGHTS_LIMITS.mainStageSpotAngle.min, THREE_LIGHTS_LIMITS.mainStageSpotAngle.max),
-      mainStageSpotPenumbra: clampNumber(merged.mainStageSpotPenumbra ?? merged.debugSpotLightPenumbra, THREE_LIGHTS_DEFAULTS.mainStageSpotPenumbra, THREE_LIGHTS_LIMITS.mainStageSpotPenumbra.min, THREE_LIGHTS_LIMITS.mainStageSpotPenumbra.max),
-      mainStageSpotDistance: clampNumber(merged.mainStageSpotDistance ?? merged.debugSpotLightDistance, THREE_LIGHTS_DEFAULTS.mainStageSpotDistance, THREE_LIGHTS_LIMITS.mainStageSpotDistance.min, THREE_LIGHTS_LIMITS.mainStageSpotDistance.max),
-      mainStageSpotDecay: clampNumber(merged.mainStageSpotDecay ?? merged.debugSpotLightDecay, THREE_LIGHTS_DEFAULTS.mainStageSpotDecay, THREE_LIGHTS_LIMITS.mainStageSpotDecay.min, THREE_LIGHTS_LIMITS.mainStageSpotDecay.max),
+      mainStageSpotEnabled: (merged.mainStageSpotEnabled ?? THREE_LIGHTS_DEFAULTS.mainStageSpotEnabled) !== false,
+      mainStageSpotIntensity: clampNumber(merged.mainStageSpotIntensity, THREE_LIGHTS_DEFAULTS.mainStageSpotIntensity, THREE_LIGHTS_LIMITS.mainStageSpotIntensity.min, THREE_LIGHTS_LIMITS.mainStageSpotIntensity.max),
+      mainStageSpotAngle: clampNumber(merged.mainStageSpotAngle, THREE_LIGHTS_DEFAULTS.mainStageSpotAngle, THREE_LIGHTS_LIMITS.mainStageSpotAngle.min, THREE_LIGHTS_LIMITS.mainStageSpotAngle.max),
+      mainStageSpotPenumbra: clampNumber(merged.mainStageSpotPenumbra, THREE_LIGHTS_DEFAULTS.mainStageSpotPenumbra, THREE_LIGHTS_LIMITS.mainStageSpotPenumbra.min, THREE_LIGHTS_LIMITS.mainStageSpotPenumbra.max),
+      mainStageSpotDistance: clampNumber(merged.mainStageSpotDistance, THREE_LIGHTS_DEFAULTS.mainStageSpotDistance, THREE_LIGHTS_LIMITS.mainStageSpotDistance.min, THREE_LIGHTS_LIMITS.mainStageSpotDistance.max),
+      mainStageSpotDecay: clampNumber(merged.mainStageSpotDecay, THREE_LIGHTS_DEFAULTS.mainStageSpotDecay, THREE_LIGHTS_LIMITS.mainStageSpotDecay.min, THREE_LIGHTS_LIMITS.mainStageSpotDecay.max),
       mainStageSpotXOffset: clampNumber(merged.mainStageSpotXOffset, THREE_LIGHTS_DEFAULTS.mainStageSpotXOffset, THREE_LIGHTS_LIMITS.mainStageSpotXOffset.min, THREE_LIGHTS_LIMITS.mainStageSpotXOffset.max),
       mainStageSpotYOffset: clampNumber(merged.mainStageSpotYOffset, THREE_LIGHTS_DEFAULTS.mainStageSpotYOffset, THREE_LIGHTS_LIMITS.mainStageSpotYOffset.min, THREE_LIGHTS_LIMITS.mainStageSpotYOffset.max),
       mainStageSpotZHeight: clampNumber(merged.mainStageSpotZHeight, THREE_LIGHTS_DEFAULTS.mainStageSpotZHeight, THREE_LIGHTS_LIMITS.mainStageSpotZHeight.min, THREE_LIGHTS_LIMITS.mainStageSpotZHeight.max),
-      mainStageSpotTargetMode: isThreeSpotLightTargetMode(merged.mainStageSpotTargetMode ?? merged.debugSpotLightTargetMode) ? String(merged.mainStageSpotTargetMode ?? merged.debugSpotLightTargetMode) : THREE_LIGHTS_DEFAULTS.mainStageSpotTargetMode,
-      debugSpotLightEnabled: (merged.mainStageSpotEnabled ?? merged.debugSpotLightEnabled ?? THREE_LIGHTS_DEFAULTS.mainStageSpotEnabled) !== false,
-      debugSpotLightIntensity: clampNumber(merged.mainStageSpotIntensity ?? merged.debugSpotLightIntensity, THREE_LIGHTS_DEFAULTS.mainStageSpotIntensity, THREE_LIGHTS_LIMITS.mainStageSpotIntensity.min, THREE_LIGHTS_LIMITS.mainStageSpotIntensity.max),
-      debugSpotLightAngle: clampNumber(merged.mainStageSpotAngle ?? merged.debugSpotLightAngle, THREE_LIGHTS_DEFAULTS.mainStageSpotAngle, THREE_LIGHTS_LIMITS.mainStageSpotAngle.min, THREE_LIGHTS_LIMITS.mainStageSpotAngle.max),
-      debugSpotLightPenumbra: clampNumber(merged.mainStageSpotPenumbra ?? merged.debugSpotLightPenumbra, THREE_LIGHTS_DEFAULTS.mainStageSpotPenumbra, THREE_LIGHTS_LIMITS.mainStageSpotPenumbra.min, THREE_LIGHTS_LIMITS.mainStageSpotPenumbra.max),
-      debugSpotLightDistance: clampNumber(merged.mainStageSpotDistance ?? merged.debugSpotLightDistance, THREE_LIGHTS_DEFAULTS.mainStageSpotDistance, THREE_LIGHTS_LIMITS.mainStageSpotDistance.min, THREE_LIGHTS_LIMITS.mainStageSpotDistance.max),
-      debugSpotLightDecay: clampNumber(merged.mainStageSpotDecay ?? merged.debugSpotLightDecay, THREE_LIGHTS_DEFAULTS.mainStageSpotDecay, THREE_LIGHTS_LIMITS.mainStageSpotDecay.min, THREE_LIGHTS_LIMITS.mainStageSpotDecay.max),
-      debugSpotLightTargetMode: isThreeSpotLightTargetMode(merged.mainStageSpotTargetMode ?? merged.debugSpotLightTargetMode) ? String(merged.mainStageSpotTargetMode ?? merged.debugSpotLightTargetMode) : THREE_LIGHTS_DEFAULTS.mainStageSpotTargetMode,
+      mainStageSpotTargetMode: isThreeSpotLightTargetMode(merged.mainStageSpotTargetMode) ? String(merged.mainStageSpotTargetMode) : THREE_LIGHTS_DEFAULTS.mainStageSpotTargetMode,
       showLightHelpers: merged.showLightHelpers === true,
     };
   }
@@ -407,11 +384,6 @@
     const current = getThreeLightsSettings();
     const next = Object.assign({}, current);
     if (key === "enabled") next.enabled = value !== false && value !== "false" && value !== "0";
-    else if (key === "legacyCornerLightsEnabled") next.legacyCornerLightsEnabled = value === true || value === "true" || value === "1";
-    else if (key === "pointIntensity") next.pointIntensity = clampNumber(value, current.pointIntensity, THREE_LIGHTS_LIMITS.pointIntensity.min, THREE_LIGHTS_LIMITS.pointIntensity.max);
-    else if (key === "distanceMultiplier") next.distanceMultiplier = clampNumber(value, current.distanceMultiplier, THREE_LIGHTS_LIMITS.distanceMultiplier.min, THREE_LIGHTS_LIMITS.distanceMultiplier.max);
-    else if (key === "decay") next.decay = clampNumber(value, current.decay, THREE_LIGHTS_LIMITS.decay.min, THREE_LIGHTS_LIMITS.decay.max);
-    else if (key === "zOffsetMultiplier") next.zOffsetMultiplier = clampNumber(value, current.zOffsetMultiplier, THREE_LIGHTS_LIMITS.zOffsetMultiplier.min, THREE_LIGHTS_LIMITS.zOffsetMultiplier.max);
     else if (key === "ambientIntensity") next.ambientIntensity = clampNumber(value, current.ambientIntensity, THREE_LIGHTS_LIMITS.ambientIntensity.min, THREE_LIGHTS_LIMITS.ambientIntensity.max);
     else if (key === "ambientIsolate") next.ambientIsolate = value === true || value === "true" || value === "1";
     else if (key === "debugKeyLightEnabled") next.debugKeyLightEnabled = value === true || value === "true" || value === "1";
@@ -420,16 +392,16 @@
     else if (key === "debugRimLightIntensity") next.debugRimLightIntensity = clampNumber(value, current.debugRimLightIntensity, THREE_LIGHTS_LIMITS.debugRimLightIntensity.min, THREE_LIGHTS_LIMITS.debugRimLightIntensity.max);
     else if (key === "forceHeadlightEnabled") next.forceHeadlightEnabled = value === true || value === "true" || value === "1";
     else if (key === "forceHeadlightIntensity") next.forceHeadlightIntensity = clampNumber(value, current.forceHeadlightIntensity, THREE_LIGHTS_LIMITS.forceHeadlightIntensity.min, THREE_LIGHTS_LIMITS.forceHeadlightIntensity.max);
-    else if (key === "mainStageSpotEnabled" || key === "debugSpotLightEnabled") next.mainStageSpotEnabled = value === true || value === "true" || value === "1";
-    else if (key === "mainStageSpotIntensity" || key === "debugSpotLightIntensity") next.mainStageSpotIntensity = clampNumber(value, current.mainStageSpotIntensity, THREE_LIGHTS_LIMITS.mainStageSpotIntensity.min, THREE_LIGHTS_LIMITS.mainStageSpotIntensity.max);
-    else if (key === "mainStageSpotAngle" || key === "debugSpotLightAngle") next.mainStageSpotAngle = clampNumber(value, current.mainStageSpotAngle, THREE_LIGHTS_LIMITS.mainStageSpotAngle.min, THREE_LIGHTS_LIMITS.mainStageSpotAngle.max);
-    else if (key === "mainStageSpotPenumbra" || key === "debugSpotLightPenumbra") next.mainStageSpotPenumbra = clampNumber(value, current.mainStageSpotPenumbra, THREE_LIGHTS_LIMITS.mainStageSpotPenumbra.min, THREE_LIGHTS_LIMITS.mainStageSpotPenumbra.max);
-    else if (key === "mainStageSpotDistance" || key === "debugSpotLightDistance") next.mainStageSpotDistance = clampNumber(value, current.mainStageSpotDistance, THREE_LIGHTS_LIMITS.mainStageSpotDistance.min, THREE_LIGHTS_LIMITS.mainStageSpotDistance.max);
-    else if (key === "mainStageSpotDecay" || key === "debugSpotLightDecay") next.mainStageSpotDecay = clampNumber(value, current.mainStageSpotDecay, THREE_LIGHTS_LIMITS.mainStageSpotDecay.min, THREE_LIGHTS_LIMITS.mainStageSpotDecay.max);
+    else if (key === "mainStageSpotEnabled") next.mainStageSpotEnabled = value === true || value === "true" || value === "1";
+    else if (key === "mainStageSpotIntensity") next.mainStageSpotIntensity = clampNumber(value, current.mainStageSpotIntensity, THREE_LIGHTS_LIMITS.mainStageSpotIntensity.min, THREE_LIGHTS_LIMITS.mainStageSpotIntensity.max);
+    else if (key === "mainStageSpotAngle") next.mainStageSpotAngle = clampNumber(value, current.mainStageSpotAngle, THREE_LIGHTS_LIMITS.mainStageSpotAngle.min, THREE_LIGHTS_LIMITS.mainStageSpotAngle.max);
+    else if (key === "mainStageSpotPenumbra") next.mainStageSpotPenumbra = clampNumber(value, current.mainStageSpotPenumbra, THREE_LIGHTS_LIMITS.mainStageSpotPenumbra.min, THREE_LIGHTS_LIMITS.mainStageSpotPenumbra.max);
+    else if (key === "mainStageSpotDistance") next.mainStageSpotDistance = clampNumber(value, current.mainStageSpotDistance, THREE_LIGHTS_LIMITS.mainStageSpotDistance.min, THREE_LIGHTS_LIMITS.mainStageSpotDistance.max);
+    else if (key === "mainStageSpotDecay") next.mainStageSpotDecay = clampNumber(value, current.mainStageSpotDecay, THREE_LIGHTS_LIMITS.mainStageSpotDecay.min, THREE_LIGHTS_LIMITS.mainStageSpotDecay.max);
     else if (key === "mainStageSpotXOffset") next.mainStageSpotXOffset = clampNumber(value, current.mainStageSpotXOffset, THREE_LIGHTS_LIMITS.mainStageSpotXOffset.min, THREE_LIGHTS_LIMITS.mainStageSpotXOffset.max);
     else if (key === "mainStageSpotYOffset") next.mainStageSpotYOffset = clampNumber(value, current.mainStageSpotYOffset, THREE_LIGHTS_LIMITS.mainStageSpotYOffset.min, THREE_LIGHTS_LIMITS.mainStageSpotYOffset.max);
     else if (key === "mainStageSpotZHeight") next.mainStageSpotZHeight = clampNumber(value, current.mainStageSpotZHeight, THREE_LIGHTS_LIMITS.mainStageSpotZHeight.min, THREE_LIGHTS_LIMITS.mainStageSpotZHeight.max);
-    else if (key === "mainStageSpotTargetMode" || key === "debugSpotLightTargetMode") next.mainStageSpotTargetMode = isThreeSpotLightTargetMode(value) ? String(value) : current.mainStageSpotTargetMode;
+    else if (key === "mainStageSpotTargetMode") next.mainStageSpotTargetMode = isThreeSpotLightTargetMode(value) ? String(value) : current.mainStageSpotTargetMode;
     else if (key === "showLightHelpers") next.showLightHelpers = value === true || value === "true" || value === "1";
     window.HC = window.HC || {};
     window.HC.WorldRendererDebug = window.HC.WorldRendererDebug || {};
@@ -479,14 +451,6 @@
     lightsGroup.name = "hc_three_stage_lighting";
     const ambientLight = new THREE.AmbientLight(0xffffff, THREE_LIGHTS_DEFAULTS.ambientIntensity);
     ambientLight.name = "hc_three_fill_ambient";
-    const lightColors = [0xfff3df, 0xe8f1ff, 0xdff7ff, 0xffead6];
-    const cornerLights = lightColors.map((color, index) => {
-      const light = new THREE.PointLight(color, 0, 1, THREE_LIGHTS_DEFAULTS.decay);
-      light.name = ["hc_legacy_corner_light_top_left", "hc_legacy_corner_light_top_right", "hc_legacy_corner_light_bottom_left", "hc_legacy_corner_light_bottom_right"][index];
-      light.castShadow = false;
-      light.visible = false;
-      return light;
-    });
     const debugKeyLight = new THREE.PointLight(0xfff0d8, THREE_LIGHTS_DEFAULTS.debugKeyLightIntensity, 1, 1.05);
     debugKeyLight.name = "hc_debug_key_light_front_left_top";
     debugKeyLight.castShadow = false;
@@ -499,22 +463,21 @@
     forceHeadlight.name = "hc_debug_force_headlight_camera_center";
     forceHeadlight.castShadow = false;
     forceHeadlight.visible = false;
-    const debugSpotLightTarget = new THREE.Object3D();
-    debugSpotLightTarget.name = "hc_main_stage_spot_target";
-    debugSpotLightTarget.position.set(0, 0, 0);
-    const debugSpotLight = new THREE.SpotLight(0xffffff, THREE_LIGHTS_DEFAULTS.mainStageSpotIntensity, THREE_LIGHTS_DEFAULTS.mainStageSpotDistance, THREE_LIGHTS_DEFAULTS.mainStageSpotAngle, THREE_LIGHTS_DEFAULTS.mainStageSpotPenumbra, THREE_LIGHTS_DEFAULTS.mainStageSpotDecay);
-    debugSpotLight.name = "hc_main_stage_spot";
-    debugSpotLight.castShadow = false;
-    debugSpotLight.visible = true;
-    debugSpotLight.target = debugSpotLightTarget;
+    const mainStageSpotTarget = new THREE.Object3D();
+    mainStageSpotTarget.name = "hc_main_stage_spot_target";
+    mainStageSpotTarget.position.set(0, 0, 0);
+    const mainStageSpot = new THREE.SpotLight(0xffffff, THREE_LIGHTS_DEFAULTS.mainStageSpotIntensity, THREE_LIGHTS_DEFAULTS.mainStageSpotDistance, THREE_LIGHTS_DEFAULTS.mainStageSpotAngle, THREE_LIGHTS_DEFAULTS.mainStageSpotPenumbra, THREE_LIGHTS_DEFAULTS.mainStageSpotDecay);
+    mainStageSpot.name = "hc_main_stage_spot";
+    mainStageSpot.castShadow = false;
+    mainStageSpot.visible = true;
+    mainStageSpot.target = mainStageSpotTarget;
     lightsGroup.add(ambientLight);
-    cornerLights.forEach((light) => lightsGroup.add(light));
     lightsGroup.add(debugKeyLight);
     lightsGroup.add(debugRimLight);
     lightsGroup.add(forceHeadlight);
-    lightsGroup.add(debugSpotLightTarget);
-    lightsGroup.add(debugSpotLight);
-    Object.assign(threeState, { lightsGroup, ambientLight, cornerLights, debugKeyLight, debugRimLight, forceHeadlight, debugSpotLight, debugSpotLightTarget });
+    lightsGroup.add(mainStageSpotTarget);
+    lightsGroup.add(mainStageSpot);
+    Object.assign(threeState, { lightsGroup, ambientLight, debugKeyLight, debugRimLight, forceHeadlight, mainStageSpot, mainStageSpotTarget });
     return lightsGroup;
   }
 
@@ -603,13 +566,10 @@
 
   function getAllDiagnosticLights() {
     const entries = [];
-    const names = ["topLeft", "topRight", "bottomLeft", "bottomRight"];
-    const colors = [0xfff3df, 0xe8f1ff, 0xdff7ff, 0xffead6];
-    (threeState.cornerLights || []).forEach((light, index) => entries.push({ name: names[index] || `corner${index}`, light, color: colors[index] || 0xffffff, role: "corner" }));
     if (threeState.debugKeyLight) entries.push({ name: "debugKey", light: threeState.debugKeyLight, color: 0xfff0d8, role: "debug_key" });
     if (threeState.debugRimLight) entries.push({ name: "debugRim", light: threeState.debugRimLight, color: 0xcfe2ff, role: "debug_rim" });
     if (threeState.forceHeadlight) entries.push({ name: "forceHeadlight", light: threeState.forceHeadlight, color: 0xffffff, role: "force_headlight" });
-    if (threeState.debugSpotLight) entries.push({ name: "mainStageSpot", light: threeState.debugSpotLight, target: threeState.debugSpotLightTarget, color: 0xffffff, role: "main_stage_spot" });
+    if (threeState.mainStageSpot) entries.push({ name: "mainStageSpot", light: threeState.mainStageSpot, target: threeState.mainStageSpotTarget, color: 0xffffff, role: "main_stage_spot" });
     return entries;
   }
 
@@ -627,37 +587,17 @@
   }
 
   function syncThreeLights() {
-    if (!threeState.ambientLight || !Array.isArray(threeState.cornerLights)) return;
+    if (!threeState.ambientLight) return;
     const settings = getThreeLightsSettings();
     threeState.lightsSettings = settings;
     const bounds = threeState.cameraBounds || { left: 0, right: 1, top: 0, bottom: 1, cx: 0.5, cy: 0.5 };
     const width = Math.max(1, Math.abs(bounds.right - bounds.left));
     const height = Math.max(1, Math.abs(bounds.bottom - bounds.top));
     const maxDim = Math.max(width, height);
-    const z = Math.max(12, height * settings.zOffsetMultiplier);
-    const distance = Math.max(maxDim, maxDim * settings.distanceMultiplier);
-    const marginX = width * 0.08;
-    const marginY = height * 0.08;
-    const positions = [
-      { name: "topLeft", x: bounds.left + marginX, y: bounds.top + marginY, z },
-      { name: "topRight", x: bounds.right - marginX, y: bounds.top + marginY, z },
-      { name: "bottomLeft", x: bounds.left + marginX, y: bounds.bottom - marginY, z },
-      { name: "bottomRight", x: bounds.right - marginX, y: bounds.bottom - marginY, z },
-    ];
     const effectiveAmbient = settings.ambientIsolate ? 0 : settings.ambientIntensity;
     threeState.ambientLight.intensity = settings.enabled ? effectiveAmbient : 0;
     threeState.ambientLight.visible = settings.enabled && effectiveAmbient > 0;
-    threeState.lightsPositions = positions;
-    threeState.cornerLights.forEach((light, index) => {
-      const pos = positions[index];
-      if (!light || !pos) return;
-      light.position.set(pos.x, pos.y, pos.z);
-      light.intensity = settings.enabled && settings.legacyCornerLightsEnabled ? settings.pointIntensity : 0;
-      light.distance = distance;
-      light.decay = settings.decay;
-      light.visible = settings.enabled && settings.legacyCornerLightsEnabled && settings.pointIntensity > 0;
-    });
-    const debugKeyDistance = Math.max(maxDim, maxDim * Math.max(1.1, settings.distanceMultiplier));
+    const debugKeyDistance = Math.max(maxDim, maxDim * 1.1);
     if (threeState.debugKeyLight) {
       threeState.debugKeyLight.position.set(bounds.left + width * 0.28, bounds.top + height * 0.22, Math.max(18, height * 0.72));
       threeState.debugKeyLight.intensity = settings.debugKeyLightEnabled ? settings.debugKeyLightIntensity : 0;
@@ -683,24 +623,24 @@
     const spotTargetX = spotTargetObject?.position ? spotTargetObject.position.x : bounds.cx;
     const spotTargetY = spotTargetObject?.position ? spotTargetObject.position.y : bounds.cy;
     const spotTargetZ = spotTargetObject?.position ? spotTargetObject.position.z : 0;
-    if (threeState.debugSpotLightTarget) {
-      threeState.debugSpotLightTarget.position.set(spotTargetX, spotTargetY, spotTargetZ);
-      threeState.debugSpotLightTarget.updateMatrixWorld?.();
+    if (threeState.mainStageSpotTarget) {
+      threeState.mainStageSpotTarget.position.set(spotTargetX, spotTargetY, spotTargetZ);
+      threeState.mainStageSpotTarget.updateMatrixWorld?.();
     }
-    if (threeState.debugSpotLight) {
-      threeState.debugSpotLight.position.set(
+    if (threeState.mainStageSpot) {
+      threeState.mainStageSpot.position.set(
         bounds.cx + width * settings.mainStageSpotXOffset,
         bounds.cy + height * settings.mainStageSpotYOffset,
         Math.max(24, height * settings.mainStageSpotZHeight)
       );
-      threeState.debugSpotLight.intensity = settings.mainStageSpotEnabled ? settings.mainStageSpotIntensity : 0;
-      threeState.debugSpotLight.angle = settings.mainStageSpotAngle;
-      threeState.debugSpotLight.penumbra = settings.mainStageSpotPenumbra;
-      threeState.debugSpotLight.distance = settings.mainStageSpotDistance;
-      threeState.debugSpotLight.decay = settings.mainStageSpotDecay;
-      threeState.debugSpotLight.castShadow = false;
-      threeState.debugSpotLight.visible = settings.mainStageSpotEnabled && settings.mainStageSpotIntensity > 0;
-      if (threeState.debugSpotLightTarget) threeState.debugSpotLight.target = threeState.debugSpotLightTarget;
+      threeState.mainStageSpot.intensity = settings.mainStageSpotEnabled ? settings.mainStageSpotIntensity : 0;
+      threeState.mainStageSpot.angle = settings.mainStageSpotAngle;
+      threeState.mainStageSpot.penumbra = settings.mainStageSpotPenumbra;
+      threeState.mainStageSpot.distance = settings.mainStageSpotDistance;
+      threeState.mainStageSpot.decay = settings.mainStageSpotDecay;
+      threeState.mainStageSpot.castShadow = false;
+      threeState.mainStageSpot.visible = settings.mainStageSpotEnabled && settings.mainStageSpotIntensity > 0;
+      if (threeState.mainStageSpotTarget) threeState.mainStageSpot.target = threeState.mainStageSpotTarget;
     }
     syncLightHelpers();
   }
@@ -2020,7 +1960,7 @@
       const asteroidGroup = new THREE.Group();
       const lightsGroup = createThreeLights(THREE);
       scene.add(lightsGroup);
-      if (threeState.debugSpotLightTarget) scene.add(threeState.debugSpotLightTarget);
+      if (threeState.mainStageSpotTarget) scene.add(threeState.mainStageSpotTarget);
       scene.add(asteroidGroup);
       scene.add(meteorGroup);
       scene.background = new THREE.Color(0x05070a);
@@ -2205,7 +2145,7 @@
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
     if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, lightsGroup: null, ambientLight: null, cornerLights: [], debugKeyLight: null, debugRimLight: null, forceHeadlight: null, debugSpotLight: null, debugSpotLightTarget: null, lightHelpersGroup: null, lightHelpers: [], lightsPositions: [], meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -2416,17 +2356,12 @@
       rimEnabled: !!(settings.debugKeyLightEnabled && settings.debugRimLightEnabled),
       headlightEnabled: !!settings.forceHeadlightEnabled,
       lights: lightEntries,
-      cornerLights: lightEntries.filter((entry) => entry.role === "corner"),
       debugKeyLight: lightEntries.find((entry) => entry.role === "debug_key") || null,
       debugRimLight: lightEntries.find((entry) => entry.role === "debug_rim") || null,
       forceHeadlight: lightEntries.find((entry) => entry.role === "force_headlight") || null,
       mainStageSpot: lightEntries.find((entry) => entry.role === "main_stage_spot") || null,
-      debugSpotLight: lightEntries.find((entry) => entry.role === "main_stage_spot") || null,
       mainStageSpotTargetMode: settings.mainStageSpotTargetMode || "center",
-      debugSpotLightTargetMode: settings.mainStageSpotTargetMode || "center",
-      legacyCornerLightsEnabled: !!settings.legacyCornerLightsEnabled,
-      legacyCornerLightsAffectScene: !!(settings.enabled && settings.legacyCornerLightsEnabled && settings.pointIntensity > 0),
-      debugSpotLightHelperVisible: !!threeState.lightHelpers.find((entry) => entry.name === "mainStageSpot" && entry.mode === "spotLightHelper" && entry.helper?.visible),
+      mainStageSpotHelperVisible: !!threeState.lightHelpers.find((entry) => entry.name === "mainStageSpot" && entry.mode === "spotLightHelper" && entry.helper?.visible),
       sampleObjectProjected: threeState.firstMeteorScreenEstimate || null,
       sampleObjectFrustumVisible: threeState.firstMeteorInCameraBounds == null ? null : !!threeState.firstMeteorInCameraBounds,
     };
@@ -2450,6 +2385,22 @@
     const gameCanvasDiag = getGameCanvasDiagnostics();
     const layerProbe = getLayerProbe();
     const canvasLayerMode = effectiveMode === "three" ? "three_with_transparent_2d_overlay" : "canvas2d";
+    const lightSettings = threeState.lightsSettings || getThreeLightsSettings();
+    const lightDiagnostics = getLightDistanceDiagnostics();
+    const mainStageSpotSnapshot = {
+      enabled: !!lightSettings.mainStageSpotEnabled,
+      intensity: roundDiagnosticNumber(threeState.mainStageSpot?.intensity),
+      angle: roundDiagnosticNumber(threeState.mainStageSpot?.angle),
+      penumbra: roundDiagnosticNumber(threeState.mainStageSpot?.penumbra),
+      distance: roundDiagnosticNumber(threeState.mainStageSpot?.distance),
+      decay: roundDiagnosticNumber(threeState.mainStageSpot?.decay),
+      position: vectorToDiagnostic(threeState.mainStageSpot?.position),
+      targetPosition: vectorToDiagnostic(threeState.mainStageSpotTarget?.position),
+      targetMode: lightSettings.mainStageSpotTargetMode || "center",
+      helperVisible: !!threeState.lightHelpers.find((entry) => entry.name === "mainStageSpot" && entry.mode === "spotLightHelper" && entry.helper?.visible),
+      targetInScene: !!threeState.mainStageSpotTarget?.parent,
+      castShadow: !!threeState.mainStageSpot?.castShadow,
+    };
     return {
       requestedMode, effectiveMode, mode: effectiveMode, fallbackUsed, fallbackReason, lastError, initialized, renderCalls, fallbackCalls, snapshotVersion: "1",
       hasThreeImplementation: true, hasThreeDependency: !!threeState.hasDependency, threeDependencySource, threeBridgeVersion: window.HC_THREE_BRIDGE_VERSION || null,
@@ -2487,35 +2438,21 @@
       rendererToneMapping: threeState.renderer?.toneMapping ?? null,
       rendererToneMappingExposure: threeState.renderer?.toneMappingExposure ?? null,
       threeLights: Object.assign({}, threeState.lightsSettings || getThreeLightsSettings()),
-      threeLightPositions: Array.isArray(threeState.lightsPositions) ? threeState.lightsPositions.map((pos) => Object.assign({}, pos)) : [],
-      legacyCornerLights: {
-        enabled: !!(threeState.lightsSettings || getThreeLightsSettings()).legacyCornerLightsEnabled,
-        affectScene: !!((threeState.lightsSettings || getThreeLightsSettings()).enabled && (threeState.lightsSettings || getThreeLightsSettings()).legacyCornerLightsEnabled && (threeState.lightsSettings || getThreeLightsSettings()).pointIntensity > 0),
-        count: Array.isArray(threeState.cornerLights) ? threeState.cornerLights.length : 0,
-      },
-      mainStageSpot: {
-        enabled: !!(threeState.lightsSettings || getThreeLightsSettings()).mainStageSpotEnabled,
-        intensity: roundDiagnosticNumber(threeState.debugSpotLight?.intensity),
-        angle: roundDiagnosticNumber(threeState.debugSpotLight?.angle),
-        penumbra: roundDiagnosticNumber(threeState.debugSpotLight?.penumbra),
-        distance: roundDiagnosticNumber(threeState.debugSpotLight?.distance),
-        decay: roundDiagnosticNumber(threeState.debugSpotLight?.decay),
-        position: vectorToDiagnostic(threeState.debugSpotLight?.position),
-        targetPosition: vectorToDiagnostic(threeState.debugSpotLightTarget?.position),
-        targetMode: (threeState.lightsSettings || getThreeLightsSettings()).mainStageSpotTargetMode || "center",
-        helperVisible: !!threeState.lightHelpers.find((entry) => entry.name === "mainStageSpot" && entry.mode === "spotLightHelper" && entry.helper?.visible),
-        targetInScene: !!threeState.debugSpotLightTarget?.parent,
-        castShadow: !!threeState.debugSpotLight?.castShadow,
-      },
-      debugSpotLight: threeState.debugSpotLight ? {
-        enabled: !!(threeState.lightsSettings || getThreeLightsSettings()).mainStageSpotEnabled,
-        targetMode: (threeState.lightsSettings || getThreeLightsSettings()).mainStageSpotTargetMode || "center",
-        castShadow: !!threeState.debugSpotLight.castShadow,
-      } : null,
-      threeLightDiagnostics: getLightDistanceDiagnostics(),
-      threeLightHelpers: { globalEnabled: getGlobalHelpersEnabled(), enabled: !!(threeState.lightsSettings || getThreeLightsSettings()).showLightHelpers, visible: !!threeState.lightHelpersGroup?.visible, count: threeState.lightHelpers.length, mode: threeState.lightHelperStatus?.mode || "none" },
+      mainStageSpot: mainStageSpotSnapshot,
+      threeLightDiagnostics: lightDiagnostics,
+      threeLightHelpers: { globalEnabled: getGlobalHelpersEnabled(), enabled: !!lightSettings.showLightHelpers, visible: !!threeState.lightHelpersGroup?.visible, count: threeState.lightHelpers.length, mode: threeState.lightHelperStatus?.mode || "none" },
       threeMaterialOverrideStatus: Object.assign({}, threeState.materialOverrideStatus),
-      threeLightCount: Array.isArray(threeState.cornerLights) ? threeState.cornerLights.length : 0,
+      threeLightCount: getAllDiagnosticLights().length,
+      lightingModelVersion: "stage_spot_v1",
+      removedLegacyCornerLights: true,
+      stageLighting: {
+        enabled: !!lightSettings.enabled,
+        model: "stage_spot",
+        lightingModelVersion: "stage_spot_v1",
+        removedLegacyCornerLights: true,
+        ambientEffectiveIntensity: lightDiagnostics.effectiveAmbientIntensity,
+        mainStageSpot: mainStageSpotSnapshot,
+      },
       meteorGlbCacheStats: getMeteorGlbCacheStats(),
       meteorGlbAssignmentsCount: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.assetUrl).length,
       meteorGlbCacheSize: threeState.meteorGlbCache.size,

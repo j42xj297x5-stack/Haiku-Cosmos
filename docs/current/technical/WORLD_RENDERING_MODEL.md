@@ -803,9 +803,9 @@ Manual QA po zmianach PBR powinien obejmować:
 2. Tryb `standard_test` — potwierdzić, że testowy `MeshStandardMaterial` reaguje na światło, environment i exposure.
 3. Tryb `normal_debug` — potwierdzić orientację normalnych i brak oczywistych błędów geometrii.
 4. `material audit log` / `Force material audit log` — sprawdzić typ materiału, metalness, roughness, mapy i normalMap w diagnostyce.
-5. `main stage SpotLight` — przetestować rekomendowany szeroki stage spot jako główne światło GLB.
-6. `legacy corner lights` — opcjonalnie włączyć tylko porównawczo; manual QA 2026-06-05 pokazał spłaszczenie brył przy narożnych point lightach.
-7. `ambient fill` — przetestować minimalne doświetlenie bez przepalenia koloru i bez zabijania kierunku światła.
+5. `mainStageSpot` / `stage_spot_v1` — przetestować rekomendowany szeroki stage spot jako jedyne główne światło GLB.
+6. `ambient fill` — przetestować minimalne doświetlenie bez przepalenia koloru i bez zabijania kierunku światła.
+7. `debugKey` / `debugRim` / `forceHeadlight` — traktować wyłącznie jako advanced diagnostic lights, domyślnie OFF.
 8. `PBR env intensity` — przetestować czytelność metaliczności/roughness.
 9. `tone exposure` — przetestować zakres ekspozycji bez utraty detalu.
 
@@ -868,16 +868,16 @@ In `stage_normalized`, meteor and asteroid render positions/scales are mapped on
 
 ### Lighting model notes
 
-Manual QA 2026-06-05 changed the active Three lighting model: the four corner `PointLight` objects are now legacy/debug-only because they visually flattened GLB solids and mixed surface modeling. Production/default lighting uses one broad `mainStageSpot` `SpotLight` in `stage_normalized`, placed behind the scene/from a rear corner direction at approximately `x=-0.65*stageWidth`, `y=-0.55*stageHeight`, `z=1.55*stageHeight`, targeting stage center by default. The spot has broad angle (`Math.PI / 2.8`), soft penumbra (`0.72`), `distance=0`, `decay=0`, and `castShadow=false`.
+Manual QA 2026-06-05 finalized the active Three lighting model as `stage_spot_v1`: the four legacy corner `PointLight` objects were removed from the active runtime because they visually flattened GLB solids and mixed surface modeling. Production/default lighting uses one broad `mainStageSpot` `SpotLight` in `stage_normalized`, placed behind the scene/from a rear corner direction at approximately `x=-0.65*stageWidth`, `y=-0.55*stageHeight`, `z=1.55*stageHeight`, targeting stage center by default. The spot has broad angle (`Math.PI / 2.8`), soft penumbra (`0.72`), `distance=0`, `decay=0`, and `castShadow=false`.
 
-Ambient is fill-only and defaults to `0`; if used, it should remain very low (`0–0.05`) so it does not remove the directional read from the stage SpotLight. `absolute_bounds` remains available only as a comparison/legacy camera model and can still look darker/inconsistent. Shadows remain disabled.
+Ambient is fill-only and defaults to `0`; if used, it should remain very low (`0–0.05`) so it does not remove the directional read from the stage SpotLight. `debugKey`, `debugRim`, and `forceHeadlight` are optional advanced diagnostic lights only and remain default OFF. `absolute_bounds` remains available only as a comparison/legacy camera model and can still look darker/inconsistent. Shadows remain disabled. Canvas2D remains the legacy/fallback/mechanics verification render path.
 
 ### Manual QA checklist
 
-1. Recommended default: `renderer=three`, `cameraModel=stage_normalized`, `materialMode=clay_lit`, `mainStageSpot=ON`, `legacyCornerLights=OFF`, `ambient=0` or very low.
+1. Recommended default: `renderer=three`, `cameraModel=stage_normalized`, `materialMode=clay_lit`, `mainStageSpot=ON`, `ambient=0` or very low.
 2. Confirm clay-lit solids show bright/dark facets during rotation and that the wide SpotLight covers the whole normalized stage.
 3. Imported material pass: switch `materialMode=imported`; if detail is still absent, report the asset limitation explicitly (`public/glb` currently has no texture maps/normalMap).
-4. Legacy comparison: turn `legacyCornerLights=ON` only in advanced debug to compare whether corner point lights flatten the solids again; never set them as default.
+4. Confirm evidence reports `lightingModelVersion="stage_spot_v1"`, `removedLegacyCornerLights=true`, and no active corner light diagnostics.
 5. Absolute-bounds comparison: switch `cameraModel=absolute_bounds` and record that it may remain darker/inconsistent; `stage_normalized` is the recommended model for GLB lighting.
 6. Depth comparison: test `meteorGlbDepthScale=0.25`, `1`, and `2`; if lighting appears only at `1+`, Z flattening was the primary issue.
 
