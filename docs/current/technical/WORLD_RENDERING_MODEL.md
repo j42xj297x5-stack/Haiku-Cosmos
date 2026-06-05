@@ -1060,6 +1060,6 @@ Texture pipeline evidence powinno obejmować co najmniej:
 - Aktualny rekomendowany model renderingu GLB to `cameraModel = "stage_normalized"`, `stageModelEnabled = true` i `lightingModelVersion = "stage_spot_v1"`. Final evidence dla poprawnego startu Three powinno wskazywać `renderer.requested = "three"`, `renderer.effective = "three"`, `fallback.used = false`, `cameraModel = "stage_normalized"`, `stageModelEnabled = true`, `lightingModelVersion = "stage_spot_v1"`, `mainStageSpot.intensity = 3.9`, `ambientEffectiveIntensity ≈ 0.13`, `activeLightCount = 1`, `diagnosticLightCount = 3`, `totalLightObjects = 4`, `globalHelpersEnabled = false`, helper mode `global_off`, `activeGlbInstances > 0` i `activeFallbackMeteorVisuals = 0`.
 ## Meteor base-size checkpoint (2026-06-05)
 
-- Bazowy mnożnik wielkości meteorów wynosi `3` (`METEOR_BASE_SCALE` / `World.meteorBaseScale`) i jest wliczany w `meteorBaseRadius()` przy spawnie, a nie dokładany wyłącznie w rendererze.
+- Bazowy mnożnik wielkości meteorów wynosi `2` (`METEOR_BASE_SCALE` / `World.meteorBaseScale`) i jest wliczany w `meteorBaseRadius()` przy spawnie, a nie dokładany wyłącznie w rendererze.
 - Renderer Three pobiera rozmiar meteoru przez `getMeteorRenderScale(...)`; Canvas2D fallback używa tego samego efektywnego promienia co helper kolizyjny.
 - Debugowy suwak `GLB visual-only scale` pozostaje narzędziem prezentacyjnym GLB i nie jest gameplay collision scale. Jeżeli w przyszłości ma zmieniać realną wielkość meteorów, musi aktualizować także `getMeteorCollisionRadius(...)` / fizykę kontaktu.
