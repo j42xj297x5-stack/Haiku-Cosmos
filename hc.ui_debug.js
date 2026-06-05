@@ -1060,6 +1060,7 @@
       ["GLB visual scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
       ["GLB depth scale", rendererDiag?.meteorGlbDepthScale ?? getMeteorGlbDepthScaleForUi()],
       ["material audit", rendererDiag?.glbMaterialAuditStatus ? JSON.stringify(rendererDiag.glbMaterialAuditStatus) : "audit idle"],
+      ["meteor texture evidence", rendererDiag?.meteorTextureEvidence ? JSON.stringify(rendererDiag.meteorTextureEvidence) : "evidence unavailable"],
       ["modes", "imported / clay_lit / normal_debug / diagnostic_unlit"],
       ["active GLB meshes", rendererDiag?.threeMaterialOverrideStatus?.activeGlbMeshCount ?? 0],
     ], `
