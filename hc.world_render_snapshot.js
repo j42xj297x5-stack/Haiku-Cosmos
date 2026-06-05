@@ -51,6 +51,8 @@
       absorbedMeteorCount: toNumber(body.absorbedMeteorCount, undefined),
       growthLevel: toNumber(body.growthLevel, undefined),
       mass: toNumber(body.mass, undefined),
+      baseR: toNumber(body.baseR, toNumber(body.massOneRadius, undefined)),
+      sourceColors: Array.isArray(body.sourceColors) ? body.sourceColors.slice() : undefined,
       collapseVisualScale: toNumber(body.collapseVisualScale, undefined),
       state: body.state || body.phase || (body.isCollapsing ? "collapsing" : null),
       visual: {

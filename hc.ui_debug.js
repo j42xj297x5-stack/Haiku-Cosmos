@@ -1080,9 +1080,11 @@
     sections.push(renderSection("World / Mechanics", [
       ["meteors", rendererDiag?.threeMeteorCount ?? 0],
       ["asteroids", wc.asteroids ?? 0],
+      ["asteroid mass", `${wc.asteroidMassTotal ?? 0} total / ${wc.asteroidMassMax ?? 0} max`],
+      ["target mass → planet", wc.asteroidTargetMassToPlanet ?? thr.asteroidToPlanet?.current ?? 0],
       ["planets", `${wc.rockyPlanets ?? 0} rocky / ${wc.gasPlanets ?? 0} gas`],
       ["stars", wc.stars ?? 0],
-      ["A→P threshold", `${thr.asteroidToPlanet?.current ?? 0} (${thr.asteroidToPlanet?.source || "-"})`],
+      ["A→P mass threshold", `${thr.asteroidToPlanet?.current ?? 0} (${thr.asteroidToPlanet?.source || "-"})`],
       ["P→S threshold", `${thr.planetToStar?.current ?? 0} (${thr.planetToStar?.source || "-"})`],
     ], "", { open: false }));
 

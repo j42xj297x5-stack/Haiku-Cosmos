@@ -29,17 +29,79 @@
       a.orbitPx = currentRadius;
     }
 
+    function asteroidMassValue(a) {
+      const mass = Number(a && a.mass);
+      return Number.isFinite(mass) && mass > 0 ? mass : 1;
+    }
+
+    function asteroidBaseRadius(a, fallbackRadius) {
+      const explicitBase = Number(a && (a.baseR ?? a.massOneRadius));
+      if (Number.isFinite(explicitBase) && explicitBase > 0) return explicitBase;
+      const r = Number(fallbackRadius ?? a?.r);
+      const mass = asteroidMassValue(a);
+      if (Number.isFinite(r) && r > 0) return r / Math.sqrt(Math.max(1, mass));
+      return meteorBaseRadius() * 2.7;
+    }
+
+    function asteroidRadiusForMass(mass, baseR, minR, maxR) {
+      const safeMass = Number.isFinite(mass) && mass > 0 ? mass : 1;
+      const safeBaseR = Number.isFinite(baseR) && baseR > 0 ? baseR : meteorBaseRadius() * 2.7;
+      const nextR = safeBaseR * Math.sqrt(safeMass);
+      const low = Number.isFinite(minR) && minR > 0 ? minR : 0.9 * meteorBaseRadius();
+      const high = Number.isFinite(maxR) && maxR > 0 ? maxR : 80.0 * meteorBaseRadius();
+      return clamp(nextR, low, high);
+    }
+
+    function addColorCount(map, colorName, amount = 1) {
+      if (!map || !colorName) return;
+      map[colorName] = (map[colorName] || 0) + amount;
+    }
+
+    function mergeColorCounts(target, source) {
+      if (!target || !source) return target;
+      for (const [colorName, count] of Object.entries(source)) {
+        addColorCount(target, colorName, Number(count) || 0);
+      }
+      return target;
+    }
+
+    function checkAsteroidPlanetThreshold(a, source) {
+      const target = asteroidGrowthTarget();
+      const currentMass = asteroidMassValue(a);
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, {
+        sourceType: "asteroid",
+        sourceId: a._id || a.id || null,
+        thresholdType: "asteroid_to_planet_mass",
+        current: currentMass,
+        target: Number.isFinite(target) ? target : 0,
+        thresholdSource: World.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "debug_override",
+      }, { source });
+
+      if (currentMass >= target) {
+        window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_REACHED, {
+          sourceType: "asteroid",
+          sourceId: a._id || a.id || null,
+          thresholdType: "asteroid_to_planet_mass",
+          current: currentMass,
+          target: Number.isFinite(target) ? target : 0,
+          thresholdSource: World.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "debug_override",
+        }, { source, snapshot: true });
+        startAsteroidCollapse(a);
+      }
+    }
+
     function spawnAsteroidFromCollision(a, b) {
       const x = (a.x + b.x) * 0.5;
       const y = (a.y + b.y) * 0.5;
 
       const sides = sidesFromColors(a.colorName, b.colorName);
-      const r = (a.r + b.r) * 1.35;
+      const baseR = (a.r + b.r) * 1.35;
+      const initialMass = 1;
+      const r = asteroidRadiusForMass(initialMass, baseR, 0.9 * meteorBaseRadius(), 80.0 * meteorBaseRadius());
       const spin = rand(0.08, 0.25) * (Math.random() < 0.5 ? -1 : 1);
       const light = rand(42, 62);
 
       const Rm = meteorBaseRadius();
-      const initialMass = massFromR(a.r) + massFromR(b.r);
 
       // Drift from conservation of momentum (mass ~ r^2), then scaled by World.asteroidDriftMul
       const ma = massFromR(a.r);
@@ -72,6 +134,8 @@
 
         minR: 0.9 * Rm,
         maxR: 80.0 * Rm,
+        baseR,
+        massOneRadius: baseR,
 
         // Legacy arrays/counters kept for older comet/debug code; new asteroids do not fill orbiters.
         orbiters: [],
@@ -80,7 +144,7 @@
         captureCooldown: 0,
 
         absorbedMeteorCount: 0,
-        growthLevel: 0,
+        growthLevel: initialMass,
         mass: initialMass,
         growthSumR: 0,
         growthSumMass: initialMass,
@@ -93,6 +157,7 @@
         liveSumMass: initialMass,
         liveColorCounts: { blue: 0, green: 0, red: 0, yellow: 0 },
         captureColorCounts: { blue: 0, green: 0, red: 0, yellow: 0 },
+        sourceColors: Array.from(new Set([a.colorName, b.colorName].filter(Boolean))),
         cometHits: 0,
 
         isCollapsing: false,
@@ -100,8 +165,15 @@
         collapseDuration: 0.9,
       };
 
+      addColorCount(asteroid.growthColorCounts, a.colorName);
+      addColorCount(asteroid.growthColorCounts, b.colorName);
+      addColorCount(asteroid.liveColorCounts, a.colorName);
+      addColorCount(asteroid.liveColorCounts, b.colorName);
+      addColorCount(asteroid.captureColorCounts, a.colorName);
+      addColorCount(asteroid.captureColorCounts, b.colorName);
+
       World.asteroids.push(asteroid);
-      Events.emit("ASTEROID_CREATED", { sides, from: [a.colorName, b.colorName] });
+      Events.emit("ASTEROID_CREATED", { sides, from: [a.colorName, b.colorName], mass: asteroid.mass });
     }
 
     function asteroidGrowthTarget() {
@@ -114,29 +186,28 @@
       const oldR = Number.isFinite(a.r) ? a.r : Rm;
       const maxR = Number.isFinite(a.maxR) ? a.maxR : (80.0 * Rm);
       const meteorR = Number.isFinite(m.r) ? m.r : Rm;
-      const growthAreaFactor = Number.isFinite(World.asteroidGrowthAreaFactor)
-        ? clamp(World.asteroidGrowthAreaFactor, 0.05, 1.0)
-        : 0.45;
-      const nextR = Math.sqrt(oldR * oldR + meteorR * meteorR * growthAreaFactor);
-      a.r = clamp(nextR, a.minR || (0.9 * Rm), maxR);
+      const meteorMass = 1;
+      a.baseR = asteroidBaseRadius(a, oldR);
+      a.massOneRadius = a.baseR;
+      a.mass = asteroidMassValue(a) + meteorMass;
+      a.r = asteroidRadiusForMass(a.mass, a.baseR, a.minR || (0.9 * Rm), maxR);
 
       a.absorbedMeteorCount = (a.absorbedMeteorCount || 0) + 1;
-      a.growthLevel = a.absorbedMeteorCount;
+      a.growthLevel = a.mass;
       const rEff = (typeof m.orbitContributionR === "number") ? m.orbitContributionR : (meteorR * 0.5);
-      const meteorMass = massFromR(meteorR);
-      a.mass = (Number.isFinite(a.mass) ? a.mass : massFromR(oldR)) + meteorMass;
       a.growthSumR = (a.growthSumR || 0) + rEff;
       a.growthSumMass = (a.growthSumMass || 0) + meteorMass;
-      a.growthColorCounts[m.colorName] = (a.growthColorCounts[m.colorName] || 0) + 1;
+      addColorCount(a.growthColorCounts, m.colorName);
 
       // Compatibility aliases for existing threshold/debug/planet-composition code.
       a.captureCount = a.absorbedMeteorCount;
       a.captureSumR = a.growthSumR;
       a.captureSumMass = a.growthSumMass;
-      a.captureColorCounts[m.colorName] = (a.captureColorCounts[m.colorName] || 0) + 1;
+      addColorCount(a.captureColorCounts, m.colorName);
       a.liveSumR = a.growthSumR;
       a.liveSumMass = a.growthSumMass;
-      a.liveColorCounts[m.colorName] = (a.liveColorCounts[m.colorName] || 0) + 1;
+      addColorCount(a.liveColorCounts, m.colorName);
+      if (Array.isArray(a.sourceColors) && m.colorName && !a.sourceColors.includes(m.colorName)) a.sourceColors.push(m.colorName);
       a.captureCooldown = 0.045;
     }
 
@@ -175,8 +246,6 @@
       }
 
       const meteors = World.meteors;
-      const target = asteroidGrowthTarget();
-
       for (let mi = meteors.length - 1; mi >= 0; mi--) {
         const m = meteors[mi];
         if (m.age < 0.15) continue;
@@ -210,26 +279,7 @@
             meteors.splice(mi, 1);
             absorbMeteorIntoAsteroid(a, m);
 
-            window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, {
-              sourceType: "asteroid",
-              sourceId: a._id || a.id || null,
-              thresholdType: "asteroid_to_planet_growth",
-              current: a.absorbedMeteorCount,
-              target: Number.isFinite(target) ? target : 0,
-              thresholdSource: World.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "debug_override",
-            }, { source: "Asteroids.resolveMeteorAsteroidContacts" });
-
-            if (a.absorbedMeteorCount >= target) {
-              window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_REACHED, {
-                sourceType: "asteroid",
-                sourceId: a._id || a.id || null,
-                thresholdType: "asteroid_to_planet_growth",
-                current: a.absorbedMeteorCount,
-                target: Number.isFinite(target) ? target : 0,
-                thresholdSource: World.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "debug_override",
-              }, { source: "Asteroids.resolveMeteorAsteroidContacts", snapshot: true });
-              startAsteroidCollapse(a);
-            }
+            checkAsteroidPlanetThreshold(a, "Asteroids.resolveMeteorAsteroidContacts");
             break;
           }
         }
@@ -345,6 +395,79 @@
       Events.emit("PLANET_CREATED", { hueA, hueB, top1, top2 });
     }
 
+
+    function mergeAsteroidPair(primary, secondary) {
+      const massA = asteroidMassValue(primary);
+      const massB = asteroidMassValue(secondary);
+      const newMass = massA + massB;
+      const totalMass = newMass || 1;
+      const baseA = asteroidBaseRadius(primary, primary.r);
+      const baseB = asteroidBaseRadius(secondary, secondary.r);
+      const mergedBaseR = ((baseA * massA) + (baseB * massB)) / totalMass;
+
+      primary.x = ((primary.x || 0) * massA + (secondary.x || 0) * massB) / totalMass;
+      primary.y = ((primary.y || 0) * massA + (secondary.y || 0) * massB) / totalMass;
+      primary.vx = ((primary.vx || 0) * massA + (secondary.vx || 0) * massB) / totalMass;
+      primary.vy = ((primary.vy || 0) * massA + (secondary.vy || 0) * massB) / totalMass;
+      primary.mass = newMass;
+      primary.baseR = mergedBaseR;
+      primary.massOneRadius = mergedBaseR;
+      primary.r = asteroidRadiusForMass(newMass, mergedBaseR, primary.minR, primary.maxR);
+      primary.absorbedMeteorCount = (primary.absorbedMeteorCount || 0) + (secondary.absorbedMeteorCount || 0);
+      primary.growthLevel = newMass;
+      primary.growthSumR = (primary.growthSumR || 0) + (secondary.growthSumR || 0);
+      primary.growthSumMass = newMass;
+      primary.captureCount = primary.absorbedMeteorCount;
+      primary.captureSumR = primary.growthSumR;
+      primary.captureSumMass = newMass;
+      primary.liveSumR = (primary.liveSumR || 0) + (secondary.liveSumR || 0);
+      primary.liveSumMass = newMass;
+      mergeColorCounts(primary.growthColorCounts, secondary.growthColorCounts);
+      mergeColorCounts(primary.captureColorCounts, secondary.captureColorCounts);
+      mergeColorCounts(primary.liveColorCounts, secondary.liveColorCounts);
+      if (Array.isArray(primary.sourceColors) || Array.isArray(secondary.sourceColors)) {
+        primary.sourceColors = Array.from(new Set([
+          ...(Array.isArray(primary.sourceColors) ? primary.sourceColors : []),
+          ...(Array.isArray(secondary.sourceColors) ? secondary.sourceColors : []),
+        ].filter(Boolean)));
+      }
+      // TODO: future asteroid composition color model. Current merge keeps the dominant/larger asteroid visual style.
+      primary.cometHits = (primary.cometHits || 0) + (secondary.cometHits || 0);
+      primary.captureCooldown = Math.max(primary.captureCooldown || 0, secondary.captureCooldown || 0, 0.045);
+      secondary._dead = true;
+      Events.emit("ASTEROID_MERGED", { mass: newMass, fromMass: [massA, massB] });
+      checkAsteroidPlanetThreshold(primary, "Asteroids.resolveAsteroidAsteroidContacts");
+    }
+
+    function resolveAsteroidAsteroidContacts() {
+      const asteroids = World.asteroids;
+      if (!asteroids || asteroids.length < 2) return;
+      const consumed = new Set();
+      for (let i = 0; i < asteroids.length; i++) {
+        if (consumed.has(i)) continue;
+        const a = asteroids[i];
+        if (!a || a._dead || a.isCollapsing || a.absorbingIntoStarId || a.parentKind) continue;
+        for (let j = i + 1; j < asteroids.length; j++) {
+          if (consumed.has(j)) continue;
+          const b = asteroids[j];
+          if (!b || b._dead || b.isCollapsing || b.absorbingIntoStarId || b.parentKind) continue;
+          const dx = (b.x || 0) - (a.x || 0);
+          const dy = (b.y || 0) - (a.y || 0);
+          const contactR = (Number(a.r) || 0) + (Number(b.r) || 0);
+          if ((dx * dx + dy * dy) <= contactR * contactR) {
+            const massA = asteroidMassValue(a);
+            const massB = asteroidMassValue(b);
+            const primary = massA >= massB ? a : b;
+            const secondary = primary === a ? b : a;
+            mergeAsteroidPair(primary, secondary);
+            consumed.add(primary === a ? j : i);
+            consumed.add(primary === a ? i : j);
+            break;
+          }
+        }
+      }
+    }
+
     function updateAsteroidCollapse(a, dt) {
       a.collapseT += dt;
       const t = clamp(a.collapseT / a.collapseDuration, 0, 1);
@@ -392,6 +515,8 @@
 
         if (a.isCollapsing) updateAsteroidCollapse(a, dt);
       }
+
+      resolveAsteroidAsteroidContacts();
 
       for (let i = World.asteroids.length - 1; i >= 0; i--) {
         if (World.asteroids[i]._dead) World.asteroids.splice(i, 1);

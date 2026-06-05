@@ -229,25 +229,27 @@
 
 ### 3.4 `hc.asteroids.js` — Asteroidy
 **STATE:**
-- `World.asteroids[]` + per-asteroid material body fields: `r`, `mass`, `absorbedMeteorCount`, `growthLevel`, `growth*`, `isCollapsing`.
+- `World.asteroids[]` + per-asteroid material body fields: `r`, `baseR` / `massOneRadius`, liniowe `mass`, `absorbedMeteorCount`, `growthLevel`, `growth*`, `sourceColors`, `isCollapsing`.
 - Legacy `orbiters` / `capture*` / `live*` fields may still exist for compatibility, but are not an active asteroid-orbit system.
 
 **PARAMS:**
-- `World.asteroidDriftMul`, `World.asteroidGrowthTarget ?? World.planetCaptureTarget`.
+- `World.asteroidDriftMul`, `World.asteroidGrowthTarget ?? World.planetCaptureTarget` jako próg masy asteroidy do planety.
 - Asteroids do **not** use `captureRadius`, `orbitRadius`, `gravityRadius`, `orbitPx` or `World.metaOrbitMulAsteroid` for meteor capture.
 
 **Funkcje kluczowe:**
-- `spawnAsteroidFromCollision(a, b)` (kolizje dwóch meteorów różnych kolorów nadal tworzą asteroidę).
+- `spawnAsteroidFromCollision(a, b)` (kolizje dwóch meteorów różnych kolorów nadal tworzą asteroidę `mass = 1`).
 - `captureMeteorsByAsteroids(dt, nowMs)`:
   - nazwa pozostaje wrapperem kompatybilności dla boot order,
   - nie przechwytuje meteorów na orbitę i nie tworzy asteroidowych orbiterów,
   - rozwiązuje bezpośredni kontakt meteor–asteroida przez `resolveMeteorAsteroidContacts`.
-- `absorbMeteorIntoAsteroid(a, m)` zwiększa `absorbedMeteorCount`, masę i realny promień bryły asteroidy.
-- `startAsteroidCollapse` → `finishCollapseToPlanet` (emituje `ASTEROID_COLLAPSE_START`, `PLANET_CREATED`), a trigger to liczba bezpośrednio wchłoniętych meteorów / masa zamiast liczby orbiterów.
+- `absorbMeteorIntoAsteroid(a, m)` zwiększa `absorbedMeteorCount`, liniową masę o `+1` i realny promień bryły asteroidy.
+- `resolveAsteroidAsteroidContacts()` rozwiązuje bezpośrednie kolizje bryła–bryła między asteroidami; scalona asteroida ma `newMass = massA + massB`, pozycję środka masy i prędkość ważoną masą.
+- Skala/promień wizualny asteroidy wynika z masy łagodnie (`baseR * sqrt(mass)`), więc masa logiczna pozostaje addytywna, ale wzrost obrazu nie jest agresywny.
+- `startAsteroidCollapse` → `finishCollapseToPlanet` (emituje `ASTEROID_COLLAPSE_START`, `PLANET_CREATED`), a trigger to `asteroid.mass >= targetMass` zamiast liczby orbiterów.
 
 **Zasada orbitalna:**
 - Aktywny promień orbitalny/grawitacyjny pozostaje tylko dla planet i gwiazd.
-- Asteroida jest ciałem materialnym rosnącym przez kontakt, bez rysowanego ringa i bez asteroidowego przechwytywania.
+- Asteroida jest ciałem materialnym rosnącym przez kontakt meteor–asteroida oraz scalanie asteroid–asteroid, bez rysowanego ringa i bez asteroidowego przechwytywania.
 
 ---
 
