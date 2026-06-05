@@ -928,8 +928,8 @@ Evidence pass: `2026-06-05_07-19-05__sess_5-868Z__debug__custom__fallback_eviden
 - GLB scale jest uniform XYZ: `scaleUniform = true`, `zScaleRatio = 1`.
 - Aktualny materiałowy tryb evidence: `materialMode = imported`.
 - Assety są light-reactive `MeshStandardMaterial`, ale większość obecnych GLB nie ma `normalMap` ani texture maps. Widoczny detal powierzchni zależy więc przede wszystkim od geometrii, koloru bazowego, metalness/roughness factors i światła, nie od wypalonych map.
-- Czerwone meteory mają eksperymentalną dynamiczną paletę PNG. Ten element pozostaje warstwą materiałowo-wizualną, a nie zmianą mechaniki meteoru.
-- Asteroidy nadal są proceduralnym passem Three, nie GLB.
+- Czerwone i żółte meteory mają aktywne zewnętrzne palety PNG `map` oraz `emissiveMap`, cache’owane przez `TextureLoader` i stosowane tylko tam, gdzie imported materiał GLB nie ma własnych map. Ten element pozostaje warstwą materiałowo-wizualną, a nie zmianą mechaniki meteoru.
+- Asteroidy GLB ładują się przez lokalny `GLTFLoader` i korzystają z tego samego template/clone/fallback lifecycle co inne bryły GLB.
 
 ### E. Debug overlay
 
@@ -970,5 +970,81 @@ Evidence pass: `2026-06-05_07-19-05__sess_5-868Z__debug__custom__fallback_eviden
 - Wczesne bootstrap snapshoty mogą jeszcze pokazywać `canvas2d` przed finalną inicjalizacją Three; final snapshot/evidence rozstrzyga aktywny runtime.
 - `sampleObjectProjected` / `sampleObjectFrustumVisible` może wskazywać aktualnie wybrany sample spoza viewportu. To nie blokuje renderingu, ale diagnostyka sample selection może być później dopracowana.
 - GLB imported detail jest ograniczony brakiem `normalMap`, `roughnessMap` i `metalnessMap` w większości assetów.
-- Asteroidy nadal są proceduralnym passem Three, nie GLB.
+- Asteroidy GLB ładują się przez lokalny `GLTFLoader`; fallback visual pozostaje wyłącznie dla `loading`/`failed`.
 - Ten checkpoint jest dokumentacyjny. Nie należy na jego podstawie zmieniać fizyki, kolizji, kart, RP, ekonomii, SUB-META runtime, PRG runtime ani przywracać corner lights.
+
+## 17. Snapshot 2026-06-05 — Three GLB + external meteor textures
+
+Status: implemented and manually confirmed in browser runtime. Snapshot dokumentuje zamknięty etap naprawy i wdrożenia GLB/tekstur w rendererze Three. Nie zmienia mechaniki gry, kolizji, asteroid mechanics, orbit, kart, RP, SUB-META, PRG ani nazw assetów.
+
+### A. Three renderer / GLB runtime contract
+
+- Three renderer działa jako aktywny tryb świata; Canvas2D pozostaje fallbackiem oraz overlayem UI/input nad światem Three.
+- Lokalne `GLTFLoader` jest aktywną ścieżką ładowania GLB dla meteorów, asteroid i przyszłych brył GLB.
+- Custom parser nie jest aktywną ścieżką runtime i nie należy do niego wracać.
+- GLB są cache’owane jako template per URL, a instancje runtime powstają przez klonowanie template’u.
+- Entry cache ma deterministyczny lifecycle: `loading` / `ready` / `failed`.
+- Fallback visual pozostaje widoczny wyłącznie podczas `loading` albo `failed`; nie jest docelowym renderingiem poprawnie załadowanych GLB.
+- Meteory i asteroidy GLB ładują się przez lokalny `GLTFLoader`; przyszłe bryły GLB powinny korzystać z tego samego kontraktu zamiast własnego parsera.
+
+### B. URL / GitHub Pages asset policy
+
+- Publiczne assety muszą działać lokalnie pod `/Haiku-Cosmos/` oraz na GitHub Pages pod `/Haiku-Cosmos/`.
+- Nie wolno usuwać base path `/Haiku-Cosmos/` ani budować URL-i przez invalid base URL.
+- Publiczne assety runtime (`public/glb/`, `public/textures/`, przyszłe `public/models/world/`) muszą przechodzić przez bezpieczny resolver `publicPath` / `publicAssetPath` z `hc.public_path.js`.
+- GLB i PNG używane w rendererze Three nie powinny być ładowane przez ręcznie sklejane ścieżki pomijające Vite/GitHub Pages base path.
+
+### C. Texture pipeline contract
+
+- Zewnętrzne PNG tekstury meteorów nie są częścią GLB; są ładowane osobno przez `THREE.TextureLoader`.
+- Tekstury są cache’owane i nie są ładowane co frame.
+- Aktywne palety meteorów to obecnie `red` oraz `yellow`.
+- Dla `red` i `yellow` istnieją sloty `map` oraz `emissiveMap`.
+- Tekstury są losowane per instancja, a przydział pozostaje stabilny i zapisany na entry / `userData`, żeby renderer nie przeładowywał i nie przelosowywał map co frame.
+- `green` i `blue` nie mają jeszcze zewnętrznych palet; brak palety dla tych kolorów nie jest błędem.
+
+### D. Imported GLB materials — no-overwrite rule
+
+- `GLTFLoader` zachowuje materiały i tekstury osadzone albo zaimportowane w GLB.
+- Zewnętrzne PNG mapy meteorów mogą uzupełniać tylko brakujące sloty materiału GLB.
+- Jeśli `material.map` istnieje i ma obraz, runtime nie nadpisuje jej zewnętrzną teksturą.
+- Jeśli `material.emissiveMap` istnieje i ma obraz, runtime nie nadpisuje jej zewnętrzną mapą emisji.
+- Jeśli brakuje tylko `map`, można uzupełnić wyłącznie `map`.
+- Jeśli brakuje tylko `emissiveMap`, można uzupełnić wyłącznie `emissiveMap`.
+- GLB z własnymi mapami zachowują imported materiały/tekstury; nie wracamy do trybu custom parser.
+
+### E. Diagnostics / evidence fields
+
+GLTFLoader evidence powinno obejmować co najmniej:
+
+- `gltfLoaderAvailable`, `gltfLoaderType`, `gltfLoaderRequestCount`, `gltfLoaderSuccessCount`, `gltfLoaderErrorCount`, `gltfLoaderTimeoutCount`, `gltfLoaderLastErrorMessage`,
+- `gltfLoaderPendingUrls`, `gltfLoaderFailedUrls`, `gltfLoaderTimedOutUrls`,
+- `meteorGlbCacheStats`, `asteroidGlbCacheStats`,
+- `activeMeteorGlbInstances`, `activeAsteroidGlbInstances`,
+- `activeFallbackMeteorVisuals`, `activeFallbackAsteroidVisuals`.
+
+Texture pipeline evidence powinno obejmować co najmniej:
+
+- `meteorTexturePaletteEnabled`, `redMeteorTexturePaletteEnabled`, `yellowMeteorTexturePaletteEnabled`,
+- `meteorTextureCacheStats`,
+- `meteorTextureEvidence.enabled`, `meteorTextureEvidence.activeGlbEntries`, `meteorTextureEvidence.eligibleInstances`,
+- `meteorTextureEvidence.mapApplied`, `meteorTextureEvidence.emissiveMapApplied`,
+- `meteorTextureEvidence.lastAppliedMapUrl`, `meteorTextureEvidence.lastAppliedEmissiveMapUrl`,
+- `meteorTextureInstancesSkippedBecauseGlbHadMap`,
+- `meteorTextureInstancesSkippedBecauseGlbHadEmissiveMap` jeśli pole jest obecne w aktualnym runtime.
+
+### F. Runtime asset policy
+
+- GLB assety powinny pozostać lekkie.
+- Duże GLB, np. testowa asteroida 9–10 MB, są dopuszczalne testowo, ale wymagają późniejszej optymalizacji.
+- Następny asset pass może objąć decymację, kompresję i docelowe standardy eksportu.
+- Na tym etapie nie optymalizować assetów przed zamknięciem funkcjonalnego pipeline’u.
+
+### G. Summary / next steps
+
+- `GLTFLoader` is the active GLB pipeline.
+- Meteor and asteroid GLBs load through local `GLTFLoader`.
+- External PNG texture/emissive palettes for red/yellow meteors are cached through `TextureLoader`.
+- Runtime applies external maps only to GLB materials missing their own `map` / `emissiveMap`.
+- Fallback visuals remain only for loading/failed GLB assets.
+- Next step: tuning `emissiveIntensity`, visual balance, green/blue palettes, and asset optimization.
