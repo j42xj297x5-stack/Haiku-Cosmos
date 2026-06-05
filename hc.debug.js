@@ -342,6 +342,18 @@
     const lightDiagnostics = diagnostics?.threeLightDiagnostics || null;
     const helper = diagnostics?.threeLightHelpers || {};
     const activeMaterialMode = materials.materialMode || materialOverride.currentMaterialMode || "imported";
+    const mainStageSpotEnabled = (diagnostics?.mainStageSpot?.enabled ?? lights.mainStageSpotEnabled) === true;
+    const lightingModelVersion = diagnostics?.lightingModelVersion || "stage_spot_v1";
+    const stageLightingEnabled = lightingModelVersion === "stage_spot_v1" && mainStageSpotEnabled;
+    const totalLightObjects = Number.isFinite(Number(diagnostics?.totalLightObjects))
+      ? Number(diagnostics.totalLightObjects)
+      : (Number.isFinite(Number(diagnostics?.threeLightCount)) ? Number(diagnostics.threeLightCount) : null);
+    const diagnosticLightCount = Number.isFinite(Number(diagnostics?.diagnosticLightCount))
+      ? Number(diagnostics.diagnosticLightCount)
+      : (totalLightObjects == null ? null : Math.max(0, totalLightObjects - (mainStageSpotEnabled ? 1 : 0)));
+    const activeLightCount = Number.isFinite(Number(diagnostics?.activeLightCount))
+      ? Number(diagnostics.activeLightCount)
+      : (stageLightingEnabled ? 1 : 0);
     const globalHelpersEnabled = diagnostics?.globalHelpersEnabled ?? window.HC?.WorldRendererDebug?.globalHelpersEnabled ?? window.HC?.Session?.debugConfig?.visual?.globalHelpersEnabled ?? true;
     const materialAuditEntries = Array.isArray(diagnostics?.glbMaterialAudit)
       ? diagnostics.glbMaterialAudit.slice(-8).map((entry) => ({
@@ -408,17 +420,25 @@
       stageModelEnabled: diagnostics?.stageModelEnabled === true,
       ambientIsolate: lights.ambientIsolate === true,
       ambientEffectiveIntensity: lightDiagnostics?.effectiveAmbientIntensity ?? null,
-      lightingModelVersion: diagnostics?.lightingModelVersion || "stage_spot_v1",
+      lightingModelVersion,
       removedLegacyCornerLights: diagnostics?.removedLegacyCornerLights !== false,
+      activeLightCount,
+      diagnosticLightCount,
+      totalLightObjects,
+      threeLightCount: totalLightObjects,
+      threeLightCountSemantics: totalLightObjects == null ? null : "deprecated_totalLightObjects",
+      stageLightingEnabled,
       stageLighting: {
-        enabled: lights.enabled === true,
+        enabled: stageLightingEnabled,
+        stageLightingEnabled,
         model: "stage_spot",
-        lightingModelVersion: diagnostics?.lightingModelVersion || "stage_spot_v1",
+        lightingModelVersion,
         ambientEffectiveIntensity: lightDiagnostics?.effectiveAmbientIntensity ?? null,
         mainStageSpot: lightDiagnostics?.mainStageSpot || diagnostics?.mainStageSpot || null,
       },
       threeLights: {
-        enabled: lights.enabled === true,
+        enabled: stageLightingEnabled,
+        deprecatedEnabledSemantics: "stageLightingEnabled",
         ambientIntensity: pickThreeLightSetting(lights, "ambientIntensity"),
         ambientIsolate: lights.ambientIsolate === true,
         debugKeyLightEnabled: lights.debugKeyLightEnabled === true,
@@ -427,7 +447,7 @@
         debugRimLightIntensity: pickThreeLightSetting(lights, "debugRimLightIntensity"),
         forceHeadlightEnabled: lights.forceHeadlightEnabled === true,
         forceHeadlightIntensity: pickThreeLightSetting(lights, "forceHeadlightIntensity"),
-        mainStageSpotEnabled: lights.mainStageSpotEnabled === true,
+        mainStageSpotEnabled,
         mainStageSpotIntensity: pickThreeLightSetting(lights, "mainStageSpotIntensity"),
         mainStageSpotAngle: pickThreeLightSetting(lights, "mainStageSpotAngle"),
         mainStageSpotPenumbra: pickThreeLightSetting(lights, "mainStageSpotPenumbra"),
@@ -453,7 +473,7 @@
         position: lightDiagnostics?.forceHeadlight?.position || null,
       },
       mainStageSpot: {
-        enabled: lights.mainStageSpotEnabled === true,
+        enabled: mainStageSpotEnabled,
         intensity: pickThreeLightSetting(lights, "mainStageSpotIntensity"),
         angle: pickThreeLightSetting(lights, "mainStageSpotAngle"),
         penumbra: pickThreeLightSetting(lights, "mainStageSpotPenumbra"),
