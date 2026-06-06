@@ -428,6 +428,7 @@
           const rings = [];
 
           a.type = "planet";
+          window.HC?.WorldVisualAssets?.assignPlanetVisual?.(a);
           a.planetKind = "rocky";
           a.isRocky = true;
           a.r = 0;

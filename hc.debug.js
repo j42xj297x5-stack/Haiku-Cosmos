@@ -1100,7 +1100,7 @@
     const p = randomPosition();
     const Rm = typeof window.meteorBaseRadius === "function" ? window.meteorBaseRadius() : 6;
     const baseR = Rm * (2.8 + Math.random() * 1.6);
-    return {
+    const asteroid = {
       type: "asteroid",
       _id: `debug_ast_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
       x: p.x,
@@ -1143,6 +1143,7 @@
       collapseT: 0,
       collapseDuration: 0.9,
     };
+    return window.HC?.WorldVisualAssets?.assignAsteroidVisual?.(asteroid) || asteroid;
   }
 
   function createPlanetSeed(isRocky) {
@@ -1152,7 +1153,7 @@
     const gravity = typeof window.computeGravityFromPlanetRadius === "function"
       ? window.computeGravityFromPlanetRadius(radius)
       : radius * 2.2;
-    return {
+    const planet = {
       type: "planet",
       id: `debug_pl_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
       x: p.x,
@@ -1182,6 +1183,7 @@
       cometHits: isRocky ? 1 : 0,
       rings: [],
     };
+    return window.HC?.WorldVisualAssets?.assignPlanetVisual?.(planet) || planet;
   }
 
   function createStarSeed() {

@@ -1,7 +1,7 @@
 > Status: ROBOCZY
 > Obszar: mapa funkcji świata / runtime
 > Źródło prawdy: CZĘŚCIOWO — robocza mapa orientacyjna; NIE zastępuje audytu kodu
-> Ostatnia aktualizacja: 2026-06-04
+> Ostatnia aktualizacja: 2026-06-06
 > Powiązane dokumenty: ../maps/DEPENDENCY_MAP.md, SEQUENCE_STATE_CONTRACT.md, IMPLEMENTATION_TRACKER.md, LIVE_VALIDATION_PACK.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../ui/UI_WORLD.md
 
 # Haiku Cosmos — MAP_FUNCTIONS_WORLD_vNEXT
@@ -481,3 +481,12 @@
    - Sequence core (R-track + A-loop + AAA/DS reset) jest potwierdzony i nie jest już gapem.
 
 ---
+
+
+## 9. World GLB asset routing checkpoint (2026-06-06)
+
+- `hc.asteroids.js` przypisuje nowej asteroidzie `visualKind = "asteroid"`, stabilny `visualVariant` oraz odpowiadający mu `assetId` podczas `spawnAsteroidFromCollision(...)`; dostępne warianty to `asteroid_01.glb`, `asteroid_02.glb` i `asteroid_03.glb`.
+- Wzrost przez absorpcję meteoru nie zmienia pól visual. Merge asteroid zachowuje obiekt o większej masie, a przy równych masach pierwszy obiekt pary, więc zachowuje też jego wariant bez ponownego losowania.
+- Każda tworzona lub transformowana planeta otrzymuje obecnie stały kontrakt `visualKind = "planet"`, `visualVariant = "planet_01"`, `assetId = "planet_01.glb"`; nie istnieje jeszcze losowanie klas ani wariantów planet.
+- `hc.world_render_snapshot.js` przenosi `visualKind`, `visualVariant` i `assetId` do snapshotu. `hc.world_renderer.js` tylko odczytuje te pola, rozwiązuje asset przez `publicAssetPath` / `publicPath`, korzysta ze wspólnego cache template GLB i klonuje instancję dla obiektu.
+- Skala asteroid nadal pochodzi z istniejącego promienia zależnego od masy, a skala planet z istniejącego promienia planety. Canvas2D zachowuje dotychczasowy symboliczny fallback.

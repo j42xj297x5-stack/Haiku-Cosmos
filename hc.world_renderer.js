@@ -8,7 +8,14 @@
   const THREE_METEOR_MIN_RADIUS = 2.4;
   const THREE_ASTEROID_MIN_RADIUS = 4.0;
   const THREE_ASTEROID_DEFAULT_SIDES = 7;
-  const ASTEROID_GLB_ASSET = "glb/asteroid_01.glb";
+  const ASTEROID_GLB_ASSETS = Object.freeze({
+    asteroid_01: "glb/asteroid_01.glb",
+    asteroid_02: "glb/asteroid_02.glb",
+    asteroid_03: "glb/asteroid_03.glb",
+  });
+  const ASTEROID_GLB_DEFAULT_VARIANT = "asteroid_01";
+  const PLANET_GLB_ASSETS = Object.freeze({ planet_01: "glb/planet_01.glb" });
+  const PLANET_GLB_DEFAULT_VARIANT = "planet_01";
   const ASTEROID_GLB_RADIUS_SCALE = 0.82;
   const ASTEROID_GLB_DEPTH_SCALE = 1.0;
   const THREE_DEBUG_MARKER_ENABLED = true;
@@ -197,6 +204,7 @@
     resizeCalls: 0,
     meteorGroup: null,
     asteroidGroup: null,
+    planetGroup: null,
     lightsGroup: null,
     ambientLight: null,
     debugKeyLight: null,
@@ -230,6 +238,13 @@
     meteorGlbWarnings: new Set(),
     asteroidGlbCache: new Map(),
     asteroidGlbWarnings: new Set(),
+    planetGlbCache: new Map(),
+    planetMeshes: new Map(),
+    planetGeometry: null,
+    planetGroupChildrenCount: 0,
+    planetGlbInstanceCreates: 0,
+    threePlanetCount: 0,
+    threePlanetLastError: null,
     textureLoader: null,
     meteorTextureCache: new Map(),
     meteorTextureWarnings: new Set(),
@@ -245,7 +260,7 @@
     threeAsteroidCount: 0,
     threeMeteorLastError: null,
     threeAsteroidLastError: null,
-    threeObjectRenderPasses: ["meteors", "asteroids"],
+    threeObjectRenderPasses: ["meteors", "asteroids", "planets"],
     debugMarker: null,
     debugMarkerEnabled: THREE_DEBUG_MARKER_ENABLED,
     threeMeteorRadiusScale: THREE_METEOR_RADIUS_SCALE,
@@ -581,8 +596,10 @@
     threeState.resizeCalls = 0;
     threeState.threeMeteorCount = 0;
     threeState.threeAsteroidCount = 0;
+    threeState.threePlanetCount = 0;
     threeState.threeMeteorLastError = null;
     threeState.threeAsteroidLastError = null;
+    threeState.threePlanetLastError = null;
     threeDependencySource = "unknown";
     threeState.cameraSnapshotCenter = null;
     threeState.cameraSnapshotZoom = null;
@@ -595,11 +612,13 @@
     threeState.firstMeteorInCameraBounds = null;
     threeState.meteorGroupChildrenCount = 0;
     threeState.asteroidGroupChildrenCount = 0;
+    threeState.planetGroupChildrenCount = 0;
     threeState.meteorGlbCacheStats = getMeteorGlbCacheStats();
     threeState.meteorGlbVariantReassignments = 0;
     threeState.meteorGlbInstanceCreates = 0;
     threeState.asteroidGlbTextureDiagnostics = createAsteroidGlbTextureDiagnostics();
     threeState.asteroidGlbInstanceCreates = 0;
+    threeState.planetGlbInstanceCreates = 0;
     threeState.glbMaterialAudit = [];
     threeState.gltfLoaderDiagnostics = createGltfLoaderDiagnostics();
     threeState.gltfLoaderDebugEvents = [];
@@ -2192,8 +2211,28 @@
     return rows;
   }
 
-  function getAsteroidGlbAssetUrl() {
-    return resolvePublicAssetPath(ASTEROID_GLB_ASSET);
+  function normalizeAsteroidVisualVariant(asteroid) {
+    const requestedVariant = String(asteroid?.visualVariant || "").replace(/\.glb$/i, "");
+    if (ASTEROID_GLB_ASSETS[requestedVariant]) return requestedVariant;
+    const assetId = String(asteroid?.assetId || "");
+    const matchedVariant = Object.keys(ASTEROID_GLB_ASSETS).find((variant) => ASTEROID_GLB_ASSETS[variant].endsWith(`/${assetId}`));
+    return matchedVariant || ASTEROID_GLB_DEFAULT_VARIANT;
+  }
+
+  function getAsteroidGlbAssetUrl(asteroid) {
+    return resolvePublicAssetPath(ASTEROID_GLB_ASSETS[normalizeAsteroidVisualVariant(asteroid)]);
+  }
+
+  function normalizePlanetVisualVariant(planet) {
+    const requestedVariant = String(planet?.visualVariant || "").replace(/\.glb$/i, "");
+    if (PLANET_GLB_ASSETS[requestedVariant]) return requestedVariant;
+    const assetId = String(planet?.assetId || "");
+    const matchedVariant = Object.keys(PLANET_GLB_ASSETS).find((variant) => PLANET_GLB_ASSETS[variant].endsWith(`/${assetId}`));
+    return matchedVariant || PLANET_GLB_DEFAULT_VARIANT;
+  }
+
+  function getPlanetGlbAssetUrl(planet) {
+    return resolvePublicAssetPath(PLANET_GLB_ASSETS[normalizePlanetVisualVariant(planet)]);
   }
 
   function getAsteroidGlbCacheStats() {
@@ -3091,6 +3130,9 @@
     for (const entry of threeState.asteroidMeshes.values()) {
       if (entry?.glb) roots.push(entry.glb);
     }
+    for (const entry of threeState.planetMeshes.values()) {
+      if (entry?.glb) roots.push(entry.glb);
+    }
     return roots;
   }
 
@@ -3127,6 +3169,13 @@
       });
     }
     for (const cacheEntry of threeState.asteroidGlbCache.values()) {
+      cacheEntry?.template?.traverse?.((object) => {
+        if (!object.isMesh) return;
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        materials.forEach(applyImportedMaterialRuntimeSettings);
+      });
+    }
+    for (const cacheEntry of threeState.planetGlbCache.values()) {
       cacheEntry?.template?.traverse?.((object) => {
         if (!object.isMesh) return;
         const materials = Array.isArray(object.material) ? object.material : [object.material];
@@ -3823,7 +3872,8 @@
     const root = new THREE.Group();
     root.userData.hcObjectType = "asteroid";
     root.userData.asteroidKey = key;
-    root.userData.glbAssetUrl = getAsteroidGlbAssetUrl();
+    root.userData.glbAssetUrl = getAsteroidGlbAssetUrl(asteroid);
+    root.userData.visualVariant = normalizeAsteroidVisualVariant(asteroid);
     root.frustumCulled = false;
     const fallback = new THREE.Mesh(getAsteroidGeometry(THREE, asteroid?.sides), getAsteroidMaterial(THREE, asteroid));
     fallback.frustumCulled = false;
@@ -3837,7 +3887,7 @@
     root.userData.rotationBase = rotationState.rotationBase;
     root.userData.rotationSpeed = rotationState.rotationSpeed;
     root.userData.rotationDominantAxis = rotationState.dominantAxis;
-    return { root, fallback, glb: null, key, assetUrl: getAsteroidGlbAssetUrl(), glbStatus: "assigned", rotationState, asteroid: null };
+    return { root, fallback, glb: null, key, assetUrl: getAsteroidGlbAssetUrl(asteroid), visualVariant: normalizeAsteroidVisualVariant(asteroid), glbStatus: "assigned", rotationState, asteroid: null };
   }
 
   function disposeAsteroidGlbInstance(entry) {
@@ -3862,7 +3912,7 @@
 
   function updateAsteroidGlbVisual(THREE, entry) {
     if (!entry) return false;
-    const assetUrl = entry.assetUrl || getAsteroidGlbAssetUrl();
+    const assetUrl = entry.assetUrl || getAsteroidGlbAssetUrl(entry.asteroid);
     const cacheEntry = loadAsteroidGlb(THREE, assetUrl);
     if (cacheEntry.status === "failed") {
       entry.glbStatus = "failed";
@@ -3986,15 +4036,17 @@
       const camera = orthographicCamera;
       const meteorGroup = new THREE.Group();
       const asteroidGroup = new THREE.Group();
+      const planetGroup = new THREE.Group();
       const lightsGroup = createThreeLights(THREE);
       scene.add(lightsGroup);
       if (threeState.mainStageSpotTarget) scene.add(threeState.mainStageSpotTarget);
+      scene.add(planetGroup);
       scene.add(asteroidGroup);
       scene.add(meteorGroup);
       scene.background = new THREE.Color(0x05070a);
       canvas.style.display = "block";
       canvas.style.visibility = "visible";
-      Object.assign(threeState, { canvas, renderer, scene, camera, orthographicCamera, perspectiveCamera, meteorGroup, asteroidGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16) });
+      Object.assign(threeState, { canvas, renderer, scene, camera, orthographicCamera, perspectiveCamera, meteorGroup, asteroidGroup, planetGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16), planetGeometry: new THREE.CircleGeometry(1, 32) });
       applyRendererPbrSettings();
       syncThreeLights();
       createDebugMarker(THREE);
@@ -4158,6 +4210,16 @@
         visual.fallback.material = getAsteroidMaterial(THREE, a);
       }
       visual.asteroid = a;
+      const desiredVariant = normalizeAsteroidVisualVariant(a);
+      const desiredAssetUrl = getAsteroidGlbAssetUrl(a);
+      if (visual.assetUrl !== desiredAssetUrl) {
+        disposeAsteroidGlbInstance(visual);
+        visual.assetUrl = desiredAssetUrl;
+        visual.visualVariant = desiredVariant;
+        visual.root.userData.glbAssetUrl = desiredAssetUrl;
+        visual.root.userData.visualVariant = desiredVariant;
+        visual.glbStatus = "assigned";
+      }
       const sourceRadius = Number(a.radius ?? a.r ?? a.scale) || THREE_ASTEROID_MIN_RADIUS;
       const radius = Math.max(THREE_ASTEROID_MIN_RADIUS, sourceRadius);
       const asteroidVisualScale = Number.isFinite(a.collapseVisualScale) ? a.collapseVisualScale : 1;
@@ -4190,6 +4252,8 @@
               fallbackScale: { x: visual.fallback.scale.x, y: visual.fallback.scale.y, z: visual.fallback.scale.z },
               visible: visual.root.visible,
               glbAssetUrl: visual.assetUrl || null,
+              visualVariant: visual.visualVariant || a.visualVariant || null,
+              assetId: a.assetId || null,
               glbVisible: !!visual.glb?.visible,
               glbStatus: visual.glbStatus,
               worldBoundingBox: asteroidValidation.worldBoundingBox,
@@ -4207,6 +4271,8 @@
           x: Number(a.x) || 0,
           y: Number(a.y) || 0,
           radius: sourceRadius,
+          visualVariant: a.visualVariant || visual.visualVariant || null,
+          assetId: a.assetId || null,
           alpha: Number.isFinite(a.alpha) ? a.alpha : null,
           renderedPosition: { x: visual.root.position.x, y: visual.root.position.y, z: visual.root.position.z },
         };
@@ -4220,6 +4286,8 @@
             fallbackScale: { x: visual.fallback.scale.x, y: visual.fallback.scale.y, z: visual.fallback.scale.z },
             visible: visual.root.visible,
             glbAssetUrl: visual.assetUrl || null,
+            visualVariant: visual.visualVariant || a.visualVariant || null,
+            assetId: a.assetId || null,
             glbVisible: !!visual.glb?.visible,
             glbStatus: visual.glbStatus,
             worldBoundingBox: null,
@@ -4239,6 +4307,131 @@
     threeState.asteroidGlbCacheStats = getAsteroidGlbCacheStats();
   }
 
+  function getStablePlanetSnapshotKey(planet, index) {
+    const key = planet?.renderKey || planet?.id || planet?._id || null;
+    if (key != null && key !== "") return `planet:${key}`;
+    return `planet:${index}:${Math.round(Number(planet?.x) || 0)}:${Math.round(Number(planet?.y) || 0)}`;
+  }
+
+  function createPlanetVisual(THREE, planet, key) {
+    const root = new THREE.Group();
+    const visualVariant = normalizePlanetVisualVariant(planet);
+    const assetUrl = getPlanetGlbAssetUrl(planet);
+    root.userData.hcObjectType = "planet";
+    root.userData.planetKey = key;
+    root.userData.glbAssetUrl = assetUrl;
+    root.userData.visualVariant = visualVariant;
+    root.frustumCulled = false;
+    const fallbackMaterial = new THREE.MeshStandardMaterial({
+      color: 0x6d8299,
+      roughness: 0.82,
+      metalness: 0.04,
+      envMapIntensity: getThreeMaterialSettings().envIntensity,
+      transparent: true,
+      opacity: 1,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const fallback = new THREE.Mesh(threeState.planetGeometry, fallbackMaterial);
+    fallback.frustumCulled = false;
+    fallback.renderOrder = 800;
+    root.add(fallback);
+    return { root, fallback, glb: null, key, assetUrl, visualVariant, glbStatus: "assigned", planet };
+  }
+
+  function disposePlanetVisual(entry) {
+    if (!entry) return;
+    if (entry.glb) {
+      entry.root?.remove?.(entry.glb);
+      entry.glb.traverse?.((object) => {
+        if (!object.isMesh) return;
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        Array.from(new Set(materials.filter(Boolean))).forEach((material) => material?.dispose?.());
+      });
+      entry.glb = null;
+    }
+    entry.fallback?.material?.dispose?.();
+  }
+
+  function removePlanetVisual(entry) {
+    threeState.planetGroup?.remove(entry?.root || entry);
+    disposePlanetVisual(entry);
+  }
+
+  function updatePlanetGlbVisual(THREE, entry) {
+    const cacheEntry = loadGlbWithGltfLoader(THREE, entry.assetUrl, "planet");
+    threeState.planetGlbCache.set(entry.assetUrl, cacheEntry);
+    if (cacheEntry.status === "failed") {
+      entry.glbStatus = "failed";
+      entry.root.userData.glbStatus = entry.glbStatus;
+      entry.fallback.visible = true;
+      if (entry.glb) entry.glb.visible = false;
+      return false;
+    }
+    if (cacheEntry.status !== "ready" || !cacheEntry.template) {
+      entry.glbStatus = "loading";
+      entry.root.userData.glbStatus = entry.glbStatus;
+      entry.fallback.visible = true;
+      return false;
+    }
+    if (!entry.glb) {
+      entry.glb = cloneAsteroidGlbTemplate(cacheEntry.template);
+      entry.glb.userData.hcAssetUrl = entry.assetUrl;
+      entry.glb.userData.hcObjectType = "planet";
+      entry.glb.traverse?.((object) => { if (object.isMesh) object.renderOrder = 800; });
+      applyDebugMaterialMode(THREE, entry.glb);
+      entry.root.add(entry.glb);
+      threeState.planetGlbInstanceCreates += 1;
+    }
+    entry.glbStatus = "ready_pending_validation";
+    entry.root.userData.glbStatus = entry.glbStatus;
+    entry.fallback.visible = true;
+    entry.glb.visible = false;
+    return true;
+  }
+
+  function syncPlanetPass(renderSnapshot) {
+    const THREE = window.HC_THREE || window.THREE;
+    const planets = Array.isArray(renderSnapshot?.world?.planets) ? renderSnapshot.world.planets : [];
+    threeState.threePlanetCount = planets.length;
+    const seen = new Set();
+    for (let i = 0; i < planets.length; i += 1) {
+      const planet = planets[i] || {};
+      const key = getStablePlanetSnapshotKey(planet, i);
+      seen.add(key);
+      let visual = threeState.planetMeshes.get(key);
+      if (!visual) {
+        visual = createPlanetVisual(THREE, planet, key);
+        threeState.planetGroup.add(visual.root);
+        threeState.planetMeshes.set(key, visual);
+      }
+      visual.planet = planet;
+      const sourceRadius = Number(planet.radius ?? planet.r ?? planet.scale) || 1;
+      const renderRadius = applyRenderSpaceToRadius(Math.max(1, sourceRadius));
+      const renderPosition = applyRenderSpaceToVector(Number(planet.x) || 0, Number(planet.y) || 0, -0.2);
+      const hasGlbVisual = updatePlanetGlbVisual(THREE, visual);
+      visual.root.position.set(renderPosition.x, renderPosition.y, renderPosition.z);
+      visual.root.renderOrder = 800;
+      visual.root.visible = !planet.flags?.dead && !planet.visual?.absorbingIntoStarId;
+      visual.fallback.scale.set(renderRadius, renderRadius, 1);
+      visual.fallback.material.opacity = Number.isFinite(planet.alpha) ? Math.max(0.25, Math.min(1, planet.alpha)) : 1;
+      if (visual.glb) {
+        const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
+        const glbScale = renderRadius / unitRadius;
+        visual.glb.scale.set(glbScale, glbScale, glbScale);
+        if (Number.isFinite(planet.angle)) visual.glb.rotation.z = planet.angle;
+        if (hasGlbVisual) applyGlbVisibilityGate(THREE, visual, "planet");
+      }
+    }
+    for (const [key, visual] of threeState.planetMeshes.entries()) {
+      if (seen.has(key)) continue;
+      removePlanetVisual(visual);
+      threeState.planetMeshes.delete(key);
+    }
+    threeState.planetGroupChildrenCount = threeState.planetGroup?.children?.length || 0;
+  }
+
   function destroyThree() {
     if (threeState.renderer?.dispose) threeState.renderer.dispose();
     threeState.meteorMeshes.forEach((entry) => { removeMeteorVisual(entry); });
@@ -4246,6 +4439,8 @@
     threeState.nextMeteorVisualId = 1;
     threeState.asteroidMeshes.forEach((entry) => { removeAsteroidVisual(entry); });
     threeState.asteroidMeshes.clear();
+    threeState.planetMeshes.forEach((entry) => { removePlanetVisual(entry); });
+    threeState.planetMeshes.clear();
     threeState.meteorMaterials.forEach((mat) => mat?.dispose?.());
     threeState.meteorMaterials.clear();
     threeState.asteroidMaterials.forEach((mat) => mat?.dispose?.());
@@ -4253,10 +4448,12 @@
     threeState.asteroidGeometries.forEach((geometry) => geometry?.dispose?.());
     threeState.asteroidGeometries.clear();
     threeState.meteorGeometry?.dispose?.();
+    threeState.planetGeometry?.dispose?.();
     threeState.environment?.dispose?.();
     threeState.environment = null;
     threeState.environmentCanvas = null;
     threeState.asteroidGlbCache.clear();
+    threeState.planetGlbCache.clear();
     threeState.glbTemplateCache.clear();
     threeState.asteroidGlbWarnings.clear();
     threeState.glbBlobUrls.forEach((url) => { try { URL.revokeObjectURL(url); } catch (_) {} });
@@ -4264,7 +4461,7 @@
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
     if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], meteorGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], meteorGeometry: null, planetGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -4291,6 +4488,13 @@
         } catch (err) {
           threeState.threeAsteroidLastError = err?.message || String(err);
           threeState.threeAsteroidCount = 0;
+        }
+        try {
+          syncPlanetPass(renderSnapshot || {});
+          threeState.threePlanetLastError = null;
+        } catch (err) {
+          threeState.threePlanetLastError = err?.message || String(err);
+          threeState.threePlanetCount = 0;
         }
         threeState.renderCalls += 1;
         refreshMaterialOverrideStatus(THREE);
@@ -4579,7 +4783,7 @@
       gltfLoaderFailedUrls: (gltfLoaderDiagnostics.gltfLoaderFailedUrls || []).slice(),
       gltfLoaderTimedOutUrls: (gltfLoaderDiagnostics.gltfLoaderTimedOutUrls || []).slice(),
       gltfLoaderDebugEvents: threeState.gltfLoaderDebugEvents.slice(-12),
-      glbVisualFallbackActiveCount: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.fallback?.visible).length + Array.from(threeState.asteroidMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
+      glbVisualFallbackActiveCount: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.fallback?.visible).length + Array.from(threeState.asteroidMeshes.values()).filter((entry) => !!entry.fallback?.visible).length + Array.from(threeState.planetMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
       gltfProbeStarted: !!threeState.gltfDebugProbe?.startedAt,
       gltfProbeStatus: threeState.gltfDebugProbe?.status || "idle",
       gltfProbeUrl: threeState.gltfDebugProbe?.url || null,
@@ -4599,20 +4803,32 @@
       threeRenderCalls: threeState.renderCalls, threeResizeCalls: threeState.resizeCalls, threeSceneReady: !!threeState.scene, threeCameraReady: !!threeState.camera, threeRendererReady: !!threeState.renderer,
       threeMeteorRenderEnabled: !!threeState.threeMeteorRenderEnabled, threeMeteorCount: threeState.threeMeteorCount, threeMeteorMeshes: threeState.meteorMeshes.size,
       threeAsteroidRenderEnabled: !!threeState.threeAsteroidRenderEnabled, threeAsteroidCount: threeState.threeAsteroidCount, threeAsteroidMeshes: threeState.asteroidMeshes.size, asteroidMeshCount: threeState.asteroidMeshes.size,
-      threeMeteorLastError: threeState.threeMeteorLastError, threeAsteroidLastError: threeState.threeAsteroidLastError, threeObjectRenderPasses: threeState.threeObjectRenderPasses.slice(),
+      threePlanetCount: threeState.threePlanetCount, threePlanetMeshes: threeState.planetMeshes.size,
+      threeMeteorLastError: threeState.threeMeteorLastError, threeAsteroidLastError: threeState.threeAsteroidLastError, threePlanetLastError: threeState.threePlanetLastError, threeObjectRenderPasses: threeState.threeObjectRenderPasses.slice(),
       threeMeteorRadiusScale: threeState.threeMeteorRadiusScale,
       threeMeteorMinRadius: threeState.threeMeteorMinRadius,
       meteorGlbAssets: METEOR_GLB_ASSETS,
-      asteroidGlbAsset: ASTEROID_GLB_ASSET,
+      asteroidGlbAssets: ASTEROID_GLB_ASSETS,
+      asteroidGlbAssetUrls: Object.fromEntries(Object.entries(ASTEROID_GLB_ASSETS).map(([variant, asset]) => [variant, resolvePublicAssetPath(asset)])),
+      asteroidGlbAsset: ASTEROID_GLB_ASSETS[ASTEROID_GLB_DEFAULT_VARIANT],
       asteroidGlbAssetUrl: getAsteroidGlbAssetUrl(),
+      planetGlbAssets: PLANET_GLB_ASSETS,
+      planetGlbAsset: PLANET_GLB_ASSETS[PLANET_GLB_DEFAULT_VARIANT],
+      planetGlbAssetUrl: getPlanetGlbAssetUrl(),
       asteroidGlbCacheStats: getAsteroidGlbCacheStats(),
       glbTemplateCacheEntries: summarizeGlbCacheEntries(threeState.glbTemplateCache),
       meteorGlbCacheEntries: summarizeGlbCacheEntries(threeState.meteorGlbCache),
       asteroidGlbCacheEntries: summarizeGlbCacheEntries(threeState.asteroidGlbCache),
       glbTemplateCacheSize: threeState.glbTemplateCache.size,
       asteroidGlbCacheSize: threeState.asteroidGlbCache.size,
-      asteroidGlbStatus: threeState.asteroidGlbCache.get(getAsteroidGlbAssetUrl())?.status || "not_requested",
+      asteroidGlbStatuses: Object.fromEntries(Array.from(threeState.asteroidGlbCache.entries()).map(([url, entry]) => [url, entry?.status || "unknown"])),
       asteroidGlbInstanceCreates: threeState.asteroidGlbInstanceCreates,
+      planetGlbCacheEntries: summarizeGlbCacheEntries(threeState.planetGlbCache),
+      planetGlbCacheSize: threeState.planetGlbCache.size,
+      planetGlbStatus: threeState.planetGlbCache.get(getPlanetGlbAssetUrl())?.status || "not_requested",
+      planetGlbInstanceCreates: threeState.planetGlbInstanceCreates,
+      activePlanetGlbInstances: Array.from(threeState.planetMeshes.values()).filter((entry) => !!entry.glb).length,
+      activeFallbackPlanetVisuals: Array.from(threeState.planetMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
       asteroidGlbEmbeddedTextureCount: threeState.asteroidGlbTextureDiagnostics?.asteroidGlbEmbeddedTextureCount || 0,
       asteroidGlbTextureReadyCount: threeState.asteroidGlbTextureDiagnostics?.asteroidGlbTextureReadyCount || 0,
       asteroidGlbTextureMissingImageCount: threeState.asteroidGlbTextureDiagnostics?.asteroidGlbTextureMissingImageCount || 0,
@@ -4727,6 +4943,7 @@
       sceneChildrenCount: threeState.scene?.children?.length || 0,
       meteorGroupChildrenCount: threeState.meteorGroupChildrenCount,
       asteroidGroupChildrenCount: threeState.asteroidGroupChildrenCount,
+      planetGroupChildrenCount: threeState.planetGroupChildrenCount,
       cameraSnapshotCenter: threeState.cameraSnapshotCenter,
       cameraSnapshotZoom: threeState.cameraSnapshotZoom,
       cameraSnapshotWorldBounds: threeState.cameraSnapshotWorldBounds,
