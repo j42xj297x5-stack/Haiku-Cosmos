@@ -4359,7 +4359,18 @@
     fallback.frustumCulled = false;
     fallback.renderOrder = 800;
     root.add(fallback);
-    return { root, fallback, glb: null, key, assetUrl, visualVariant, glbStatus: "assigned", planet };
+    return { root, fallback, glb: null, key, assetUrl, visualVariant, glbStatus: "assigned", planet, rotationStartMs: null };
+  }
+
+  function applyPlanetVisualRotation(entry, planet, nowMs) {
+    if (!entry?.root || !planet) return;
+    if (!Number.isFinite(entry.rotationStartMs)) entry.rotationStartMs = Number(nowMs) || 0;
+    const elapsedSeconds = Math.max(0, ((Number(nowMs) || 0) - entry.rotationStartMs) / 1000);
+    entry.root.rotation.set(
+      (Number(planet.visualRotationX) || 0) + ((Number(planet.visualRotationSpeedX) || 0) * elapsedSeconds),
+      (Number(planet.visualRotationY) || 0) + ((Number(planet.visualRotationSpeedY) || 0) * elapsedSeconds),
+      (Number(planet.visualRotationZ) || 0) + ((Number(planet.visualRotationSpeedZ) || 0) * elapsedSeconds)
+    );
   }
 
   function disposePlanetVisual(entry) {
@@ -4413,8 +4424,9 @@
     return true;
   }
 
-  function syncPlanetPass(renderSnapshot) {
+  function syncPlanetPass(renderSnapshot, nowMs) {
     const THREE = window.HC_THREE || window.THREE;
+    const rotationNowMs = getMeteorRotationNowMs(renderSnapshot, nowMs);
     const planets = Array.isArray(renderSnapshot?.world?.planets) ? renderSnapshot.world.planets : [];
     threeState.threePlanetCount = planets.length;
     threeState.threeRockyPlanetCount = planets.filter((planet) => getPlanetKind(planet) === "rocky").length;
@@ -4437,6 +4449,7 @@
       const renderPosition = applyRenderSpaceToVector(Number(planet.x) || 0, Number(planet.y) || 0, -0.2);
       const hasGlbVisual = updatePlanetGlbVisual(THREE, visual);
       visual.root.position.set(renderPosition.x, renderPosition.y, renderPosition.z);
+      applyPlanetVisualRotation(visual, planet, rotationNowMs);
       visual.root.renderOrder = 800;
       visual.root.visible = !planet.flags?.dead && !planet.visual?.absorbingIntoStarId;
       visual.fallback.scale.set(renderRadius, renderRadius, 1);
@@ -4515,7 +4528,7 @@
           threeState.threeAsteroidCount = 0;
         }
         try {
-          syncPlanetPass(renderSnapshot || {});
+          syncPlanetPass(renderSnapshot || {}, nowMs);
           threeState.threePlanetLastError = null;
         } catch (err) {
           threeState.threePlanetLastError = err?.message || String(err);

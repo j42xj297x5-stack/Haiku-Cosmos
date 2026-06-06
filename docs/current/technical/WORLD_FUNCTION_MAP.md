@@ -490,3 +490,10 @@
 - Każda tworzona lub transformowana planeta otrzymuje obecnie stały kontrakt `visualKind = "planet"`, `visualVariant = "planet_01"`, `assetId = "planet_01.glb"`; ten sam bazowy model Three jest tymczasowo używany dla planet skalistych (`planetKind = "rocky"`) i gazowych (`planetKind = "gas"`), bez losowania klas ani wariantów planet.
 - `hc.world_render_snapshot.js` przenosi `visualKind`, `visualVariant`, `assetId`, `planetKind`, flagi rocky/gas, pozycję i promień do snapshotu oraz uzupełnia bazowy routing `planet_01` dla starszych planet bez metadanych visual. `hc.world_renderer.js` nie filtruje planet po rocky/gas: odczytuje cały planetarny snapshot, rozwiązuje asset przez `publicAssetPath` / `publicPath`, korzysta ze wspólnego cache template GLB i klonuje instancję dla obiektu.
 - Skala asteroid nadal pochodzi z istniejącego promienia zależnego od masy, a skala planet z istniejącego promienia planety. Canvas2D zachowuje dotychczasowy symboliczny fallback.
+
+## Planet visual rotation checkpoint (2026-06-06)
+
+- Każda planeta otrzymuje przy przypisaniu planetarnego visualu stabilny `visualRotationSeed`, pełną orientację startową XYZ oraz spokojne prędkości obrotu zapisane na obiekcie świata. Ponowne wywołanie helpera nie przelosowuje istniejących pól.
+- Główna prędkość dotyczy osi Y (`0.03–0.12 rad/s` ze stabilnie wybranym kierunkiem), a osie X/Z mają słabszy drift (`0.005–0.03 rad/s`). Ta sama logika obejmuje planety `rocky` i `gas`, także planetę powstałą z asteroidy.
+- `hc.world_render_snapshot.js` propaguje seed, rotację bazową i prędkości do snapshotu. Pass planetarny `hc.world_renderer.js` nie losuje wartości: utrzymuje czas startu stabilnej instancji Three i ustawia rotację grupy jako `base + elapsed * speed`, dzięki czemu obraca się zarówno GLB, jak i prosty fallback.
+- Metadane oraz animacja są visual-only: nie zmieniają pozycji, promienia, skali gameplayowej, orbit, grawitacji, kolizji ani mechaniki planet; Canvas2D pozostaje bez zmian.
