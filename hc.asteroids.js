@@ -2,6 +2,43 @@
 (function () {
   window.HC = window.HC || {};
 
+  const ASTEROID_VISUAL_VARIANTS = Object.freeze(["asteroid_01", "asteroid_02", "asteroid_03"]);
+  const ASTEROID_ASSET_IDS = Object.freeze({
+    asteroid_01: "asteroid_01.glb",
+    asteroid_02: "asteroid_02.glb",
+    asteroid_03: "asteroid_03.glb",
+  });
+  const PLANET_BASE_VISUAL_VARIANT = "planet_01";
+  const PLANET_BASE_ASSET_ID = "planet_01.glb";
+
+  function assignAsteroidVisual(body, randomValue) {
+    if (!body || typeof body !== "object") return body;
+    const roll = Number.isFinite(randomValue) ? randomValue : Math.random();
+    const index = Math.max(0, Math.min(ASTEROID_VISUAL_VARIANTS.length - 1, Math.floor(roll * ASTEROID_VISUAL_VARIANTS.length)));
+    const visualVariant = ASTEROID_VISUAL_VARIANTS[index];
+    body.visualKind = "asteroid";
+    body.visualVariant = visualVariant;
+    body.assetId = ASTEROID_ASSET_IDS[visualVariant];
+    return body;
+  }
+
+  function assignPlanetVisual(body) {
+    if (!body || typeof body !== "object") return body;
+    body.visualKind = "planet";
+    body.visualVariant = PLANET_BASE_VISUAL_VARIANT;
+    body.assetId = PLANET_BASE_ASSET_ID;
+    return body;
+  }
+
+  window.HC.WorldVisualAssets = Object.freeze({
+    asteroidVariants: ASTEROID_VISUAL_VARIANTS,
+    asteroidAssetIds: ASTEROID_ASSET_IDS,
+    planetVariant: PLANET_BASE_VISUAL_VARIANT,
+    planetAssetId: PLANET_BASE_ASSET_ID,
+    assignAsteroidVisual,
+    assignPlanetVisual,
+  });
+
   window.HC.initAsteroids = () => {
     const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
     const Events = window.Events;
@@ -115,7 +152,7 @@
       vx *= World.asteroidDriftMul;
       vy *= World.asteroidDriftMul;
 
-      const asteroid = {
+      const asteroid = assignAsteroidVisual({
         type: "asteroid",
         _id: ASTEROID_ID_SEQ++,
         x, y,
@@ -164,7 +201,7 @@
         isCollapsing: false,
         collapseT: 0,
         collapseDuration: 0.9,
-      };
+      });
 
       addColorCount(asteroid.growthColorCounts, a.colorName);
       addColorCount(asteroid.growthColorCounts, b.colorName);
@@ -318,7 +355,7 @@
 
       const orbitMul = (typeof World.metaOrbitMulPlanet === "number") ? World.metaOrbitMulPlanet : 1;
       const currentOrbit = 0;
-      const p = {
+      const p = assignPlanetVisual({
         type: "planet",
         x: a.x,
         y: a.y,
@@ -348,7 +385,7 @@
         // For future: captured asteroids with their systems
               rings: [],
         capturedAsteroids: [],
-      };
+      });
 
       if (typeof finalizePlanetSpawn === "function") {
         finalizePlanetSpawn(a, p, { kind: "gas" });
@@ -432,7 +469,7 @@
           ...(Array.isArray(secondary.sourceColors) ? secondary.sourceColors : []),
         ].filter(Boolean)));
       }
-      // TODO: future asteroid composition color model. Current merge keeps the dominant/larger asteroid visual style.
+      // TODO: future asteroid visual composition model. Current merge keeps the larger asteroid's stable GLB variant (the first asteroid on equal mass).
       primary.cometHits = (primary.cometHits || 0) + (secondary.cometHits || 0);
       primary.captureCooldown = Math.max(primary.captureCooldown || 0, secondary.captureCooldown || 0, 0.045);
       secondary._dead = true;

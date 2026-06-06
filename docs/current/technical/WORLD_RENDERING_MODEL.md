@@ -1,7 +1,7 @@
 > Status: ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA
 > Obszar: model renderowania świata RUN (warstwa renderingu, bez zmian mechaniki)
 > Źródło prawdy: NIE (dokument roboczy do migracji etapowej)
-> Ostatnia aktualizacja: 2026-06-05
+> Ostatnia aktualizacja: 2026-06-06
 > Powiązane dokumenty: WORLD_FUNCTION_MAP.md, ../ui/UI_WORLD.md, ../systems/PRG_SYSTEM.md, ../visual/ART_DIRECTION.md, ../visual/KOSMOLOGIA_WIZUALNA.md, ../visual/BIBLIOTEKA_MATERIALOW.md
 
 # Haiku Cosmos — WORLD RENDERING MODEL
@@ -1063,3 +1063,11 @@ Texture pipeline evidence powinno obejmować co najmniej:
 - Bazowy mnożnik wielkości meteorów wynosi `2` (`METEOR_BASE_SCALE` / `World.meteorBaseScale`) i jest wliczany w `meteorBaseRadius()` przy spawnie, a nie dokładany wyłącznie w rendererze.
 - Renderer Three pobiera rozmiar meteoru przez `getMeteorRenderScale(...)`; Canvas2D fallback używa tego samego efektywnego promienia co helper kolizyjny.
 - Debugowy suwak `GLB visual-only scale` pozostaje narzędziem prezentacyjnym GLB i nie jest gameplay collision scale. Jeżeli w przyszłości ma zmieniać realną wielkość meteorów, musi aktualizować także `getMeteorCollisionRadius(...)` / fizykę kontaktu.
+
+
+## Asteroid / planet GLB asset checkpoint (2026-06-06)
+
+- Asteroidy mają trzy aktywne assety: `asteroid_01.glb`, `asteroid_02.glb`, `asteroid_03.glb`. Wariant jest losowany raz przy utworzeniu asteroidy i zapisany jako stan obiektu (`visualVariant` + `assetId`), a nie wybierany w render loopie.
+- Merge zachowuje wariant większej asteroidy; remis zachowuje wariant pierwszej/bazowej asteroidy. Absorpcja meteoru i wzrost masy nie zmieniają wariantu.
+- Bazowym i jedynym aktualnym assetem planet jest `planet_01.glb`; renderer Three ma osobny pass planetarny, ale nie wprowadza nowych klas ani mechaniki planet.
+- Wszystkie cztery assety korzystają z `publicAssetPath` / `publicPath`, istniejącego `GLTFLoader`, cache template per URL i klonowanych instancji. Stany `loading` / `failed` pozostawiają symboliczny fallback oraz są widoczne w diagnostics/evidence cache status.

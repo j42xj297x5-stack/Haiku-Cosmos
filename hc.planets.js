@@ -35,6 +35,7 @@
 
     function finalizePlanetSpawn(parentBody, planet, opts) {
       const safeOpts = opts || {};
+      window.HC?.WorldVisualAssets?.assignPlanetVisual?.(planet);
       const orbitR = parentBody?.gravOrbitR
         ?? parentBody?.orbitR
         ?? parentBody?.orbitCurrentRadius
