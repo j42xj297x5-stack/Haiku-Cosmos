@@ -244,6 +244,8 @@
     planetGroupChildrenCount: 0,
     planetGlbInstanceCreates: 0,
     threePlanetCount: 0,
+    threeRockyPlanetCount: 0,
+    threeGasPlanetCount: 0,
     threePlanetLastError: null,
     textureLoader: null,
     meteorTextureCache: new Map(),
@@ -597,6 +599,8 @@
     threeState.threeMeteorCount = 0;
     threeState.threeAsteroidCount = 0;
     threeState.threePlanetCount = 0;
+    threeState.threeRockyPlanetCount = 0;
+    threeState.threeGasPlanetCount = 0;
     threeState.threeMeteorLastError = null;
     threeState.threeAsteroidLastError = null;
     threeState.threePlanetLastError = null;
@@ -2221,6 +2225,24 @@
 
   function getAsteroidGlbAssetUrl(asteroid) {
     return resolvePublicAssetPath(ASTEROID_GLB_ASSETS[normalizeAsteroidVisualVariant(asteroid)]);
+  }
+
+  function isPlanetVisualCandidate(planet) {
+    if (!planet || typeof planet !== "object") return false;
+    return planet.visualKind === "planet"
+      || planet.assetId === "planet_01.glb"
+      || planet.visualVariant === PLANET_GLB_DEFAULT_VARIANT
+      || planet.kind === "planet"
+      || planet.type === "planet"
+      || planet.planetKind === "rocky"
+      || planet.planetKind === "gas";
+  }
+
+  function getPlanetKind(planet) {
+    if (planet?.planetKind === "rocky" || planet?.planetKind === "gas") return planet.planetKind;
+    if (planet?.isRocky === true) return "rocky";
+    if (planet?.isGas === true || planet?.isRocky === false) return "gas";
+    return null;
   }
 
   function normalizePlanetVisualVariant(planet) {
@@ -4395,9 +4417,12 @@
     const THREE = window.HC_THREE || window.THREE;
     const planets = Array.isArray(renderSnapshot?.world?.planets) ? renderSnapshot.world.planets : [];
     threeState.threePlanetCount = planets.length;
+    threeState.threeRockyPlanetCount = planets.filter((planet) => getPlanetKind(planet) === "rocky").length;
+    threeState.threeGasPlanetCount = planets.filter((planet) => getPlanetKind(planet) === "gas").length;
     const seen = new Set();
     for (let i = 0; i < planets.length; i += 1) {
       const planet = planets[i] || {};
+      if (!isPlanetVisualCandidate(planet)) continue;
       const key = getStablePlanetSnapshotKey(planet, i);
       seen.add(key);
       let visual = threeState.planetMeshes.get(key);
@@ -4803,7 +4828,8 @@
       threeRenderCalls: threeState.renderCalls, threeResizeCalls: threeState.resizeCalls, threeSceneReady: !!threeState.scene, threeCameraReady: !!threeState.camera, threeRendererReady: !!threeState.renderer,
       threeMeteorRenderEnabled: !!threeState.threeMeteorRenderEnabled, threeMeteorCount: threeState.threeMeteorCount, threeMeteorMeshes: threeState.meteorMeshes.size,
       threeAsteroidRenderEnabled: !!threeState.threeAsteroidRenderEnabled, threeAsteroidCount: threeState.threeAsteroidCount, threeAsteroidMeshes: threeState.asteroidMeshes.size, asteroidMeshCount: threeState.asteroidMeshes.size,
-      threePlanetCount: threeState.threePlanetCount, threePlanetMeshes: threeState.planetMeshes.size,
+      threePlanetCount: threeState.threePlanetCount, threePlanetSnapshotCount: threeState.threePlanetCount, threePlanetMeshes: threeState.planetMeshes.size,
+      rockyPlanetCount: threeState.threeRockyPlanetCount, gasPlanetCount: threeState.threeGasPlanetCount,
       threeMeteorLastError: threeState.threeMeteorLastError, threeAsteroidLastError: threeState.threeAsteroidLastError, threePlanetLastError: threeState.threePlanetLastError, threeObjectRenderPasses: threeState.threeObjectRenderPasses.slice(),
       threeMeteorRadiusScale: threeState.threeMeteorRadiusScale,
       threeMeteorMinRadius: threeState.threeMeteorMinRadius,
@@ -4828,6 +4854,7 @@
       planetGlbStatus: threeState.planetGlbCache.get(getPlanetGlbAssetUrl())?.status || "not_requested",
       planetGlbInstanceCreates: threeState.planetGlbInstanceCreates,
       activePlanetGlbInstances: Array.from(threeState.planetMeshes.values()).filter((entry) => !!entry.glb).length,
+      activePlanetFallbacks: Array.from(threeState.planetMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
       activeFallbackPlanetVisuals: Array.from(threeState.planetMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
       asteroidGlbEmbeddedTextureCount: threeState.asteroidGlbTextureDiagnostics?.asteroidGlbEmbeddedTextureCount || 0,
       asteroidGlbTextureReadyCount: threeState.asteroidGlbTextureDiagnostics?.asteroidGlbTextureReadyCount || 0,
@@ -4959,5 +4986,5 @@
 
   function destroy() { destroyThree(); initialized = false; resetDiagnostics(); }
 
-  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getMeteorGlbDepthScale, setMeteorGlbDepthScale, getThreeCameraModel, setThreeCameraModel, getGlobalHelpersEnabled, setGlobalHelpersEnabled, getThreeLightsSettings, setThreeLightsDebugSetting, getThreeMaterialSettings, setThreeMaterialDebugSetting };
+  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, isPlanetVisualCandidate, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getMeteorGlbDepthScale, setMeteorGlbDepthScale, getThreeCameraModel, setThreeCameraModel, getGlobalHelpersEnabled, setGlobalHelpersEnabled, getThreeLightsSettings, setThreeLightsDebugSetting, getThreeMaterialSettings, setThreeMaterialDebugSetting };
 })();

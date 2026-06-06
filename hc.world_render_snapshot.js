@@ -10,6 +10,20 @@
     return Array.isArray(value) ? value : [];
   }
 
+  const PLANET_BASE_VISUAL = Object.freeze({
+    visualKind: "planet",
+    visualVariant: "planet_01",
+    assetId: "planet_01.glb",
+  });
+
+  function getPlanetKind(body) {
+    if (!body || typeof body !== "object") return null;
+    if (body.planetKind === "rocky" || body.planetKind === "gas") return body.planetKind;
+    if (body.isRocky === true) return "rocky";
+    if (body.isGas === true || body.isRocky === false) return "gas";
+    return null;
+  }
+
   let nextRenderBodyId = 1;
   const renderBodyIds = typeof WeakMap === "function" ? new WeakMap() : null;
 
@@ -30,19 +44,25 @@
     const radius = toNumber(body.r, toNumber(body.radius, undefined));
     const scale = toNumber(body.scale, undefined);
     const stableRenderKey = getStableRenderBodyId(body, fallbackKind) || `${fallbackKind}:snapshot:${index}`;
+    const isPlanet = fallbackKind === "planet";
+    const planetKind = isPlanet ? getPlanetKind(body) : null;
     return {
       renderKey: stableRenderKey,
       id: body.id || body._id || stableRenderKey,
+      type: body.type || fallbackKind,
       kind: body.kind || body.type || fallbackKind,
+      planetKind,
+      isRocky: isPlanet ? planetKind === "rocky" : undefined,
+      isGas: isPlanet ? planetKind === "gas" : undefined,
       x: toNumber(body.x, 0),
       y: toNumber(body.y, 0),
       radius,
       scale,
       color: body.color || body.fill || body.colorName || body.gradientOuterColor || null,
       colorKey: body.colorKey || body.colorName || body.dominantKey || null,
-      visualKind: body.visualKind || null,
-      visualVariant: body.visualVariant || null,
-      assetId: body.assetId || null,
+      visualKind: body.visualKind || (isPlanet ? PLANET_BASE_VISUAL.visualKind : null),
+      visualVariant: body.visualVariant || (isPlanet ? PLANET_BASE_VISUAL.visualVariant : null),
+      assetId: body.assetId || (isPlanet ? PLANET_BASE_VISUAL.assetId : null),
       alpha: toNumber(body.alpha, undefined),
       sides: toNumber(body.sides, undefined),
       angle: toNumber(body.angle, undefined),
@@ -105,6 +125,11 @@
       worldBoundsSource = "world.bounds";
     }
 
+    const sourcePlanets = pickArray(World.planets);
+    const snapshotPlanets = mapCollection(sourcePlanets, "planet");
+    const rockyPlanetCount = sourcePlanets.filter((planet) => getPlanetKind(planet) === "rocky").length;
+    const gasPlanetCount = sourcePlanets.filter((planet) => getPlanetKind(planet) === "gas").length;
+
     const snapshot = {
       version: "world-render-snapshot-v1",
       nowMs: toNumber(opts.nowMs, 0),
@@ -125,7 +150,7 @@
         meteors: mapCollection(World.meteors, "meteor"),
         comets: mapCollection(World.comets, "comet"),
         asteroids: mapCollection(World.asteroids, "asteroid"),
-        planets: mapCollection(World.planets, "planet"),
+        planets: snapshotPlanets,
         stars: mapCollection(World.stars, "star"),
         prg: World.prg || null,
         background: World.background || null,
@@ -141,7 +166,10 @@
           meteors: pickArray(World.meteors).length,
           comets: pickArray(World.comets).length,
           asteroids: pickArray(World.asteroids).length,
-          planets: pickArray(World.planets).length,
+          planets: sourcePlanets.length,
+          rockyPlanets: rockyPlanetCount,
+          gasPlanets: gasPlanetCount,
+          planetsInThreeSnapshot: snapshotPlanets.length,
           stars: pickArray(World.stars).length,
         },
         cameraAvailability: {
