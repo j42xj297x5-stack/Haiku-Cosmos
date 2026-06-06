@@ -1069,5 +1069,5 @@ Texture pipeline evidence powinno obejmować co najmniej:
 
 - Asteroidy mają trzy aktywne assety: `asteroid_01.glb`, `asteroid_02.glb`, `asteroid_03.glb`. Wariant jest losowany raz przy utworzeniu asteroidy i zapisany jako stan obiektu (`visualVariant` + `assetId`), a nie wybierany w render loopie.
 - Merge zachowuje wariant większej asteroidy; remis zachowuje wariant pierwszej/bazowej asteroidy. Absorpcja meteoru i wzrost masy nie zmieniają wariantu.
-- Bazowym i jedynym aktualnym assetem planet jest `planet_01.glb`; renderer Three ma osobny pass planetarny, ale nie wprowadza nowych klas ani mechaniki planet.
+- Bazowym i jedynym aktualnym assetem planet jest `planet_01.glb`; temporary baseline: planety skaliste i gazowe są kierowane do tego samego modelu, a osobny pass planetarny Three nie filtruje ich po typie i nie wprowadza nowych klas ani mechaniki planet.
 - Wszystkie cztery assety korzystają z `publicAssetPath` / `publicPath`, istniejącego `GLTFLoader`, cache template per URL i klonowanych instancji. Stany `loading` / `failed` pozostawiają symboliczny fallback oraz są widoczne w diagnostics/evidence cache status.
