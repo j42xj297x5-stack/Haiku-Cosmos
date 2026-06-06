@@ -10,6 +10,19 @@
   });
   const PLANET_BASE_VISUAL_VARIANT = "planet_01";
   const PLANET_BASE_ASSET_ID = "planet_01.glb";
+  const PLANET_VISUAL_ROTATION_TWO_PI = Math.PI * 2;
+
+  function planetRotationUnit(seed, offset) {
+    const value = Math.sin((seed + offset) * 43758.5453123) * 143758.5453;
+    return value - Math.floor(value);
+  }
+
+  function planetRotationSpeed(seed, offset, min, max) {
+    const unit = planetRotationUnit(seed, offset);
+    const magnitude = min + ((max - min) * unit);
+    const direction = planetRotationUnit(seed, offset + 0.5) < 0.5 ? -1 : 1;
+    return magnitude * direction;
+  }
 
   function assignAsteroidVisual(body, randomValue) {
     if (!body || typeof body !== "object") return body;
@@ -22,11 +35,23 @@
     return body;
   }
 
-  function assignPlanetVisual(body) {
+  function assignPlanetVisual(body, randomValue) {
     if (!body || typeof body !== "object") return body;
     body.visualKind = "planet";
     body.visualVariant = PLANET_BASE_VISUAL_VARIANT;
     body.assetId = PLANET_BASE_ASSET_ID;
+
+    const existingSeed = Number(body.visualRotationSeed);
+    const seed = Number.isFinite(existingSeed)
+      ? existingSeed
+      : (Number.isFinite(randomValue) ? randomValue : Math.random());
+    body.visualRotationSeed = seed;
+    if (!Number.isFinite(body.visualRotationX)) body.visualRotationX = planetRotationUnit(seed, 1) * PLANET_VISUAL_ROTATION_TWO_PI;
+    if (!Number.isFinite(body.visualRotationY)) body.visualRotationY = planetRotationUnit(seed, 2) * PLANET_VISUAL_ROTATION_TWO_PI;
+    if (!Number.isFinite(body.visualRotationZ)) body.visualRotationZ = planetRotationUnit(seed, 3) * PLANET_VISUAL_ROTATION_TWO_PI;
+    if (!Number.isFinite(body.visualRotationSpeedX)) body.visualRotationSpeedX = planetRotationSpeed(seed, 4, 0.005, 0.03);
+    if (!Number.isFinite(body.visualRotationSpeedY)) body.visualRotationSpeedY = planetRotationSpeed(seed, 5, 0.03, 0.12);
+    if (!Number.isFinite(body.visualRotationSpeedZ)) body.visualRotationSpeedZ = planetRotationSpeed(seed, 6, 0.005, 0.03);
     return body;
   }
 

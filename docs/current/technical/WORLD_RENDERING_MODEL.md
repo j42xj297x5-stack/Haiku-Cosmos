@@ -1071,3 +1071,10 @@ Texture pipeline evidence powinno obejmować co najmniej:
 - Merge zachowuje wariant większej asteroidy; remis zachowuje wariant pierwszej/bazowej asteroidy. Absorpcja meteoru i wzrost masy nie zmieniają wariantu.
 - Bazowym i jedynym aktualnym assetem planet jest `planet_01.glb`; temporary baseline: planety skaliste i gazowe są kierowane do tego samego modelu, a osobny pass planetarny Three nie filtruje ich po typie i nie wprowadza nowych klas ani mechaniki planet.
 - Wszystkie cztery assety korzystają z `publicAssetPath` / `publicPath`, istniejącego `GLTFLoader`, cache template per URL i klonowanych instancji. Stany `loading` / `failed` pozostawiają symboliczny fallback oraz są widoczne w diagnostics/evidence cache status.
+
+## Planet visual rotation checkpoint (2026-06-06)
+
+- Każda planeta otrzymuje przy przypisaniu planetarnego visualu stabilny `visualRotationSeed`, pełną orientację startową XYZ oraz spokojne prędkości obrotu zapisane na obiekcie świata. Ponowne wywołanie helpera nie przelosowuje istniejących pól.
+- Główna prędkość dotyczy osi Y (`0.03–0.12 rad/s` ze stabilnie wybranym kierunkiem), a osie X/Z mają słabszy drift (`0.005–0.03 rad/s`). Ta sama logika obejmuje planety `rocky` i `gas`, także planetę powstałą z asteroidy.
+- `hc.world_render_snapshot.js` propaguje seed, rotację bazową i prędkości do snapshotu. Pass planetarny `hc.world_renderer.js` nie losuje wartości: utrzymuje czas startu stabilnej instancji Three i ustawia rotację grupy jako `base + elapsed * speed`, dzięki czemu obraca się zarówno GLB, jak i prosty fallback.
+- Metadane oraz animacja są visual-only: nie zmieniają pozycji, promienia, skali gameplayowej, orbit, grawitacji, kolizji ani mechaniki planet; Canvas2D pozostaje bez zmian.
