@@ -497,3 +497,10 @@
 - Główna prędkość dotyczy osi Y (`0.03–0.12 rad/s` ze stabilnie wybranym kierunkiem), a osie X/Z mają słabszy drift (`0.005–0.03 rad/s`). Ta sama logika obejmuje planety `rocky` i `gas`, także planetę powstałą z asteroidy.
 - `hc.world_render_snapshot.js` propaguje seed, rotację bazową i prędkości do snapshotu. Pass planetarny `hc.world_renderer.js` nie losuje wartości: utrzymuje czas startu stabilnej instancji Three i ustawia rotację grupy jako `base + elapsed * speed`, dzięki czemu obraca się zarówno GLB, jak i prosty fallback.
 - Metadane oraz animacja są visual-only: nie zmieniają pozycji, promienia, skali gameplayowej, orbit, grawitacji, kolizji ani mechaniki planet; Canvas2D pozostaje bez zmian.
+
+## 10. GLTFLoader dependency routing and evidence checkpoint (2026-06-06)
+
+- `hc.world_renderer.js` rozwiązuje URL modelu przez `HC.publicAssetPath`, a następnie tworzy dedykowany `THREE.LoadingManager` dla każdego ładowania template GLB.
+- `GLTFLoader.resourcePath` wskazuje katalog rozwiązanego URL-u modelu. Manager URL modifier zachowuje URI osadzone/cross-origin, usuwa błędny segment `public/` i dopina Vite/GitHub Pages base do rootowych ścieżek publicznych zależności.
+- LoadingManager dostarcza evidence request/complete/error zależności do `HC.WorldRenderer.getDiagnostics()` i zdarzeń `world.glb_dependency_*`; nie zmienia snapshotu, mechaniki ani routingu wariantów asteroid/planet.
+- Aktualne `public/glb/*.glb` są self-contained względem obrazów i buforów. Zewnętrzne czerwone/żółte PNG meteorów są nadal ładowane niezależnie przez istniejący cache `TextureLoader`.
