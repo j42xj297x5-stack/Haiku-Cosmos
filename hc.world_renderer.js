@@ -347,6 +347,17 @@
       gltfLoaderPendingUrls: [],
       gltfLoaderFailedUrls: [],
       gltfLoaderTimedOutUrls: [],
+      gltfLoaderLastResourcePath: null,
+      gltfLoaderUrlModifierCount: 0,
+      gltfManagerItemStartCount: 0,
+      gltfManagerItemEndCount: 0,
+      gltfManagerItemErrorCount: 0,
+      gltfManagerLastStartedUrl: null,
+      gltfManagerLastCompletedUrl: null,
+      gltfManagerLastFailedUrl: null,
+      gltfDependencyRequestedUrls: [],
+      gltfDependencyCompletedUrls: [],
+      gltfFailedDependencyUrls: [],
     };
   }
 
@@ -425,6 +436,41 @@
     diagnostics.gltfLoaderTimedOutUrls = Array.from(new Set((diagnostics.gltfLoaderTimedOutUrls || []).filter(Boolean)));
     threeState.gltfLoaderDiagnostics = diagnostics;
     return diagnostics;
+  }
+
+  function getPublicBasePathname() {
+    try {
+      const publicRoot = resolvePublicAssetPath("");
+      return new URL(publicRoot || "./", getBrowserAssetBaseUrl() || window.location.href).pathname.replace(/\/+$/, "/");
+    } catch (_) {
+      return "/";
+    }
+  }
+
+  function normalizeGltfDependencyUrl(url, modelUrl) {
+    const rawUrl = String(url || "");
+    if (!rawUrl || /^(?:blob:|data:)/i.test(rawUrl)) return rawUrl;
+    const modelDirectory = new URL("./", modelUrl).href;
+    const resolved = new URL(rawUrl, modelDirectory);
+    const currentOrigin = window.location?.origin || resolved.origin;
+    if (resolved.origin !== currentOrigin) return resolved.href;
+
+    const publicBasePathname = getPublicBasePathname();
+    let pathname = resolved.pathname.replace(/^\/public\//, "/");
+    const alreadyBaseSafe = publicBasePathname === "/" || pathname === publicBasePathname.slice(0, -1) || pathname.startsWith(publicBasePathname);
+    const publicAssetRoot = /^\/(?:assets|glb|models|png|svg|textures)(?:\/|$)/i.test(pathname);
+    if (!alreadyBaseSafe && publicAssetRoot) {
+      return normalizeBrowserAssetUrl(resolvePublicAssetPath(pathname.replace(/^\/+/, "")));
+    }
+    if (pathname !== resolved.pathname) {
+      return normalizeBrowserAssetUrl(resolvePublicAssetPath(pathname.replace(/^\/+/, "")));
+    }
+    return resolved.href;
+  }
+
+  function isGltfPrimaryAssetUrl(url, modelUrl) {
+    try { return new URL(url, modelUrl).href === new URL(modelUrl, window.location.href).href; }
+    catch (_) { return String(url || "") === String(modelUrl || ""); }
   }
 
   function makeGlbEventPayload(type, { assetKind, url, cacheKey, startedAt, durationMs = null, loaded = null, total = null, error = null, status = null, readyState = null, meshCount = null, materialCount = null, textureCount = null } = {}) {
@@ -3393,8 +3439,58 @@
 
       try {
         if (typeof GLTFLoader !== "function") throw new Error(`GLTFLoader is not a constructor/function (type: ${typeof GLTFLoader})`);
-        const loader = new GLTFLoader();
+        const manager = typeof THREE.LoadingManager === "function" ? new THREE.LoadingManager() : null;
         const resourcePath = new URL("./", resolvedUrl).href;
+        diagnostics.gltfLoaderLastResourcePath = resourcePath;
+        if (manager) {
+          manager.setURLModifier((dependencyUrl) => {
+            diagnostics.gltfLoaderUrlModifierCount += 1;
+            const normalizedUrl = normalizeGltfDependencyUrl(dependencyUrl, resolvedUrl);
+            if (!isGltfPrimaryAssetUrl(normalizedUrl, resolvedUrl)) {
+              pushUniqueLimited(diagnostics.gltfDependencyRequestedUrls, normalizedUrl, 40);
+              emitGlbDebugEvent("world.glb_dependency_started", makeGlbEventPayload("dependency_started", {
+                assetKind, url: normalizedUrl, cacheKey, startedAt, status: "loading",
+              }));
+            }
+            return normalizedUrl;
+          });
+          manager.onStart = (itemUrl, itemsLoaded, itemsTotal) => {
+            const normalizedUrl = normalizeGltfDependencyUrl(itemUrl, resolvedUrl);
+            diagnostics.gltfManagerItemStartCount += 1;
+            diagnostics.gltfManagerLastStartedUrl = normalizedUrl;
+            if (!isGltfPrimaryAssetUrl(normalizedUrl, resolvedUrl)) {
+              pushUniqueLimited(diagnostics.gltfDependencyRequestedUrls, normalizedUrl, 40);
+              emitGlbDebugEvent("world.glb_dependency_started", makeGlbEventPayload("dependency_started", {
+                assetKind, url: normalizedUrl, cacheKey, startedAt, loaded: itemsLoaded, total: itemsTotal, status: "loading",
+              }));
+            }
+          };
+          manager.onProgress = (itemUrl, itemsLoaded, itemsTotal) => {
+            const normalizedUrl = normalizeGltfDependencyUrl(itemUrl, resolvedUrl);
+            diagnostics.gltfManagerItemEndCount += 1;
+            diagnostics.gltfManagerLastCompletedUrl = normalizedUrl;
+            if (!isGltfPrimaryAssetUrl(normalizedUrl, resolvedUrl)) {
+              pushUniqueLimited(diagnostics.gltfDependencyCompletedUrls, normalizedUrl, 40);
+              removeFromList(diagnostics.gltfFailedDependencyUrls, normalizedUrl);
+              emitGlbDebugEvent("world.glb_dependency_ready", makeGlbEventPayload("dependency_ready", {
+                assetKind, url: normalizedUrl, cacheKey, startedAt, loaded: itemsLoaded, total: itemsTotal, status: "ready",
+              }));
+            }
+          };
+          manager.onError = (itemUrl) => {
+            const normalizedUrl = normalizeGltfDependencyUrl(itemUrl, resolvedUrl);
+            diagnostics.gltfManagerItemErrorCount += 1;
+            diagnostics.gltfManagerLastFailedUrl = normalizedUrl;
+            if (!isGltfPrimaryAssetUrl(normalizedUrl, resolvedUrl)) {
+              pushUniqueLimited(diagnostics.gltfFailedDependencyUrls, normalizedUrl, 40);
+              if (cacheEntry) cacheEntry.failedDependencyUrl = normalizedUrl;
+              emitGlbDebugEvent("world.glb_dependency_failed", makeGlbEventPayload("dependency_failed", {
+                assetKind, url: normalizedUrl, cacheKey, startedAt, error: new Error(`GLTF dependency failed: ${normalizedUrl}`), status: "failed",
+              }));
+            }
+          };
+        }
+        const loader = new GLTFLoader(manager || undefined);
         if (typeof loader.setResourcePath === "function") loader.setResourcePath(resourcePath);
         if (typeof loader.setPath === "function") loader.setPath("");
         timeoutId = window.setTimeout(() => {
@@ -4820,6 +4916,17 @@
       gltfLoaderPendingUrls: (gltfLoaderDiagnostics.gltfLoaderPendingUrls || []).slice(),
       gltfLoaderFailedUrls: (gltfLoaderDiagnostics.gltfLoaderFailedUrls || []).slice(),
       gltfLoaderTimedOutUrls: (gltfLoaderDiagnostics.gltfLoaderTimedOutUrls || []).slice(),
+      gltfLoaderLastResourcePath: gltfLoaderDiagnostics.gltfLoaderLastResourcePath,
+      gltfLoaderUrlModifierCount: gltfLoaderDiagnostics.gltfLoaderUrlModifierCount,
+      gltfManagerItemStartCount: gltfLoaderDiagnostics.gltfManagerItemStartCount,
+      gltfManagerItemEndCount: gltfLoaderDiagnostics.gltfManagerItemEndCount,
+      gltfManagerItemErrorCount: gltfLoaderDiagnostics.gltfManagerItemErrorCount,
+      gltfManagerLastStartedUrl: gltfLoaderDiagnostics.gltfManagerLastStartedUrl,
+      gltfManagerLastCompletedUrl: gltfLoaderDiagnostics.gltfManagerLastCompletedUrl,
+      gltfManagerLastFailedUrl: gltfLoaderDiagnostics.gltfManagerLastFailedUrl,
+      gltfDependencyRequestedUrls: (gltfLoaderDiagnostics.gltfDependencyRequestedUrls || []).slice(),
+      gltfDependencyCompletedUrls: (gltfLoaderDiagnostics.gltfDependencyCompletedUrls || []).slice(),
+      gltfFailedDependencyUrls: (gltfLoaderDiagnostics.gltfFailedDependencyUrls || []).slice(),
       gltfLoaderDebugEvents: threeState.gltfLoaderDebugEvents.slice(-12),
       glbVisualFallbackActiveCount: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.fallback?.visible).length + Array.from(threeState.asteroidMeshes.values()).filter((entry) => !!entry.fallback?.visible).length + Array.from(threeState.planetMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
       gltfProbeStarted: !!threeState.gltfDebugProbe?.startedAt,

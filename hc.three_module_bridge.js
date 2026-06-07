@@ -2,7 +2,7 @@
 (function initThreeBridgeGlobals() {
   if (typeof window === "undefined") return;
 
-  window.HC_THREE_BRIDGE_VERSION = "esm_vendor_probe_v5_gltf_loader";
+  window.HC_THREE_BRIDGE_VERSION = "esm_vendor_probe_v6_gltf_base_safe";
   window.HC_THREE_SOURCE = "local_vendor_esm";
   window.HC_THREE_READY = false;
   window.HC_THREE_LOAD_STATUS = "loading";
@@ -11,9 +11,10 @@
   window.HC_GLTF_LOADER_MODULE_URL = new URL("./vendor/loaders/GLTFLoader.js", import.meta.url).href;
   window.HC_GLTF_LOADER_IMPORT_STATUS = "loading";
   window.HC_GLTF_LOADER_IMPORT_ERROR = null;
+  // Only public entry modules belong in the preflight. three.core is an internal
+  // Vite/Rollup chunk and importing the entry modules is the authoritative check.
   window.HC_THREE_VENDOR_URLS = [
     window.HC_THREE_MODULE_URL,
-    new URL("./vendor/three/three.core.min.js", import.meta.url).href,
     window.HC_GLTF_LOADER_MODULE_URL
   ];
 
