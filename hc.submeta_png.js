@@ -9,6 +9,7 @@
   const ENABLED_STORAGE_KEY = "hc.submetaPng.enabled.v1";
   const LAYOUT_STORAGE_KEY = "hc.submetaPng.layout.v1";
   const ASSET_DIR = "png/submeta/";
+  const BACKGROUND_FIT_MODE = "contain";
 
   const element = (id, src, x, y, scaleX = 1, scaleY = 1, zIndex = 10, visible = true, mode = "image") => ({
     id, src, x, y, scaleX, scaleY, opacity: 1, zIndex, visible, mode
@@ -150,10 +151,15 @@
         image.setAttribute("role", "button");
         image.setAttribute("tabindex", "0");
         image.setAttribute("aria-label", "Wróć");
-        image.addEventListener("click", closeSubMeta);
+        image.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          closeSubMeta();
+        });
         image.addEventListener("keydown", (event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
+            event.stopPropagation();
             closeSubMeta();
           }
         });
@@ -165,15 +171,22 @@
   }
 
   function closeSubMeta() {
-    if (root.CardEngine && typeof root.CardEngine.closeSubMeta === "function") {
-      root.CardEngine.closeSubMeta(getWorld());
-      return;
-    }
+    previewEnabled = false;
     const world = getWorld();
-    if (world) {
+    const wasOpen = world?.subMetaOpen === true;
+    if (wasOpen && root.CardEngine && typeof root.CardEngine.closeSubMeta === "function") {
+      root.CardEngine.closeSubMeta(world);
+    } else if (wasOpen && world) {
       world.subMetaOpen = false;
       world.paused = false;
+    } else if (world) {
+      world.subMetaOpen = false;
     }
+    update();
+  }
+
+  function hidePreview() {
+    setPreviewEnabled(false);
   }
 
   function renderElements() {
@@ -187,6 +200,7 @@
       image.style.opacity = String(item.opacity);
       if (item.mode === "background") {
         image.classList.add("submeta-png-background");
+        image.style.objectFit = BACKGROUND_FIT_MODE;
         image.style.left = "0";
         image.style.top = "0";
         image.style.width = "100%";
@@ -340,7 +354,9 @@
     }
     const action = target.dataset && target.dataset.submetaPngAction;
     if (!action) return false;
-    if (action === "reset-selected") resetSelected();
+    if (action === "close-submeta") closeSubMeta();
+    else if (action === "hide-preview") hidePreview();
+    else if (action === "reset-selected") resetSelected();
     else if (action === "reset-all") resetAll();
     else if (action === "save") saveLayout();
     else if (action === "load") loadLayout();
@@ -358,6 +374,11 @@
 
   function getDiagnostics() {
     const renderedElements = stage ? stage.querySelectorAll("[data-submeta-png-id]").length : 0;
+    const stageRect = stage?.getBoundingClientRect?.();
+    const stageWidth = Math.round(stageRect?.width || 0);
+    const stageHeight = Math.round(stageRect?.height || 0);
+    const scaleX = stageWidth / DESIGN_SIZE.width;
+    const scaleY = stageHeight / DESIGN_SIZE.height;
     return {
       moduleLoaded: true,
       enabled: isActive(),
@@ -366,28 +387,36 @@
       overlayMounted: !!(overlay && overlay.isConnected),
       elementsConfigured: elements.length,
       elementsRendered: renderedElements,
+      stageSize: `${stageWidth} × ${stageHeight}`,
+      viewportSize: `${Math.round(root.innerWidth || 0)} × ${Math.round(root.innerHeight || 0)}`,
+      backgroundFitMode: BACKGROUND_FIT_MODE,
+      stageScale: `${scaleX.toFixed(4)} × ${scaleY.toFixed(4)}`,
       sampleBackgroundPath: resolvedAssetUrl(`${ASSET_DIR}submeta_background.png`)
     };
   }
 
-  function renderDebugHtml() {
+  function renderDebugHtml(options = {}) {
     const selected = getSelected();
     if (!selected) return "";
     const diagnostics = getDiagnostics();
-    const options = elements.map((item) => option(item.id, item.id, item.id === selected.id)).join("");
+    const elementOptions = elements.map((item) => option(item.id, item.id, item.id === selected.id)).join("");
     return `
-      <div class="submeta-png-debug">
-        <h5>SUB-META PNG Layout</h5>
+      <details class="submeta-png-debug overlay-collapsible" data-runtime-debug-section="submeta-png-layout"${options.open === false ? "" : " open"}>
+        <summary>SUB-META PNG Layout</summary>
         <div class="overlay-grid">
           <label class="overlay-select-row" for="dbgSubMetaPngEnabled">Use new PNG SUB-META <input id="dbgSubMetaPngEnabled" type="checkbox"${enabled ? " checked" : ""}></label>
           <label class="overlay-select-row" for="dbgSubMetaPngPreview">Show PNG layout preview <input id="dbgSubMetaPngPreview" type="checkbox"${diagnostics.preview ? " checked" : ""}></label>
-          <label class="submeta-png-debug-row" for="dbgSubMetaPngElement"><span>Element</span><select id="dbgSubMetaPngElement">${options}</select></label>
+          <label class="submeta-png-debug-row" for="dbgSubMetaPngElement"><span>Element</span><select id="dbgSubMetaPngElement">${elementOptions}</select></label>
           ${renderNumberControl("x", "x", selected.x, 0, 1, 0.001)}
           ${renderNumberControl("y", "y", selected.y, 0, 1, 0.001)}
           ${renderNumberControl("scaleX", "scaleX", selected.scaleX, 0.05, 5, 0.01)}
           ${renderNumberControl("scaleY", "scaleY", selected.scaleY, 0.05, 5, 0.01)}
           <label class="submeta-png-debug-row"><span>visible</span><input type="checkbox" data-submeta-png-field="visible"${selected.visible ? " checked" : ""}></label>
           ${renderNumberControl("zIndex", "zIndex", selected.zIndex, -100, 1000, 1)}
+          <div class="submeta-png-debug-actions submeta-png-emergency-actions">
+            <button class="overlay-btn" type="button" data-submeta-png-action="close-submeta">Close SUB-META</button>
+            <button class="overlay-btn" type="button" data-submeta-png-action="hide-preview">Hide PNG preview</button>
+          </div>
           <div class="submeta-png-debug-actions">
             <button class="overlay-btn" type="button" data-submeta-png-action="reset-selected">Reset selected</button>
             <button class="overlay-btn" type="button" data-submeta-png-action="reset-all">Reset all</button>
@@ -402,12 +431,16 @@
             <div class="overlay-row"><span class="k">World.subMetaOpen</span><span class="v">${diagnostics.worldSubMetaOpen ? "yes" : "no"}</span></div>
             <div class="overlay-row"><span class="k">overlay mounted</span><span class="v">${diagnostics.overlayMounted ? "yes" : "no"}</span></div>
             <div class="overlay-row"><span class="k">elements configured</span><span class="v">${diagnostics.elementsConfigured}</span></div>
-            <div class="overlay-row"><span class="k">elements rendered</span><span class="v">${diagnostics.elementsRendered}</span></div>
-            <div class="overlay-row"><span class="k">sample background path</span><span class="v">${diagnostics.sampleBackgroundPath}</span></div>
-            <div class="overlay-row"><span class="k">storage</span><span class="v">${LAYOUT_STORAGE_KEY}</span></div>
+            <div class="overlay-row"><span class="k">elements rendered</span><code class="v">${diagnostics.elementsRendered}</code></div>
+            <div class="overlay-row"><span class="k">stage size</span><code class="v">${diagnostics.stageSize}</code></div>
+            <div class="overlay-row"><span class="k">viewport size</span><code class="v">${diagnostics.viewportSize}</code></div>
+            <div class="overlay-row"><span class="k">background fit</span><code class="v">${diagnostics.backgroundFitMode}</code></div>
+            <div class="overlay-row"><span class="k">stage scale</span><code class="v">${diagnostics.stageScale}</code></div>
+            <div class="overlay-row"><span class="k">sample background path</span><code class="v">${diagnostics.sampleBackgroundPath}</code></div>
+            <div class="overlay-row"><span class="k">storage</span><code class="v">${LAYOUT_STORAGE_KEY}</code></div>
           </div>
         </div>
-      </div>`;
+      </details>`;
   }
 
   function init() {
@@ -423,6 +456,7 @@
     DESIGN_SIZE,
     ENABLED_STORAGE_KEY,
     LAYOUT_STORAGE_KEY,
+    BACKGROUND_FIT_MODE,
     init,
     update,
     isActive,
@@ -430,6 +464,8 @@
     shouldShow,
     setEnabled,
     setPreviewEnabled,
+    closeSubMeta,
+    hidePreview,
     getDiagnostics,
     getElements: () => elements.map(cloneElement),
     getExportPayload,

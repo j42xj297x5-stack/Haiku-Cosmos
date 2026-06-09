@@ -40,6 +40,19 @@
   let lastScore = null;
   const lastDebugControlEventAt = new Map();
   let warnedMissingSubMetaPngLayout = false;
+  const RUNTIME_DEBUG_SECTIONS_STORAGE_KEY = "hc.runtimeDebug.sections.v1";
+  const DEFAULT_RUNTIME_DEBUG_SECTIONS = Object.freeze({
+    "renderer-scene": true,
+    "lighting": true,
+    "lighting-advanced": false,
+    "glb-materials": false,
+    "world-mechanics": false,
+    "cards-sequence-economy": false,
+    "submeta-prg": true,
+    "submeta-png-layout": true,
+    "logging-evidence": true,
+  });
+  let runtimeDebugSectionState = readRuntimeDebugSectionState();
 
   const DEBUG_UI_TEXT = Object.freeze({
     "common.back": "Back",
@@ -537,6 +550,35 @@
   }
 
 
+  function readRuntimeDebugSectionState() {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(RUNTIME_DEBUG_SECTIONS_STORAGE_KEY) || "null");
+      return stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function isRuntimeDebugSectionOpen(sectionId, fallback = false) {
+    if (Object.prototype.hasOwnProperty.call(runtimeDebugSectionState, sectionId)) {
+      return runtimeDebugSectionState[sectionId] === true;
+    }
+    if (Object.prototype.hasOwnProperty.call(DEFAULT_RUNTIME_DEBUG_SECTIONS, sectionId)) {
+      return DEFAULT_RUNTIME_DEBUG_SECTIONS[sectionId] === true;
+    }
+    return fallback === true;
+  }
+
+  function saveRuntimeDebugSectionState(sectionId, open) {
+    if (!sectionId) return;
+    runtimeDebugSectionState = { ...runtimeDebugSectionState, [sectionId]: open === true };
+    try {
+      window.localStorage.setItem(RUNTIME_DEBUG_SECTIONS_STORAGE_KEY, JSON.stringify(runtimeDebugSectionState));
+    } catch (_error) {
+      // Persisting debug ergonomics is best-effort; the current DOM state still works.
+    }
+  }
+
   function updateRuntimeOverlayCollapseUi() {
     if (!runtimeDebugOverlay) return;
     runtimeDebugOverlay.classList.toggle("collapsed", runtimeOverlayCollapsed);
@@ -589,6 +631,10 @@
       runtimeDebugOverlayPanel = document.getElementById("runtimeDebugOverlayPanel");
       if (runtimeDebugOverlayBody) {
         runtimeDebugOverlayBody.addEventListener("click", (event) => {
+          const interactiveControl = event.target && event.target.closest
+            ? event.target.closest("input, select, textarea, button, label, option")
+            : null;
+          if (interactiveControl) event.stopPropagation();
           const subMetaControl = event.target && event.target.closest ? event.target.closest("[data-submeta-png-action]") : null;
           if (subMetaControl && window.HC?.SubMetaPngLayout?.handleDebugControl?.(subMetaControl)) {
             const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
@@ -604,6 +650,12 @@
           if (!tabBtn) return;
           runtimeOverlayTab = tabBtn.getAttribute("data-debug-tab") === "prg" ? "prg" : "session";
         });
+        runtimeDebugOverlayBody.addEventListener("toggle", (event) => {
+          const section = event.target;
+          if (!(section instanceof HTMLDetailsElement)) return;
+          const sectionId = section.dataset.runtimeDebugSection;
+          if (sectionId) saveRuntimeDebugSectionState(sectionId, section.open);
+        }, true);
         const handleRuntimeDebugControl = (event) => {
           const target = event.target;
           if (!target) return;
@@ -909,7 +961,7 @@
   }
 
   function renderRows(rows) {
-    return rows.map((row) => `<div class="overlay-row"><span class="k">${row[0]}</span><span class="v">${row[1]}</span></div>`).join("");
+    return rows.map((row) => `<div class="overlay-row"><span class="k">${row[0]}</span><code class="v">${row[1]}</code></div>`).join("");
   }
 
   function renderPrgCheckboxRow(id, label, checked) {
@@ -997,8 +1049,8 @@
     const lightHelperStatus = rendererDiag?.threeLightHelpers || {};
     const globalHelpersEnabled = getGlobalHelpersEnabledForUi();
     const openAttr = (isOpen) => isOpen ? " open" : "";
-    const renderSection = (title, rows, controls = "", options = {}) => `
-      <details class="overlay-section overlay-collapsible${options.advanced ? " overlay-expanded-only" : ""}"${openAttr(options.open === true)}>
+    const renderSection = (sectionId, title, rows, controls = "", options = {}) => `
+      <details class="overlay-section overlay-collapsible${options.advanced ? " overlay-expanded-only" : ""}" data-runtime-debug-section="${sectionId}"${openAttr(isRuntimeDebugSectionOpen(sectionId, options.open === true))}>
         <summary>${title}</summary>
         ${controls ? `<div class="overlay-grid">${controls}</div>` : ""}
         <div class="overlay-grid">${renderRows(rows)}</div>
@@ -1006,7 +1058,7 @@
       </details>
     `;
 
-    sections.push(renderSection("Renderer / Scene", [
+    sections.push(renderSection("renderer-scene", "Renderer / Scene", [
       ["renderer mode", `${rendererDiag?.requestedMode || requestedMode} / ${rendererDiag?.effectiveMode || "three"}`],
       ["cameraModel", rendererDiag?.threeCameraModel || getThreeCameraModelForUi()],
       ["fallback status", rendererDiag?.fallbackUsed ? (rendererDiag?.fallbackReason || "fallback") : "none"],
@@ -1024,7 +1076,7 @@
       </label>
     `, { open: true }));
 
-    sections.push(renderSection("Lighting", [
+    sections.push(renderSection("lighting", "Lighting", [
       ["Main Stage Spot", `${threeLights.mainStageSpotEnabled !== false ? "ON" : "OFF"} / ${Number(threeLights.mainStageSpotIntensity).toFixed(2)}`],
       ["ambient fill", Number(threeLights.ambientIntensity || 0).toFixed(2)],
       ["helpers global", globalHelpersEnabled ? "enabled" : "HIDE ALL"],
@@ -1053,7 +1105,7 @@
       </label>
     `, { open: true }));
 
-    sections.push(renderSection("Lighting Advanced", [
+    sections.push(renderSection("lighting-advanced", "Lighting Advanced", [
       ["lighting model", rendererDiag?.lightingModelVersion || rendererDiag?.stageLighting?.lightingModelVersion || "stage_spot_v1"],
       ["optional diagnostic lights", `debugKey=${threeLights.debugKeyLightEnabled ? "on" : "off"}, debugRim=${threeLights.debugRimLightEnabled ? "on" : "off"}, headlight=${threeLights.forceHeadlightEnabled ? "on" : "off"}`],
       ["helper counts", `${lightHelperStatus.count ?? 0} / ${lightHelperStatus.mode || "none"}`],
@@ -1078,7 +1130,7 @@
       <label class="overlay-select-row" for="dbgThreeMainStageSpotZHeight">Main Stage Spot Z offset <input id="dbgThreeMainStageSpotZHeight" type="range" min="0.25" max="4" step="0.05" value="${threeLights.mainStageSpotZHeight}"><span id="dbgThreeMainStageSpotZHeightValue">${Number(threeLights.mainStageSpotZHeight).toFixed(2)}</span></label>
     `, { open: false, advanced: true }));
 
-    sections.push(renderSection("GLB / Materials", [
+    sections.push(renderSection("glb-materials", "GLB / Materials", [
       ["materialMode", rendererDiag?.threeMaterialOverrideStatus?.currentMaterialMode || threeMaterials.materialMode || "imported"],
       ["GLB visual-only scale", rendererDiag?.meteorGlbVisualScale ?? getMeteorGlbVisualScaleForUi()],
       ["GLB depth scale", rendererDiag?.meteorGlbDepthScale ?? getMeteorGlbDepthScaleForUi()],
@@ -1095,7 +1147,7 @@
       <label class="overlay-select-row" for="dbgRedMeteorTexturesEnabled">Meteor PNG textures RED/YELLOW <input id="dbgRedMeteorTexturesEnabled" type="checkbox"${threeMaterials.meteorPngTexturesEnabled !== false && threeMaterials.redMeteorTexturesEnabled !== false ? " checked" : ""}></label>
     `, { open: false }));
 
-    sections.push(renderSection("World / Mechanics", [
+    sections.push(renderSection("world-mechanics", "World / Mechanics", [
       ["meteors", rendererDiag?.threeMeteorCount ?? 0],
       ["asteroids", wc.asteroids ?? 0],
       ["asteroid mass", `${wc.asteroidMassTotal ?? 0} total / ${wc.asteroidMassMax ?? 0} max`],
@@ -1106,7 +1158,7 @@
       ["P→S threshold", `${thr.planetToStar?.current ?? 0} (${thr.planetToStar?.source || "-"})`],
     ], "", { open: false }));
 
-    sections.push(renderSection("Cards / Sequence / Economy", [
+    sections.push(renderSection("cards-sequence-economy", "Cards / Sequence / Economy", [
       ["RP", snap.economy?.rp ?? 0],
       ["active sequence", seq.active ? `${seq.stage || "ACTIVE"} ${seq.track || ""}` : "no"],
       ["expected color", seq.expectedColor || "null"],
@@ -1120,7 +1172,9 @@
     const subMetaPngLayout = window.HC?.SubMetaPngLayout;
     let subMetaPngDebugHtml = "";
     if (subMetaPngLayout?.renderDebugHtml) {
-      subMetaPngDebugHtml = subMetaPngLayout.renderDebugHtml();
+      subMetaPngDebugHtml = subMetaPngLayout.renderDebugHtml({
+        open: isRuntimeDebugSectionOpen("submeta-png-layout", true),
+      });
     } else {
       if (!warnedMissingSubMetaPngLayout) {
         warnedMissingSubMetaPngLayout = true;
@@ -1136,13 +1190,13 @@
         </div>`;
     }
 
-    sections.push(renderSection("SUB-META / PRG", [
+    sections.push(renderSection("submeta-prg", "SUB-META / PRG", [
       ["status", "placeholder / future diagnostics"],
       ["SUB-META events", "opened, closed, slot_*, card_*, inventory_changed, prg_binding_changed, purchase, error"],
       ["snapshot policy", "full snapshot on open/close/finalize/force evidence only"],
-    ], "", { open: false, extra: subMetaPngDebugHtml }));
+    ], "", { open: true, extra: subMetaPngDebugHtml }));
 
-    sections.push(renderSection("Logging / Evidence", [
+    sections.push(renderSection("logging-evidence", "Logging / Evidence", [
       ["logging mode", snap.loggingMode || "compact"],
       ["heartbeat interval", `${snap.heartbeatIntervalMs || 5000} ms`],
       ["compact/verbose", snap.verboseDiagnostics ? "verbose" : "compact"],
