@@ -2610,7 +2610,9 @@ const CardEngine = (() => {
     renderSequenceOverlay(ctx, screenW, screenH);
     renderSequenceToast(ctx, screenW, screenH);
     renderPack01Collection(ctx, screenW, screenH);
-    renderSubMetaOverlay(ctx, screenW, screenH);
+    if (!window.HC?.SubMetaPngLayout?.isActive?.()) {
+      renderSubMetaOverlay(ctx, screenW, screenH);
+    }
   }
 
   function getSequenceOverlayLayout(screenW) {
@@ -5757,6 +5759,7 @@ const CardEngine = (() => {
   function handlePointerDown(mx, my, screenW, screenH) {
     const World = state.world;
     if (World && World.subMetaOpen) {
+      if (window.HC?.SubMetaPngLayout?.isActive?.()) return true;
       return handleSubMetaPointerDown(mx, my, screenW, screenH);
     }
 
@@ -5852,6 +5855,7 @@ const CardEngine = (() => {
     update,
     render,
     handlePointerDown,
+    closeSubMeta,
     onRunActivateR1,
     onRunActivateR2,
     onHitColor,

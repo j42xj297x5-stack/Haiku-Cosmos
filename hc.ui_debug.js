@@ -588,6 +588,12 @@
       runtimeDebugOverlayPanel = document.getElementById("runtimeDebugOverlayPanel");
       if (runtimeDebugOverlayBody) {
         runtimeDebugOverlayBody.addEventListener("click", (event) => {
+          const subMetaControl = event.target && event.target.closest ? event.target.closest("[data-submeta-png-action]") : null;
+          if (subMetaControl && window.HC?.SubMetaPngLayout?.handleDebugControl?.(subMetaControl)) {
+            const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+            runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            return;
+          }
           const tabBtn = event.target && event.target.closest ? event.target.closest("[data-debug-tab]") : null;
           const forceBtn = event.target && event.target.closest ? event.target.closest("#dbgForceFullDiagnostics") : null;
           if (forceBtn) {
@@ -599,7 +605,15 @@
         });
         const handleRuntimeDebugControl = (event) => {
           const target = event.target;
-          if (!target || !target.id) return;
+          if (!target) return;
+          if (window.HC?.SubMetaPngLayout?.handleDebugControl?.(target)) {
+            if (target.id === "dbgSubMetaPngElement") {
+              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            }
+            return;
+          }
+          if (!target.id) return;
           if (target.id === "dbgMeteorGlbScale") {
             setMeteorGlbVisualScaleFromUi(target.value);
             return;
@@ -719,6 +733,7 @@
       cfgScenarioPreset = document.getElementById("cfgScenarioPreset");
       cfgScenarioLabel = document.getElementById("cfgScenarioLabel");
 
+      window.HC?.SubMetaPngLayout?.init?.();
       applyStaticI18nText();
       populateScenarioPresetSelect();
 
@@ -868,6 +883,7 @@
       }
       const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
       updateScoreLabel(World, false);
+      window.HC?.SubMetaPngLayout?.update?.();
       const CE = window.CardEngine;
       const view = window.HC.getView && window.HC.getView();
       if (CE && typeof CE.render === "function" && view && window.ctx) {
@@ -1098,6 +1114,9 @@
       ["last sequence event", summarizeEvent(snap.lastByCategory?.sequence)],
       ["last RP event", summarizeEvent(snap.lastByCategory?.rp)],
     ], "", { open: false }));
+
+    const subMetaPngDebugHtml = window.HC?.SubMetaPngLayout?.renderDebugHtml?.() || "";
+    if (subMetaPngDebugHtml) sections.push(subMetaPngDebugHtml);
 
     sections.push(renderSection("SUB-META / PRG", [
       ["status", "placeholder / future diagnostics"],

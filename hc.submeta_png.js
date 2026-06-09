@@ -1,0 +1,385 @@
+// Haiku Cosmos experimental PNG/CSS SUB-META overlay with debug-editable layout.
+(function (root) {
+  "use strict";
+
+  root.HC = root.HC || {};
+
+  const VERSION = "submeta-png-layout-v0.1";
+  const DESIGN_SIZE = Object.freeze({ width: 1536, height: 1024 });
+  const ENABLED_STORAGE_KEY = "hc.submetaPng.enabled.v1";
+  const LAYOUT_STORAGE_KEY = "hc.submetaPng.layout.v1";
+  const ASSET_DIR = "png/submeta/";
+
+  const element = (id, src, x, y, scaleX = 1, scaleY = 1, zIndex = 10, visible = true, mode = "image") => ({
+    id, src, x, y, scaleX, scaleY, opacity: 1, zIndex, visible, mode
+  });
+
+  const DEFAULT_ELEMENTS = Object.freeze([
+    element("background", "submeta_background.png", 0.5, 0.5, 1, 1, 0, true, "background"),
+    element("submeta-logo", "submeta_logo.png", 0.50, 0.095, 0.74, 0.74, 30),
+    element("back", "submeta_wroc.png", 0.91, 0.065, 0.82, 0.82, 40),
+    element("prg-frame", "submeta_prg-ramka.png", 0.205, 0.285, 1.05, 1.05, 10),
+    element("prg-label", "submeta_prg.png", 0.205, 0.137, 1, 1, 25),
+    element("prg-forma-label", "submeta_prg-forma.png", 0.120, 0.194, 0.82, 0.82, 25),
+    element("prg-forma-logo", "submeta_prg-forma-logo.png", 0.070, 0.194, 0.80, 0.80, 25),
+    element("prg-intencja-label", "submeta_prg-intencja.png", 0.120, 0.258, 0.82, 0.82, 25),
+    element("prg-intencja-logo", "submeta_prg-intencja-logo.png", 0.070, 0.258, 0.80, 0.80, 25),
+    element("prg-czas-label", "submeta_prg-czas.png", 0.120, 0.322, 0.82, 0.82, 25),
+    element("prg-czas-logo", "submeta_prg-czas-logo.png", 0.070, 0.322, 0.80, 0.80, 25),
+    element("prg-cisza-label", "submeta_prg-cisza.png", 0.120, 0.386, 0.82, 0.82, 25),
+    element("prg-cisza-logo", "submeta_prg-cisza-logo.png", 0.070, 0.386, 0.80, 0.80, 25),
+    element("prg-card-1", "submeta_prg-karta_1.png", 0.210, 0.194, 0.82, 0.82, 24),
+    element("prg-card-2", "submeta_prg-karta_2.png", 0.275, 0.194, 0.82, 0.82, 24),
+    element("r2", "submeta_r2.png", 0.220, 0.520, 0.90, 0.90, 12),
+    element("r4", "submeta_R4.png", 0.480, 0.425, 0.56, 0.56, 12),
+    element("r3", "submeta_r3.png", 0.630, 0.405, 0.92, 0.92, 14),
+    element("inventory-panel", "submeta_magazyn-panel.png", 0.770, 0.235, 0.92, 0.92, 10),
+    element("inventory-label", "submeta_magazyn.png", 0.770, 0.113, 1, 1, 25),
+    element("possible-cards-panel", "submeta_mozliwe-karty-panel.png", 0.720, 0.555, 0.90, 0.90, 10),
+    element("possible-cards-label", "submeta_mozliwe-karty.png", 0.720, 0.440, 1, 1, 25),
+    element("forge-panel", "submeta_kuznia-panel.png", 0.875, 0.555, 0.90, 0.90, 10),
+    element("forge-label", "submeta_kuznia.png", 0.875, 0.440, 1, 1, 25),
+    element("card-description-panel", "submeta-opis_karty-panel.png", 0.790, 0.805, 0.86, 0.86, 10),
+    element("card-description-label", "submeta-opis_karty.png", 0.790, 0.665, 1, 1, 25),
+    element("world-forma", "submeta_forma_ramka.png", 0.205, 0.810, 0.78, 0.78, 12),
+    element("world-intencja", "submeta_intencja_ramka.png", 0.345, 0.810, 0.78, 0.78, 12),
+    element("world-czas", "submeta_czas_ramka.png", 0.485, 0.810, 0.78, 0.78, 12),
+    element("world-cisza", "submeta_cisza_ramka.png", 0.625, 0.810, 0.78, 0.78, 12),
+    element("confirm", "subemeta-button-potwierdz.png", 0.905, 0.950, 0.88, 0.88, 40)
+  ]);
+
+  const defaultsById = new Map(DEFAULT_ELEMENTS.map((item) => [item.id, item]));
+  let elements = cloneDefaults();
+  let enabled = readStoredEnabled();
+  let selectedId = DEFAULT_ELEMENTS[0].id;
+  let overlay = null;
+  let stage = null;
+  let initialized = false;
+
+  function cloneElement(item) {
+    return { ...item };
+  }
+
+  function cloneDefaults() {
+    return DEFAULT_ELEMENTS.map(cloneElement);
+  }
+
+  function publicAssetPath(path) {
+    const helper = root.HC && (root.HC.publicAssetPath || root.HC.publicPath);
+    return typeof helper === "function" ? helper(path) : path;
+  }
+
+  function readStoredEnabled() {
+    try {
+      return root.localStorage.getItem(ENABLED_STORAGE_KEY) === "true";
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function normalizeElement(candidate, fallback) {
+    if (!candidate || !fallback) return cloneElement(fallback);
+    return {
+      ...cloneElement(fallback),
+      x: clampNumber(candidate.x, 0, 1, fallback.x),
+      y: clampNumber(candidate.y, 0, 1, fallback.y),
+      scaleX: clampNumber(candidate.scaleX, 0.05, 5, fallback.scaleX),
+      scaleY: clampNumber(candidate.scaleY, 0.05, 5, fallback.scaleY),
+      opacity: clampNumber(candidate.opacity, 0, 1, fallback.opacity),
+      zIndex: Math.round(clampNumber(candidate.zIndex, -100, 1000, fallback.zIndex)),
+      visible: candidate.visible !== false
+    };
+  }
+
+  function clampNumber(value, min, max, fallback) {
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+  }
+
+  function getWorld() {
+    return (root.HC.getWorld && root.HC.getWorld()) || root.World || null;
+  }
+
+  function isActive() {
+    return enabled === true;
+  }
+
+  function shouldShow() {
+    return isActive() && getWorld()?.subMetaOpen === true;
+  }
+
+  function createDom() {
+    if (overlay) return;
+    overlay = document.createElement("div");
+    overlay.id = "subMetaPngOverlay";
+    overlay.hidden = true;
+    overlay.setAttribute("aria-label", "SUB-META PNG preview");
+
+    stage = document.createElement("div");
+    stage.id = "subMetaPngStage";
+    stage.setAttribute("role", "presentation");
+    overlay.appendChild(stage);
+
+    for (const item of elements) {
+      const image = document.createElement("img");
+      image.className = "submeta-png-element";
+      image.dataset.submetaPngId = item.id;
+      image.alt = "";
+      image.draggable = false;
+      image.decoding = "async";
+      if (item.id === "back") {
+        image.classList.add("submeta-png-action");
+        image.setAttribute("role", "button");
+        image.setAttribute("tabindex", "0");
+        image.setAttribute("aria-label", "Wróć");
+        image.addEventListener("click", closeSubMeta);
+        image.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            closeSubMeta();
+          }
+        });
+      }
+      stage.appendChild(image);
+    }
+    document.body.appendChild(overlay);
+    renderElements();
+  }
+
+  function closeSubMeta() {
+    if (root.CardEngine && typeof root.CardEngine.closeSubMeta === "function") {
+      root.CardEngine.closeSubMeta(getWorld());
+      return;
+    }
+    const world = getWorld();
+    if (world) {
+      world.subMetaOpen = false;
+      world.paused = false;
+    }
+  }
+
+  function renderElements() {
+    if (!stage) return;
+    for (const item of elements) {
+      const image = stage.querySelector(`[data-submeta-png-id="${item.id}"]`);
+      if (!image) continue;
+      image.src = publicAssetPath(`${ASSET_DIR}${item.src}`);
+      image.hidden = !item.visible;
+      image.style.zIndex = String(item.zIndex);
+      image.style.opacity = String(item.opacity);
+      if (item.mode === "background") {
+        image.classList.add("submeta-png-background");
+        image.style.left = "0";
+        image.style.top = "0";
+        image.style.width = "100%";
+        image.style.height = "100%";
+        image.style.transform = `scale(${item.scaleX}, ${item.scaleY})`;
+      } else {
+        image.classList.remove("submeta-png-background");
+        image.style.left = `${item.x * 100}%`;
+        image.style.top = `${item.y * 100}%`;
+        image.style.width = `calc(var(--submeta-natural-width, 0) / ${DESIGN_SIZE.width} * 100%)`;
+        image.style.height = "auto";
+        image.style.transform = `translate(-50%, -50%) scale(${item.scaleX}, ${item.scaleY})`;
+        if (!image.dataset.naturalWidthListener) {
+          image.dataset.naturalWidthListener = "true";
+          image.addEventListener("load", () => {
+            image.style.setProperty("--submeta-natural-width", String(image.naturalWidth || 0));
+          });
+        }
+        if (image.naturalWidth) image.style.setProperty("--submeta-natural-width", String(image.naturalWidth));
+      }
+    }
+  }
+
+  function update() {
+    if (!initialized) init();
+    if (!overlay) return;
+    const visible = shouldShow();
+    overlay.hidden = !visible;
+    overlay.setAttribute("aria-hidden", visible ? "false" : "true");
+    document.documentElement.classList.toggle("submeta-png-open", visible);
+  }
+
+  function setEnabled(nextEnabled) {
+    enabled = nextEnabled === true;
+    try {
+      root.localStorage.setItem(ENABLED_STORAGE_KEY, String(enabled));
+    } catch (_error) {
+      // localStorage can be unavailable in privacy modes; runtime state still works.
+    }
+    update();
+  }
+
+  function getSelected() {
+    return elements.find((item) => item.id === selectedId) || elements[0];
+  }
+
+  function saveLayout() {
+    const payload = getExportPayload();
+    try {
+      root.localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(payload));
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function applyPayload(payload) {
+    if (!payload || !Array.isArray(payload.elements)) return false;
+    const incomingById = new Map(payload.elements.map((item) => [item && item.id, item]));
+    elements = DEFAULT_ELEMENTS.map((fallback) => normalizeElement(incomingById.get(fallback.id), fallback));
+    if (!elements.some((item) => item.id === selectedId)) selectedId = elements[0].id;
+    renderElements();
+    return true;
+  }
+
+  function loadLayout() {
+    try {
+      const raw = root.localStorage.getItem(LAYOUT_STORAGE_KEY);
+      if (!raw) return false;
+      return applyPayload(JSON.parse(raw));
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function resetSelected() {
+    const fallback = defaultsById.get(selectedId);
+    if (!fallback) return;
+    elements = elements.map((item) => item.id === selectedId ? cloneElement(fallback) : item);
+    renderElements();
+    saveLayout();
+  }
+
+  function resetAll() {
+    elements = cloneDefaults();
+    selectedId = elements[0].id;
+    renderElements();
+    saveLayout();
+  }
+
+  function getExportPayload() {
+    return {
+      version: VERSION,
+      designSize: { ...DESIGN_SIZE },
+      elements: elements.map(cloneElement)
+    };
+  }
+
+  function exportLayout() {
+    const blob = new Blob([`${JSON.stringify(getExportPayload(), null, 2)}\n`], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "submeta-png-layout-export.json";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  function updateSelectedField(field, rawValue) {
+    const selected = getSelected();
+    if (!selected) return;
+    const next = cloneElement(selected);
+    if (field === "visible") next.visible = rawValue === true;
+    else if (field === "zIndex") next.zIndex = Math.round(clampNumber(rawValue, -100, 1000, next.zIndex));
+    else if (field === "x" || field === "y") next[field] = clampNumber(rawValue, 0, 1, next[field]);
+    else if (field === "scaleX" || field === "scaleY") next[field] = clampNumber(rawValue, 0.05, 5, next[field]);
+    else return;
+    elements = elements.map((item) => item.id === next.id ? next : item);
+    renderElements();
+    saveLayout();
+  }
+
+  function handleDebugControl(target) {
+    if (!target) return false;
+    if (target.id === "dbgSubMetaPngEnabled") {
+      setEnabled(target.checked);
+      return true;
+    }
+    if (target.id === "dbgSubMetaPngElement") {
+      selectedId = target.value;
+      return true;
+    }
+    const field = target.dataset && target.dataset.submetaPngField;
+    if (field) {
+      updateSelectedField(field, field === "visible" ? target.checked : target.value);
+      return true;
+    }
+    const action = target.dataset && target.dataset.submetaPngAction;
+    if (!action) return false;
+    if (action === "reset-selected") resetSelected();
+    else if (action === "reset-all") resetAll();
+    else if (action === "save") saveLayout();
+    else if (action === "load") loadLayout();
+    else if (action === "export") exportLayout();
+    return true;
+  }
+
+  function option(value, label, selected) {
+    return `<option value="${value}"${selected ? " selected" : ""}>${label}</option>`;
+  }
+
+  function renderNumberControl(label, field, value, min, max, step) {
+    return `<label class="submeta-png-debug-row"><span>${label}</span><input type="number" min="${min}" max="${max}" step="${step}" value="${Number(value).toFixed(step < 0.01 ? 3 : 2)}" data-submeta-png-field="${field}"></label>`;
+  }
+
+  function renderDebugHtml() {
+    const selected = getSelected();
+    if (!selected) return "";
+    const options = elements.map((item) => option(item.id, item.id, item.id === selected.id)).join("");
+    return `
+      <details class="overlay-section overlay-collapsible submeta-png-debug" open>
+        <summary>SUB-META PNG Layout</summary>
+        <div class="overlay-grid">
+          <label class="overlay-select-row" for="dbgSubMetaPngEnabled">Use new PNG SUB-META <input id="dbgSubMetaPngEnabled" type="checkbox"${enabled ? " checked" : ""}></label>
+          <label class="submeta-png-debug-row" for="dbgSubMetaPngElement"><span>Element</span><select id="dbgSubMetaPngElement">${options}</select></label>
+          ${renderNumberControl("x", "x", selected.x, 0, 1, 0.001)}
+          ${renderNumberControl("y", "y", selected.y, 0, 1, 0.001)}
+          ${renderNumberControl("scaleX", "scaleX", selected.scaleX, 0.05, 5, 0.01)}
+          ${renderNumberControl("scaleY", "scaleY", selected.scaleY, 0.05, 5, 0.01)}
+          <label class="submeta-png-debug-row"><span>visible</span><input type="checkbox" data-submeta-png-field="visible"${selected.visible ? " checked" : ""}></label>
+          ${renderNumberControl("zIndex", "zIndex", selected.zIndex, -100, 1000, 1)}
+          <div class="submeta-png-debug-actions">
+            <button class="overlay-btn" type="button" data-submeta-png-action="reset-selected">Reset selected</button>
+            <button class="overlay-btn" type="button" data-submeta-png-action="reset-all">Reset all</button>
+            <button class="overlay-btn" type="button" data-submeta-png-action="save">Save layout to localStorage</button>
+            <button class="overlay-btn" type="button" data-submeta-png-action="load">Load layout from localStorage</button>
+            <button class="overlay-btn" type="button" data-submeta-png-action="export">Export layout JSON</button>
+          </div>
+          <div class="overlay-row"><span class="k">storage</span><span class="v">${LAYOUT_STORAGE_KEY}</span></div>
+        </div>
+      </details>`;
+  }
+
+  function init() {
+    if (initialized) return;
+    initialized = true;
+    createDom();
+    loadLayout();
+    update();
+  }
+
+  root.HC.SubMetaPngLayout = {
+    VERSION,
+    DESIGN_SIZE,
+    ENABLED_STORAGE_KEY,
+    LAYOUT_STORAGE_KEY,
+    init,
+    update,
+    isActive,
+    shouldShow,
+    setEnabled,
+    getElements: () => elements.map(cloneElement),
+    getExportPayload,
+    saveLayout,
+    loadLayout,
+    resetSelected,
+    resetAll,
+    exportLayout,
+    renderDebugHtml,
+    handleDebugControl
+  };
+})(window);
