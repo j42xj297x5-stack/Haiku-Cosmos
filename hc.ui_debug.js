@@ -39,6 +39,7 @@
   let initialized = false;
   let lastScore = null;
   const lastDebugControlEventAt = new Map();
+  let warnedMissingSubMetaPngLayout = false;
 
   const DEBUG_UI_TEXT = Object.freeze({
     "common.back": "Back",
@@ -607,7 +608,7 @@
           const target = event.target;
           if (!target) return;
           if (window.HC?.SubMetaPngLayout?.handleDebugControl?.(target)) {
-            if (target.id === "dbgSubMetaPngElement") {
+            if (["dbgSubMetaPngEnabled", "dbgSubMetaPngPreview", "dbgSubMetaPngElement"].includes(target.id)) {
               const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
               runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
             }
@@ -867,6 +868,7 @@
       updateScoreLabel(World, true);
     },
     applySessionMode(mode) {
+      if (mode !== "debug") window.HC?.SubMetaPngLayout?.setPreviewEnabled?.(false);
       if (debugBadge) debugBadge.hidden = mode !== "debug";
       if (runtimeDebugOverlay) {
         runtimeDebugOverlay.hidden = mode !== "debug";
@@ -945,7 +947,7 @@
       ].join("");
       return `${tabsHtml}
         <section class="overlay-section">
-          <h4>PRG frame</h4>
+          <h4>Legacy PRG frame probe — unrelated to SUB-META PNG Layout</h4>
           <div class="overlay-grid">
             ${renderPrgCheckboxRow("dbgPrgEnabled", "Enable PRG frame probe", cfg.enabled)}
             ${renderPrgCheckboxRow("dbgPrgGoldTint", "Temporary gold tint", cfg.goldTint !== false)}
@@ -1115,14 +1117,30 @@
       ["last RP event", summarizeEvent(snap.lastByCategory?.rp)],
     ], "", { open: false }));
 
-    const subMetaPngDebugHtml = window.HC?.SubMetaPngLayout?.renderDebugHtml?.() || "";
-    if (subMetaPngDebugHtml) sections.push(subMetaPngDebugHtml);
+    const subMetaPngLayout = window.HC?.SubMetaPngLayout;
+    let subMetaPngDebugHtml = "";
+    if (subMetaPngLayout?.renderDebugHtml) {
+      subMetaPngDebugHtml = subMetaPngLayout.renderDebugHtml();
+    } else {
+      if (!warnedMissingSubMetaPngLayout) {
+        warnedMissingSubMetaPngLayout = true;
+        console.warn("[HC Runtime Debug] hc.submeta_png.js is unavailable; window.HC.SubMetaPngLayout was not found.");
+      }
+      subMetaPngDebugHtml = `
+        <div class="submeta-png-debug submeta-png-debug-missing">
+          <h5>SUB-META PNG Layout</h5>
+          <div class="overlay-grid">
+            <div class="overlay-row"><span class="k">module loaded</span><span class="v">no</span></div>
+            <div class="overlay-row"><span class="k">status</span><span class="v">hc.submeta_png.js unavailable</span></div>
+          </div>
+        </div>`;
+    }
 
     sections.push(renderSection("SUB-META / PRG", [
       ["status", "placeholder / future diagnostics"],
       ["SUB-META events", "opened, closed, slot_*, card_*, inventory_changed, prg_binding_changed, purchase, error"],
       ["snapshot policy", "full snapshot on open/close/finalize/force evidence only"],
-    ], "", { open: false }));
+    ], "", { open: false, extra: subMetaPngDebugHtml }));
 
     sections.push(renderSection("Logging / Evidence", [
       ["logging mode", snap.loggingMode || "compact"],

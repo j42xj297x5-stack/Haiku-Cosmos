@@ -55,6 +55,7 @@
   let overlay = null;
   let stage = null;
   let initialized = false;
+  let previewEnabled = false;
 
   function cloneElement(item) {
     return { ...item };
@@ -67,6 +68,15 @@
   function publicAssetPath(path) {
     const helper = root.HC && (root.HC.publicAssetPath || root.HC.publicPath);
     return typeof helper === "function" ? helper(path) : path;
+  }
+
+  function resolvedAssetUrl(path) {
+    const assetPath = publicAssetPath(path);
+    try {
+      return new URL(assetPath, root.location?.href || document.baseURI).href;
+    } catch (_error) {
+      return assetPath;
+    }
   }
 
   function readStoredEnabled() {
@@ -104,8 +114,16 @@
     return enabled === true;
   }
 
+  function isDebugMode() {
+    return root.HC?.Session?.mode === "debug";
+  }
+
+  function isPreviewEnabled() {
+    return previewEnabled === true && isDebugMode();
+  }
+
   function shouldShow() {
-    return isActive() && getWorld()?.subMetaOpen === true;
+    return (isActive() && getWorld()?.subMetaOpen === true) || isPreviewEnabled();
   }
 
   function createDom() {
@@ -195,10 +213,18 @@
   function update() {
     if (!initialized) init();
     if (!overlay) return;
-    const visible = shouldShow();
+    const normalVisible = isActive() && getWorld()?.subMetaOpen === true;
+    const previewVisible = !normalVisible && isPreviewEnabled();
+    const visible = normalVisible || previewVisible;
     overlay.hidden = !visible;
     overlay.setAttribute("aria-hidden", visible ? "false" : "true");
     document.documentElement.classList.toggle("submeta-png-open", visible);
+    document.documentElement.classList.toggle("submeta-png-preview", previewVisible);
+  }
+
+  function setPreviewEnabled(nextEnabled) {
+    previewEnabled = nextEnabled === true && isDebugMode();
+    update();
   }
 
   function setEnabled(nextEnabled) {
@@ -299,6 +325,10 @@
       setEnabled(target.checked);
       return true;
     }
+    if (target.id === "dbgSubMetaPngPreview") {
+      setPreviewEnabled(target.checked);
+      return true;
+    }
     if (target.id === "dbgSubMetaPngElement") {
       selectedId = target.value;
       return true;
@@ -326,15 +356,31 @@
     return `<label class="submeta-png-debug-row"><span>${label}</span><input type="number" min="${min}" max="${max}" step="${step}" value="${Number(value).toFixed(step < 0.01 ? 3 : 2)}" data-submeta-png-field="${field}"></label>`;
   }
 
+  function getDiagnostics() {
+    const renderedElements = stage ? stage.querySelectorAll("[data-submeta-png-id]").length : 0;
+    return {
+      moduleLoaded: true,
+      enabled: isActive(),
+      preview: isPreviewEnabled(),
+      worldSubMetaOpen: getWorld()?.subMetaOpen === true,
+      overlayMounted: !!(overlay && overlay.isConnected),
+      elementsConfigured: elements.length,
+      elementsRendered: renderedElements,
+      sampleBackgroundPath: resolvedAssetUrl(`${ASSET_DIR}submeta_background.png`)
+    };
+  }
+
   function renderDebugHtml() {
     const selected = getSelected();
     if (!selected) return "";
+    const diagnostics = getDiagnostics();
     const options = elements.map((item) => option(item.id, item.id, item.id === selected.id)).join("");
     return `
-      <details class="overlay-section overlay-collapsible submeta-png-debug" open>
-        <summary>SUB-META PNG Layout</summary>
+      <div class="submeta-png-debug">
+        <h5>SUB-META PNG Layout</h5>
         <div class="overlay-grid">
           <label class="overlay-select-row" for="dbgSubMetaPngEnabled">Use new PNG SUB-META <input id="dbgSubMetaPngEnabled" type="checkbox"${enabled ? " checked" : ""}></label>
+          <label class="overlay-select-row" for="dbgSubMetaPngPreview">Show PNG layout preview <input id="dbgSubMetaPngPreview" type="checkbox"${diagnostics.preview ? " checked" : ""}></label>
           <label class="submeta-png-debug-row" for="dbgSubMetaPngElement"><span>Element</span><select id="dbgSubMetaPngElement">${options}</select></label>
           ${renderNumberControl("x", "x", selected.x, 0, 1, 0.001)}
           ${renderNumberControl("y", "y", selected.y, 0, 1, 0.001)}
@@ -349,9 +395,19 @@
             <button class="overlay-btn" type="button" data-submeta-png-action="load">Load layout from localStorage</button>
             <button class="overlay-btn" type="button" data-submeta-png-action="export">Export layout JSON</button>
           </div>
-          <div class="overlay-row"><span class="k">storage</span><span class="v">${LAYOUT_STORAGE_KEY}</span></div>
+          <div class="submeta-png-diagnostics">
+            <div class="overlay-row"><span class="k">module loaded</span><span class="v">yes</span></div>
+            <div class="overlay-row"><span class="k">enabled</span><span class="v">${diagnostics.enabled ? "yes" : "no"}</span></div>
+            <div class="overlay-row"><span class="k">preview</span><span class="v">${diagnostics.preview ? "yes" : "no"}</span></div>
+            <div class="overlay-row"><span class="k">World.subMetaOpen</span><span class="v">${diagnostics.worldSubMetaOpen ? "yes" : "no"}</span></div>
+            <div class="overlay-row"><span class="k">overlay mounted</span><span class="v">${diagnostics.overlayMounted ? "yes" : "no"}</span></div>
+            <div class="overlay-row"><span class="k">elements configured</span><span class="v">${diagnostics.elementsConfigured}</span></div>
+            <div class="overlay-row"><span class="k">elements rendered</span><span class="v">${diagnostics.elementsRendered}</span></div>
+            <div class="overlay-row"><span class="k">sample background path</span><span class="v">${diagnostics.sampleBackgroundPath}</span></div>
+            <div class="overlay-row"><span class="k">storage</span><span class="v">${LAYOUT_STORAGE_KEY}</span></div>
+          </div>
         </div>
-      </details>`;
+      </div>`;
   }
 
   function init() {
@@ -370,8 +426,11 @@
     init,
     update,
     isActive,
+    isPreviewEnabled,
     shouldShow,
     setEnabled,
+    setPreviewEnabled,
+    getDiagnostics,
     getElements: () => elements.map(cloneElement),
     getExportPayload,
     saveLayout,

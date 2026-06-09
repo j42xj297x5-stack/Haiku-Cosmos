@@ -383,8 +383,8 @@
       pointer-events: none;
     }
     #subMetaPngOverlay[hidden] { display: none; }
-    html.submeta-png-open #topBar,
-    html.submeta-png-open #debugHudControls {
+    html.submeta-png-open:not(.submeta-png-preview) #topBar,
+    html.submeta-png-open:not(.submeta-png-preview) #debugHudControls {
       visibility: hidden;
     }
     #subMetaPngStage {
@@ -420,6 +420,26 @@
     .submeta-png-action:focus-visible {
       outline: 3px solid rgba(255, 218, 138, 0.92);
       outline-offset: 4px;
+    }
+    .submeta-png-debug {
+      margin-top: 6px;
+      padding-top: 7px;
+      border-top: 1px solid rgba(255,255,255,0.14);
+      display: grid;
+      gap: 6px;
+    }
+    .submeta-png-debug h5 {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .submeta-png-diagnostics {
+      display: grid;
+      gap: 4px;
+      margin-top: 3px;
+      padding-top: 6px;
+      border-top: 1px dashed rgba(255,255,255,0.14);
     }
     .submeta-png-debug-row {
       display: grid;
