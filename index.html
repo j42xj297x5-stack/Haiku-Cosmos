@@ -259,7 +259,7 @@
       bottom: calc(52px + env(safe-area-inset-bottom, 0px));
       color: rgba(245,247,255,0.95);
       font: 11px/1.4 var(--hc-font-mono);
-      z-index: 9999;
+      z-index: 11000;
       pointer-events: none;
     }
     #runtimeDebugOverlayPanel {
@@ -268,8 +268,7 @@
       bottom: 12px;
       width: min(360px, 42vw);
       max-height: 62vh;
-      overflow-y: auto;
-      overflow-x: hidden;
+      overflow: auto;
       scrollbar-gutter: stable;
       border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.22);
@@ -295,7 +294,12 @@
       cursor: pointer;
       font-size: 11px;
     }
-    .overlay-grid { display: grid; gap: 6px; }
+    .overlay-grid {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+      max-width: 100%;
+    }
     .overlay-checkbox-row {
       display: grid;
       grid-template-columns: 16px 1fr;
@@ -321,14 +325,36 @@
       gap: 8px;
       min-height: 24px;
     }
-    .overlay-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+    .overlay-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(max-content, 1fr);
+      gap: 8px;
+      max-width: 100%;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
     .overlay-row .k { opacity: 0.75; }
-    .overlay-row .v { text-align: right; word-break: break-word; overflow-wrap: anywhere; }
+    .overlay-row .v {
+      min-width: max-content;
+      color: inherit;
+      font: inherit;
+      text-align: right;
+      white-space: nowrap;
+    }
     .overlay-section {
+      min-width: 0;
+      max-width: 100%;
       border-top: 1px solid rgba(255,255,255,0.14);
       padding-top: 6px;
       display: grid;
       gap: 4px;
+    }
+    .overlay-collapsible > summary {
+      cursor: pointer;
+      user-select: none;
+      font-weight: 600;
+      opacity: 0.9;
+      letter-spacing: 0.02em;
     }
     .overlay-section h4 {
       margin: 0;
@@ -358,7 +384,7 @@
       max-height: 110px;
       overflow: auto;
     }
-    .overlay-tail li { opacity: 0.82; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .overlay-tail li { opacity: 0.82; min-width: max-content; white-space: nowrap; }
     .overlay-note {
       width: 100%;
       min-height: 54px;
@@ -409,7 +435,7 @@
     }
     .submeta-png-element[hidden] { display: none; }
     .submeta-png-background {
-      object-fit: cover;
+      object-fit: contain;
       object-position: center;
       transform-origin: center center;
     }
@@ -428,11 +454,9 @@
       display: grid;
       gap: 6px;
     }
-    .submeta-png-debug h5 {
-      margin: 0;
+    .submeta-png-debug > summary {
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.02em;
     }
     .submeta-png-diagnostics {
       display: grid;
@@ -460,6 +484,9 @@
     }
     .submeta-png-debug-actions .overlay-btn:last-child {
       grid-column: 1 / -1;
+    }
+    .submeta-png-emergency-actions .overlay-btn:last-child {
+      grid-column: auto;
     }
   </style>
   <script>
