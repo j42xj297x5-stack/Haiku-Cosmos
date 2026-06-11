@@ -46,6 +46,7 @@
     element("world-intencja", "submeta_intencja_ramka.png", 0.3, 0.6, 0.8, 0.8, 12),
     element("world-czas", "submeta_czas_ramka.png", 0.16, 0.83, 0.8, 0.8, 12),
     element("world-cisza", "submeta_cisza_ramka.png", 0.3, 0.83, 0.78, 0.78, 12),
+    element("r2-world", "submeta_r2-swiat.png", 0.46, 0.68, 1, 1, 13),
     element("confirm", "subemeta-button-potwierdz.png", 0.5, 0.9, 1, 1, 10)
   ]);
 
