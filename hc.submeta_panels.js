@@ -6,7 +6,8 @@
 
   const VERSION = "submeta-panels-layout-v0.3";
   const STORAGE_KEY = "hc.submetaPanels.layout.v1";
-  const PRESET_URL = "public/png/submeta/submeta-placeholders-panels.json";
+  const PRESET_PATH = "png/submeta/submeta-placeholders-panels.json";
+  const PRESET_URL = resolvePublicAssetUrl(PRESET_PATH);
   const LAYER_ID = "subMetaPanelsLayer";
   const FLOATING_EDITOR_ID = "subMetaPanelsFloatingEditor";
   const GRID_PANEL_IDS = Object.freeze(["panel.inventory", "panel.possibilities", "panel.forge"]);
@@ -68,6 +69,29 @@
   let stage = null;
   let floatingEditor = null;
   let floatingEditorTargetId = null;
+  let dataSource = "DEFAULT_ITEMS fallback";
+  let presetRequestId = 0;
+  let initializationPromise = null;
+
+  function resolvePublicAssetUrl(path) {
+    const helper = root.HC && (root.HC.publicAssetPath || root.HC.publicPath);
+    if (typeof helper === "function") return helper(path);
+    try {
+      const configuredBase = typeof root.HC_PUBLIC_BASE_URL === "string" && !root.HC_PUBLIC_BASE_URL.includes("%")
+        ? root.HC_PUBLIC_BASE_URL
+        : document.baseURI;
+      const baseUrl = new URL(configuredBase, root.location?.origin || document.baseURI);
+      return new URL(path, baseUrl).href;
+    } catch (_error) {
+      return path;
+    }
+  }
+
+  function debugLog(message, details) {
+    if (!isDebugMode()) return;
+    if (details === undefined) console.info(`[HC.SubMetaPanels] ${message}`);
+    else console.info(`[HC.SubMetaPanels] ${message}`, details);
+  }
 
   function cloneDefaults() {
     return DEFAULT_ITEMS.map((item) => ({ ...item }));
@@ -502,12 +526,17 @@
   }
 
   function init() {
-    if (initialized) return;
+    if (initialized) return initializationPromise;
     initialized = true;
     createStyle();
-    loadLayout();
     createLayer();
-    update();
+    if (loadLayout()) {
+      update();
+      initializationPromise = Promise.resolve(true);
+    } else {
+      initializationPromise = restorePresetOrFallback("init");
+    }
+    return initializationPromise;
   }
 
   function setVisible(nextEnabled) {
@@ -572,22 +601,55 @@
   function loadLayout() {
     try {
       const raw = root.localStorage.getItem(STORAGE_KEY);
-      return raw ? applyPayload(JSON.parse(raw)) : false;
+      if (!raw) return false;
+      const applied = applyPayload(JSON.parse(raw));
+      if (applied) {
+        dataSource = "localStorage";
+        debugLog("panel preset loaded from localStorage", { storageKey: STORAGE_KEY });
+      }
+      return applied;
     } catch (error) {
-      console.warn("[HC.SubMetaPanels] layout load failed", error);
+      debugLog("localStorage panel preset could not be loaded; trying JSON", error);
+      return false;
+    }
+  }
+
+  async function restorePresetOrFallback(reason) {
+    const requestId = ++presetRequestId;
+    debugLog("loading panel preset JSON", { url: PRESET_URL, reason });
+    try {
+      const response = await root.fetch(PRESET_URL, { cache: "no-cache" });
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
+      const payload = await response.json();
+      if (requestId !== presetRequestId) return false;
+      if (!applyPayload(payload)) throw new Error("Preset JSON does not contain a panels array");
+      dataSource = "JSON preset";
+      debugLog("panel preset loaded from JSON", { url: PRESET_URL, reason });
+      return true;
+    } catch (error) {
+      if (requestId !== presetRequestId) return false;
+      items = cloneDefaults();
+      enabled = true;
+      showLabels = true;
+      dataSource = "DEFAULT_ITEMS fallback";
+      clearSelection();
+      syncDom();
+      update();
+      debugLog("panel preset JSON unavailable; using DEFAULT_ITEMS fallback", { url: PRESET_URL, reason, error });
       return false;
     }
   }
 
   function resetToDefault() {
+    try { root.localStorage.removeItem(STORAGE_KEY); } catch (_error) { /* storage is optional */ }
     items = cloneDefaults();
     enabled = true;
     showLabels = true;
+    dataSource = "DEFAULT_ITEMS fallback";
     clearSelection();
-    try { root.localStorage.removeItem(STORAGE_KEY); } catch (_error) { /* storage is optional */ }
     syncDom();
     update();
-    return true;
+    return restorePresetOrFallback("reset");
   }
 
   function importLayout(json) {
@@ -733,7 +795,7 @@
   function getDebugState() {
     return {
       version: VERSION, initialized, enabled, visible: actuallyVisible, overlayVisible: overlayIsVisible(),
-      showPanelLabels: showLabels, selectedPanelId, selectedSlotId, configuredCount: items.length,
+      showPanelLabels: showLabels, dataSource, presetUrl: PRESET_URL, selectedPanelId, selectedSlotId, configuredCount: items.length,
       renderedPanelCount: layer?.querySelectorAll("[data-submeta-panel-id]:not([data-submeta-panel-slot-id])").length || 0,
       renderedSlotCount: layer?.querySelectorAll("[data-submeta-panel-slot-id]").length || 0,
       stageMounted: !!(stage && stage.isConnected), layerMounted: !!(layer && layer.isConnected), debugMode: isDebugMode()
