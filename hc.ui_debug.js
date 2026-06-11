@@ -774,6 +774,7 @@
 
       window.HC?.HudTopLayout?.init?.();
       window.HC?.SubMetaPngLayout?.init?.();
+      window.HC?.SubMetaPlaceholders?.init?.();
       applyStaticI18nText();
       populateScenarioPresetSelect();
 
@@ -917,6 +918,7 @@
       const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
       updateScoreLabel(World, false);
       window.HC?.SubMetaPngLayout?.update?.();
+      window.HC?.SubMetaPlaceholders?.update?.();
       const CE = window.CardEngine;
       const view = window.HC.getView && window.HC.getView();
       if (CE && typeof CE.render === "function" && view && window.ctx) {

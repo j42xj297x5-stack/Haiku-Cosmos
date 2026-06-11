@@ -183,6 +183,8 @@
       world.subMetaOpen = false;
     }
     update();
+    root.HC?.SubMetaPlaceholders?.clearSelection?.();
+    root.HC?.SubMetaPlaceholders?.update?.();
   }
 
   function hidePreview() {
