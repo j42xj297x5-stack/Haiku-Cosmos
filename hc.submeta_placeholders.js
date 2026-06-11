@@ -135,6 +135,10 @@
     return World ? (root.CardEngine?.subMetaView?.getPlaceholderAssignments?.(World) || {}) : {};
   }
 
+  function getPendingAssignment() {
+    return root.HC?.SubMetaPanels?.getPendingAssignment?.() || null;
+  }
+
   function isOccupied(item, assignments = getAssignedCards()) {
     return item?.state === "occupied" || Boolean(item?.id && assignments[item.id]);
   }
@@ -182,6 +186,17 @@
       }
       .submeta-assigned-card:hover { border-color:#fff0b7; }
       .submeta-assigned-card.is-selected { border-color:#ffdc72; box-shadow:0 0 0 1px rgba(255,220,114,.38),0 0 9px rgba(255,195,57,.58); }
+      .submeta-placeholder.is-pending { opacity:.38; }
+      .submeta-assigned-card.is-pending {
+        opacity:.85; pointer-events:none; border-color:rgba(255,226,151,.9);
+        box-shadow:0 0 0 1px rgba(255,226,151,.22),0 0 8px rgba(255,205,105,.34),0 3px 8px rgba(0,0,0,.58);
+        animation:submeta-pending-card-pulse 1.8s ease-in-out infinite;
+      }
+      @keyframes submeta-pending-card-pulse {
+        0%,100% { opacity:.78; filter:brightness(.96); }
+        50% { opacity:.9; filter:brightness(1.08); }
+      }
+      @media (prefers-reduced-motion: reduce) { .submeta-assigned-card.is-pending { animation:none; } }
       .submeta-assigned-card-stripes { display:flex; width:100%; height:23%; min-height:4px; overflow:hidden; border-radius:2px; }
       .submeta-assigned-card-stripe { flex:1; }
       .submeta-assigned-card-kind { align-self:flex-start; padding:1px 2px; border-radius:2px; background:rgba(0,0,0,.58); }
@@ -440,18 +455,22 @@
     };
   }
 
-  function syncAssignedCardNode(item, assignment) {
-    let node = Array.from(layer.querySelectorAll("[data-submeta-assigned-placeholder-id]")).find((candidate) =>
-      candidate.dataset.submetaAssignedPlaceholderId === item.id);
+  function syncAssignedCardNode(item, assignment, pending = false) {
+    const dataAttribute = pending ? "submetaPendingPlaceholderId" : "submetaAssignedPlaceholderId";
+    const selector = pending ? "[data-submeta-pending-placeholder-id]" : "[data-submeta-assigned-placeholder-id]";
+    let node = Array.from(layer.querySelectorAll(selector)).find((candidate) => candidate.dataset[dataAttribute] === item.id);
     if (!node) {
       node = document.createElement("button");
       node.type = "button";
       node.className = "submeta-assigned-card";
-      node.dataset.submetaAssignedPlaceholderId = item.id;
+      node.dataset[dataAttribute] = item.id;
       layer.appendChild(node);
     }
-    node.classList.toggle("is-selected", selectedPlaceholderId === item.id);
-    node.title = `${assignment.kind} ${assignment.tier} · ${item.label}`;
+    node.classList.toggle("is-selected", !pending && selectedPlaceholderId === item.id);
+    node.classList.toggle("is-pending", pending);
+    node.tabIndex = pending ? -1 : 0;
+    node.setAttribute("aria-disabled", pending ? "true" : "false");
+    node.title = `${assignment.kind} ${assignment.tier} · ${item.label}${pending ? " · oczekuje na potwierdzenie" : ""}`;
     node.setAttribute("aria-label", node.title);
     const box = getAssignedCardBox(item, assignment);
     node.style.left = `${box.x * 100}%`;
@@ -480,13 +499,19 @@
   function syncDom() {
     if (!createLayer()) return false;
     const assignments = getAssignedCards();
+    const pending = getPendingAssignment();
     const renderedIds = new Set();
     const renderedAssignedIds = new Set();
+    const renderedPendingIds = new Set();
     for (const item of placeholders) {
       const assignment = assignments[item.id];
+      const pendingCard = !assignment && pending?.valid === true && pending.placeholderId === item.id ? pending.cardRef : null;
       if (assignment) {
         renderedAssignedIds.add(item.id);
         syncAssignedCardNode(item, assignment);
+      } else if (pendingCard) {
+        renderedPendingIds.add(item.id);
+        syncAssignedCardNode(item, pendingCard, true);
       }
       if (!shouldRenderPlaceholder(item, assignments)) continue;
       renderedIds.add(item.id);
@@ -499,6 +524,7 @@
         layer.appendChild(node);
       }
       node.className = `submeta-placeholder submeta-placeholder--${item.kind} submeta-placeholder--${item.state.replaceAll("_", "-")}`;
+      node.classList.toggle("is-pending", pendingCard !== null);
       node.title = `${item.label} (${item.id})`;
       node.setAttribute("aria-label", item.label);
       node.innerHTML = showLabels ? `<span class="submeta-placeholder-label">${escapeHtml(item.id)}</span>` : "";
@@ -513,6 +539,9 @@
     }
     for (const node of layer.querySelectorAll("[data-submeta-assigned-placeholder-id]")) {
       if (!renderedAssignedIds.has(node.dataset.submetaAssignedPlaceholderId)) node.remove();
+    }
+    for (const node of layer.querySelectorAll("[data-submeta-pending-placeholder-id]")) {
+      if (!renderedPendingIds.has(node.dataset.submetaPendingPlaceholderId)) node.remove();
     }
     syncSelection();
     return true;
@@ -748,9 +777,11 @@
     return {
       version: VERSION, initialized, enabled, visible: actuallyVisible, overlayVisible: overlayIsVisible(),
       showLabels, showHidden, selectedPlaceholderId, configuredCount: placeholders.length,
-      assignedCards: getAssignedCards(),
+      assignedCards: getAssignedCards(), pendingAssignment: getPendingAssignment(),
+      confirmButtonState: root.HC?.SubMetaPanels?.getConfirmButtonState?.() || "inactive",
       renderedCount: layer?.querySelectorAll("[data-submeta-placeholder-id]").length || 0,
       renderedAssignedCardCount: layer?.querySelectorAll("[data-submeta-assigned-placeholder-id]").length || 0,
+      renderedPendingCardCount: layer?.querySelectorAll("[data-submeta-pending-placeholder-id]").length || 0,
       groups: Object.fromEntries(GROUPS.map((group) => [group, placeholders.filter((item) => item.group === group).length])),
       stageMounted: !!(stage && stage.isConnected), layerMounted: !!(layer && layer.isConnected), debugMode: isDebugMode()
     };
