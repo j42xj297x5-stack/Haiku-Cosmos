@@ -185,11 +185,6 @@
       .submeta-card-view:hover { border-color:rgba(234,245,248,.9); transform:translate(-50%,-50%) scale(1.04); }
       .submeta-card-view.is-selected { border-color:#ffdc72; box-shadow:0 0 0 1px rgba(255,220,114,.38),0 0 9px rgba(255,195,57,.58); }
       .submeta-card-view.is-preview { position:relative; left:auto!important; top:auto!important; width:min(100%,58px)!important; height:min(100%,102px)!important; transform:none; cursor:default; pointer-events:none; }
-      .submeta-card-view-stripes { display:flex; width:100%; height:23%; min-height:4px; overflow:hidden; border-radius:2px; background:#52616a; }
-      .submeta-card-view-stripe { flex:1; }
-      .submeta-card-view-kind { align-self:flex-start; padding:1px 2px; border-radius:2px; background:rgba(0,0,0,.58); }
-      .submeta-card-view-tier { color:#dfecf1; }
-      .submeta-card-view-count { position:absolute; right:2px; top:2px; min-width:12px; padding:1px 2px; border-radius:8px; background:#f0d36d; color:#17120a; text-align:center; }
       .submeta-panel-empty { position:absolute; inset:4px; display:grid; place-items:center; padding:5px; color:rgba(210,225,230,.72); font:clamp(7px,.6vw,11px)/1.25 system-ui,sans-serif; text-align:center; pointer-events:none; }
       .submeta-detail-content { position:absolute; inset:3px; overflow:hidden; color:#e7f0f3; font:clamp(6px,.52vw,10px)/1.25 system-ui,sans-serif; pointer-events:none; }
       .submeta-detail-content strong { display:block; margin-bottom:2px; color:#ffe39a; font-size:1.08em; }
@@ -515,8 +510,10 @@
     refreshAssignmentViews();
   }
 
-  function colorCss(color) {
-    return ({ red: "#b8453d", yellow: "#c9a83b", green: "#4d9b62", blue: "#477eb7" })[String(color || "").toLowerCase()] || "#66737a";
+  function renderSubMetaCard(node, card, options = {}) {
+    const renderer = root.HC?.SubMetaPlaceholders?.renderSubMetaCard;
+    if (typeof renderer !== "function") return null;
+    return renderer(node, card, options);
   }
 
   function createCardNode(entry, source, slot, panelZ, preview = false) {
@@ -526,7 +523,7 @@
     if (!preview) node.type = "button";
     node.className = `submeta-card-view${preview ? " is-preview" : ""}`;
     const selectedKey = source === "inventory" ? cardSelection.selectedInventoryEntryKey : cardSelection.selectedPossibleEntryKey;
-    if (!preview && selectedKey === card.viewKey) node.classList.add("is-selected");
+    const selected = !preview && selectedKey === card.viewKey;
     if (!preview) {
       node.dataset.submetaCardSource = source;
       node.dataset.submetaCardKey = card.viewKey;
@@ -534,27 +531,12 @@
       node.setAttribute("aria-label", node.title);
       applyBox(node, { ...slot, zIndex: panelZ + 2 });
     }
-    const stripes = document.createElement("span");
-    stripes.className = "submeta-card-view-stripes";
-    for (const color of card.colors.length ? card.colors : [null]) {
-      const stripe = document.createElement("span");
-      stripe.className = "submeta-card-view-stripe";
-      stripe.style.background = colorCss(color);
-      stripes.appendChild(stripe);
-    }
-    const kind = document.createElement("span");
-    kind.className = "submeta-card-view-kind";
-    kind.textContent = card.kind;
-    const tier = document.createElement("span");
-    tier.className = "submeta-card-view-tier";
-    tier.textContent = card.tier;
-    node.append(stripes, kind, tier);
-    if (card.count > 1) {
-      const count = document.createElement("span");
-      count.className = "submeta-card-view-count";
-      count.textContent = String(card.count);
-      node.appendChild(count);
-    }
+    renderSubMetaCard(node, card, {
+      context: preview ? "detail" : source,
+      selected,
+      pending: source === "possibilities" && cardSelection.selectedSource === "pending" && selected,
+      showCount: source === "inventory"
+    });
     return node;
   }
 
@@ -1312,6 +1294,8 @@
     getCardViewState: () => ({ inventoryFilter, ...cardSelection, pendingAssignment: clonePendingAssignment(), confirmButtonState: getConfirmButtonState() }),
     getPendingAssignment: clonePendingAssignment, getConfirmButtonState, confirmPendingAssignment, clearPendingAssignment,
     getInventoryEntries, getPossibleEntries, getDetailModel,
+    resolveCardAsset: (card) => root.HC?.SubMetaPlaceholders?.resolveCardAsset?.(card) || null,
+    renderSubMetaCard,
     openFloatingPanelEditor, closeFloatingPanelEditor, syncFloatingPanelEditor, applyFloatingPanelEditorValues,
     updateSelectedField, renderDebugHtml, handleDebugControl
   };

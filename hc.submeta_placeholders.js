@@ -202,12 +202,18 @@
         50% { opacity:.9; filter:brightness(1.08); }
       }
       @media (prefers-reduced-motion: reduce) { .submeta-assigned-card.is-pending { animation:none; } }
-      .submeta-assigned-card-stripes { display:flex; width:100%; height:23%; min-height:4px; overflow:hidden; border-radius:2px; }
-      .submeta-assigned-card-stripe { flex:1; }
-      .submeta-assigned-card-kind { align-self:flex-start; padding:1px 2px; border-radius:2px; background:rgba(0,0,0,.58); }
-      .submeta-assigned-card-tier { color:#dfecf1; }
-      .submeta-assigned-card.has-card-asset { padding:0; background:transparent; }
-      .submeta-assigned-card-asset { display:block; width:100%; height:100%; object-fit:contain; pointer-events:none; }
+      .submeta-card-render-stripes { display:flex; width:100%; height:23%; min-height:4px; overflow:hidden; border-radius:2px; }
+      .submeta-card-render-stripe { flex:1; }
+      .submeta-card-render-kind { align-self:flex-start; padding:1px 2px; border-radius:2px; background:rgba(0,0,0,.58); }
+      .submeta-card-render-tier { color:#dfecf1; }
+      .submeta-card-render-count { position:absolute; right:2px; top:2px; z-index:2; min-width:12px; padding:1px 2px; border-radius:8px; background:#f0d36d; color:#17120a; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.45); }
+      .submeta-card-render.has-card-asset { overflow:visible; padding:0; border-color:transparent; background:transparent; }
+      .submeta-card-render.has-card-asset:hover { border-color:transparent; }
+      .submeta-card-render-asset { display:block; width:100%; height:100%; border-radius:8%; object-fit:contain; pointer-events:none; }
+      .submeta-card-render.has-card-asset.tier-dr { box-shadow:0 0 0 1px rgba(177,132,69,.72),0 0 5px rgba(171,119,45,.28),0 3px 8px rgba(0,0,0,.5); }
+      .submeta-card-render.has-card-asset.tier-sdr { box-shadow:0 0 0 1px rgba(242,205,106,.88),0 0 0 2px rgba(116,79,22,.34),0 0 7px rgba(239,190,67,.42),0 3px 8px rgba(0,0,0,.5); }
+      .submeta-card-render.has-card-asset.tier-pdr { box-shadow:0 0 0 1px rgba(255,239,184,.92),0 0 8px rgba(255,220,130,.58),0 0 13px rgba(223,232,255,.28),0 3px 8px rgba(0,0,0,.5); }
+      .submeta-card-render.has-card-asset.tier-pdr::after { content:""; position:absolute; top:-2px; right:-2px; width:5px; height:5px; border:1px solid rgba(255,245,207,.92); background:rgba(231,194,99,.9); box-shadow:0 0 4px rgba(255,239,181,.75); transform:rotate(45deg); pointer-events:none; }
       #${FLOATING_EDITOR_ID} {
         position: fixed; z-index: 10000; width: 190px; box-sizing: border-box; padding: 10px;
         border: 0; border-radius: 4px; background: rgba(18, 20, 24, 0.96); color: #f2f2f2;
@@ -459,13 +465,102 @@
   }
 
   function resolveCardAsset(card) {
-    const kind = String(card?.kind || card?.type || "").toUpperCase();
-    const tier = String(card?.tier || card?.fromTier || "DR").toUpperCase();
-    const color = String(card?.colors?.[0] || card?.color || card?.colorA || "").toUpperCase();
+    const identity = `${card?.id || ""} ${card?.key || ""} ${card?.cardKey || ""}`.toUpperCase();
+    const kind = String(card?.kind || card?.type || (identity.includes("R1") ? "R1" : "")).toUpperCase();
+    const tier = String(card?.tier || card?.fromTier
+      || (identity.includes("PDR") ? "PDR" : (identity.includes("SDR") ? "SDR" : "DR"))).toUpperCase();
+    const color = String(card?.colors?.[0] || card?.color || card?.colorA
+      || (identity.includes("RED") ? "RED" : "")).toUpperCase();
     const path = CARD_ASSET_PATHS[`${kind}:${color}:${tier}`];
     if (!path) return null;
     const url = resolvePublicAssetUrl(path);
     return failedCardAssetUrls.has(url) ? null : { path, url };
+  }
+
+  function getCardTierClass(card) {
+    const tier = String(card?.tier || card?.fromTier || "DR").toLowerCase();
+    return `tier-${["dr", "sdr", "pdr"].includes(tier) ? tier : "dr"}`;
+  }
+
+  function getProceduralCardSignature(card, showCount) {
+    const colors = Array.isArray(card?.colors) ? card.colors : [card?.color, card?.colorA, card?.colorB].filter(Boolean);
+    return `procedural:${card?.kind || "CARD"}:${card?.tier || "DR"}:${colors.join(",")}:${showCount ? card?.count || 1 : 0}`;
+  }
+
+  function renderProceduralCard(node, card, options = {}) {
+    node.dataset.cardRenderSignature = getProceduralCardSignature(card, options.showCount === true);
+    node.classList.remove("has-card-asset");
+    node.classList.add("is-procedural-card");
+    node.replaceChildren();
+    const colors = Array.isArray(card?.colors) && card.colors.length
+      ? card.colors
+      : [card?.color, card?.colorA, card?.colorB].filter(Boolean);
+    const stripes = document.createElement("span");
+    stripes.className = "submeta-card-render-stripes";
+    for (const color of colors.length ? colors : [null]) {
+      const stripe = document.createElement("span");
+      stripe.className = "submeta-card-render-stripe";
+      stripe.style.background = assignedCardColorCss(color);
+      stripes.appendChild(stripe);
+    }
+    const kind = document.createElement("span");
+    kind.className = "submeta-card-render-kind";
+    kind.textContent = card?.kind || "CARD";
+    const tier = document.createElement("span");
+    tier.className = "submeta-card-render-tier";
+    tier.textContent = card?.tier || "DR";
+    node.append(stripes, kind, tier);
+    appendCardCount(node, card, options);
+  }
+
+  function appendCardCount(node, card, options) {
+    const countValue = Math.max(1, Math.floor(Number(card?.count) || 1));
+    if (options.showCount !== true || countValue <= 1) return;
+    const count = document.createElement("span");
+    count.className = "submeta-card-render-count";
+    count.textContent = String(countValue);
+    node.appendChild(count);
+  }
+
+  function renderSubMetaCard(node, card, options = {}) {
+    if (!node || !card) return { asset: null, mode: "empty" };
+    const context = options.context || "slot";
+    node.classList.add("submeta-card-render", `submeta-card-render--${context}`);
+    for (const className of Array.from(node.classList)) {
+      if (className.startsWith("tier-")) node.classList.remove(className);
+      if (className.startsWith("submeta-card-render--") && className !== `submeta-card-render--${context}`) node.classList.remove(className);
+    }
+    node.classList.add(getCardTierClass(card));
+    node.classList.toggle("is-selected", options.selected === true);
+    node.classList.toggle("is-pending", options.pending === true);
+    const asset = resolveCardAsset(card);
+    const signature = asset
+      ? `asset:${asset.url}:${options.showCount === true ? card.count || 1 : 0}`
+      : getProceduralCardSignature(card, options.showCount === true);
+    if (node.dataset.cardRenderSignature === signature && node.childElementCount > 0) {
+      return { asset, mode: asset ? "asset" : "procedural" };
+    }
+    if (!asset) {
+      renderProceduralCard(node, card, options);
+      return { asset: null, mode: "procedural" };
+    }
+    node.dataset.cardRenderSignature = signature;
+    node.classList.add("has-card-asset");
+    node.classList.remove("is-procedural-card");
+    node.replaceChildren();
+    const image = document.createElement("img");
+    image.className = "submeta-card-render-asset";
+    image.src = asset.url;
+    image.alt = "";
+    image.draggable = false;
+    image.addEventListener("error", () => {
+      failedCardAssetUrls.add(asset.url);
+      delete node.dataset.cardRenderSignature;
+      renderSubMetaCard(node, card, options);
+    }, { once: true });
+    node.appendChild(image);
+    appendCardCount(node, card, options);
+    return { asset, mode: "asset" };
   }
 
   function getAssignedCardBox(item) {
@@ -482,53 +577,12 @@
     };
   }
 
-  function getProceduralCardSignature(assignment) {
-    return `procedural:${assignment.kind || "CARD"}:${assignment.tier || "DR"}:${(assignment.colors || []).join(",")}`;
-  }
-
-  function renderProceduralAssignedCard(node, assignment) {
-    node.dataset.cardRenderSignature = getProceduralCardSignature(assignment);
-    node.classList.remove("has-card-asset");
-    node.replaceChildren();
-    const stripes = document.createElement("span");
-    stripes.className = "submeta-assigned-card-stripes";
-    for (const color of assignment.colors?.length ? assignment.colors : [null]) {
-      const stripe = document.createElement("span");
-      stripe.className = "submeta-assigned-card-stripe";
-      stripe.style.background = assignedCardColorCss(color);
-      stripes.appendChild(stripe);
-    }
-    const kind = document.createElement("span");
-    kind.className = "submeta-assigned-card-kind";
-    kind.textContent = assignment.kind || "CARD";
-    const tier = document.createElement("span");
-    tier.className = "submeta-assigned-card-tier";
-    tier.textContent = assignment.tier || "DR";
-    node.append(stripes, kind, tier);
-  }
-
-  function renderAssignedCardContent(node, assignment) {
-    const asset = resolveCardAsset(assignment);
-    const signature = asset ? `asset:${asset.url}` : getProceduralCardSignature(assignment);
-    if (node.dataset.cardRenderSignature === signature && node.childElementCount > 0) return;
-    if (!asset) {
-      renderProceduralAssignedCard(node, assignment);
-      return;
-    }
-    node.dataset.cardRenderSignature = signature;
-    node.classList.add("has-card-asset");
-    node.replaceChildren();
-    const image = document.createElement("img");
-    image.className = "submeta-assigned-card-asset";
-    image.src = asset.url;
-    image.alt = "";
-    image.draggable = false;
-    image.addEventListener("error", () => {
-      failedCardAssetUrls.add(asset.url);
-      if (isDebugMode()) console.warn("[HC.SubMetaPlaceholders] card asset load failed; using procedural fallback", asset.path);
-      renderProceduralAssignedCard(node, assignment);
-    }, { once: true });
-    node.appendChild(image);
+  function renderAssignedCardContent(node, assignment, pending = false) {
+    return renderSubMetaCard(node, assignment, {
+      context: pending ? "pending" : "slot",
+      selected: !pending && selectedPlaceholderId === node.dataset.submetaAssignedPlaceholderId,
+      pending
+    });
   }
 
   function syncAssignedCardNode(item, assignment, pending = false) {
@@ -554,7 +608,7 @@
     node.style.width = `${box.w * 100}%`;
     node.style.height = `${box.h * 100}%`;
     node.style.zIndex = String(box.zIndex);
-    renderAssignedCardContent(node, assignment);
+    renderAssignedCardContent(node, assignment, pending);
   }
 
   function syncDom() {
@@ -867,7 +921,7 @@
   root.HC.SubMetaPlaceholders = {
     VERSION, STORAGE_KEY, STATES, GROUPS, SLOT_CARD_RATIO, SLOT_CARD_BASE_UNIT, DEFAULT_SLOT_CARD_SCALE, init, update, render: syncDom, syncDom,
     setVisible, isVisible: () => actuallyVisible, setShowLabels, setShowHidden, setSlotCardScale, getSlotCardScale: () => slotCardScale,
-    resolveCardAsset,
+    resolveCardAsset, renderSubMetaCard,
     selectPlaceholder, getSelectedPlaceholderId: () => selectedPlaceholderId, clearSelection, hitTest,
     openFloatingEditor, closeFloatingEditor, syncFloatingEditorFromPlaceholder, applyFloatingEditorValues, syncDebugPanelSelection,
     getDebugState, getPlaceholders: () => placeholders.map((item) => ({ ...item })), getExportPayload,
