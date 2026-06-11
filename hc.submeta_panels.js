@@ -4,7 +4,7 @@
 
   root.HC = root.HC || {};
 
-  const VERSION = "submeta-panels-layout-v0.2";
+  const VERSION = "submeta-panels-layout-v0.3";
   const STORAGE_KEY = "hc.submetaPanels.layout.v1";
   const PRESET_URL = "public/png/submeta/submeta-panels-layout-export.json";
   const LAYER_ID = "subMetaPanelsLayer";
@@ -24,16 +24,16 @@
   const BASE_FIELDS = Object.freeze(["x", "y", "w", "h", "zIndex", "visibleInDebug", "visibleInGame"]);
   const GRID_FIELDS = Object.freeze([
     "gridColumns", "gridRowsVisible", "cardRatioW", "cardRatioH", "cardScale",
-    "gap", "gapX", "gapY", "paddingX", "paddingY", "filterTopMargin", "arrowRightMargin"
+    "gap", "gapX", "gapY", "paddingX", "paddingY", "gridOffsetX", "filterTopMargin", "arrowRightMargin"
   ]);
 
   const rect = (id, type, label, x, y, w, h, zIndex, visibleInDebug = true, visibleInGame = false) =>
     Object.freeze({ id, type, label, x, y, w, h, zIndex, visibleInDebug, visibleInGame });
-  const gridPanel = (id, label, x, y, w, h, zIndex, gridColumns, gridRowsVisible, gap, paddingX, paddingY, pageStepRows, filterTopMargin = 0.002, arrowRightMargin = 0.008) =>
+  const gridPanel = (id, label, x, y, w, h, zIndex, gridColumns, gridRowsVisible, gap, paddingX, paddingY, pageStepRows, filterTopMargin = 0.002, arrowRightMargin = 0.008, gridOffsetX = 0) =>
     Object.freeze({
       id, type: "grid-panel", label, x, y, w, h, zIndex, visibleInDebug: true, visibleInGame: false,
       gridColumns, gridRowsVisible, cardRatioW: 1.3, cardRatioH: 2.3, cardScale: 1,
-      gap, gapX: gap, gapY: gap, paddingX, paddingY, filterTopMargin, arrowRightMargin,
+      gap, gapX: gap, gapY: gap, paddingX, paddingY, gridOffsetX, filterTopMargin, arrowRightMargin,
       ...(pageStepRows == null ? {} : { pageStepRows })
     });
 
@@ -116,6 +116,7 @@
       normalized.gapY = normalized.gap;
       normalized.paddingX = clampNumber(source.paddingX ?? source.gridPaddingX ?? source.innerMarginX, 0, 0.45, fallback.paddingX);
       normalized.paddingY = clampNumber(source.paddingY ?? source.gridPaddingY ?? source.innerMarginY, 0, 0.45, fallback.paddingY);
+      normalized.gridOffsetX = clampNumber(source.gridOffsetX, -1, 1, fallback.gridOffsetX);
       normalized.filterTopMargin = clampNumber(source.filterTopMargin, 0, 0.25, fallback.filterTopMargin);
       normalized.arrowRightMargin = clampNumber(source.arrowRightMargin, 0, 0.25, fallback.arrowRightMargin);
       if (fallback.id === "panel.inventory") {
@@ -232,7 +233,7 @@
     const slotH = fittedSlotH * panel.cardScale;
     const usedW = (columns * slotW) + ((columns - 1) * panel.gapX);
     const usedH = (rows * slotH) + ((rows - 1) * panel.gapY);
-    const left = panel.x - (usedW / 2);
+    const left = panel.x - (usedW / 2) + panel.gridOffsetX;
     const top = panel.y - (usedH / 2);
     const slots = [];
     for (let row = 0; row < rows; row += 1) {
@@ -364,6 +365,7 @@
       ${floatingNumberControl(panel.id, "gap", "gap", panel.gap, 0, 0.25, 0.001)}
       ${floatingNumberControl(panel.id, "paddingX", "gridPaddingX", panel.paddingX, 0, 0.45, 0.001)}
       ${floatingNumberControl(panel.id, "paddingY", "gridPaddingY", panel.paddingY, 0, 0.45, 0.001)}
+      ${floatingNumberControl(panel.id, "gridOffsetX", "gridOffsetX", panel.gridOffsetX, -1, 1, 0.001)}
       ${panel.id === "panel.inventory" ? `
         <div class="submeta-panel-floating-section">Filtry</div>
         ${floatingNumberControl(panel.id, "filterTopMargin", "filterTopMargin", panel.filterTopMargin, 0, 0.25, 0.001)}` : ""}
@@ -624,6 +626,7 @@
       if (["gap", "gapX", "gapY"].includes(field)) item.gap = item.gapX = item.gapY = value;
       else item[field] = value;
     } else if (["paddingX", "paddingY"].includes(field)) item[field] = clampNumber(rawValue, 0, 0.45, fallback[field]);
+    else if (field === "gridOffsetX") item[field] = clampNumber(rawValue, -1, 1, fallback[field]);
     else item[field] = clampNumber(rawValue, field === "w" || field === "h" ? 0.005 : 0, 1, fallback[field]);
     syncDom();
     if (options.syncMain !== false) syncDebugPanelSelection();
@@ -661,6 +664,7 @@
       ${renderNumberControl("gap", selected.gap, 0, 0.25, 0.001, disabled)}
       ${renderNumberControl("paddingX", selected.paddingX, 0, 0.45, 0.001, disabled)}
       ${renderNumberControl("paddingY", selected.paddingY, 0, 0.45, 0.001, disabled)}
+      ${renderNumberControl("gridOffsetX", selected.gridOffsetX, -1, 1, 0.001, disabled)}
       ${renderNumberControl("arrowRightMargin", selected.arrowRightMargin, 0, 0.25, 0.001, disabled)}
       ${selected.id === "panel.inventory" ? renderNumberControl("filterTopMargin", selected.filterTopMargin, 0, 0.25, 0.001, disabled) : ""}
       ${selected.id === "panel.inventory" ? renderNumberControl("pageStepRows", selected.pageStepRows, 1, 20, 1, disabled) : ""}` : "";
