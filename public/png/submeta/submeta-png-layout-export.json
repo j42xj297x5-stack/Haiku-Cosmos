@@ -212,7 +212,7 @@
     {
       "id": "r3",
       "src": "submeta_r3.png",
-      "x": 0.475,
+      "x": 0.5,
       "y": 0.25,
       "scaleX": 1,
       "scaleY": 1,
@@ -224,9 +224,9 @@
     {
       "id": "inventory-panel",
       "src": "submeta_magazyn-panel.png",
-      "x": 0.73,
+      "x": 0.745,
       "y": 0.235,
-      "scaleX": 0.92,
+      "scaleX": 0.84,
       "scaleY": 0.92,
       "opacity": 1,
       "zIndex": 10,
@@ -236,7 +236,7 @@
     {
       "id": "inventory-label",
       "src": "submeta_magazyn.png",
-      "x": 0.73,
+      "x": 0.744,
       "y": 0.113,
       "scaleX": 1,
       "scaleY": 1,
