@@ -38,6 +38,7 @@
   const lastDebugControlEventAt = new Map();
   let warnedMissingSubMetaPngLayout = false;
   let warnedMissingSubMetaPlaceholders = false;
+  let warnedMissingSubMetaPanels = false;
   let warnedMissingHudTopLayout = false;
   const RUNTIME_DEBUG_SECTIONS_STORAGE_KEY = "hc.runtimeDebug.sections.v1";
   const DEFAULT_RUNTIME_DEBUG_SECTIONS = Object.freeze({
@@ -51,6 +52,7 @@
     "submeta-prg": true,
     "submeta-png-layout": true,
     "submeta-placeholders": true,
+    "submeta-panels": true,
     "logging-evidence": true,
   });
   let runtimeDebugSectionState = readRuntimeDebugSectionState();
@@ -622,6 +624,15 @@
             runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
             return;
           }
+          const panelControl = event.target && event.target.closest ? event.target.closest("[data-submeta-panel-action]") : null;
+          if (panelControl && window.HC?.SubMetaPanels?.handleDebugControl?.(panelControl)) {
+            const action = panelControl.dataset.submetaPanelAction;
+            if (["clear-selection", "reset", "import", "select"].includes(action)) {
+              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            }
+            return;
+          }
           const placeholderControl = event.target && event.target.closest ? event.target.closest("[data-submeta-placeholder-action]") : null;
           if (placeholderControl && window.HC?.SubMetaPlaceholders?.handleDebugControl?.(placeholderControl)) {
             const action = placeholderControl.dataset.submetaPlaceholderAction;
@@ -656,6 +667,13 @@
           const target = event.target;
           if (!target) return;
           if (window.HC?.HudTopLayout?.handleDebugControl?.(target)) return;
+          if (window.HC?.SubMetaPanels?.handleDebugControl?.(target)) {
+            if (target.id === "dbgSubMetaPanelId") {
+              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            }
+            return;
+          }
           if (window.HC?.SubMetaPlaceholders?.handleDebugControl?.(target)) {
             if (target.id === "dbgSubMetaPlaceholderId" || target.dataset?.submetaPlaceholderField === "state") {
               const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
@@ -793,6 +811,7 @@
       window.HC?.HudTopLayout?.init?.();
       window.HC?.SubMetaPngLayout?.init?.();
       window.HC?.SubMetaPlaceholders?.init?.();
+      window.HC?.SubMetaPanels?.init?.();
       applyStaticI18nText();
       populateScenarioPresetSelect();
 
@@ -937,6 +956,7 @@
       updateScoreLabel(World, false);
       window.HC?.SubMetaPngLayout?.update?.();
       window.HC?.SubMetaPlaceholders?.update?.();
+      window.HC?.SubMetaPanels?.update?.();
       const CE = window.CardEngine;
       const view = window.HC.getView && window.HC.getView();
       if (CE && typeof CE.render === "function" && view && window.ctx) {
@@ -1210,11 +1230,22 @@
       console.warn("[HC Runtime Debug] hc.submeta_placeholders.js is unavailable; window.HC.SubMetaPlaceholders was not found.");
     }
 
+    const subMetaPanels = window.HC?.SubMetaPanels;
+    let subMetaPanelsDebugHtml = "";
+    if (subMetaPanels?.renderDebugHtml) {
+      subMetaPanelsDebugHtml = subMetaPanels.renderDebugHtml({
+        open: isRuntimeDebugSectionOpen("submeta-panels", true),
+      });
+    } else if (!warnedMissingSubMetaPanels) {
+      warnedMissingSubMetaPanels = true;
+      console.warn("[HC Runtime Debug] hc.submeta_panels.js is unavailable; window.HC.SubMetaPanels was not found.");
+    }
+
     sections.push(renderSection("submeta-prg", "SUB-META / PRG", [
-      ["status", "PNG overlay + gameplay placeholder tuning"],
+      ["status", "PNG overlay + gameplay placeholders + working panel layout"],
       ["SUB-META events", "opened, closed, slot_*, card_*, inventory_changed, prg_binding_changed, purchase, error"],
       ["snapshot policy", "full snapshot on open/close/finalize/force evidence only"],
-    ], "", { open: true, extra: subMetaPngDebugHtml + subMetaPlaceholderDebugHtml }));
+    ], "", { open: true, extra: subMetaPngDebugHtml + subMetaPlaceholderDebugHtml + subMetaPanelsDebugHtml }));
 
     sections.push(renderSection("logging-evidence", "Logging / Evidence", [
       ["logging mode", snap.loggingMode || "compact"],
