@@ -82,6 +82,7 @@
     selectedSource: null,
     assignmentMessage: null
   };
+  let pendingAssignment = null;
 
   function resolvePublicAssetUrl(path) {
     const helper = root.HC && (root.HC.publicAssetPath || root.HC.publicPath);
@@ -328,6 +329,9 @@
     const api = getCardApi();
     const context = mapPlaceholderContext(cardSelection.selectedPlaceholder);
     if (!World || !api || !cardSelection.selectedPlaceholder) return { entries: [], context };
+    if (api.getPlaceholderAssignments?.(World)?.[cardSelection.selectedPlaceholderId]) {
+      return { entries: [], context: { ...context, message: "Ten placeholder jest już zajęty." } };
+    }
     let entries = [];
     if (context.type === "prg-r1" || context.type === "prg-r2") entries = api.getPrgAvailableCards?.(World, context.selection) || [];
     if (context.type === "world-r1") entries = api.getWorldAvailableCards?.(World, context.slotKey, context.slotIndex) || [];
@@ -345,7 +349,47 @@
     })[reason] || "Nie udało się przypisać karty.";
   }
 
+  function clonePendingAssignment() {
+    if (!pendingAssignment) return null;
+    return {
+      ...pendingAssignment,
+      cardRef: pendingAssignment.cardRef ? {
+        ...pendingAssignment.cardRef,
+        colors: Array.isArray(pendingAssignment.cardRef.colors) ? pendingAssignment.cardRef.colors.slice() : []
+      } : null
+    };
+  }
+
+  function getConfirmButtonState() {
+    return pendingAssignment?.valid === true ? "ready" : "inactive";
+  }
+
+  function refreshAssignmentViews() {
+    root.HC?.SubMetaPlaceholders?.syncDom?.();
+    root.HC?.SubMetaPngLayout?.refreshConfirmButton?.();
+  }
+
+  function clearPendingAssignment(options = {}) {
+    const previous = pendingAssignment;
+    pendingAssignment = null;
+    if (previous && cardSelection.selectedSource === "pending") {
+      cardSelection.selectedPossibleEntryKey = null;
+      cardSelection.selectedCardRef = null;
+      cardSelection.selectedSource = cardSelection.selectedPlaceholder ? "placeholder" : null;
+      if (options.keepMessage !== true) cardSelection.assignmentMessage = null;
+    }
+    if (options.message) cardSelection.assignmentMessage = options.message;
+    if (options.render !== false) {
+      refreshAssignmentViews();
+      syncDom();
+    }
+    if (previous) debugLog("pending assignment cleared", { reason: options.reason || "unspecified", placeholderId: previous.placeholderId });
+    return Boolean(previous);
+  }
+
   function selectAssignedCard(placeholderId, assignment) {
+    const clearedPending = pendingAssignment && pendingAssignment.placeholderId !== placeholderId;
+    if (clearedPending) clearPendingAssignment({ reason: "assigned-placeholder-selected", render: false });
     const placeholder = root.HC?.SubMetaPlaceholders?.getPlaceholders?.().find((item) => item.id === placeholderId);
     const card = resolveCardRef({ ...assignment, key: assignment?.cardKey });
     if (!placeholder || !card) return false;
@@ -357,33 +401,74 @@
     cardSelection.selectedSource = "assigned";
     cardSelection.assignmentMessage = "Karta przypisana do tego placeholdera.";
     root.HC?.SubMetaPlaceholders?.selectPlaceholder?.(placeholderId, { allowOccupied: true, notifyPanels: false });
+    if (clearedPending) refreshAssignmentViews();
     syncDom();
     return true;
   }
 
-  function assignPossibleCard(card) {
+  function stagePossibleCard(card) {
     const World = getWorld();
     const api = getCardApi();
     const placeholderId = cardSelection.selectedPlaceholderId;
     const target = mapPlaceholderContext(cardSelection.selectedPlaceholder);
+    const stillAvailable = getPossibleEntries().entries.some((entry) => resolveCardRef(entry)?.viewKey === card.viewKey);
     if (!World || !api?.assignPlaceholderCard || !placeholderId) {
       cardSelection.assignmentMessage = getAssignmentMessage("missing-data");
       return false;
     }
-    const result = api.assignPlaceholderCard(World, placeholderId, target, card);
-    if (!result?.ok) {
-      cardSelection.assignmentMessage = getAssignmentMessage(result?.reason);
-      debugLog("assignment rejected", { placeholderId, cardKey: card.key || card.viewKey, reason: result?.reason });
+    if (!stillAvailable) {
+      cardSelection.assignmentMessage = getAssignmentMessage("incompatible");
+      debugLog("pending assignment rejected", { placeholderId, cardKey: card.key || card.viewKey, reason: "incompatible" });
       return false;
     }
+    pendingAssignment = {
+      placeholderId,
+      cardRef: { ...card, colors: card.colors.slice() },
+      cardKey: card.key || card.viewKey,
+      cardId: card.id || null,
+      target: { ...target, selection: target.selection ? { ...target.selection } : undefined },
+      source: "possibilities",
+      createdAt: Date.now(),
+      valid: true
+    };
+    cardSelection.selectedCardRef = card;
+    cardSelection.selectedSource = "pending";
+    cardSelection.selectedInventoryEntryKey = null;
+    cardSelection.selectedPossibleEntryKey = card.viewKey;
+    cardSelection.assignmentMessage = "Zmiana oczekuje na potwierdzenie.";
+    refreshAssignmentViews();
+    debugLog("pending assignment staged", { placeholderId, cardKey: pendingAssignment.cardKey });
+    return true;
+  }
+
+  function confirmPendingAssignment() {
+    const pending = pendingAssignment;
+    const World = getWorld();
+    const api = getCardApi();
+    if (!pending || pending.valid !== true || !World || !api?.assignPlaceholderCard) return false;
+    const placeholder = root.HC?.SubMetaPlaceholders?.getPlaceholders?.().find((item) => item.id === pending.placeholderId);
+    if (!placeholder || cardSelection.selectedPlaceholderId !== pending.placeholderId) {
+      clearPendingAssignment({ reason: "placeholder-changed", message: getAssignmentMessage("missing-data") });
+      return false;
+    }
+    const result = api.assignPlaceholderCard(World, pending.placeholderId, pending.target, pending.cardRef);
+    if (!result?.ok) {
+      const message = getAssignmentMessage(result?.reason);
+      debugLog("pending assignment confirmation rejected", { placeholderId: pending.placeholderId, cardKey: pending.cardKey, reason: result?.reason });
+      clearPendingAssignment({ reason: result?.reason || "validation-failed", message });
+      return false;
+    }
+    pendingAssignment = null;
     const assignedCard = resolveCardRef({ ...result.assignment, key: result.assignment.cardKey });
-    cardSelection.selectedCardRef = assignedCard || card;
+    cardSelection.selectedCardRef = assignedCard || pending.cardRef;
     cardSelection.selectedSource = "assigned";
     cardSelection.selectedInventoryEntryKey = null;
     cardSelection.selectedPossibleEntryKey = null;
     cardSelection.assignmentMessage = "Karta została przypisana do placeholdera.";
-    root.HC?.SubMetaPlaceholders?.syncDom?.();
-    debugLog("card assigned", { placeholderId, assignment: result.assignment });
+    cardSelection.selectedPlaceholder = { ...placeholder, state: "occupied" };
+    refreshAssignmentViews();
+    syncDom();
+    debugLog("card assignment confirmed", { placeholderId: pending.placeholderId, assignment: result.assignment });
     return true;
   }
 
@@ -391,9 +476,9 @@
     const card = resolveCardRef(entry);
     if (!card) return false;
     if (source === "possibilities") {
-      const assigned = assignPossibleCard(card);
+      const staged = stagePossibleCard(card);
       syncDom();
-      return assigned;
+      return staged;
     }
     cardSelection.selectedCardRef = card;
     cardSelection.selectedSource = source;
@@ -406,22 +491,28 @@
 
   function selectPlaceholder(context) {
     if (!context?.id) return false;
+    const retainedPending = pendingAssignment?.placeholderId === context.id ? pendingAssignment : null;
+    const clearedPending = pendingAssignment && !retainedPending;
+    if (clearedPending) clearPendingAssignment({ reason: "placeholder-changed", render: false });
     cardSelection.selectedPlaceholderId = context.id;
     cardSelection.selectedPlaceholder = { ...context };
     cardSelection.selectedInventoryEntryKey = null;
-    cardSelection.selectedPossibleEntryKey = null;
-    cardSelection.selectedCardRef = null;
-    cardSelection.selectedSource = "placeholder";
-    cardSelection.assignmentMessage = null;
+    cardSelection.selectedPossibleEntryKey = retainedPending?.cardRef?.viewKey || null;
+    cardSelection.selectedCardRef = retainedPending?.cardRef || null;
+    cardSelection.selectedSource = retainedPending ? "pending" : "placeholder";
+    cardSelection.assignmentMessage = retainedPending ? "Zmiana oczekuje na potwierdzenie." : null;
+    if (clearedPending) refreshAssignmentViews();
     syncDom();
     return true;
   }
 
   function clearPlaceholderSelection() {
+    clearPendingAssignment({ reason: "placeholder-selection-cleared", render: false });
     cardSelection.selectedPlaceholderId = null;
     cardSelection.selectedPlaceholder = null;
-    if (cardSelection.selectedSource === "placeholder") cardSelection.selectedSource = null;
+    if (["placeholder", "pending"].includes(cardSelection.selectedSource)) cardSelection.selectedSource = null;
     syncDom();
+    refreshAssignmentViews();
   }
 
   function colorCss(color) {
@@ -701,6 +792,7 @@
       }
     }
     renderCardView(slotRectsByPanelId);
+    root.HC?.SubMetaPngLayout?.refreshConfirmButton?.();
     return true;
   }
 
@@ -1202,7 +1294,9 @@
     return {
       version: VERSION, initialized, enabled, visible: actuallyVisible, overlayVisible: overlayIsVisible(),
       showPanelLabels: showLabels, dataSource, presetUrl: PRESET_URL, selectedPanelId, selectedSlotId, configuredCount: items.length,
-      inventoryFilter, cardSelection: { ...cardSelection }, inventoryEntryCount: getInventoryEntries().length,
+      inventoryFilter, cardSelection: { ...cardSelection }, selectedPlaceholderId: cardSelection.selectedPlaceholderId,
+      pendingAssignment: clonePendingAssignment(), confirmButtonState: getConfirmButtonState(),
+      assignedPlaceholders: getCardApi()?.getPlaceholderAssignments?.(getWorld()) || {}, inventoryEntryCount: getInventoryEntries().length,
       possibleEntryCount: getPossibleEntries().entries.length,
       renderedPanelCount: layer?.querySelectorAll("[data-submeta-panel-id]:not([data-submeta-panel-slot-id])").length || 0,
       renderedSlotCount: layer?.querySelectorAll("[data-submeta-panel-slot-id]").length || 0,
@@ -1215,7 +1309,8 @@
     getSelectedPanelId: () => selectedPanelId, getDebugState, resetToDefault, exportLayout, importLayout, saveLayout, loadLayout,
     setShowLabels, selectPanel, clearSelection, getPanels: () => items.map((item) => ({ ...item })), getExportPayload,
     selectPlaceholder, clearPlaceholderSelection, selectCard, selectAssignedCard, mapPlaceholderContext,
-    getCardViewState: () => ({ inventoryFilter, ...cardSelection }),
+    getCardViewState: () => ({ inventoryFilter, ...cardSelection, pendingAssignment: clonePendingAssignment(), confirmButtonState: getConfirmButtonState() }),
+    getPendingAssignment: clonePendingAssignment, getConfirmButtonState, confirmPendingAssignment, clearPendingAssignment,
     getInventoryEntries, getPossibleEntries, getDetailModel,
     openFloatingPanelEditor, closeFloatingPanelEditor, syncFloatingPanelEditor, applyFloatingPanelEditorValues,
     updateSelectedField, renderDebugHtml, handleDebugControl

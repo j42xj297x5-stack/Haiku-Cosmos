@@ -128,8 +128,44 @@
     return (isActive() && getWorld()?.subMetaOpen === true) || isPreviewEnabled();
   }
 
+  function createActionStyle() {
+    if (document.getElementById("subMetaPngActionStyles")) return;
+    const style = document.createElement("style");
+    style.id = "subMetaPngActionStyles";
+    style.textContent = `
+      .submeta-png-confirm { transition:opacity 140ms ease,filter 140ms ease; }
+      .submeta-png-confirm.is-inactive { opacity:.42!important; filter:saturate(.55) brightness(.72); cursor:default; }
+      .submeta-png-confirm.is-ready { opacity:1!important; pointer-events:auto; cursor:pointer; filter:brightness(1.13) drop-shadow(0 0 7px rgba(255,211,112,.58)); }
+      .submeta-png-confirm.is-ready:hover, .submeta-png-confirm.is-ready:focus-visible { filter:brightness(1.27) drop-shadow(0 0 10px rgba(255,220,132,.78)); }
+      .submeta-png-confirm.is-ready:active { filter:brightness(.94) drop-shadow(0 0 4px rgba(255,211,112,.45)); }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function activateConfirm(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (root.HC?.SubMetaPanels?.getConfirmButtonState?.() !== "ready") return false;
+    return root.HC.SubMetaPanels.confirmPendingAssignment?.() === true;
+  }
+
+  function refreshConfirmButton() {
+    const image = stage?.querySelector?.('[data-submeta-png-id="confirm"]');
+    if (!image) return "inactive";
+    const state = root.HC?.SubMetaPanels?.getConfirmButtonState?.() === "ready" ? "ready" : "inactive";
+    image.classList.toggle("is-ready", state === "ready");
+    image.classList.toggle("is-inactive", state !== "ready");
+    image.setAttribute("aria-disabled", state === "ready" ? "false" : "true");
+    image.setAttribute("tabindex", state === "ready" ? "0" : "-1");
+    image.style.zIndex = String(Math.max(320, Number(elements.find((item) => item.id === "confirm")?.zIndex) || 0));
+    return state;
+  }
+
   function createDom() {
     if (overlay) return;
+    createActionStyle();
     overlay = document.createElement("div");
     overlay.id = "subMetaPngOverlay";
     overlay.hidden = true;
@@ -165,6 +201,17 @@
           }
         });
       }
+      if (item.id === "confirm") {
+        image.classList.add("submeta-png-action", "submeta-png-confirm", "is-inactive");
+        image.setAttribute("role", "button");
+        image.setAttribute("tabindex", "-1");
+        image.setAttribute("aria-label", "Potwierdź zmianę konfiguracji");
+        image.setAttribute("aria-disabled", "true");
+        image.addEventListener("click", activateConfirm);
+        image.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") activateConfirm(event);
+        });
+      }
       stage.appendChild(image);
     }
     document.body.appendChild(overlay);
@@ -173,6 +220,7 @@
 
   function closeSubMeta() {
     previewEnabled = false;
+    root.HC?.SubMetaPanels?.clearPendingAssignment?.({ reason: "submeta-closed", render: false });
     const world = getWorld();
     const wasOpen = world?.subMetaOpen === true;
     if (wasOpen && root.CardEngine && typeof root.CardEngine.closeSubMeta === "function") {
@@ -188,6 +236,7 @@
     root.HC?.SubMetaPanels?.closeFloatingPanelEditor?.();
     root.HC?.SubMetaPlaceholders?.update?.();
     root.HC?.SubMetaPanels?.update?.();
+    refreshConfirmButton();
   }
 
   function hidePreview() {
@@ -201,7 +250,7 @@
       if (!image) continue;
       image.src = publicAssetPath(`${ASSET_DIR}${item.src}`);
       image.hidden = !item.visible;
-      image.style.zIndex = String(item.zIndex);
+      image.style.zIndex = String(item.id === "confirm" ? Math.max(320, item.zIndex) : item.zIndex);
       image.style.opacity = String(item.opacity);
       if (item.mode === "background") {
         image.classList.add("submeta-png-background");
@@ -235,10 +284,14 @@
     const normalVisible = isActive() && getWorld()?.subMetaOpen === true;
     const previewVisible = !normalVisible && isPreviewEnabled();
     const visible = normalVisible || previewVisible;
+    if (!visible && root.HC?.SubMetaPanels?.getPendingAssignment?.()) {
+      root.HC.SubMetaPanels.clearPendingAssignment?.({ reason: "submeta-hidden", render: false });
+    }
     overlay.hidden = !visible;
     overlay.setAttribute("aria-hidden", visible ? "false" : "true");
     document.documentElement.classList.toggle("submeta-png-open", visible);
     document.documentElement.classList.toggle("submeta-png-preview", previewVisible);
+    refreshConfirmButton();
   }
 
   function setPreviewEnabled(nextEnabled) {
@@ -395,6 +448,7 @@
       stageSize: `${stageWidth} × ${stageHeight}`,
       viewportSize: `${Math.round(root.innerWidth || 0)} × ${Math.round(root.innerHeight || 0)}`,
       backgroundFitMode: BACKGROUND_FIT_MODE,
+      confirmButtonState: refreshConfirmButton(),
       stageScale: `${scaleX.toFixed(4)} × ${scaleY.toFixed(4)}`,
       sampleBackgroundPath: resolvedAssetUrl(`${ASSET_DIR}submeta_background.png`)
     };
@@ -472,6 +526,7 @@
     setPreviewEnabled,
     closeSubMeta,
     hidePreview,
+    refreshConfirmButton,
     getDiagnostics,
     getElements: () => elements.map(cloneElement),
     getExportPayload,
