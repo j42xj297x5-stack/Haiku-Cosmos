@@ -6,7 +6,7 @@
 
   const VERSION = "submeta-panels-layout-v0.3";
   const STORAGE_KEY = "hc.submetaPanels.layout.v1";
-  const PRESET_URL = "public/png/submeta/submeta-panels-layout-export.json";
+  const PRESET_URL = "public/png/submeta/submeta-placeholders-panels.json";
   const LAYER_ID = "subMetaPanelsLayer";
   const FLOATING_EDITOR_ID = "subMetaPanelsFloatingEditor";
   const GRID_PANEL_IDS = Object.freeze(["panel.inventory", "panel.possibilities", "panel.forge"]);
