@@ -72,6 +72,15 @@
   let dataSource = "DEFAULT_ITEMS fallback";
   let presetRequestId = 0;
   let initializationPromise = null;
+  let inventoryFilter = "normal";
+  const cardSelection = {
+    selectedPlaceholderId: null,
+    selectedPlaceholder: null,
+    selectedInventoryEntryKey: null,
+    selectedPossibleEntryKey: null,
+    selectedCardRef: null,
+    selectedSource: null
+  };
 
   function resolvePublicAssetUrl(path) {
     const helper = root.HC && (root.HC.publicAssetPath || root.HC.publicPath);
@@ -168,6 +177,22 @@
       .submeta-panel-grid-slot.is-selected { border-color:rgba(255,219,112,.95); background:rgba(255,219,112,.12); }
       .submeta-panel-control { border-style:dashed !important; pointer-events:auto; cursor:crosshair; }
       .submeta-panel-detail-rect { border-color:rgba(206,165,255,.52) !important; background:rgba(160,90,220,.035) !important; pointer-events:auto; cursor:crosshair; }
+      .submeta-panel-control.is-view-control { display:grid; place-items:center; border:1px solid rgba(183,205,214,.42); border-radius:3px; background:rgba(7,17,24,.72); color:#c8d7dc; font:600 clamp(6px,.55vw,10px)/1 system-ui,sans-serif; cursor:pointer; pointer-events:auto; }
+      .submeta-panel-control.is-view-control:hover, .submeta-panel-control.is-view-control.is-active { border-color:rgba(255,219,112,.92); color:#fff2c7; background:rgba(91,72,27,.62); }
+      .submeta-card-view { position:absolute; box-sizing:border-box; transform:translate(-50%,-50%); display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; padding:3px; border:1px solid rgba(203,220,226,.48); border-radius:9%; background:linear-gradient(160deg,rgba(23,30,36,.96),rgba(4,8,12,.98)); color:#eef5f7; box-shadow:0 2px 5px rgba(0,0,0,.45); font:600 clamp(5px,.48vw,9px)/1 system-ui,sans-serif; pointer-events:auto; cursor:pointer; }
+      .submeta-card-view:hover { border-color:rgba(234,245,248,.9); transform:translate(-50%,-50%) scale(1.04); }
+      .submeta-card-view.is-selected { border-color:#ffdc72; box-shadow:0 0 0 1px rgba(255,220,114,.38),0 0 9px rgba(255,195,57,.58); }
+      .submeta-card-view.is-preview { position:relative; left:auto!important; top:auto!important; width:min(100%,58px)!important; height:min(100%,102px)!important; transform:none; cursor:default; pointer-events:none; }
+      .submeta-card-view-stripes { display:flex; width:100%; height:23%; min-height:4px; overflow:hidden; border-radius:2px; background:#52616a; }
+      .submeta-card-view-stripe { flex:1; }
+      .submeta-card-view-kind { align-self:flex-start; padding:1px 2px; border-radius:2px; background:rgba(0,0,0,.58); }
+      .submeta-card-view-tier { color:#dfecf1; }
+      .submeta-card-view-count { position:absolute; right:2px; top:2px; min-width:12px; padding:1px 2px; border-radius:8px; background:#f0d36d; color:#17120a; text-align:center; }
+      .submeta-panel-empty { position:absolute; inset:4px; display:grid; place-items:center; padding:5px; color:rgba(210,225,230,.72); font:clamp(7px,.6vw,11px)/1.25 system-ui,sans-serif; text-align:center; pointer-events:none; }
+      .submeta-detail-content { position:absolute; inset:3px; overflow:hidden; color:#e7f0f3; font:clamp(6px,.52vw,10px)/1.25 system-ui,sans-serif; pointer-events:none; }
+      .submeta-detail-content strong { display:block; margin-bottom:2px; color:#ffe39a; font-size:1.08em; }
+      .submeta-detail-content p { margin:2px 0; }
+      .submeta-detail-content code { color:#b8dbe7; font:inherit; overflow-wrap:anywhere; }
       .submeta-panels-json { min-height:92px; width:100%; box-sizing:border-box; }
       #${FLOATING_EDITOR_ID} {
         position:fixed; z-index:10001; width:246px; max-height:calc(100vh - 16px); overflow:auto;
@@ -206,6 +231,282 @@
 
   function getItem(id) {
     return items.find((item) => item.id === id) || null;
+  }
+
+  function getWorld() {
+    return root.HC?.getWorld?.() || root.World || root.CardEngine?.state?.world || null;
+  }
+
+  function getCardApi() {
+    return root.CardEngine?.subMetaView || null;
+  }
+
+  function getEntryColors(entry) {
+    if (Array.isArray(entry?.colors)) return entry.colors.filter(Boolean).map(String);
+    return [entry?.color, entry?.colorA, entry?.colorB, entry?.colorC, entry?.colorD].filter(Boolean).map(String);
+  }
+
+  function getEntryKey(entry) {
+    if (entry?.viewKey) return String(entry.viewKey);
+    const colors = getEntryColors(entry);
+    return entry?.key || `${String(entry?.kind || "card").toUpperCase()}:${entry?.tier || "DR"}:${colors.join("-")}`;
+  }
+
+  function normalizeEntry(entry) {
+    if (!entry) return null;
+    const colors = getEntryColors(entry);
+    const kind = String(entry.kind || (entry.color ? "R1" : "CARD")).toUpperCase();
+    const tier = String(entry.tier || entry.fromTier || "DR");
+    return {
+      ...entry,
+      kind,
+      tier,
+      colors,
+      count: Math.max(1, Math.floor(Number(entry.count) || 1)),
+      viewKey: getEntryKey({ ...entry, kind, tier, colors })
+    };
+  }
+
+  function resolveCardRef(entry) {
+    const normalized = normalizeEntry(entry);
+    if (!normalized) return null;
+    const api = getCardApi();
+    const libraryKey = normalized.key || (normalized.kind === "R1" && normalized.colors[0]
+      ? `R1_${normalized.tier}_${normalized.colors[0]}`
+      : null);
+    const libraryCard = libraryKey ? api?.getCardByKey?.(libraryKey) : null;
+    return {
+      ...normalized,
+      ...(libraryCard || {}),
+      kind: normalized.kind,
+      tier: normalized.tier,
+      colors: normalized.colors,
+      color: libraryCard?.color || normalized.colors[0] || null,
+      viewKey: normalized.viewKey
+    };
+  }
+
+  function getInventoryEntries() {
+    const World = getWorld();
+    const api = getCardApi();
+    if (!World || !api) return [];
+    api.ensureCardsPool?.(World);
+    return (api.getInventoryEntries?.(World) || []).map(normalizeEntry).filter(Boolean);
+  }
+
+  function classifyInventoryEntry(entry) {
+    const kind = String(entry?.kind || "").toUpperCase();
+    if (["R1", "R2", "R3", "R4"].includes(kind)) return "normal";
+    if (["RESOURCE", "RESOURCES", "DUST", "PYL", "PYŁ"].includes(kind)) return "resources";
+    return "special";
+  }
+
+  function mapPlaceholderContext(placeholder) {
+    if (!placeholder?.id) return { type: "unsupported", message: "Brak kontekstu placeholdera." };
+    const prgR1 = placeholder.id.match(/^prg\.(forma|intencja|czas|cisza)\.r1\.(\d+)$/);
+    if (prgR1) {
+      const branchBySubgroup = { forma: "radius", intencja: "glue", czas: "speed", cisza: "objects" };
+      return { type: "prg-r1", selection: { type: "r1", branchKey: branchBySubgroup[prgR1[1]] }, slotKey: prgR1[1] };
+    }
+    const worldR1 = placeholder.id.match(/^world\.slot\.(\d+)\.r1$/);
+    if (worldR1) {
+      const slotKey = placeholder.subgroup || ["forma", "intencja", "czas", "cisza"][Number(worldR1[1]) - 1];
+      return { type: "world-r1", slotKey, slotIndex: 0 };
+    }
+    const prgR2 = placeholder.id.match(/^prg\.r2\.(\d+)\.card$/);
+    if (prgR2) return { type: "prg-r2", selection: { type: "r2", bindingIndex: Number(prgR2[1]) - 1 }, slotKey: placeholder.subgroup };
+    const worldR2 = placeholder.id.match(/^world\.r2\.(\d+)\.card$/);
+    if (worldR2) return { type: "world-r2", bindingIndex: Number(worldR2[1]) - 1, slotKey: placeholder.subgroup };
+    if (/r3/i.test(placeholder.id)) return { type: "pending", message: "R3: filtrowanie kart do podpięcia później." };
+    if (/r4/i.test(placeholder.id)) return { type: "pending", message: "R4: filtrowanie kart do podpięcia później." };
+    return { type: "unsupported", message: placeholder.kind === "card" ? "Ten typ miejsca nie ma jeszcze mapowania kart." : "To miejsce nie przyjmuje kart w tym etapie." };
+  }
+
+  function getPossibleEntries() {
+    const World = getWorld();
+    const api = getCardApi();
+    const context = mapPlaceholderContext(cardSelection.selectedPlaceholder);
+    if (!World || !api || !cardSelection.selectedPlaceholder) return { entries: [], context };
+    let entries = [];
+    if (context.type === "prg-r1" || context.type === "prg-r2") entries = api.getPrgAvailableCards?.(World, context.selection) || [];
+    if (context.type === "world-r1") entries = api.getWorldAvailableCards?.(World, context.slotKey, context.slotIndex) || [];
+    if (context.type === "world-r2") entries = api.getWorldBindingAvailableCards?.(World, context.bindingIndex) || [];
+    return { entries: entries.map(normalizeEntry).filter(Boolean), context };
+  }
+
+  function selectCard(entry, source) {
+    const card = resolveCardRef(entry);
+    if (!card) return false;
+    cardSelection.selectedCardRef = card;
+    cardSelection.selectedSource = source;
+    cardSelection.selectedInventoryEntryKey = source === "inventory" ? card.viewKey : null;
+    cardSelection.selectedPossibleEntryKey = source === "possibilities" ? card.viewKey : null;
+    syncDom();
+    return true;
+  }
+
+  function selectPlaceholder(context) {
+    if (!context?.id) return false;
+    cardSelection.selectedPlaceholderId = context.id;
+    cardSelection.selectedPlaceholder = { ...context };
+    cardSelection.selectedInventoryEntryKey = null;
+    cardSelection.selectedPossibleEntryKey = null;
+    cardSelection.selectedCardRef = null;
+    cardSelection.selectedSource = "placeholder";
+    syncDom();
+    return true;
+  }
+
+  function clearPlaceholderSelection() {
+    cardSelection.selectedPlaceholderId = null;
+    cardSelection.selectedPlaceholder = null;
+    if (cardSelection.selectedSource === "placeholder") cardSelection.selectedSource = null;
+    syncDom();
+  }
+
+  function colorCss(color) {
+    return ({ red: "#b8453d", yellow: "#c9a83b", green: "#4d9b62", blue: "#477eb7" })[String(color || "").toLowerCase()] || "#66737a";
+  }
+
+  function createCardNode(entry, source, slot, panelZ, preview = false) {
+    const card = resolveCardRef(entry);
+    if (!card) return null;
+    const node = document.createElement(preview ? "div" : "button");
+    if (!preview) node.type = "button";
+    node.className = `submeta-card-view${preview ? " is-preview" : ""}`;
+    const selectedKey = source === "inventory" ? cardSelection.selectedInventoryEntryKey : cardSelection.selectedPossibleEntryKey;
+    if (!preview && selectedKey === card.viewKey) node.classList.add("is-selected");
+    if (!preview) {
+      node.dataset.submetaCardSource = source;
+      node.dataset.submetaCardKey = card.viewKey;
+      node.title = `${card.kind} ${card.tier} · ${card.colors.join(" + ")}`;
+      node.setAttribute("aria-label", node.title);
+      applyBox(node, { ...slot, zIndex: panelZ + 2 });
+    }
+    const stripes = document.createElement("span");
+    stripes.className = "submeta-card-view-stripes";
+    for (const color of card.colors.length ? card.colors : [null]) {
+      const stripe = document.createElement("span");
+      stripe.className = "submeta-card-view-stripe";
+      stripe.style.background = colorCss(color);
+      stripes.appendChild(stripe);
+    }
+    const kind = document.createElement("span");
+    kind.className = "submeta-card-view-kind";
+    kind.textContent = card.kind;
+    const tier = document.createElement("span");
+    tier.className = "submeta-card-view-tier";
+    tier.textContent = card.tier;
+    node.append(stripes, kind, tier);
+    if (card.count > 1) {
+      const count = document.createElement("span");
+      count.className = "submeta-card-view-count";
+      count.textContent = String(card.count);
+      node.appendChild(count);
+    }
+    return node;
+  }
+
+  function renderGridEntries(panelId, entries, source, emptyMessage) {
+    const panel = getItem(panelId);
+    if (!panel || !shouldRender(panel)) return;
+    const slots = computeGrid(panel);
+    entries.slice(0, slots.length).forEach((entry, index) => {
+      const node = createCardNode(entry, source, slots[index], panel.zIndex);
+      if (node) layer.appendChild(node);
+    });
+    if (!entries.length) {
+      const panelNode = getPanelNode(panelId);
+      if (!panelNode) return;
+      const empty = document.createElement("div");
+      empty.className = "submeta-panel-empty";
+      empty.textContent = emptyMessage;
+      panelNode.appendChild(empty);
+    }
+  }
+
+  function getDetailModel() {
+    const api = getCardApi();
+    const card = cardSelection.selectedCardRef;
+    if (card && cardSelection.selectedSource !== "placeholder") {
+      const placeholderMap = mapPlaceholderContext(cardSelection.selectedPlaceholder);
+      const slotByColor = { red: "forma", yellow: "intencja", green: "czas", blue: "cisza" };
+      const effectSlot = placeholderMap.slotKey && ["forma", "intencja", "czas", "cisza"].includes(placeholderMap.slotKey)
+        ? placeholderMap.slotKey
+        : slotByColor[card.colors[0]];
+      const title = card.kind === "R1" ? api?.getCardTitle?.(card) : `${card.kind} / ${card.tier}`;
+      return {
+        type: "card", card, title,
+        meta: `${card.kind} · ${card.tier} · ${card.colors.join(" + ") || "brak koloru"}${card.count > 1 ? ` · ×${card.count}` : ""}`,
+        effectLines: effectSlot ? (api?.getEffectLines?.(effectSlot, card.tier) || []) : [],
+        haikuLines: api?.getHaikuLines?.(card) || []
+      };
+    }
+    const placeholder = cardSelection.selectedPlaceholder;
+    if (placeholder) {
+      const mapping = mapPlaceholderContext(placeholder);
+      return { type: "placeholder", placeholder, mapping };
+    }
+    return { type: "empty" };
+  }
+
+  function appendText(parent, tag, text, className) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    node.textContent = text;
+    parent.appendChild(node);
+  }
+
+  function renderDetail() {
+    const model = getDetailModel();
+    const preview = getPanelNode("detail.preview_card");
+    const description = getPanelNode("detail.description");
+    const haiku = getPanelNode("detail.haiku");
+    if (!preview || !description || !haiku) return;
+    if (model.type === "card") {
+      const previewCard = createCardNode(model.card, cardSelection.selectedSource, null, 0, true);
+      if (previewCard) preview.appendChild(previewCard);
+      const desc = document.createElement("div");
+      desc.className = "submeta-detail-content";
+      appendText(desc, "strong", model.title);
+      appendText(desc, "p", model.meta);
+      for (const line of model.effectLines) appendText(desc, "p", line);
+      if (!model.effectLines.length) appendText(desc, "p", "Brak roboczego opisu efektu dla tego kontekstu.");
+      description.appendChild(desc);
+      const poem = document.createElement("div");
+      poem.className = "submeta-detail-content";
+      appendText(poem, "strong", "Haiku");
+      for (const line of model.haikuLines) appendText(poem, "p", line);
+      if (!model.haikuLines.length) appendText(poem, "p", "Brak danych haiku.");
+      haiku.appendChild(poem);
+      return;
+    }
+    const desc = document.createElement("div");
+    desc.className = "submeta-detail-content";
+    if (model.type === "placeholder") {
+      appendText(desc, "strong", model.placeholder.label || "Placeholder");
+      appendText(desc, "code", model.placeholder.id);
+      appendText(desc, "p", `${model.placeholder.group} · ${model.placeholder.subgroup} · ${model.placeholder.kind}`);
+      appendText(desc, "p", `Stan: ${model.placeholder.state}`);
+      appendText(desc, "p", model.mapping.message || "Wybierz kartę z Możliwości.");
+    } else {
+      appendText(desc, "strong", "Opis");
+      appendText(desc, "p", "Wybierz kartę w Magazynie albo placeholder gameplayowy.");
+    }
+    description.appendChild(desc);
+  }
+
+  function renderCardView() {
+    const inventory = getInventoryEntries().filter((entry) => classifyInventoryEntry(entry) === inventoryFilter);
+    const possible = getPossibleEntries();
+    const inventoryEmpty = inventoryFilter === "normal" ? "Brak dostępnych kart R1–R4."
+      : (inventoryFilter === "special" ? "Brak kart specjalnych." : "Brak zasobów w danych kart.");
+    renderGridEntries("panel.inventory", inventory, "inventory", inventoryEmpty);
+    const possibleEmpty = !cardSelection.selectedPlaceholder
+      ? "Kliknij placeholder gameplayowy."
+      : (possible.context.message || "Brak pasujących dostępnych kart.");
+    renderGridEntries("panel.possibilities", possible.entries, "possibilities", possibleEmpty);
+    renderDetail();
   }
 
   function syncAutomaticControls() {
@@ -292,12 +593,21 @@
       node.className = "submeta-panel-item";
       if (isDebugMode()) node.classList.add("is-debug-visible");
       if (item.type === "control") node.classList.add("submeta-panel-control");
+      if (item.id.startsWith("inventory.filter.")) {
+        node.classList.add("is-view-control");
+        const filter = item.id.slice("inventory.filter.".length);
+        node.classList.toggle("is-active", inventoryFilter === filter);
+        node.dataset.submetaInventoryFilter = filter;
+        node.setAttribute("role", "button");
+        node.setAttribute("tabindex", "0");
+        node.textContent = item.label;
+      }
       if (item.type === "detail-rect") node.classList.add("submeta-panel-detail-rect");
       if (isDebugMode() && (PANEL_IDS.includes(item.id) || DETAIL_RECT_IDS.includes(item.id))) node.classList.add("is-debug-clickable");
       if (item.id === selectedPanelId) node.classList.add("is-selected");
       node.dataset.submetaPanelId = item.id;
       applyBox(node, item);
-      if (showLabels && isDebugMode()) {
+      if (showLabels && isDebugMode() && !item.id.startsWith("inventory.filter.")) {
         const label = document.createElement("span");
         label.className = "submeta-panel-label";
         label.textContent = item.label || item.id;
@@ -320,6 +630,7 @@
         }
       }
     }
+    renderCardView();
     return true;
   }
 
@@ -505,6 +816,29 @@
   }
 
   function handlePointerDown(event) {
+    const cardTarget = event.target.closest?.("[data-submeta-card-key]");
+    if (cardTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+      const source = cardTarget.dataset.submetaCardSource;
+      const entries = source === "inventory" ? getInventoryEntries() : getPossibleEntries().entries;
+      const entry = entries.find((candidate) => candidate.viewKey === cardTarget.dataset.submetaCardKey);
+      selectCard(entry, source);
+      return;
+    }
+    const filterTarget = event.target.closest?.("[data-submeta-inventory-filter]");
+    if (filterTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+      inventoryFilter = filterTarget.dataset.submetaInventoryFilter;
+      cardSelection.selectedInventoryEntryKey = null;
+      if (cardSelection.selectedSource === "inventory") {
+        cardSelection.selectedCardRef = null;
+        cardSelection.selectedSource = cardSelection.selectedPlaceholder ? "placeholder" : null;
+      }
+      syncDom();
+      return;
+    }
     const target = event.target.closest?.("[data-submeta-panel-id]");
     if (!target || !isDebugMode()) return;
     event.preventDefault();
@@ -796,6 +1130,8 @@
     return {
       version: VERSION, initialized, enabled, visible: actuallyVisible, overlayVisible: overlayIsVisible(),
       showPanelLabels: showLabels, dataSource, presetUrl: PRESET_URL, selectedPanelId, selectedSlotId, configuredCount: items.length,
+      inventoryFilter, cardSelection: { ...cardSelection }, inventoryEntryCount: getInventoryEntries().length,
+      possibleEntryCount: getPossibleEntries().entries.length,
       renderedPanelCount: layer?.querySelectorAll("[data-submeta-panel-id]:not([data-submeta-panel-slot-id])").length || 0,
       renderedSlotCount: layer?.querySelectorAll("[data-submeta-panel-slot-id]").length || 0,
       stageMounted: !!(stage && stage.isConnected), layerMounted: !!(layer && layer.isConnected), debugMode: isDebugMode()
@@ -806,6 +1142,9 @@
     VERSION, STORAGE_KEY, PRESET_URL, init, update, syncDom, setVisible, isVisible: () => actuallyVisible,
     getSelectedPanelId: () => selectedPanelId, getDebugState, resetToDefault, exportLayout, importLayout, saveLayout, loadLayout,
     setShowLabels, selectPanel, clearSelection, getPanels: () => items.map((item) => ({ ...item })), getExportPayload,
+    selectPlaceholder, clearPlaceholderSelection, selectCard, mapPlaceholderContext,
+    getCardViewState: () => ({ inventoryFilter, ...cardSelection }),
+    getInventoryEntries, getPossibleEntries, getDetailModel,
     openFloatingPanelEditor, closeFloatingPanelEditor, syncFloatingPanelEditor, applyFloatingPanelEditorValues,
     updateSelectedField, renderDebugHtml, handleDebugControl
   };

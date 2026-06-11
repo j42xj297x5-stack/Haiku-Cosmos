@@ -5867,6 +5867,22 @@ const CardEngine = (() => {
     resetCardPool,
     onCardCollected,
 
+    // Read-only bridge for the DOM SUB-META view layer. Assignment/crafting
+    // mutations intentionally remain private to CardEngine.
+    subMetaView: Object.freeze({
+      ensureCardsPool,
+      getInventoryEntries: getSubMetaInventoryEntries,
+      getWorldAvailableCards: (World, slotKey, slotIndex) =>
+        getWorldAvailableCards(World, slotKey, slotIndex, ensureSubMetaWorld(World)),
+      getWorldBindingAvailableCards,
+      getPrgAvailableCards,
+      getForgeAvailableStacks,
+      getCardByKey: (cardKey) => getSubMetaCardByKey(cardKey) || getPrgCardByKey(cardKey),
+      getCardTitle: getSubMetaCardTitle,
+      getEffectLines: getSubMetaEffectLines,
+      getHaikuLines: getSubMetaHaikuLines,
+    }),
+
     // Hooks for future systems
     onRitualTrigger,
     openResetCardHub,

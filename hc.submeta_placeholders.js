@@ -321,6 +321,14 @@
     if (!item || !shouldRenderPlaceholder(item)) return false;
     selectedPlaceholderId = id;
     syncSelection();
+    root.HC?.SubMetaPanels?.selectPlaceholder?.({
+      id: item.id,
+      group: item.group,
+      subgroup: item.subgroup,
+      kind: item.kind,
+      state: item.state,
+      label: item.label
+    });
     if (isDebugMode()) console.debug("[HC.SubMetaPlaceholders] selected", id);
     return true;
   }
@@ -438,6 +446,7 @@
     closeFloatingEditor();
     selectedPlaceholderId = null;
     syncSelection();
+    root.HC?.SubMetaPanels?.clearPlaceholderSelection?.();
   }
 
   function hitTest(clientX, clientY) {
