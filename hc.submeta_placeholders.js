@@ -17,18 +17,18 @@
 
   const DEFAULT_PLACEHOLDERS = Object.freeze([
     // PRG R1: four axes, two card slots and one resource slot per axis.
-    placeholder("prg.forma.r1.1", "PRG R1", "forma", "card", "free_active", 0.276, 0.160, 0.046, 0.070, 110, true, true, "Forma R1 / 1"),
-    placeholder("prg.forma.r1.2", "PRG R1", "forma", "card", "free_inactive", 0.350, 0.160, 0.046, 0.070, 111, true, true, "Forma R1 / 2"),
-    placeholder("prg.forma.dust", "PRG R1", "forma", "dust", "free_inactive", 0.394, 0.188, 0.018, 0.027, 112, true, true, "Pył Forma"),
-    placeholder("prg.intencja.r1.1", "PRG R1", "intencja", "card", "free_active", 0.276, 0.240, 0.046, 0.070, 110, true, true, "Intencja R1 / 1"),
-    placeholder("prg.intencja.r1.2", "PRG R1", "intencja", "card", "free_inactive", 0.350, 0.240, 0.046, 0.070, 111, true, true, "Intencja R1 / 2"),
-    placeholder("prg.intencja.dust", "PRG R1", "intencja", "dust", "free_inactive", 0.394, 0.268, 0.018, 0.027, 112, true, true, "Pył Intencja"),
-    placeholder("prg.czas.r1.1", "PRG R1", "czas", "card", "free_active", 0.276, 0.315, 0.046, 0.070, 110, true, true, "Czas R1 / 1"),
-    placeholder("prg.czas.r1.2", "PRG R1", "czas", "card", "free_inactive", 0.350, 0.315, 0.046, 0.070, 111, true, true, "Czas R1 / 2"),
-    placeholder("prg.czas.dust", "PRG R1", "czas", "dust", "free_inactive", 0.394, 0.343, 0.018, 0.027, 112, true, true, "Pył Czas"),
-    placeholder("prg.cisza.r1.1", "PRG R1", "cisza", "card", "free_active", 0.276, 0.386, 0.046, 0.070, 110, true, true, "Cisza R1 / 1"),
-    placeholder("prg.cisza.r1.2", "PRG R1", "cisza", "card", "free_inactive", 0.350, 0.386, 0.046, 0.070, 111, true, true, "Cisza R1 / 2"),
-    placeholder("prg.cisza.dust", "PRG R1", "cisza", "dust", "free_inactive", 0.394, 0.414, 0.018, 0.027, 112, true, true, "Pył Cisza"),
+    placeholder("prg.forma.r1.1", "PRG R1", "forma", "card", "free_active", 0.264, 0.161, 0.013, 0.023, 110, true, true, "Forma R1 / 1"),
+    placeholder("prg.forma.r1.2", "PRG R1", "forma", "card", "free_inactive", 0.289, 0.161, 0.013, 0.023, 111, true, true, "Forma R1 / 2"),
+    placeholder("prg.forma.dust", "PRG R1", "forma", "dust", "free_inactive", 0.313, 0.161, 0.013, 0.023, 112, true, true, "Pył Forma"),
+    placeholder("prg.intencja.r1.1", "PRG R1", "intencja", "card", "free_active", 0.265, 0.235, 0.013, 0.023, 110, true, true, "Intencja R1 / 1"),
+    placeholder("prg.intencja.r1.2", "PRG R1", "intencja", "card", "free_inactive", 0.29, 0.235, 0.013, 0.023, 111, true, true, "Intencja R1 / 2"),
+    placeholder("prg.intencja.dust", "PRG R1", "intencja", "dust", "free_inactive", 0.314, 0.235, 0.013, 0.023, 112, true, true, "Pył Intencja"),
+    placeholder("prg.czas.r1.1", "PRG R1", "czas", "card", "free_active", 0.265, 0.31, 0.013, 0.023, 110, true, true, "Czas R1 / 1"),
+    placeholder("prg.czas.r1.2", "PRG R1", "czas", "card", "free_inactive", 0.291, 0.31, 0.013, 0.023, 111, true, true, "Czas R1 / 2"),
+    placeholder("prg.czas.dust", "PRG R1", "czas", "dust", "free_inactive", 0.315, 0.31, 0.013, 0.023, 112, true, true, "Pył Czas"),
+    placeholder("prg.cisza.r1.1", "PRG R1", "cisza", "card", "free_active", 0.265, 0.387, 0.013, 0.023, 110, true, true, "Cisza R1 / 1"),
+    placeholder("prg.cisza.r1.2", "PRG R1", "cisza", "card", "free_inactive", 0.292, 0.387, 0.013, 0.023, 111, true, true, "Cisza R1 / 2"),
+    placeholder("prg.cisza.dust", "PRG R1", "cisza", "dust", "free_inactive", 0.316, 0.387, 0.013, 0.0230023, 112, true, true, "Pył Cisza"),
 
     // PRG R2.
     placeholder("prg.r2.1.card", "PRG R2", "slot.1", "card", "free_inactive", 0.425, 0.155, 0.042, 0.064, 115, true, true, "PRG R2 / 1"),
