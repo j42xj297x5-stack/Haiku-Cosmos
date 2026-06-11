@@ -11,6 +11,11 @@
   const STATES = Object.freeze(["free_active", "free_inactive", "hidden", "occupied"]);
   const GROUPS = Object.freeze(["PRG R1", "PRG R2", "R3", "R4", "Świat", "Świat R2"]);
   const EDITABLE_FIELDS = Object.freeze(["x", "y", "w", "h", "zIndex", "state", "visibleInGame", "visibleInDebug"]);
+  const ASSIGNED_CARD_SCALE = Object.freeze({ r1: 1, r2: 1 });
+  const ASSIGNED_CARD_SIZE = Object.freeze({
+    r1: Object.freeze({ w: 0.036, h: 0.064 }),
+    r2: Object.freeze({ w: 0.043, h: 0.066 })
+  });
 
   const placeholder = (id, group, subgroup, kind, state, x, y, w, h, zIndex, visibleInGame, visibleInDebug, label) =>
     Object.freeze({ id, group, subgroup, kind, state, x, y, w, h, zIndex, visibleInGame, visibleInDebug, selected: false, label });
@@ -121,8 +126,21 @@
     return root.HC?.Session?.mode === "debug";
   }
 
-  function shouldRenderPlaceholder(item) {
-    if (item.state === "occupied") return false;
+  function getWorld() {
+    return root.HC?.getWorld?.() || root.World || root.CardEngine?.state?.world || null;
+  }
+
+  function getAssignedCards() {
+    const World = getWorld();
+    return World ? (root.CardEngine?.subMetaView?.getPlaceholderAssignments?.(World) || {}) : {};
+  }
+
+  function isOccupied(item, assignments = getAssignedCards()) {
+    return item?.state === "occupied" || Boolean(item?.id && assignments[item.id]);
+  }
+
+  function shouldRenderPlaceholder(item, assignments = getAssignedCards()) {
+    if (isOccupied(item, assignments)) return false;
     if (item.state === "hidden" && !(isDebugMode() && showHidden)) return false;
     return isDebugMode() ? item.visibleInDebug === true : item.visibleInGame === true;
   }
@@ -155,6 +173,19 @@
       .submeta-placeholder.is-selected { border-color: rgba(255, 239, 186, 0.96); background: rgba(255, 226, 151, 0.24); box-shadow: 0 0 0 1px rgba(255, 242, 204, 0.22), 0 0 10px rgba(255, 214, 117, 0.66); }
       .submeta-placeholder:focus-visible { outline: 2px solid rgba(255, 239, 186, 0.92); outline-offset: 2px; }
       .submeta-placeholder-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 2px; }
+      .submeta-assigned-card {
+        position:absolute; box-sizing:border-box; transform:translate(-50%,-50%); display:flex; flex-direction:column;
+        justify-content:space-between; overflow:hidden; padding:3px; border:1px solid rgba(238,226,190,.8);
+        border-radius:9%; background:linear-gradient(160deg,rgba(29,34,38,.98),rgba(5,8,11,.99)); color:#f4f0e5;
+        box-shadow:0 3px 8px rgba(0,0,0,.58); font:600 clamp(5px,.48vw,9px)/1 system-ui,sans-serif;
+        pointer-events:auto; cursor:pointer; user-select:none;
+      }
+      .submeta-assigned-card:hover { border-color:#fff0b7; }
+      .submeta-assigned-card.is-selected { border-color:#ffdc72; box-shadow:0 0 0 1px rgba(255,220,114,.38),0 0 9px rgba(255,195,57,.58); }
+      .submeta-assigned-card-stripes { display:flex; width:100%; height:23%; min-height:4px; overflow:hidden; border-radius:2px; }
+      .submeta-assigned-card-stripe { flex:1; }
+      .submeta-assigned-card-kind { align-self:flex-start; padding:1px 2px; border-radius:2px; background:rgba(0,0,0,.58); }
+      .submeta-assigned-card-tier { color:#dfecf1; }
       #${FLOATING_EDITOR_ID} {
         position: fixed; z-index: 10000; width: 190px; box-sizing: border-box; padding: 10px;
         border: 0; border-radius: 4px; background: rgba(18, 20, 24, 0.96); color: #f2f2f2;
@@ -316,24 +347,34 @@
     return true;
   }
 
-  function selectPlaceholder(id) {
+  function selectPlaceholder(id, options = {}) {
     const item = placeholders.find((candidate) => candidate.id === id);
-    if (!item || !shouldRenderPlaceholder(item)) return false;
+    if (!item || (!options.allowOccupied && !shouldRenderPlaceholder(item))) return false;
     selectedPlaceholderId = id;
     syncSelection();
-    root.HC?.SubMetaPanels?.selectPlaceholder?.({
-      id: item.id,
-      group: item.group,
-      subgroup: item.subgroup,
-      kind: item.kind,
-      state: item.state,
-      label: item.label
-    });
+    if (options.notifyPanels !== false) {
+      root.HC?.SubMetaPanels?.selectPlaceholder?.({
+        id: item.id,
+        group: item.group,
+        subgroup: item.subgroup,
+        kind: item.kind,
+        state: isOccupied(item) ? "occupied" : item.state,
+        label: item.label
+      });
+    }
     if (isDebugMode()) console.debug("[HC.SubMetaPlaceholders] selected", id);
     return true;
   }
 
   function handlePointerDown(event) {
+    const assignedTarget = event.target.closest?.("[data-submeta-assigned-placeholder-id]");
+    if (assignedTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+      const placeholderId = assignedTarget.dataset.submetaAssignedPlaceholderId;
+      root.HC?.SubMetaPanels?.selectAssignedCard?.(placeholderId, getAssignedCards()[placeholderId]);
+      return;
+    }
     const target = event.target.closest?.("[data-submeta-placeholder-id]");
     if (!target) return;
     event.preventDefault();
@@ -345,6 +386,14 @@
 
   function handleKeyDown(event) {
     if (event.key !== "Enter" && event.key !== " ") return;
+    const assignedTarget = event.target.closest?.("[data-submeta-assigned-placeholder-id]");
+    if (assignedTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+      const placeholderId = assignedTarget.dataset.submetaAssignedPlaceholderId;
+      root.HC?.SubMetaPanels?.selectAssignedCard?.(placeholderId, getAssignedCards()[placeholderId]);
+      return;
+    }
     const target = event.target.closest?.("[data-submeta-placeholder-id]");
     if (!target) return;
     event.preventDefault();
@@ -362,13 +411,84 @@
       node.classList.toggle("is-selected", selected);
       node.setAttribute("aria-pressed", selected ? "true" : "false");
     }
+    for (const node of layer.querySelectorAll("[data-submeta-assigned-placeholder-id]")) {
+      const selected = node.dataset.submetaAssignedPlaceholderId === selectedPlaceholderId;
+      node.classList.toggle("is-selected", selected);
+      node.setAttribute("aria-pressed", selected ? "true" : "false");
+    }
+  }
+
+  function assignedCardColorCss(color) {
+    return ({ red: "#b8453d", yellow: "#c9a83b", green: "#4d9b62", blue: "#477eb7" })[String(color || "").toLowerCase()] || "#66737a";
+  }
+
+  function getAssignedCardBox(item, assignment) {
+    // Placeholder coordinates are stored as center anchors. Reconstruct the rect,
+    // then calculate its center explicitly so card sizing stays independent.
+    const rect = { x: item.x - (item.w / 2), y: item.y - (item.h / 2), w: item.w, h: item.h };
+    const centerX = rect.x + (rect.w / 2);
+    const centerY = rect.y + (rect.h / 2);
+    const sizeKey = String(assignment?.kind || "").toUpperCase() === "R2" ? "r2" : "r1";
+    const scale = ASSIGNED_CARD_SCALE[sizeKey];
+    const baseSize = ASSIGNED_CARD_SIZE[sizeKey];
+    return {
+      x: centerX,
+      y: centerY,
+      w: Math.max(item.w, baseSize.w * scale),
+      h: Math.max(item.h, baseSize.h * scale),
+      zIndex: item.zIndex + 10
+    };
+  }
+
+  function syncAssignedCardNode(item, assignment) {
+    let node = Array.from(layer.querySelectorAll("[data-submeta-assigned-placeholder-id]")).find((candidate) =>
+      candidate.dataset.submetaAssignedPlaceholderId === item.id);
+    if (!node) {
+      node = document.createElement("button");
+      node.type = "button";
+      node.className = "submeta-assigned-card";
+      node.dataset.submetaAssignedPlaceholderId = item.id;
+      layer.appendChild(node);
+    }
+    node.classList.toggle("is-selected", selectedPlaceholderId === item.id);
+    node.title = `${assignment.kind} ${assignment.tier} · ${item.label}`;
+    node.setAttribute("aria-label", node.title);
+    const box = getAssignedCardBox(item, assignment);
+    node.style.left = `${box.x * 100}%`;
+    node.style.top = `${box.y * 100}%`;
+    node.style.width = `${box.w * 100}%`;
+    node.style.height = `${box.h * 100}%`;
+    node.style.zIndex = String(box.zIndex);
+    node.replaceChildren();
+    const stripes = document.createElement("span");
+    stripes.className = "submeta-assigned-card-stripes";
+    for (const color of assignment.colors?.length ? assignment.colors : [null]) {
+      const stripe = document.createElement("span");
+      stripe.className = "submeta-assigned-card-stripe";
+      stripe.style.background = assignedCardColorCss(color);
+      stripes.appendChild(stripe);
+    }
+    const kind = document.createElement("span");
+    kind.className = "submeta-assigned-card-kind";
+    kind.textContent = assignment.kind || "CARD";
+    const tier = document.createElement("span");
+    tier.className = "submeta-assigned-card-tier";
+    tier.textContent = assignment.tier || "DR";
+    node.append(stripes, kind, tier);
   }
 
   function syncDom() {
     if (!createLayer()) return false;
+    const assignments = getAssignedCards();
     const renderedIds = new Set();
+    const renderedAssignedIds = new Set();
     for (const item of placeholders) {
-      if (!shouldRenderPlaceholder(item)) continue;
+      const assignment = assignments[item.id];
+      if (assignment) {
+        renderedAssignedIds.add(item.id);
+        syncAssignedCardNode(item, assignment);
+      }
+      if (!shouldRenderPlaceholder(item, assignments)) continue;
       renderedIds.add(item.id);
       let node = layer.querySelector(`[data-submeta-placeholder-id="${item.id}"]`);
       if (!node) {
@@ -390,6 +510,9 @@
     }
     for (const node of layer.querySelectorAll("[data-submeta-placeholder-id]")) {
       if (!renderedIds.has(node.dataset.submetaPlaceholderId)) node.remove();
+    }
+    for (const node of layer.querySelectorAll("[data-submeta-assigned-placeholder-id]")) {
+      if (!renderedAssignedIds.has(node.dataset.submetaAssignedPlaceholderId)) node.remove();
     }
     syncSelection();
     return true;
@@ -595,6 +718,7 @@
           <div class="overlay-row"><span class="k">configured</span><span class="v">${placeholders.length}</span></div>
           <div class="overlay-row"><span class="k">rendered</span><span class="v">${layer?.querySelectorAll("[data-submeta-placeholder-id]").length || 0}</span></div>
           <div class="overlay-row"><span class="k">selected</span><code class="v">${escapeHtml(selectedPlaceholderId || "none")}</code></div>
+          <div class="overlay-row"><span class="k">assigned cards</span><code class="v">${escapeHtml(JSON.stringify(getAssignedCards()))}</code></div>
           <div class="overlay-row"><span class="k">storage</span><code class="v">${STORAGE_KEY}</code></div>
         </div>
       </details>`;
@@ -624,14 +748,16 @@
     return {
       version: VERSION, initialized, enabled, visible: actuallyVisible, overlayVisible: overlayIsVisible(),
       showLabels, showHidden, selectedPlaceholderId, configuredCount: placeholders.length,
+      assignedCards: getAssignedCards(),
       renderedCount: layer?.querySelectorAll("[data-submeta-placeholder-id]").length || 0,
+      renderedAssignedCardCount: layer?.querySelectorAll("[data-submeta-assigned-placeholder-id]").length || 0,
       groups: Object.fromEntries(GROUPS.map((group) => [group, placeholders.filter((item) => item.group === group).length])),
       stageMounted: !!(stage && stage.isConnected), layerMounted: !!(layer && layer.isConnected), debugMode: isDebugMode()
     };
   }
 
   root.HC.SubMetaPlaceholders = {
-    VERSION, STORAGE_KEY, STATES, GROUPS, init, update, render: syncDom, syncDom,
+    VERSION, STORAGE_KEY, STATES, GROUPS, ASSIGNED_CARD_SCALE, init, update, render: syncDom, syncDom,
     setVisible, isVisible: () => actuallyVisible, setShowLabels, setShowHidden,
     selectPlaceholder, getSelectedPlaceholderId: () => selectedPlaceholderId, clearSelection, hitTest,
     openFloatingEditor, closeFloatingEditor, syncFloatingEditorFromPlaceholder, applyFloatingEditorValues, syncDebugPanelSelection,
