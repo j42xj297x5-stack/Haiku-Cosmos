@@ -260,6 +260,7 @@
 
   function openFloatingEditor(id, anchorRect) {
     if (!isDebugMode() || !enabled || !actuallyVisible || !selectPlaceholder(id)) return false;
+    root.HC?.SubMetaPanels?.closeFloatingPanelEditor?.();
     closeFloatingEditor();
     const item = placeholders.find((candidate) => candidate.id === id);
     if (!item) return false;
