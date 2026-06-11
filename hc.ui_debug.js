@@ -4,9 +4,6 @@
 
   let fpsLabel = null;
   let btnRestart = null;
-  let btnSubMeta = null;
-  let hudLogo = null;
-  let hudSubMetaImage = null;
   let scoreLabel = null;
   let topBar = null;
   let debugBadge = null;
@@ -40,6 +37,7 @@
   let lastScore = null;
   const lastDebugControlEventAt = new Map();
   let warnedMissingSubMetaPngLayout = false;
+  let warnedMissingHudTopLayout = false;
   const RUNTIME_DEBUG_SECTIONS_STORAGE_KEY = "hc.runtimeDebug.sections.v1";
   const DEFAULT_RUNTIME_DEBUG_SECTIONS = Object.freeze({
     "renderer-scene": true,
@@ -48,6 +46,7 @@
     "glb-materials": false,
     "world-mechanics": false,
     "cards-sequence-economy": false,
+    "hud-top-layout": true,
     "submeta-prg": true,
     "submeta-png-layout": true,
     "logging-evidence": true,
@@ -96,27 +95,11 @@
     if (!scoreLabel || !World) return;
     if (force || World.score !== lastScore) {
       lastScore = World.score;
-      const valueEl = scoreLabel.querySelector(".rp-value");
       const scoreText = String(Math.max(0, Math.floor(Number(World.score || 0))));
-      if (valueEl) valueEl.textContent = scoreText;
-      else scoreLabel.textContent = scoreText;
+      window.HC?.HudTopLayout?.setRpValue?.(scoreText);
+      if (!window.HC?.HudTopLayout?.setRpValue) scoreLabel.textContent = scoreText;
       scoreLabel.setAttribute("aria-label", `Punkty Rezonansu: ${scoreText}`);
     }
-  }
-
-  function resolvePublicAssetPath(path) {
-    if (window.HC && typeof window.HC.publicAssetPath === "function") return window.HC.publicAssetPath(path);
-    if (window.HC && typeof window.HC.publicPath === "function") return window.HC.publicPath(path);
-    return String(path || "").replace(/^\/+/, "");
-  }
-
-  function applyHudRasterAssets() {
-    const logoUrl = resolvePublicAssetPath("png/hud_haiku_cosmos_logo.png");
-    const subMetaUrl = resolvePublicAssetPath("png/hud_submeta_top.png");
-    const rpUrl = resolvePublicAssetPath("png/hud_rp.png");
-    if (hudLogo) hudLogo.src = logoUrl;
-    if (hudSubMetaImage) hudSubMetaImage.src = subMetaUrl;
-    if (scoreLabel) scoreLabel.style.backgroundImage = `url("${rpUrl}")`;
   }
 
   function getTotalCards(World) {
@@ -145,15 +128,14 @@
     el.className = "";
     el.setAttribute("role", "status");
     el.setAttribute("aria-live", "polite");
-    el.innerHTML = '<span class="rp-value">0</span>';
+    el.textContent = "0";
     if (!existing) topBar.appendChild(el);
     return el;
   }
 
-  function applyHudSvgSkin() {
-    // Legacy SVG/text HUD skins are intentionally disabled for the raster HUD pass.
+  function applyHudSkin() {
+    // The top HUD decoration is owned by HC.HudTopLayout; this glue only keeps shared controls labeled.
     if (btnRestart) btnRestart.textContent = "Restart";
-    applyHudRasterAssets();
   }
 
   function sanitizeNonNegativeInt(value) {
@@ -614,9 +596,6 @@
       const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
       fpsLabel = document.getElementById("fpsLabel");
       btnRestart = document.getElementById("btnRestart");
-      btnSubMeta = document.getElementById("btnSubMeta");
-      hudLogo = document.getElementById("hudLogo");
-      hudSubMetaImage = document.getElementById("hudSubMetaImage");
       topBar = document.getElementById("topBar");
       debugBadge = document.getElementById("debugBadge");
       startOverlay = document.getElementById("startOverlay");
@@ -635,6 +614,12 @@
             ? event.target.closest("input, select, textarea, button, label, option")
             : null;
           if (interactiveControl) event.stopPropagation();
+          const hudTopControl = event.target && event.target.closest ? event.target.closest("[data-hud-top-action]") : null;
+          if (hudTopControl && window.HC?.HudTopLayout?.handleDebugControl?.(hudTopControl)) {
+            const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+            runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            return;
+          }
           const subMetaControl = event.target && event.target.closest ? event.target.closest("[data-submeta-png-action]") : null;
           if (subMetaControl && window.HC?.SubMetaPngLayout?.handleDebugControl?.(subMetaControl)) {
             const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
@@ -659,6 +644,7 @@
         const handleRuntimeDebugControl = (event) => {
           const target = event.target;
           if (!target) return;
+          if (window.HC?.HudTopLayout?.handleDebugControl?.(target)) return;
           if (window.HC?.SubMetaPngLayout?.handleDebugControl?.(target)) {
             if (["dbgSubMetaPngEnabled", "dbgSubMetaPngPreview", "dbgSubMetaPngElement"].includes(target.id)) {
               const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
@@ -786,6 +772,7 @@
       cfgScenarioPreset = document.getElementById("cfgScenarioPreset");
       cfgScenarioLabel = document.getElementById("cfgScenarioLabel");
 
+      window.HC?.HudTopLayout?.init?.();
       window.HC?.SubMetaPngLayout?.init?.();
       applyStaticI18nText();
       populateScenarioPresetSelect();
@@ -863,7 +850,7 @@
       }
 
       scoreLabel = ensureScoreLabel();
-      applyHudSvgSkin();
+      applyHudSkin();
 
       if (World && World.r1HudPulse === undefined) {
         World.r1HudPulse = null;
@@ -878,14 +865,6 @@
           }
           const refreshedWorld = (window.HC.getWorld && window.HC.getWorld()) || window.World;
           updateScoreLabel(refreshedWorld, true);
-        });
-      }
-      if (btnSubMeta) {
-        btnSubMeta.addEventListener("click", () => {
-          const currentWorld = (window.HC.getWorld && window.HC.getWorld()) || window.World;
-          if (!currentWorld || currentWorld.subMetaOpen) return;
-          currentWorld.subMetaOpen = true;
-          currentWorld.paused = true;
         });
       }
       if (btnStartNormal) {
@@ -1168,6 +1147,16 @@
       ["last sequence event", summarizeEvent(snap.lastByCategory?.sequence)],
       ["last RP event", summarizeEvent(snap.lastByCategory?.rp)],
     ], "", { open: false }));
+
+    const hudTopLayout = window.HC?.HudTopLayout;
+    if (hudTopLayout?.renderDebugHtml) {
+      sections.push(hudTopLayout.renderDebugHtml({
+        open: isRuntimeDebugSectionOpen("hud-top-layout", true),
+      }));
+    } else if (!warnedMissingHudTopLayout) {
+      warnedMissingHudTopLayout = true;
+      console.warn("[HC Runtime Debug] hc.hud_top_layout.js is unavailable; window.HC.HudTopLayout was not found.");
+    }
 
     const subMetaPngLayout = window.HC?.SubMetaPngLayout;
     let subMetaPngDebugHtml = "";

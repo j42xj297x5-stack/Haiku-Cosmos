@@ -8,6 +8,7 @@ export const legacyRuntimeFiles = [
   "hc.prg_frame_probe.js",
   "cards.js",
   "hc.hud_v2.js",
+  "hc.hud_top_layout.js",
   "hc.core.js",
   "hc.util.js",
   "hc.world.js",
