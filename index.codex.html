@@ -58,45 +58,45 @@
 
     #topBar {
       position: fixed;
-      left: 0;
-      right: 0;
-      top: 0;
-      height: var(--hud-height);
+      inset: 0;
       pointer-events: none;
-      z-index: 9998;
+      z-index: 100;
+      overflow: visible;
     }
 
-    .hud-asset {
+    #hudTopStage {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 1536px;
+      height: 234px;
+      transform-origin: top center;
+      pointer-events: none;
+      will-change: transform;
+    }
+
+    #hudTopImage {
       display: block;
-      width: auto;
-      height: auto;
-      max-width: none;
-      max-height: none;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
     }
 
-    #hudLogo {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: calc(261px * var(--hud-asset-scale));
-      height: var(--hud-height);
-      pointer-events: none;
-    }
-
     #btnSubMeta {
       position: absolute;
-      top: 0;
-      left: 50%;
-      width: calc(195px * var(--hud-asset-scale));
-      height: var(--hud-height);
+      left: 768px;
+      top: 96px;
+      width: 120px;
+      height: 120px;
       padding: 0;
-      border: 0;
-      border-radius: 0;
+      border: none;
+      border-radius: 50%;
       background: transparent;
       color: transparent;
-      transform: translateX(-50%);
+      transform: translate(-50%, -50%);
       cursor: pointer;
       pointer-events: auto;
       appearance: none;
@@ -105,39 +105,21 @@
 
     #btnSubMeta:focus-visible {
       outline: 2px solid rgba(255, 214, 122, 0.88);
-      outline-offset: -8px;
-    }
-
-    #hudSubMetaImage {
-      width: calc(195px * var(--hud-asset-scale));
-      height: var(--hud-height);
-      pointer-events: none;
+      outline-offset: 3px;
     }
 
     #scoreLabel {
       position: absolute;
-      top: 0;
-      right: 0;
-      width: calc(279px * var(--hud-asset-scale));
-      height: var(--hud-height);
-      box-sizing: border-box;
-      display: block;
+      left: 1320px;
+      top: 95px;
+      min-width: 1ch;
       pointer-events: none;
-      background-repeat: no-repeat;
-      background-position: top right;
-      background-size: 100% 100%;
       color: #f6c86a;
       text-shadow: 0 0 8px rgba(255, 184, 76, 0.45), 0 1px 2px rgba(0,0,0,0.75);
-      font: 700 calc(30px * var(--hud-asset-scale))/1 var(--hc-font-display);
-      letter-spacing: 0.04em;
-    }
-
-    #scoreLabel .rp-value {
-      position: absolute;
-      top: calc(48px * var(--hud-asset-scale));
-      right: calc(48px * var(--hud-asset-scale));
-      min-width: calc(74px * var(--hud-asset-scale));
-      text-align: center;
+      font: 700 28px/1 var(--hc-font-display);
+      letter-spacing: 1px;
+      white-space: nowrap;
+      transform: translateY(-50%);
     }
 
     #debugHudControls {
@@ -337,6 +319,28 @@
       opacity: 0.85;
       letter-spacing: 0.02em;
     }
+    .hud-top-debug-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 96px;
+      gap: 8px;
+      align-items: center;
+    }
+    .hud-top-debug-row input,
+    .hud-top-debug-row select {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .hud-top-debug-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .hud-top-json {
+      min-height: 180px;
+      user-select: text;
+      touch-action: auto;
+    }
+
     #runtimeDebugOverlay.compact #runtimeDebugOverlayPanel .overlay-expanded-only { display: none; }
     #runtimeDebugOverlay.collapsed #runtimeDebugOverlayPanel {
       display: none;
@@ -381,10 +385,11 @@
 
   <div id="uiRoot">
     <div id="topBar">
-      <img id="hudLogo" class="hud-asset" width="261" height="130" alt="Haiku Cosmos" draggable="false">
-      <button id="btnSubMeta" type="button" aria-label="Otwórz SUB-META">
-        <img id="hudSubMetaImage" class="hud-asset" width="195" height="130" alt="" draggable="false">
-      </button>
+      <div id="hudTopStage">
+        <img id="hudTopImage" width="1658" height="253" alt="" draggable="false">
+        <button id="btnSubMeta" type="button" aria-label="Otwórz SUB-META"></button>
+        <div id="scoreLabel" role="status" aria-live="polite" aria-label="Punkty Rezonansu: 0">0</div>
+      </div>
     </div>
     <div id="debugHudControls">
       <div class="pill debug-badge" id="debugBadge" hidden>DEBUG</div>
@@ -481,6 +486,7 @@
   <script src="%BASE_URL%runtime/hc.prg_frame_probe.js"></script>
   <script src="%BASE_URL%runtime/cards.js"></script>
   <script src="%BASE_URL%runtime/hc.hud_v2.js"></script>
+  <script src="%BASE_URL%runtime/hc.hud_top_layout.js"></script>
 
   <script src="%BASE_URL%runtime/hc.core.js"></script>
   <script src="%BASE_URL%runtime/hc.util.js"></script>
