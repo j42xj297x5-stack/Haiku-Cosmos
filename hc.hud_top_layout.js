@@ -22,11 +22,11 @@
       size: 120,
     }),
     rpText: Object.freeze({
-      x: 1320,
-      y: 95,
-      fontSize: 28,
+      x: 1463,
+      y: 116,
+      fontSize: 21,
       letterSpacing: 1,
-      align: "left",
+      align: "center",
     }),
   });
 

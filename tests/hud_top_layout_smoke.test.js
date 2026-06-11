@@ -22,6 +22,42 @@ vm.runInContext(source, context, { filename: 'hc.hud_top_layout.js' });
 const HudTopLayout = window.HC.HudTopLayout;
 assert(HudTopLayout, 'HC.HudTopLayout should be registered');
 assert(HudTopLayout.LAYOUT_VERSION === 1, 'layout contract version should be 1');
+assert(HudTopLayout.STORAGE_KEY === 'hc.hudTopLayout.v1', 'layout storage key should remain stable');
+
+const expectedDefault = {
+  hudTopLayoutVersion: 1,
+  overlay: { scale: 1, top: 0, centerOffsetX: 0, width: 1536 },
+  subMetaButton: { centerX: 768, centerY: 96, size: 120 },
+  rpText: { x: 1463, y: 116, fontSize: 21, letterSpacing: 1, align: 'center' },
+};
+assert(
+  JSON.stringify(HudTopLayout.DEFAULT_LAYOUT) === JSON.stringify(expectedDefault),
+  'fresh installs should expose the updated top HUD default layout',
+);
+assert(
+  JSON.stringify(HudTopLayout.loadLayout()) === JSON.stringify(expectedDefault),
+  'missing localStorage should load the updated top HUD defaults',
+);
+
+const savedLayout = {
+  hudTopLayoutVersion: 1,
+  overlay: { scale: 0.8, top: 44, centerOffsetX: 25, width: 1700 },
+  subMetaButton: { centerX: 777, centerY: 88, size: 111 },
+  rpText: { x: 1500, y: 80, fontSize: 19, letterSpacing: 2, align: 'right' },
+};
+storage.set(HudTopLayout.STORAGE_KEY, JSON.stringify(savedLayout));
+assert(
+  JSON.stringify(HudTopLayout.loadLayout()) === JSON.stringify(savedLayout),
+  'saved localStorage layout should take precedence over defaults',
+);
+assert(
+  JSON.stringify(HudTopLayout.resetLayout()) === JSON.stringify(expectedDefault),
+  'reset should restore the updated top HUD defaults',
+);
+assert(
+  storage.get(HudTopLayout.STORAGE_KEY) === JSON.stringify(expectedDefault),
+  'reset should persist the updated defaults',
+);
 
 const applied = HudTopLayout.setLayout({
   overlay: { scale: 1.25, top: 12, centerOffsetX: -18, width: 1658 },
@@ -41,7 +77,7 @@ const imported = HudTopLayout.importLayout(JSON.stringify({
 assert(imported.overlay.scale === 3, 'overlay scale should be clamped');
 assert(imported.overlay.width === 320, 'overlay width should be clamped');
 assert(imported.subMetaButton.size === 16, 'hitbox size should be clamped');
-assert(imported.rpText.align === 'left', 'invalid RP alignment should fall back');
+assert(imported.rpText.align === 'center', 'invalid RP alignment should fall back to the current default');
 
 const html = HudTopLayout.renderDebugHtml();
 assert(html.includes('HUD Top Layout'), 'debug section should be rendered');
