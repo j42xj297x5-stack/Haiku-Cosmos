@@ -172,7 +172,7 @@
       .submeta-panel-item.is-selected { border-color:rgba(255,219,112,.95); box-shadow:0 0 0 1px rgba(255,219,112,.3) inset; }
       .submeta-panel-label { position:absolute; left:2px; top:2px; max-width:calc(100% - 4px); padding:1px 3px; overflow:hidden; color:rgba(225,247,255,.9); background:rgba(3,15,23,.72); font:9px/1.2 var(--hc-font-mono, monospace); white-space:nowrap; pointer-events:none; }
       .submeta-panel-grid { position:absolute; inset:0; pointer-events:none; }
-      .submeta-panel-grid-slot { position:absolute; box-sizing:border-box; border:1px solid rgba(140,225,255,.35); background:rgba(80,185,220,.035); pointer-events:auto; cursor:crosshair; }
+      .submeta-panel-grid-slot { position:absolute; box-sizing:border-box; transform:translate(-50%,-50%); border:1px solid rgba(140,225,255,.35); background:rgba(80,185,220,.035); pointer-events:auto; cursor:crosshair; }
       .submeta-panel-grid-slot:hover { border-color:rgba(190,240,255,.75); }
       .submeta-panel-grid-slot.is-selected { border-color:rgba(255,219,112,.95); background:rgba(255,219,112,.12); }
       .submeta-panel-control { border-style:dashed !important; pointer-events:auto; cursor:crosshair; }
@@ -407,10 +407,10 @@
     return node;
   }
 
-  function renderGridEntries(panelId, entries, source, emptyMessage) {
+  function renderGridEntries(panelId, entries, source, emptyMessage, slotRectsByPanelId) {
     const panel = getItem(panelId);
     if (!panel || !shouldRender(panel)) return;
-    const slots = computeGrid(panel);
+    const slots = slotRectsByPanelId.get(panelId) || [];
     entries.slice(0, slots.length).forEach((entry, index) => {
       const node = createCardNode(entry, source, slots[index], panel.zIndex);
       if (node) layer.appendChild(node);
@@ -496,16 +496,16 @@
     description.appendChild(desc);
   }
 
-  function renderCardView() {
+  function renderCardView(slotRectsByPanelId) {
     const inventory = getInventoryEntries().filter((entry) => classifyInventoryEntry(entry) === inventoryFilter);
     const possible = getPossibleEntries();
     const inventoryEmpty = inventoryFilter === "normal" ? "Brak dostępnych kart R1–R4."
       : (inventoryFilter === "special" ? "Brak kart specjalnych." : "Brak zasobów w danych kart.");
-    renderGridEntries("panel.inventory", inventory, "inventory", inventoryEmpty);
+    renderGridEntries("panel.inventory", inventory, "inventory", inventoryEmpty, slotRectsByPanelId);
     const possibleEmpty = !cardSelection.selectedPlaceholder
       ? "Kliknij placeholder gameplayowy."
       : (possible.context.message || "Brak pasujących dostępnych kart.");
-    renderGridEntries("panel.possibilities", possible.entries, "possibilities", possibleEmpty);
+    renderGridEntries("panel.possibilities", possible.entries, "possibilities", possibleEmpty, slotRectsByPanelId);
     renderDetail();
   }
 
@@ -542,7 +542,7 @@
     }
   }
 
-  function computeGrid(panel) {
+  function computePanelGridSlots(panel) {
     const columns = Math.max(1, panel.gridColumns);
     const rows = Math.max(1, panel.gridRowsVisible);
     const innerW = Math.max(0.001, panel.w - (2 * panel.paddingX));
@@ -575,6 +575,21 @@
     return slots;
   }
 
+  function renderDebugGridSlots(panel, slotRects) {
+    for (const slot of slotRects) {
+      const slotNode = document.createElement("button");
+      slotNode.type = "button";
+      slotNode.className = "submeta-panel-grid-slot";
+      if (slot.id === selectedSlotId) slotNode.classList.add("is-selected");
+      slotNode.dataset.submetaPanelId = panel.id;
+      slotNode.dataset.submetaPanelSlotId = slot.id;
+      slotNode.title = `${panel.label}: rząd ${slot.row}, kolumna ${slot.column}`;
+      slotNode.setAttribute("aria-label", slotNode.title);
+      applyBox(slotNode, { ...slot, zIndex: panel.zIndex + 1 });
+      layer.appendChild(slotNode);
+    }
+  }
+
   function applyBox(node, item) {
     node.style.left = `${item.x * 100}%`;
     node.style.top = `${item.y * 100}%`;
@@ -587,6 +602,11 @@
     if (!createLayer()) return false;
     syncAutomaticControls();
     layer.replaceChildren();
+    const slotRectsByPanelId = new Map(
+      items
+        .filter((item) => item.type === "grid-panel" && shouldRender(item))
+        .map((panel) => [panel.id, computePanelGridSlots(panel)])
+    );
     for (const item of items) {
       if (!shouldRender(item)) continue;
       const node = document.createElement("div");
@@ -616,21 +636,10 @@
       layer.appendChild(node);
 
       if (item.type === "grid-panel" && isDebugMode()) {
-        for (const slot of computeGrid(item)) {
-          const slotNode = document.createElement("button");
-          slotNode.type = "button";
-          slotNode.className = "submeta-panel-grid-slot";
-          if (slot.id === selectedSlotId) slotNode.classList.add("is-selected");
-          slotNode.dataset.submetaPanelId = item.id;
-          slotNode.dataset.submetaPanelSlotId = slot.id;
-          slotNode.title = `${item.label}: rząd ${slot.row}, kolumna ${slot.column}`;
-          slotNode.setAttribute("aria-label", slotNode.title);
-          applyBox(slotNode, { ...slot, zIndex: item.zIndex + 1 });
-          layer.appendChild(slotNode);
-        }
+        renderDebugGridSlots(item, slotRectsByPanelId.get(item.id) || []);
       }
     }
-    renderCardView();
+    renderCardView(slotRectsByPanelId);
     return true;
   }
 
