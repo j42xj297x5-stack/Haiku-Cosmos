@@ -1,5 +1,5 @@
 {
-  "version": "submeta-panels-layout-v0.2",
+  "version": "submeta-panels-layout-v0.3",
   "settings": {
     "showSubMetaPanelsDebug": true,
     "showPanelLabels": true
@@ -24,6 +24,7 @@
       "gapY": 0.007,
       "paddingX": 0.018,
       "paddingY": 0.024,
+      "gridOffsetX": 0,
       "pageStepRows": 3,
       "cardScale": 1,
       "gap": 0.007,
@@ -109,6 +110,7 @@
       "gapY": 0.008,
       "paddingX": 0.012,
       "paddingY": 0.014,
+      "gridOffsetX": 0,
       "cardScale": 1,
       "gap": 0.008,
       "filterTopMargin": 0.018,
@@ -157,6 +159,7 @@
       "gapY": 0.008,
       "paddingX": 0.012,
       "paddingY": 0.014,
+      "gridOffsetX": 0,
       "cardScale": 1,
       "gap": 0.008,
       "filterTopMargin": 0.018,
