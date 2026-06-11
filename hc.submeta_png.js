@@ -46,6 +46,7 @@
     element("world-intencja", "submeta_intencja_ramka.png", 0.3, 0.6, 0.8, 0.8, 12),
     element("world-czas", "submeta_czas_ramka.png", 0.16, 0.83, 0.8, 0.8, 12),
     element("world-cisza", "submeta_cisza_ramka.png", 0.3, 0.83, 0.78, 0.78, 12),
+    element("r2-world", "submeta_r2-swiat.png", 0.42, 0.58, 1, 1, 13),
     element("confirm", "subemeta-button-potwierdz.png", 0.5, 0.9, 1, 1, 10)
   ]);
 
@@ -325,7 +326,7 @@
     const next = cloneElement(selected);
     if (field === "visible") next.visible = rawValue === true;
     else if (field === "zIndex") next.zIndex = Math.round(clampNumber(rawValue, -100, 1000, next.zIndex));
-    else if (field === "x" || field === "y") next[field] = clampNumber(rawValue, 0, 1, next[field]);
+    else if (field === "x" || field === "y" || field === "opacity") next[field] = clampNumber(rawValue, 0, 1, next[field]);
     else if (field === "scaleX" || field === "scaleY") next[field] = clampNumber(rawValue, 0.05, 5, next[field]);
     else return;
     elements = elements.map((item) => item.id === next.id ? next : item);
@@ -411,6 +412,7 @@
           ${renderNumberControl("y", "y", selected.y, 0, 1, 0.001)}
           ${renderNumberControl("scaleX", "scaleX", selected.scaleX, 0.05, 5, 0.01)}
           ${renderNumberControl("scaleY", "scaleY", selected.scaleY, 0.05, 5, 0.01)}
+          ${renderNumberControl("opacity", "opacity", selected.opacity, 0, 1, 0.01)}
           <label class="submeta-png-debug-row"><span>visible</span><input type="checkbox" data-submeta-png-field="visible"${selected.visible ? " checked" : ""}></label>
           ${renderNumberControl("zIndex", "zIndex", selected.zIndex, -100, 1000, 1)}
           <div class="submeta-png-debug-actions submeta-png-emergency-actions">
