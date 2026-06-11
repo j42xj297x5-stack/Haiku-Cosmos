@@ -37,6 +37,7 @@
   let lastScore = null;
   const lastDebugControlEventAt = new Map();
   let warnedMissingSubMetaPngLayout = false;
+  let warnedMissingSubMetaPlaceholders = false;
   let warnedMissingHudTopLayout = false;
   const RUNTIME_DEBUG_SECTIONS_STORAGE_KEY = "hc.runtimeDebug.sections.v1";
   const DEFAULT_RUNTIME_DEBUG_SECTIONS = Object.freeze({
@@ -49,6 +50,7 @@
     "hud-top-layout": true,
     "submeta-prg": true,
     "submeta-png-layout": true,
+    "submeta-placeholders": true,
     "logging-evidence": true,
   });
   let runtimeDebugSectionState = readRuntimeDebugSectionState();
@@ -620,6 +622,15 @@
             runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
             return;
           }
+          const placeholderControl = event.target && event.target.closest ? event.target.closest("[data-submeta-placeholder-action]") : null;
+          if (placeholderControl && window.HC?.SubMetaPlaceholders?.handleDebugControl?.(placeholderControl)) {
+            const action = placeholderControl.dataset.submetaPlaceholderAction;
+            if (["clear-selection", "reset", "import"].includes(action)) {
+              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            }
+            return;
+          }
           const subMetaControl = event.target && event.target.closest ? event.target.closest("[data-submeta-png-action]") : null;
           if (subMetaControl && window.HC?.SubMetaPngLayout?.handleDebugControl?.(subMetaControl)) {
             const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
@@ -645,6 +656,13 @@
           const target = event.target;
           if (!target) return;
           if (window.HC?.HudTopLayout?.handleDebugControl?.(target)) return;
+          if (window.HC?.SubMetaPlaceholders?.handleDebugControl?.(target)) {
+            if (target.id === "dbgSubMetaPlaceholderId" || target.dataset?.submetaPlaceholderField === "state") {
+              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            }
+            return;
+          }
           if (window.HC?.SubMetaPngLayout?.handleDebugControl?.(target)) {
             if (["dbgSubMetaPngEnabled", "dbgSubMetaPngPreview", "dbgSubMetaPngElement"].includes(target.id)) {
               const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
@@ -1181,11 +1199,22 @@
         </div>`;
     }
 
+    const subMetaPlaceholders = window.HC?.SubMetaPlaceholders;
+    let subMetaPlaceholderDebugHtml = "";
+    if (subMetaPlaceholders?.renderDebugHtml) {
+      subMetaPlaceholderDebugHtml = subMetaPlaceholders.renderDebugHtml({
+        open: isRuntimeDebugSectionOpen("submeta-placeholders", true),
+      });
+    } else if (!warnedMissingSubMetaPlaceholders) {
+      warnedMissingSubMetaPlaceholders = true;
+      console.warn("[HC Runtime Debug] hc.submeta_placeholders.js is unavailable; window.HC.SubMetaPlaceholders was not found.");
+    }
+
     sections.push(renderSection("submeta-prg", "SUB-META / PRG", [
-      ["status", "placeholder / future diagnostics"],
+      ["status", "PNG overlay + gameplay placeholder tuning"],
       ["SUB-META events", "opened, closed, slot_*, card_*, inventory_changed, prg_binding_changed, purchase, error"],
       ["snapshot policy", "full snapshot on open/close/finalize/force evidence only"],
-    ], "", { open: true, extra: subMetaPngDebugHtml }));
+    ], "", { open: true, extra: subMetaPngDebugHtml + subMetaPlaceholderDebugHtml }));
 
     sections.push(renderSection("logging-evidence", "Logging / Evidence", [
       ["logging mode", snap.loggingMode || "compact"],
