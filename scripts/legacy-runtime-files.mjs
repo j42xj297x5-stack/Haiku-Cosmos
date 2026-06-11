@@ -6,6 +6,7 @@ export const legacyRuntimeFiles = [
   "hc.submeta_layout.js",
   "hc.submeta_png.js",
   "hc.submeta_placeholders.js",
+  "hc.submeta_panels.js",
   "hc.prg_frame_probe.js",
   "cards.js",
   "hc.hud_v2.js",
