@@ -184,7 +184,7 @@
       world.subMetaOpen = false;
     }
     update();
-    root.HC?.SubMetaPlaceholders?.clearSelection?.();
+    root.HC?.SubMetaPlaceholders?.closeFloatingEditor?.();
     root.HC?.SubMetaPlaceholders?.update?.();
   }
 
