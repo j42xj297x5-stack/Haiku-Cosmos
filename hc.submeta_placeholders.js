@@ -4,9 +4,10 @@
 
   root.HC = root.HC || {};
 
-  const VERSION = "submeta-placeholders-v0.2";
+  const VERSION = "submeta-placeholders-v0.3";
   const STORAGE_KEY = "hc.submetaPlaceholders.preset.v1";
   const LAYER_ID = "subMetaPlaceholderLayer";
+  const FLOATING_EDITOR_ID = "subMetaPlaceholderFloatingEditor";
   const STATES = Object.freeze(["free_active", "free_inactive", "hidden", "occupied"]);
   const GROUPS = Object.freeze(["PRG R1", "PRG R2", "R3", "R4", "Świat", "Świat R2"]);
   const EDITABLE_FIELDS = Object.freeze(["x", "y", "w", "h", "zIndex", "state", "visibleInGame", "visibleInDebug"]);
@@ -90,6 +91,7 @@
   let selectedPlaceholderId = null;
   let layer = null;
   let stage = null;
+  let floatingEditor = null;
 
   function cloneDefaults() {
     return DEFAULT_PLACEHOLDERS.map((item) => ({ ...item }));
@@ -153,6 +155,24 @@
       .submeta-placeholder.is-selected { border-color: rgba(255, 239, 186, 0.96); background: rgba(255, 226, 151, 0.24); box-shadow: 0 0 0 1px rgba(255, 242, 204, 0.22), 0 0 10px rgba(255, 214, 117, 0.66); }
       .submeta-placeholder:focus-visible { outline: 2px solid rgba(255, 239, 186, 0.92); outline-offset: 2px; }
       .submeta-placeholder-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 2px; }
+      #${FLOATING_EDITOR_ID} {
+        position: fixed; z-index: 10000; width: 190px; box-sizing: border-box; padding: 10px;
+        border: 0; border-radius: 4px; background: rgba(18, 20, 24, 0.96); color: #f2f2f2;
+        box-shadow: 0 5px 18px rgba(0, 0, 0, 0.55); font: 12px/1.3 system-ui, sans-serif;
+        pointer-events: auto;
+      }
+      #${FLOATING_EDITOR_ID}[hidden] { display: none; }
+      .submeta-placeholder-floating-header { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 8px; }
+      .submeta-placeholder-floating-title { flex: 1; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+      .submeta-placeholder-floating-close { border: 0; padding: 0 2px; background: transparent; color: #ddd; font: 18px/1 sans-serif; cursor: pointer; }
+      .submeta-placeholder-floating-row { display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 7px; margin-top: 5px; }
+      .submeta-placeholder-floating-row input, .submeta-placeholder-floating-row select {
+        width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #555; border-radius: 2px;
+        padding: 3px 5px; background: #292c31; color: #fff; font: inherit;
+      }
+      .submeta-placeholder-floating-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 9px; }
+      .submeta-placeholder-floating-actions button { border: 0; border-radius: 2px; padding: 5px 9px; background: #4a4f58; color: #fff; font: inherit; cursor: pointer; }
+      .submeta-placeholder-floating-actions [data-submeta-floating-action="save"] { background: #536f52; }
     `;
     document.head.appendChild(style);
   }
@@ -172,6 +192,129 @@
     return true;
   }
 
+  function getPlaceholderNode(id) {
+    if (!layer || !id) return null;
+    return Array.from(layer.querySelectorAll("[data-submeta-placeholder-id]")).find((node) => node.dataset.submetaPlaceholderId === id) || null;
+  }
+
+  function syncDebugPanelSelection(id = selectedPlaceholderId) {
+    const item = placeholders.find((candidate) => candidate.id === id);
+    if (!item) return false;
+    const select = document.getElementById("dbgSubMetaPlaceholderId");
+    if (select) select.value = item.id;
+    for (const field of EDITABLE_FIELDS) {
+      const control = document.querySelector(`[data-submeta-placeholder-field="${field}"]`);
+      if (!control) continue;
+      if (control.type === "checkbox") control.checked = item[field] === true;
+      else control.value = String(item[field]);
+      control.disabled = false;
+    }
+    return true;
+  }
+
+  function positionFloatingEditor(anchorRect) {
+    if (!floatingEditor || floatingEditor.hidden || !anchorRect) return;
+    const gap = 8;
+    const margin = 8;
+    const editorRect = floatingEditor.getBoundingClientRect();
+    let left = anchorRect.right + gap;
+    let top = anchorRect.top;
+    if (left + editorRect.width > root.innerWidth - margin) left = anchorRect.left - editorRect.width - gap;
+    if (top + editorRect.height > root.innerHeight - margin) top = anchorRect.bottom - editorRect.height;
+    floatingEditor.style.left = `${Math.max(margin, Math.min(left, root.innerWidth - editorRect.width - margin))}px`;
+    floatingEditor.style.top = `${Math.max(margin, Math.min(top, root.innerHeight - editorRect.height - margin))}px`;
+  }
+
+  function closeFloatingEditor() {
+    if (!floatingEditor) return;
+    floatingEditor.hidden = true;
+    floatingEditor.remove();
+    floatingEditor = null;
+  }
+
+  function floatingNumberControl(field, value, min, max, step) {
+    return `<label class="submeta-placeholder-floating-row"><span>${field}</span><input type="number" min="${min}" max="${max}" step="${step}" value="${value}" data-submeta-floating-field="${field}"></label>`;
+  }
+
+  function syncFloatingEditorFromPlaceholder(id = selectedPlaceholderId) {
+    if (!floatingEditor || floatingEditor.hidden) return false;
+    const item = placeholders.find((candidate) => candidate.id === id);
+    if (!item) { closeFloatingEditor(); return false; }
+    const title = floatingEditor.querySelector(".submeta-placeholder-floating-title");
+    if (title) title.textContent = item.label ? `${item.label} · ${item.id}` : item.id;
+    for (const control of floatingEditor.querySelectorAll("[data-submeta-floating-field]")) {
+      control.value = String(item[control.dataset.submetaFloatingField]);
+    }
+    return true;
+  }
+
+  function applyFloatingEditorValues() {
+    if (!floatingEditor || !selectedPlaceholderId) return false;
+    for (const control of floatingEditor.querySelectorAll("[data-submeta-floating-field]")) {
+      updateSelectedField(control.dataset.submetaFloatingField, control.value, { syncFloating: false });
+    }
+    syncFloatingEditorFromPlaceholder();
+    syncDebugPanelSelection();
+    return true;
+  }
+
+  function openFloatingEditor(id, anchorRect) {
+    if (!isDebugMode() || !enabled || !actuallyVisible || !selectPlaceholder(id)) return false;
+    closeFloatingEditor();
+    const item = placeholders.find((candidate) => candidate.id === id);
+    if (!item) return false;
+    floatingEditor = document.createElement("div");
+    floatingEditor.id = FLOATING_EDITOR_ID;
+    floatingEditor.setAttribute("role", "dialog");
+    floatingEditor.setAttribute("aria-label", `Edytor placeholdera ${item.id}`);
+    const stateOptions = STATES.map((state) => `<option value="${state}"${item.state === state ? " selected" : ""}>${state}</option>`).join("");
+    floatingEditor.innerHTML = `
+      <div class="submeta-placeholder-floating-header">
+        <div class="submeta-placeholder-floating-title"></div>
+        <button class="submeta-placeholder-floating-close" type="button" data-submeta-floating-action="close" aria-label="Zamknij">×</button>
+      </div>
+      ${floatingNumberControl("x", item.x, 0, 1, 0.001)}
+      ${floatingNumberControl("y", item.y, 0, 1, 0.001)}
+      ${floatingNumberControl("w", item.w, 0.005, 0.5, 0.001)}
+      ${floatingNumberControl("h", item.h, 0.005, 0.5, 0.001)}
+      ${floatingNumberControl("zIndex", item.zIndex, -100, 1000, 1)}
+      <label class="submeta-placeholder-floating-row"><span>state</span><select data-submeta-floating-field="state">${stateOptions}</select></label>
+      <div class="submeta-placeholder-floating-actions">
+        <button type="button" data-submeta-floating-action="close">Zamknij</button>
+        <button type="button" data-submeta-floating-action="save">Zapisz</button>
+      </div>`;
+    document.body.appendChild(floatingEditor);
+    floatingEditor.addEventListener("input", (event) => {
+      const field = event.target?.dataset?.submetaFloatingField;
+      if (!field) return;
+      updateSelectedField(field, event.target.value, { syncFloating: false });
+      syncDebugPanelSelection();
+      const node = getPlaceholderNode(selectedPlaceholderId);
+      if (node) positionFloatingEditor(node.getBoundingClientRect());
+    });
+    floatingEditor.addEventListener("change", (event) => {
+      const field = event.target?.dataset?.submetaFloatingField;
+      if (!field) return;
+      updateSelectedField(field, event.target.value, { syncFloating: false });
+      syncFloatingEditorFromPlaceholder();
+      syncDebugPanelSelection();
+    });
+    floatingEditor.addEventListener("click", (event) => {
+      const action = event.target?.dataset?.submetaFloatingAction;
+      if (action === "close") closeFloatingEditor();
+      if (action === "save") {
+        applyFloatingEditorValues();
+        savePreset();
+        closeFloatingEditor();
+      }
+    });
+    syncFloatingEditorFromPlaceholder(id);
+    syncDebugPanelSelection(id);
+    positionFloatingEditor(anchorRect || getPlaceholderNode(id)?.getBoundingClientRect());
+    floatingEditor.querySelector('[data-submeta-floating-field="x"]')?.focus();
+    return true;
+  }
+
   function selectPlaceholder(id) {
     const item = placeholders.find((candidate) => candidate.id === id);
     if (!item || !shouldRenderPlaceholder(item)) return false;
@@ -186,7 +329,9 @@
     if (!target) return;
     event.preventDefault();
     event.stopPropagation();
-    selectPlaceholder(target.dataset.submetaPlaceholderId);
+    const id = target.dataset.submetaPlaceholderId;
+    if (isDebugMode()) openFloatingEditor(id, target.getBoundingClientRect());
+    else selectPlaceholder(id);
   }
 
   function handleKeyDown(event) {
@@ -195,7 +340,9 @@
     if (!target) return;
     event.preventDefault();
     event.stopPropagation();
-    selectPlaceholder(target.dataset.submetaPlaceholderId);
+    const id = target.dataset.submetaPlaceholderId;
+    if (isDebugMode()) openFloatingEditor(id, target.getBoundingClientRect());
+    else selectPlaceholder(id);
   }
 
   function syncSelection() {
@@ -255,7 +402,7 @@
     if (!layer) return;
     syncDom();
     const nextVisible = enabled && overlayIsVisible();
-    if (actuallyVisible && !nextVisible) clearSelection();
+    if (!nextVisible || !isDebugMode()) closeFloatingEditor();
     actuallyVisible = nextVisible;
     layer.hidden = !actuallyVisible;
     layer.setAttribute("aria-hidden", actuallyVisible ? "false" : "true");
@@ -272,7 +419,7 @@
 
   function setVisible(nextEnabled) {
     enabled = nextEnabled === true;
-    if (!enabled) clearSelection();
+    if (!enabled) closeFloatingEditor();
     update();
   }
 
@@ -287,6 +434,7 @@
   }
 
   function clearSelection() {
+    closeFloatingEditor();
     selectedPlaceholderId = null;
     syncSelection();
   }
@@ -378,7 +526,7 @@
     return json;
   }
 
-  function updateSelectedField(field, rawValue) {
+  function updateSelectedField(field, rawValue, options = {}) {
     if (!EDITABLE_FIELDS.includes(field)) return false;
     const item = placeholders.find((candidate) => candidate.id === selectedPlaceholderId);
     const fallback = defaultsById.get(selectedPlaceholderId);
@@ -389,6 +537,8 @@
     else item[field] = clampNumber(rawValue, field === "w" || field === "h" ? 0.005 : 0, field === "w" || field === "h" ? 0.5 : 1, fallback[field]);
     if (!shouldRenderPlaceholder(item)) clearSelection();
     syncDom();
+    syncDebugPanelSelection();
+    if (options.syncFloating !== false) syncFloatingEditorFromPlaceholder();
     return true;
   }
 
@@ -474,6 +624,7 @@
     VERSION, STORAGE_KEY, STATES, GROUPS, init, update, render: syncDom, syncDom,
     setVisible, isVisible: () => actuallyVisible, setShowLabels, setShowHidden,
     selectPlaceholder, getSelectedPlaceholderId: () => selectedPlaceholderId, clearSelection, hitTest,
+    openFloatingEditor, closeFloatingEditor, syncFloatingEditorFromPlaceholder, applyFloatingEditorValues, syncDebugPanelSelection,
     getDebugState, getPlaceholders: () => placeholders.map((item) => ({ ...item })), getExportPayload,
     savePreset, loadPreset, resetAll, importJson, exportJson, updateSelectedField, renderDebugHtml, handleDebugControl
   };
