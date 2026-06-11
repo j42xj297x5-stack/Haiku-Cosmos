@@ -3,7 +3,8 @@
   "settings": {
     "showSubMetaPlaceholders": true,
     "showPlaceholderLabels": false,
-    "showHiddenPlaceholders": false
+    "showHiddenPlaceholders": false,
+    "slotCardScale": 1
   },
   "placeholders": [
     {

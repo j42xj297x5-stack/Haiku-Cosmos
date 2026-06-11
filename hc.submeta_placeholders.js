@@ -11,10 +11,13 @@
   const STATES = Object.freeze(["free_active", "free_inactive", "hidden", "occupied"]);
   const GROUPS = Object.freeze(["PRG R1", "PRG R2", "R3", "R4", "Świat", "Świat R2"]);
   const EDITABLE_FIELDS = Object.freeze(["x", "y", "w", "h", "zIndex", "state", "visibleInGame", "visibleInDebug"]);
-  const ASSIGNED_CARD_SCALE = Object.freeze({ r1: 1, r2: 1 });
-  const ASSIGNED_CARD_SIZE = Object.freeze({
-    r1: Object.freeze({ w: 0.036, h: 0.064 }),
-    r2: Object.freeze({ w: 0.043, h: 0.066 })
+  const SLOT_CARD_RATIO = Object.freeze({ width: 1.3, height: 2.3 });
+  const SLOT_CARD_BASE_UNIT = 0.028;
+  const DEFAULT_SLOT_CARD_SCALE = 1;
+  const CARD_ASSET_PATHS = Object.freeze({
+    "R1:RED:DR": "png/cards/card_r1_red_dr.png",
+    "R1:RED:SDR": "png/cards/card_r1_red_sdr.png",
+    "R1:RED:PDR": "png/cards/card_r1_red_pdr.png"
   });
 
   const placeholder = (id, group, subgroup, kind, state, x, y, w, h, zIndex, visibleInGame, visibleInDebug, label) =>
@@ -92,11 +95,13 @@
   let enabled = true;
   let showLabels = false;
   let showHidden = false;
+  let slotCardScale = DEFAULT_SLOT_CARD_SCALE;
   let actuallyVisible = false;
   let selectedPlaceholderId = null;
   let layer = null;
   let stage = null;
   let floatingEditor = null;
+  const failedCardAssetUrls = new Set();
 
   function cloneDefaults() {
     return DEFAULT_PLACEHOLDERS.map((item) => ({ ...item }));
@@ -201,6 +206,8 @@
       .submeta-assigned-card-stripe { flex:1; }
       .submeta-assigned-card-kind { align-self:flex-start; padding:1px 2px; border-radius:2px; background:rgba(0,0,0,.58); }
       .submeta-assigned-card-tier { color:#dfecf1; }
+      .submeta-assigned-card.has-card-asset { padding:0; background:transparent; }
+      .submeta-assigned-card-asset { display:block; width:100%; height:100%; object-fit:contain; pointer-events:none; }
       #${FLOATING_EDITOR_ID} {
         position: fixed; z-index: 10000; width: 190px; box-sizing: border-box; padding: 10px;
         border: 0; border-radius: 4px; background: rgba(18, 20, 24, 0.96); color: #f2f2f2;
@@ -437,22 +444,91 @@
     return ({ red: "#b8453d", yellow: "#c9a83b", green: "#4d9b62", blue: "#477eb7" })[String(color || "").toLowerCase()] || "#66737a";
   }
 
-  function getAssignedCardBox(item, assignment) {
-    // Placeholder coordinates are stored as center anchors. Reconstruct the rect,
-    // then calculate its center explicitly so card sizing stays independent.
-    const rect = { x: item.x - (item.w / 2), y: item.y - (item.h / 2), w: item.w, h: item.h };
-    const centerX = rect.x + (rect.w / 2);
-    const centerY = rect.y + (rect.h / 2);
-    const sizeKey = String(assignment?.kind || "").toUpperCase() === "R2" ? "r2" : "r1";
-    const scale = ASSIGNED_CARD_SCALE[sizeKey];
-    const baseSize = ASSIGNED_CARD_SIZE[sizeKey];
+  function resolvePublicAssetUrl(path) {
+    const helper = root.HC && (root.HC.publicAssetPath || root.HC.publicPath);
+    if (typeof helper === "function") return helper(path);
+    try {
+      const configuredBase = typeof root.HC_PUBLIC_BASE_URL === "string" && !root.HC_PUBLIC_BASE_URL.includes("%")
+        ? root.HC_PUBLIC_BASE_URL
+        : document.baseURI;
+      const baseUrl = new URL(configuredBase, root.location?.origin || document.baseURI);
+      return new URL(path, baseUrl).href;
+    } catch (_error) {
+      return path;
+    }
+  }
+
+  function resolveCardAsset(card) {
+    const kind = String(card?.kind || card?.type || "").toUpperCase();
+    const tier = String(card?.tier || card?.fromTier || "DR").toUpperCase();
+    const color = String(card?.colors?.[0] || card?.color || card?.colorA || "").toUpperCase();
+    const path = CARD_ASSET_PATHS[`${kind}:${color}:${tier}`];
+    if (!path) return null;
+    const url = resolvePublicAssetUrl(path);
+    return failedCardAssetUrls.has(url) ? null : { path, url };
+  }
+
+  function getAssignedCardBox(item) {
+    // Placeholder coordinates are center anchors only. Slot cards use one global
+    // normalized size and may extend beyond the placeholder rectangle.
+    const cardW = SLOT_CARD_BASE_UNIT * SLOT_CARD_RATIO.width * slotCardScale;
+    const cardH = SLOT_CARD_BASE_UNIT * SLOT_CARD_RATIO.height * slotCardScale;
     return {
-      x: centerX,
-      y: centerY,
-      w: Math.max(item.w, baseSize.w * scale),
-      h: Math.max(item.h, baseSize.h * scale),
+      x: item.x,
+      y: item.y,
+      w: cardW,
+      h: cardH,
       zIndex: item.zIndex + 10
     };
+  }
+
+  function getProceduralCardSignature(assignment) {
+    return `procedural:${assignment.kind || "CARD"}:${assignment.tier || "DR"}:${(assignment.colors || []).join(",")}`;
+  }
+
+  function renderProceduralAssignedCard(node, assignment) {
+    node.dataset.cardRenderSignature = getProceduralCardSignature(assignment);
+    node.classList.remove("has-card-asset");
+    node.replaceChildren();
+    const stripes = document.createElement("span");
+    stripes.className = "submeta-assigned-card-stripes";
+    for (const color of assignment.colors?.length ? assignment.colors : [null]) {
+      const stripe = document.createElement("span");
+      stripe.className = "submeta-assigned-card-stripe";
+      stripe.style.background = assignedCardColorCss(color);
+      stripes.appendChild(stripe);
+    }
+    const kind = document.createElement("span");
+    kind.className = "submeta-assigned-card-kind";
+    kind.textContent = assignment.kind || "CARD";
+    const tier = document.createElement("span");
+    tier.className = "submeta-assigned-card-tier";
+    tier.textContent = assignment.tier || "DR";
+    node.append(stripes, kind, tier);
+  }
+
+  function renderAssignedCardContent(node, assignment) {
+    const asset = resolveCardAsset(assignment);
+    const signature = asset ? `asset:${asset.url}` : getProceduralCardSignature(assignment);
+    if (node.dataset.cardRenderSignature === signature && node.childElementCount > 0) return;
+    if (!asset) {
+      renderProceduralAssignedCard(node, assignment);
+      return;
+    }
+    node.dataset.cardRenderSignature = signature;
+    node.classList.add("has-card-asset");
+    node.replaceChildren();
+    const image = document.createElement("img");
+    image.className = "submeta-assigned-card-asset";
+    image.src = asset.url;
+    image.alt = "";
+    image.draggable = false;
+    image.addEventListener("error", () => {
+      failedCardAssetUrls.add(asset.url);
+      if (isDebugMode()) console.warn("[HC.SubMetaPlaceholders] card asset load failed; using procedural fallback", asset.path);
+      renderProceduralAssignedCard(node, assignment);
+    }, { once: true });
+    node.appendChild(image);
   }
 
   function syncAssignedCardNode(item, assignment, pending = false) {
@@ -472,28 +548,13 @@
     node.setAttribute("aria-disabled", pending ? "true" : "false");
     node.title = `${assignment.kind} ${assignment.tier} · ${item.label}${pending ? " · oczekuje na potwierdzenie" : ""}`;
     node.setAttribute("aria-label", node.title);
-    const box = getAssignedCardBox(item, assignment);
+    const box = getAssignedCardBox(item);
     node.style.left = `${box.x * 100}%`;
     node.style.top = `${box.y * 100}%`;
     node.style.width = `${box.w * 100}%`;
     node.style.height = `${box.h * 100}%`;
     node.style.zIndex = String(box.zIndex);
-    node.replaceChildren();
-    const stripes = document.createElement("span");
-    stripes.className = "submeta-assigned-card-stripes";
-    for (const color of assignment.colors?.length ? assignment.colors : [null]) {
-      const stripe = document.createElement("span");
-      stripe.className = "submeta-assigned-card-stripe";
-      stripe.style.background = assignedCardColorCss(color);
-      stripes.appendChild(stripe);
-    }
-    const kind = document.createElement("span");
-    kind.className = "submeta-assigned-card-kind";
-    kind.textContent = assignment.kind || "CARD";
-    const tier = document.createElement("span");
-    tier.className = "submeta-assigned-card-tier";
-    tier.textContent = assignment.tier || "DR";
-    node.append(stripes, kind, tier);
+    renderAssignedCardContent(node, assignment);
   }
 
   function syncDom() {
@@ -594,6 +655,13 @@
     syncDom();
   }
 
+  function setSlotCardScale(nextValue, options = {}) {
+    slotCardScale = clampNumber(nextValue, 0.25, 3, DEFAULT_SLOT_CARD_SCALE);
+    syncDom();
+    if (options.persist === true) savePreset();
+    return slotCardScale;
+  }
+
   function clearSelection() {
     closeFloatingEditor();
     selectedPlaceholderId = null;
@@ -617,7 +685,12 @@
   function getExportPayload() {
     return {
       version: VERSION,
-      settings: { showSubMetaPlaceholders: enabled, showPlaceholderLabels: showLabels, showHiddenPlaceholders: showHidden },
+      settings: {
+        showSubMetaPlaceholders: enabled,
+        showPlaceholderLabels: showLabels,
+        showHiddenPlaceholders: showHidden,
+        slotCardScale
+      },
       placeholders: placeholders.map(({ selected: _selected, ...item }) => ({ ...item }))
     };
   }
@@ -630,6 +703,7 @@
       enabled = payload.settings.showSubMetaPlaceholders !== false;
       showLabels = payload.settings.showPlaceholderLabels === true;
       showHidden = payload.settings.showHiddenPlaceholders === true;
+      slotCardScale = clampNumber(payload.settings.slotCardScale, 0.25, 3, DEFAULT_SLOT_CARD_SCALE);
     }
     if (!placeholders.some((item) => item.id === selectedPlaceholderId && shouldRenderPlaceholder(item))) clearSelection();
     syncDom();
@@ -663,6 +737,7 @@
     enabled = true;
     showLabels = false;
     showHidden = false;
+    slotCardScale = DEFAULT_SLOT_CARD_SCALE;
     clearSelection();
     try { root.localStorage.removeItem(STORAGE_KEY); } catch (_error) { /* storage is optional */ }
     syncDom();
@@ -725,6 +800,7 @@
         <div class="submeta-png-debug-row"><span>showSubMetaPlaceholders</span><input id="dbgSubMetaPlaceholdersVisible" type="checkbox" data-submeta-placeholder-setting="enabled"${enabled ? " checked" : ""}></div>
         <div class="submeta-png-debug-row"><span>showPlaceholderLabels</span><input id="dbgSubMetaPlaceholderLabels" type="checkbox" data-submeta-placeholder-setting="labels"${showLabels ? " checked" : ""}></div>
         <div class="submeta-png-debug-row"><span>showHiddenPlaceholders</span><input id="dbgSubMetaPlaceholderHidden" type="checkbox" data-submeta-placeholder-setting="hidden"${showHidden ? " checked" : ""}></div>
+        <label class="submeta-png-debug-row"><span>slotCardScale</span><input id="dbgSubMetaSlotCardScale" type="number" min="0.25" max="3" step="0.05" value="${slotCardScale}" data-submeta-placeholder-setting="slot-card-scale"></label>
         <label class="submeta-png-debug-row"><span>placeholder</span><select id="dbgSubMetaPlaceholderId" data-submeta-placeholder-action="select"><option value=""${selectedItem ? "" : " selected"}>— select —</option>${groupOptions}</select></label>
         <div class="submeta-png-diagnostics"><code>${escapeHtml(groupCounts)}</code></div>
         ${renderNumberControl("x", selected.x, 0, 1, 0.001, controlsDisabled)}
@@ -759,6 +835,7 @@
     if (setting === "enabled") { setVisible(target.checked); return true; }
     if (setting === "labels") { setShowLabels(target.checked); return true; }
     if (setting === "hidden") { setShowHidden(target.checked); return true; }
+    if (setting === "slot-card-scale") { setSlotCardScale(target.value, { persist: true }); return true; }
     const field = target.dataset?.submetaPlaceholderField;
     if (field) return updateSelectedField(field, ["visibleInGame", "visibleInDebug"].includes(field) ? target.checked : target.value);
     const action = target.dataset?.submetaPlaceholderAction;
@@ -776,7 +853,7 @@
   function getDebugState() {
     return {
       version: VERSION, initialized, enabled, visible: actuallyVisible, overlayVisible: overlayIsVisible(),
-      showLabels, showHidden, selectedPlaceholderId, configuredCount: placeholders.length,
+      showLabels, showHidden, slotCardScale, slotCardRatio: { ...SLOT_CARD_RATIO }, selectedPlaceholderId, configuredCount: placeholders.length,
       assignedCards: getAssignedCards(), pendingAssignment: getPendingAssignment(),
       confirmButtonState: root.HC?.SubMetaPanels?.getConfirmButtonState?.() || "inactive",
       renderedCount: layer?.querySelectorAll("[data-submeta-placeholder-id]").length || 0,
@@ -788,8 +865,9 @@
   }
 
   root.HC.SubMetaPlaceholders = {
-    VERSION, STORAGE_KEY, STATES, GROUPS, ASSIGNED_CARD_SCALE, init, update, render: syncDom, syncDom,
-    setVisible, isVisible: () => actuallyVisible, setShowLabels, setShowHidden,
+    VERSION, STORAGE_KEY, STATES, GROUPS, SLOT_CARD_RATIO, SLOT_CARD_BASE_UNIT, DEFAULT_SLOT_CARD_SCALE, init, update, render: syncDom, syncDom,
+    setVisible, isVisible: () => actuallyVisible, setShowLabels, setShowHidden, setSlotCardScale, getSlotCardScale: () => slotCardScale,
+    resolveCardAsset,
     selectPlaceholder, getSelectedPlaceholderId: () => selectedPlaceholderId, clearSelection, hitTest,
     openFloatingEditor, closeFloatingEditor, syncFloatingEditorFromPlaceholder, applyFloatingEditorValues, syncDebugPanelSelection,
     getDebugState, getPlaceholders: () => placeholders.map((item) => ({ ...item })), getExportPayload,
