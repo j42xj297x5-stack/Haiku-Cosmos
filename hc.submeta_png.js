@@ -185,7 +185,9 @@
     }
     update();
     root.HC?.SubMetaPlaceholders?.closeFloatingEditor?.();
+    root.HC?.SubMetaPanels?.closeFloatingPanelEditor?.();
     root.HC?.SubMetaPlaceholders?.update?.();
+    root.HC?.SubMetaPanels?.update?.();
   }
 
   function hidePreview() {

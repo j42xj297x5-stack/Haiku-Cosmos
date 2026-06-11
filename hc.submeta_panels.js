@@ -4,40 +4,52 @@
 
   root.HC = root.HC || {};
 
-  const VERSION = "submeta-panels-layout-v0.1";
+  const VERSION = "submeta-panels-layout-v0.2";
   const STORAGE_KEY = "hc.submetaPanels.layout.v1";
   const PRESET_URL = "public/png/submeta/submeta-panels-layout-export.json";
   const LAYER_ID = "subMetaPanelsLayer";
+  const FLOATING_EDITOR_ID = "subMetaPanelsFloatingEditor";
   const GRID_PANEL_IDS = Object.freeze(["panel.inventory", "panel.possibilities", "panel.forge"]);
   const PANEL_IDS = Object.freeze([...GRID_PANEL_IDS, "panel.detail"]);
   const INVENTORY_CONTROL_IDS = Object.freeze([
     "inventory.filter.normal", "inventory.filter.special", "inventory.filter.resources",
     "inventory.scroll.up", "inventory.scroll.down"
   ]);
+  const GRID_CONTROL_IDS = Object.freeze([
+    ...INVENTORY_CONTROL_IDS,
+    "possibilities.scroll.up", "possibilities.scroll.down",
+    "forge.scroll.up", "forge.scroll.down"
+  ]);
   const DETAIL_RECT_IDS = Object.freeze(["detail.preview_card", "detail.description", "detail.haiku"]);
   const BASE_FIELDS = Object.freeze(["x", "y", "w", "h", "zIndex", "visibleInDebug", "visibleInGame"]);
   const GRID_FIELDS = Object.freeze([
-    "gridColumns", "gridRowsVisible", "cardRatioW", "cardRatioH", "gapX", "gapY", "paddingX", "paddingY"
+    "gridColumns", "gridRowsVisible", "cardRatioW", "cardRatioH", "cardScale",
+    "gap", "gapX", "gapY", "paddingX", "paddingY", "filterTopMargin", "arrowRightMargin"
   ]);
 
   const rect = (id, type, label, x, y, w, h, zIndex, visibleInDebug = true, visibleInGame = false) =>
     Object.freeze({ id, type, label, x, y, w, h, zIndex, visibleInDebug, visibleInGame });
-  const gridPanel = (id, label, x, y, w, h, zIndex, gridColumns, gridRowsVisible, gapX, gapY, paddingX, paddingY, pageStepRows) =>
+  const gridPanel = (id, label, x, y, w, h, zIndex, gridColumns, gridRowsVisible, gap, paddingX, paddingY, pageStepRows, filterTopMargin = 0.002, arrowRightMargin = 0.008) =>
     Object.freeze({
       id, type: "grid-panel", label, x, y, w, h, zIndex, visibleInDebug: true, visibleInGame: false,
-      gridColumns, gridRowsVisible, cardRatioW: 1.3, cardRatioH: 2.3, gapX, gapY, paddingX, paddingY,
+      gridColumns, gridRowsVisible, cardRatioW: 1.3, cardRatioH: 2.3, cardScale: 1,
+      gap, gapX: gap, gapY: gap, paddingX, paddingY, filterTopMargin, arrowRightMargin,
       ...(pageStepRows == null ? {} : { pageStepRows })
     });
 
   const DEFAULT_ITEMS = Object.freeze([
-    gridPanel("panel.inventory", "Magazyn", 0.745, 0.235, 0.285, 0.205, 210, 7, 3, 0.006, 0.008, 0.018, 0.024, 3),
+    gridPanel("panel.inventory", "Magazyn", 0.745, 0.235, 0.285, 0.205, 210, 7, 3, 0.007, 0.018, 0.024, 3, 0.002, 0.008),
     rect("inventory.filter.normal", "control", "Normalne", 0.675, 0.147, 0.055, 0.025, 212),
     rect("inventory.filter.special", "control", "Specjalne", 0.745, 0.147, 0.055, 0.025, 212),
     rect("inventory.filter.resources", "control", "Zasoby", 0.815, 0.147, 0.055, 0.025, 212),
     rect("inventory.scroll.up", "control", "Scroll ↑", 0.888, 0.205, 0.022, 0.035, 212),
     rect("inventory.scroll.down", "control", "Scroll ↓", 0.888, 0.275, 0.022, 0.035, 212),
-    gridPanel("panel.possibilities", "Możliwości", 0.692, 0.500, 0.125, 0.135, 210, 3, 2, 0.007, 0.009, 0.012, 0.014),
-    gridPanel("panel.forge", "Kuźnia", 0.830, 0.500, 0.125, 0.135, 210, 3, 2, 0.007, 0.009, 0.012, 0.014),
+    gridPanel("panel.possibilities", "Możliwości", 0.692, 0.500, 0.125, 0.135, 210, 3, 2, 0.008, 0.012, 0.014, null, 0.018, 0.006),
+    rect("possibilities.scroll.up", "control", "Scroll ↑", 0.746, 0.475, 0.016, 0.026, 212),
+    rect("possibilities.scroll.down", "control", "Scroll ↓", 0.746, 0.525, 0.016, 0.026, 212),
+    gridPanel("panel.forge", "Kuźnia", 0.830, 0.500, 0.125, 0.135, 210, 3, 2, 0.008, 0.012, 0.014, null, 0.018, 0.006),
+    rect("forge.scroll.up", "control", "Scroll ↑", 0.884, 0.475, 0.016, 0.026, 212),
+    rect("forge.scroll.down", "control", "Scroll ↓", 0.884, 0.525, 0.016, 0.026, 212),
     rect("panel.detail", "detail-panel", "Opis", 0.739, 0.795, 0.310, 0.205, 210),
     rect("detail.preview_card", "detail-rect", "Podgląd karty", 0.620, 0.790, 0.050, 0.133, 212),
     rect("detail.description", "detail-rect", "Opis", 0.755, 0.750, 0.145, 0.070, 212),
@@ -54,6 +66,8 @@
   let selectedSlotId = null;
   let layer = null;
   let stage = null;
+  let floatingEditor = null;
+  let floatingEditorTargetId = null;
 
   function cloneDefaults() {
     return DEFAULT_ITEMS.map((item) => ({ ...item }));
@@ -96,10 +110,14 @@
       normalized.gridRowsVisible = Math.round(clampNumber(source.gridRowsVisible, 1, 20, fallback.gridRowsVisible));
       normalized.cardRatioW = clampNumber(source.cardRatioW, 0.1, 10, fallback.cardRatioW);
       normalized.cardRatioH = clampNumber(source.cardRatioH, 0.1, 10, fallback.cardRatioH);
-      normalized.gapX = clampNumber(source.gapX, 0, 0.25, fallback.gapX);
-      normalized.gapY = clampNumber(source.gapY, 0, 0.25, fallback.gapY);
-      normalized.paddingX = clampNumber(source.paddingX, 0, 0.45, fallback.paddingX);
-      normalized.paddingY = clampNumber(source.paddingY, 0, 0.45, fallback.paddingY);
+      normalized.cardScale = clampNumber(source.cardScale ?? source.cardSizeScale, 0.1, 2, fallback.cardScale);
+      normalized.gap = clampNumber(source.gap ?? source.gapX ?? source.gapY, 0, 0.25, fallback.gap);
+      normalized.gapX = normalized.gap;
+      normalized.gapY = normalized.gap;
+      normalized.paddingX = clampNumber(source.paddingX ?? source.gridPaddingX ?? source.innerMarginX, 0, 0.45, fallback.paddingX);
+      normalized.paddingY = clampNumber(source.paddingY ?? source.gridPaddingY ?? source.innerMarginY, 0, 0.45, fallback.paddingY);
+      normalized.filterTopMargin = clampNumber(source.filterTopMargin, 0, 0.25, fallback.filterTopMargin);
+      normalized.arrowRightMargin = clampNumber(source.arrowRightMargin, 0, 0.25, fallback.arrowRightMargin);
       if (fallback.id === "panel.inventory") {
         normalized.pageStepRows = Math.round(clampNumber(source.pageStepRows, 1, 20, fallback.pageStepRows));
       }
@@ -116,6 +134,7 @@
       #${LAYER_ID}[hidden] { display:none; }
       .submeta-panel-item { position:absolute; box-sizing:border-box; transform:translate(-50%, -50%); pointer-events:none; }
       .submeta-panel-item.is-debug-visible { border:1px solid rgba(112,220,255,.42); background:rgba(40,150,190,.035); }
+      .submeta-panel-item.is-debug-clickable { pointer-events:auto; cursor:crosshair; }
       .submeta-panel-item.is-selected { border-color:rgba(255,219,112,.95); box-shadow:0 0 0 1px rgba(255,219,112,.3) inset; }
       .submeta-panel-label { position:absolute; left:2px; top:2px; max-width:calc(100% - 4px); padding:1px 3px; overflow:hidden; color:rgba(225,247,255,.9); background:rgba(3,15,23,.72); font:9px/1.2 var(--hc-font-mono, monospace); white-space:nowrap; pointer-events:none; }
       .submeta-panel-grid { position:absolute; inset:0; pointer-events:none; }
@@ -125,6 +144,24 @@
       .submeta-panel-control { border-style:dashed !important; pointer-events:auto; cursor:crosshair; }
       .submeta-panel-detail-rect { border-color:rgba(206,165,255,.52) !important; background:rgba(160,90,220,.035) !important; pointer-events:auto; cursor:crosshair; }
       .submeta-panels-json { min-height:92px; width:100%; box-sizing:border-box; }
+      #${FLOATING_EDITOR_ID} {
+        position:fixed; z-index:10001; width:246px; max-height:calc(100vh - 16px); overflow:auto;
+        box-sizing:border-box; padding:10px; border:1px solid rgba(112,220,255,.45); border-radius:4px;
+        background:rgba(12,18,24,.97); color:#eef8fb; box-shadow:0 5px 18px rgba(0,0,0,.6);
+        font:11px/1.3 system-ui,sans-serif; pointer-events:auto;
+      }
+      #${FLOATING_EDITOR_ID}[hidden] { display:none; }
+      .submeta-panel-floating-header { position:sticky; top:-10px; z-index:1; display:flex; align-items:flex-start; gap:6px; margin:-10px -10px 8px; padding:10px; background:rgba(12,18,24,.98); border-bottom:1px solid rgba(112,220,255,.22); }
+      .submeta-panel-floating-title { flex:1; min-width:0; font-weight:700; overflow-wrap:anywhere; }
+      .submeta-panel-floating-subtitle { color:#9fcbd8; font:10px/1.3 var(--hc-font-mono,monospace); }
+      .submeta-panel-floating-close { border:0; padding:0 2px; background:transparent; color:#ddd; font:18px/1 sans-serif; cursor:pointer; }
+      .submeta-panel-floating-section { margin:8px 0 3px; color:#9fdbea; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+      .submeta-panel-floating-row { display:grid; grid-template-columns:92px 1fr; align-items:center; gap:7px; margin-top:4px; }
+      .submeta-panel-floating-row input { width:100%; min-width:0; box-sizing:border-box; border:1px solid #4c5960; border-radius:2px; padding:3px 5px; background:#222b30; color:#fff; font:inherit; }
+      .submeta-panel-floating-row input[type="checkbox"] { justify-self:start; width:auto; }
+      .submeta-panel-floating-actions { position:sticky; bottom:-10px; display:flex; justify-content:flex-end; gap:6px; margin:9px -10px -10px; padding:9px 10px; background:rgba(12,18,24,.98); border-top:1px solid rgba(112,220,255,.22); }
+      .submeta-panel-floating-actions button { border:0; border-radius:2px; padding:5px 9px; background:#43515a; color:#fff; font:inherit; cursor:pointer; }
+      .submeta-panel-floating-actions [data-submeta-panel-floating-action="save"] { background:#536f52; }
     `;
     document.head.appendChild(style);
   }
@@ -142,6 +179,43 @@
     return true;
   }
 
+  function getItem(id) {
+    return items.find((item) => item.id === id) || null;
+  }
+
+  function syncAutomaticControls() {
+    const inventory = getItem("panel.inventory");
+    if (inventory) {
+      const filters = INVENTORY_CONTROL_IDS.slice(0, 3).map(getItem).filter(Boolean);
+      const availableWidth = Math.max(0.03, inventory.w - (2 * inventory.paddingX));
+      const filterWidth = Math.min(0.07, availableWidth / 3.6);
+      const spacing = filters.length > 1 ? (availableWidth - (filters.length * filterWidth)) / (filters.length - 1) : 0;
+      const left = inventory.x - (availableWidth / 2);
+      filters.forEach((control, index) => {
+        control.w = filterWidth;
+        control.x = left + (filterWidth / 2) + (index * (filterWidth + Math.max(0, spacing)));
+        control.y = inventory.y - (inventory.h / 2) + inventory.filterTopMargin + (control.h / 2);
+      });
+    }
+
+    const arrowGroups = [
+      ["panel.inventory", "inventory.scroll.up", "inventory.scroll.down"],
+      ["panel.possibilities", "possibilities.scroll.up", "possibilities.scroll.down"],
+      ["panel.forge", "forge.scroll.up", "forge.scroll.down"]
+    ];
+    for (const [panelId, upId, downId] of arrowGroups) {
+      const panel = getItem(panelId);
+      const up = getItem(upId);
+      const down = getItem(downId);
+      if (!panel || !up || !down) continue;
+      const x = panel.x + (panel.w / 2) - panel.arrowRightMargin - (up.w / 2);
+      const verticalOffset = Math.min(panel.h * 0.28, Math.max(up.h, panel.h / Math.max(4, panel.gridRowsVisible + 2)));
+      for (const control of [up, down]) control.x = x;
+      up.y = panel.y - verticalOffset;
+      down.y = panel.y + verticalOffset;
+    }
+  }
+
   function computeGrid(panel) {
     const columns = Math.max(1, panel.gridColumns);
     const rows = Math.max(1, panel.gridRowsVisible);
@@ -152,8 +226,10 @@
     const stageRect = stage?.getBoundingClientRect();
     const stageAspect = stageRect?.width && stageRect?.height ? stageRect.width / stageRect.height : 1.5;
     const targetHeightForWidth = maxSlotW * stageAspect * (panel.cardRatioH / panel.cardRatioW);
-    const slotH = Math.min(maxSlotH, targetHeightForWidth);
-    const slotW = Math.min(maxSlotW, slotH / stageAspect * (panel.cardRatioW / panel.cardRatioH));
+    const fittedSlotH = Math.min(maxSlotH, targetHeightForWidth);
+    const fittedSlotW = Math.min(maxSlotW, fittedSlotH / stageAspect * (panel.cardRatioW / panel.cardRatioH));
+    const slotW = fittedSlotW * panel.cardScale;
+    const slotH = fittedSlotH * panel.cardScale;
     const usedW = (columns * slotW) + ((columns - 1) * panel.gapX);
     const usedH = (rows * slotH) + ((rows - 1) * panel.gapY);
     const left = panel.x - (usedW / 2);
@@ -183,6 +259,7 @@
 
   function syncDom() {
     if (!createLayer()) return false;
+    syncAutomaticControls();
     layer.replaceChildren();
     for (const item of items) {
       if (!shouldRender(item)) continue;
@@ -191,6 +268,7 @@
       if (isDebugMode()) node.classList.add("is-debug-visible");
       if (item.type === "control") node.classList.add("submeta-panel-control");
       if (item.type === "detail-rect") node.classList.add("submeta-panel-detail-rect");
+      if (isDebugMode() && (PANEL_IDS.includes(item.id) || DETAIL_RECT_IDS.includes(item.id))) node.classList.add("is-debug-clickable");
       if (item.id === selectedPanelId) node.classList.add("is-selected");
       node.dataset.submetaPanelId = item.id;
       applyBox(node, item);
@@ -220,15 +298,194 @@
     return true;
   }
 
+  function getOwnerPanelId(itemId) {
+    if (typeof itemId !== "string") return null;
+    if (PANEL_IDS.includes(itemId)) return itemId;
+    if (itemId.startsWith("inventory.")) return "panel.inventory";
+    if (itemId.startsWith("possibilities.")) return "panel.possibilities";
+    if (itemId.startsWith("forge.")) return "panel.forge";
+    if (itemId.startsWith("detail.")) return "panel.detail";
+    return null;
+  }
+
+  function getPanelNode(id) {
+    if (!layer || !id) return null;
+    return Array.from(layer.querySelectorAll("[data-submeta-panel-id]")).find((node) =>
+      node.dataset.submetaPanelId === id && !node.dataset.submetaPanelSlotId) || null;
+  }
+
+  function positionFloatingPanelEditor(anchorRect) {
+    if (!floatingEditor || floatingEditor.hidden || !anchorRect) return;
+    const gap = 10;
+    const margin = 8;
+    const editorRect = floatingEditor.getBoundingClientRect();
+    let left = anchorRect.left - editorRect.width - gap;
+    let top = anchorRect.top;
+    if (left < margin) left = margin;
+    if (top + editorRect.height > root.innerHeight - margin) top = anchorRect.bottom - editorRect.height;
+    const maxLeft = Math.max(margin, root.innerWidth - editorRect.width - margin);
+    const maxTop = Math.max(margin, root.innerHeight - editorRect.height - margin);
+    floatingEditor.style.left = `${Math.max(margin, Math.min(left, maxLeft))}px`;
+    floatingEditor.style.top = `${Math.max(margin, Math.min(top, maxTop))}px`;
+  }
+
+  function closeFloatingPanelEditor() {
+    if (floatingEditor) floatingEditor.remove();
+    floatingEditor = null;
+    floatingEditorTargetId = null;
+  }
+
+  function floatingNumberControl(itemId, field, label, value, min, max, step) {
+    return `<label class="submeta-panel-floating-row"><span>${label}</span><input type="number" min="${min}" max="${max}" step="${step}" value="${value}" data-submeta-panel-floating-item="${escapeHtml(itemId)}" data-submeta-panel-floating-field="${field}"></label>`;
+  }
+
+  function floatingCheckboxControl(itemId, field, label, checked) {
+    return `<label class="submeta-panel-floating-row"><span>${label}</span><input type="checkbox" data-submeta-panel-floating-item="${escapeHtml(itemId)}" data-submeta-panel-floating-field="${field}"${checked ? " checked" : ""}></label>`;
+  }
+
+  function renderFloatingBaseControls(item) {
+    return `
+      <div class="submeta-panel-floating-section">Panel</div>
+      ${floatingNumberControl(item.id, "x", "x", item.x, 0, 1, 0.001)}
+      ${floatingNumberControl(item.id, "y", "y", item.y, 0, 1, 0.001)}
+      ${floatingNumberControl(item.id, "w", "w", item.w, 0.005, 1, 0.001)}
+      ${floatingNumberControl(item.id, "h", "h", item.h, 0.005, 1, 0.001)}
+      ${floatingNumberControl(item.id, "zIndex", "zIndex", item.zIndex, -100, 1000, 1)}
+      ${floatingCheckboxControl(item.id, "visibleInDebug", "visibleInDebug", item.visibleInDebug)}
+      ${floatingCheckboxControl(item.id, "visibleInGame", "visibleInGame", item.visibleInGame)}`;
+  }
+
+  function renderFloatingGridControls(panel) {
+    return `
+      <div class="submeta-panel-floating-section">Siatka kart</div>
+      ${floatingNumberControl(panel.id, "gridColumns", "gridColumns", panel.gridColumns, 1, 20, 1)}
+      ${floatingNumberControl(panel.id, "gridRowsVisible", "gridRowsVisible", panel.gridRowsVisible, 1, 20, 1)}
+      ${floatingNumberControl(panel.id, "cardScale", "cardScale", panel.cardScale, 0.1, 2, 0.01)}
+      ${floatingNumberControl(panel.id, "gap", "gap", panel.gap, 0, 0.25, 0.001)}
+      ${floatingNumberControl(panel.id, "paddingX", "gridPaddingX", panel.paddingX, 0, 0.45, 0.001)}
+      ${floatingNumberControl(panel.id, "paddingY", "gridPaddingY", panel.paddingY, 0, 0.45, 0.001)}
+      ${panel.id === "panel.inventory" ? `
+        <div class="submeta-panel-floating-section">Filtry</div>
+        ${floatingNumberControl(panel.id, "filterTopMargin", "filterTopMargin", panel.filterTopMargin, 0, 0.25, 0.001)}` : ""}
+      <div class="submeta-panel-floating-section">Strzałki</div>
+      ${floatingNumberControl(panel.id, "arrowRightMargin", "arrowRightMargin", panel.arrowRightMargin, 0, 0.25, 0.001)}
+      ${panel.id === "panel.inventory" ? floatingNumberControl(panel.id, "pageStepRows", "pageStepRows", panel.pageStepRows, 1, 20, 1) : ""}`;
+  }
+
+  function renderFloatingDetailControls() {
+    const groups = [
+      ["detail.preview_card", "Podgląd karty", ["previewX", "previewY", "previewW", "previewH"]],
+      ["detail.description", "Opis", ["descriptionX", "descriptionY", "descriptionW", "descriptionH"]],
+      ["detail.haiku", "Haiku", ["haikuX", "haikuY", "haikuW", "haikuH"]]
+    ];
+    return groups.map(([id, title, labels]) => {
+      const item = getItem(id);
+      return item ? `
+        <div class="submeta-panel-floating-section" data-submeta-panel-floating-section="${id}">${title}</div>
+        ${floatingNumberControl(id, "x", labels[0], item.x, 0, 1, 0.001)}
+        ${floatingNumberControl(id, "y", labels[1], item.y, 0, 1, 0.001)}
+        ${floatingNumberControl(id, "w", labels[2], item.w, 0.005, 1, 0.001)}
+        ${floatingNumberControl(id, "h", labels[3], item.h, 0.005, 1, 0.001)}` : "";
+    }).join("");
+  }
+
+  function syncFloatingPanelEditor(panelId = getOwnerPanelId(floatingEditorTargetId || selectedPanelId)) {
+    if (!floatingEditor || !panelId) return false;
+    const panel = getItem(panelId);
+    if (!panel) { closeFloatingPanelEditor(); return false; }
+    const title = floatingEditor.querySelector(".submeta-panel-floating-title");
+    const subtitle = floatingEditor.querySelector(".submeta-panel-floating-subtitle");
+    if (title) title.textContent = `${panel.label} · ${panel.id}`;
+    if (subtitle) subtitle.textContent = floatingEditorTargetId && floatingEditorTargetId !== panelId ? floatingEditorTargetId : "współrzędne normalized względem SUB-META";
+    for (const control of floatingEditor.querySelectorAll("[data-submeta-panel-floating-field]")) {
+      const item = getItem(control.dataset.submetaPanelFloatingItem);
+      if (!item || !(control.dataset.submetaPanelFloatingField in item)) continue;
+      if (control.type === "checkbox") control.checked = item[control.dataset.submetaPanelFloatingField] === true;
+      else control.value = String(item[control.dataset.submetaPanelFloatingField]);
+    }
+    return true;
+  }
+
+  function applyFloatingPanelEditorValues() {
+    if (!floatingEditor) return false;
+    for (const control of floatingEditor.querySelectorAll("[data-submeta-panel-floating-field]")) {
+      updateItemField(
+        control.dataset.submetaPanelFloatingItem,
+        control.dataset.submetaPanelFloatingField,
+        control.type === "checkbox" ? control.checked : control.value,
+        { syncMain: false }
+      );
+    }
+    syncFloatingPanelEditor();
+    syncDebugPanelSelection();
+    return true;
+  }
+
+  function openFloatingPanelEditor(targetId, anchorRect) {
+    const panelId = getOwnerPanelId(targetId);
+    const panel = getItem(panelId);
+    if (!isDebugMode() || !enabled || !actuallyVisible || !panel) return false;
+    root.HC?.SubMetaPlaceholders?.closeFloatingEditor?.();
+    closeFloatingPanelEditor();
+    selectedPanelId = DETAIL_RECT_IDS.includes(targetId) ? targetId : panelId;
+    selectedSlotId = null;
+    floatingEditorTargetId = targetId;
+    syncDom();
+    syncDebugPanelSelection();
+    floatingEditor = document.createElement("div");
+    floatingEditor.id = FLOATING_EDITOR_ID;
+    floatingEditor.setAttribute("role", "dialog");
+    floatingEditor.setAttribute("aria-label", `Edytor panelu ${panel.id}`);
+    floatingEditor.innerHTML = `
+      <div class="submeta-panel-floating-header">
+        <div><div class="submeta-panel-floating-title"></div><div class="submeta-panel-floating-subtitle"></div></div>
+        <button class="submeta-panel-floating-close" type="button" data-submeta-panel-floating-action="close" aria-label="Zamknij">×</button>
+      </div>
+      ${renderFloatingBaseControls(panel)}
+      ${panel.type === "grid-panel" ? renderFloatingGridControls(panel) : renderFloatingDetailControls()}
+      <div class="submeta-panel-floating-actions">
+        <button type="button" data-submeta-panel-floating-action="close">Zamknij</button>
+        <button type="button" data-submeta-panel-floating-action="save">Zapisz</button>
+      </div>`;
+    document.body.appendChild(floatingEditor);
+    const applyControl = (control) => {
+      if (!control?.dataset?.submetaPanelFloatingField) return;
+      updateItemField(
+        control.dataset.submetaPanelFloatingItem,
+        control.dataset.submetaPanelFloatingField,
+        control.type === "checkbox" ? control.checked : control.value,
+        { syncMain: false }
+      );
+      syncDebugPanelSelection();
+      root.requestAnimationFrame?.(() => positionFloatingPanelEditor(getPanelNode(floatingEditorTargetId)?.getBoundingClientRect() || getPanelNode(panelId)?.getBoundingClientRect()));
+    };
+    floatingEditor.addEventListener("input", (event) => applyControl(event.target));
+    floatingEditor.addEventListener("change", (event) => { applyControl(event.target); syncFloatingPanelEditor(panelId); });
+    floatingEditor.addEventListener("click", (event) => {
+      const action = event.target?.dataset?.submetaPanelFloatingAction;
+      if (action === "close") closeFloatingPanelEditor();
+      if (action === "save") {
+        applyFloatingPanelEditorValues();
+        saveLayout();
+        closeFloatingPanelEditor();
+      }
+    });
+    syncFloatingPanelEditor(panelId);
+    const preferredAnchor = DETAIL_RECT_IDS.includes(targetId) ? getPanelNode(targetId) : getPanelNode(panelId);
+    positionFloatingPanelEditor(preferredAnchor?.getBoundingClientRect() || anchorRect);
+    const focusItemId = DETAIL_RECT_IDS.includes(targetId) ? targetId : panelId;
+    floatingEditor.querySelector(`[data-submeta-panel-floating-item="${focusItemId}"]`)?.focus();
+    return true;
+  }
+
   function handlePointerDown(event) {
     const target = event.target.closest?.("[data-submeta-panel-id]");
     if (!target || !isDebugMode()) return;
     event.preventDefault();
     event.stopPropagation();
-    selectedPanelId = target.dataset.submetaPanelId || null;
+    const targetId = target.dataset.submetaPanelId || null;
     selectedSlotId = target.dataset.submetaPanelSlotId || null;
-    syncDom();
-    syncDebugPanelSelection();
+    openFloatingPanelEditor(targetId, target.getBoundingClientRect());
   }
 
   function update() {
@@ -236,6 +493,7 @@
     if (!layer || layer.parentElement !== getStage()) createLayer();
     if (!layer) return;
     actuallyVisible = enabled && overlayIsVisible() && items.some(shouldRender);
+    if (!actuallyVisible || !isDebugMode()) closeFloatingPanelEditor();
     layer.hidden = !actuallyVisible;
     layer.setAttribute("aria-hidden", actuallyVisible ? "false" : "true");
     if (actuallyVisible) syncDom();
@@ -252,6 +510,7 @@
 
   function setVisible(nextEnabled) {
     enabled = nextEnabled === true;
+    if (!enabled) closeFloatingPanelEditor();
     update();
   }
 
@@ -270,6 +529,7 @@
   }
 
   function clearSelection() {
+    closeFloatingPanelEditor();
     selectedPanelId = null;
     selectedSlotId = null;
     syncDom();
@@ -346,9 +606,9 @@
     return json;
   }
 
-  function updateSelectedField(field, rawValue) {
-    const item = items.find((candidate) => candidate.id === selectedPanelId);
-    const fallback = defaultsById.get(selectedPanelId);
+  function updateItemField(itemId, field, rawValue, options = {}) {
+    const item = getItem(itemId);
+    const fallback = defaultsById.get(itemId);
     if (!item || !fallback) return false;
     const allowed = new Set([...BASE_FIELDS, ...(item.type === "grid-panel" ? GRID_FIELDS : []), ...(item.id === "panel.inventory" ? ["pageStepRows"] : [])]);
     if (!allowed.has(field)) return false;
@@ -358,12 +618,22 @@
       const max = field === "zIndex" ? 1000 : 20;
       item[field] = Math.round(clampNumber(rawValue, min, max, fallback[field]));
     } else if (["cardRatioW", "cardRatioH"].includes(field)) item[field] = clampNumber(rawValue, 0.1, 10, fallback[field]);
-    else if (["gapX", "gapY"].includes(field)) item[field] = clampNumber(rawValue, 0, 0.25, fallback[field]);
-    else if (["paddingX", "paddingY"].includes(field)) item[field] = clampNumber(rawValue, 0, 0.45, fallback[field]);
+    else if (field === "cardScale") item[field] = clampNumber(rawValue, 0.1, 2, fallback[field]);
+    else if (["gap", "gapX", "gapY", "filterTopMargin", "arrowRightMargin"].includes(field)) {
+      const value = clampNumber(rawValue, 0, 0.25, fallback[field] ?? fallback.gap);
+      if (["gap", "gapX", "gapY"].includes(field)) item.gap = item.gapX = item.gapY = value;
+      else item[field] = value;
+    } else if (["paddingX", "paddingY"].includes(field)) item[field] = clampNumber(rawValue, 0, 0.45, fallback[field]);
     else item[field] = clampNumber(rawValue, field === "w" || field === "h" ? 0.005 : 0, 1, fallback[field]);
     syncDom();
-    syncDebugPanelSelection();
+    if (options.syncMain !== false) syncDebugPanelSelection();
     return true;
+  }
+
+  function updateSelectedField(field, rawValue) {
+    const updated = updateItemField(selectedPanelId, field, rawValue);
+    if (updated) syncFloatingPanelEditor();
+    return updated;
   }
 
   function escapeHtml(value) {
@@ -379,7 +649,7 @@
     const selected = selectedItem || items[0];
     const disabled = !selectedItem;
     const optionGroups = [
-      ["Panele", PANEL_IDS], ["Magazyn / kontrolki", INVENTORY_CONTROL_IDS], ["Opis / recty", DETAIL_RECT_IDS]
+      ["Panele", PANEL_IDS], ["Kontrolki gridów", GRID_CONTROL_IDS], ["Opis / recty", DETAIL_RECT_IDS]
     ].map(([label, ids]) => `<optgroup label="${label}">${ids.map((id) => {
       const item = items.find((candidate) => candidate.id === id);
       return item ? `<option value="${escapeHtml(id)}"${id === selectedPanelId ? " selected" : ""}>${escapeHtml(id)}</option>` : "";
@@ -387,12 +657,12 @@
     const gridControls = selected.type === "grid-panel" ? `
       ${renderNumberControl("gridColumns", selected.gridColumns, 1, 20, 1, disabled)}
       ${renderNumberControl("gridRowsVisible", selected.gridRowsVisible, 1, 20, 1, disabled)}
-      ${renderNumberControl("gapX", selected.gapX, 0, 0.25, 0.001, disabled)}
-      ${renderNumberControl("gapY", selected.gapY, 0, 0.25, 0.001, disabled)}
+      ${renderNumberControl("cardScale", selected.cardScale, 0.1, 2, 0.01, disabled)}
+      ${renderNumberControl("gap", selected.gap, 0, 0.25, 0.001, disabled)}
       ${renderNumberControl("paddingX", selected.paddingX, 0, 0.45, 0.001, disabled)}
       ${renderNumberControl("paddingY", selected.paddingY, 0, 0.45, 0.001, disabled)}
-      ${renderNumberControl("cardRatioW", selected.cardRatioW, 0.1, 10, 0.1, disabled)}
-      ${renderNumberControl("cardRatioH", selected.cardRatioH, 0.1, 10, 0.1, disabled)}
+      ${renderNumberControl("arrowRightMargin", selected.arrowRightMargin, 0, 0.25, 0.001, disabled)}
+      ${selected.id === "panel.inventory" ? renderNumberControl("filterTopMargin", selected.filterTopMargin, 0, 0.25, 0.001, disabled) : ""}
       ${selected.id === "panel.inventory" ? renderNumberControl("pageStepRows", selected.pageStepRows, 1, 20, 1, disabled) : ""}` : "";
     return `
       <details class="submeta-png-debug" data-runtime-debug-section="submeta-panels"${options.open === false ? "" : " open"}>
@@ -470,6 +740,7 @@
     VERSION, STORAGE_KEY, PRESET_URL, init, update, syncDom, setVisible, isVisible: () => actuallyVisible,
     getSelectedPanelId: () => selectedPanelId, getDebugState, resetToDefault, exportLayout, importLayout, saveLayout, loadLayout,
     setShowLabels, selectPanel, clearSelection, getPanels: () => items.map((item) => ({ ...item })), getExportPayload,
+    openFloatingPanelEditor, closeFloatingPanelEditor, syncFloatingPanelEditor, applyFloatingPanelEditorValues,
     updateSelectedField, renderDebugHtml, handleDebugControl
   };
 
