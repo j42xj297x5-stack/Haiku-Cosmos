@@ -4242,6 +4242,77 @@ const CardEngine = (() => {
     return list;
   }
 
+  function ensurePlaceholderAssignments(World) {
+    if (!World) return null;
+    if (!World.submeta || typeof World.submeta !== "object") World.submeta = {};
+    if (!World.submeta.placeholderAssignments || typeof World.submeta.placeholderAssignments !== "object" || Array.isArray(World.submeta.placeholderAssignments)) {
+      World.submeta.placeholderAssignments = {};
+    }
+    return World.submeta.placeholderAssignments;
+  }
+
+  function getPlaceholderAvailableCards(World, target) {
+    if (!World || !target) return [];
+    if (target.type === "prg-r1" || target.type === "prg-r2") {
+      return getPrgAvailableCards(World, target.selection);
+    }
+    if (target.type === "world-r1") {
+      return getWorldAvailableCards(World, target.slotKey, target.slotIndex, ensureSubMetaWorld(World));
+    }
+    if (target.type === "world-r2") {
+      return getWorldBindingAvailableCards(World, target.bindingIndex);
+    }
+    return [];
+  }
+
+  function assignmentCardMatches(candidate, card) {
+    if (!candidate || !card) return false;
+    const candidateKind = String(candidate.kind || (candidate.color ? "R1" : "")).toUpperCase();
+    const cardKind = String(card.kind || "").toUpperCase();
+    if (!candidateKind || candidateKind !== cardKind) return false;
+    if (normalizeSubMetaTier(candidate.tier) !== normalizeSubMetaTier(card.tier)) return false;
+    const candidateColors = getCardColorsForKind(candidateKind, candidate.colors || [candidate.color].filter(Boolean));
+    const cardColors = getCardColorsForKind(cardKind, card.colors || [card.color].filter(Boolean));
+    return candidateColors.length === cardColors.length
+      && candidateColors.every((color, index) => color === cardColors[index]);
+  }
+
+  function assignPlaceholderCard(World, placeholderId, target, card) {
+    if (!World || !placeholderId || !target || !card) return { ok: false, reason: "missing-data" };
+    const assignments = ensurePlaceholderAssignments(World);
+    if (!assignments) return { ok: false, reason: "missing-state" };
+    if (assignments[placeholderId]) return { ok: false, reason: "occupied" };
+    const availableCard = getPlaceholderAvailableCards(World, target).find((candidate) => assignmentCardMatches(candidate, card));
+    if (!availableCard) return { ok: false, reason: "incompatible" };
+    const kind = String(availableCard.kind || (availableCard.color ? "R1" : "")).toUpperCase();
+    const tier = normalizeSubMetaTier(availableCard.tier);
+    const colors = getCardColorsForKind(kind, availableCard.colors || [availableCard.color].filter(Boolean));
+    const poolCard = getFirstAvailableCard(World, kind, colors, tier);
+    if (!poolCard) return { ok: false, reason: "unavailable" };
+    const inSlotKey = `submeta:placeholder:${placeholderId}`;
+    poolCard.inSlotKey = inSlotKey;
+    const assignment = {
+      placeholderId,
+      cardKey: availableCard.key || card.key || getCardKey(kind, colors),
+      poolCardId: poolCard.id || null,
+      inSlotKey,
+      kind,
+      tier,
+      colors: colors.slice()
+    };
+    assignments[placeholderId] = assignment;
+    return { ok: true, assignment: { ...assignment, colors: assignment.colors.slice() } };
+  }
+
+  function getPlaceholderAssignments(World) {
+    const assignments = ensurePlaceholderAssignments(World);
+    if (!assignments) return {};
+    return Object.fromEntries(Object.entries(assignments).map(([placeholderId, assignment]) => [
+      placeholderId,
+      assignment ? { ...assignment, colors: Array.isArray(assignment.colors) ? assignment.colors.slice() : [] } : assignment
+    ]));
+  }
+
   function getSubMetaEffectLines(slotKey, tier) {
     const tierKey = normalizeSubMetaTier(tier);
     const slotMap = SUB_META_META_EFFECTS[slotKey];
@@ -5867,8 +5938,8 @@ const CardEngine = (() => {
     resetCardPool,
     onCardCollected,
 
-    // Read-only bridge for the DOM SUB-META view layer. Assignment/crafting
-    // mutations intentionally remain private to CardEngine.
+    // Narrow bridge for the DOM SUB-META layer. Stage-one placeholder assignment
+    // is exposed explicitly; crafting and legacy cost-based mutations remain private.
     subMetaView: Object.freeze({
       ensureCardsPool,
       getInventoryEntries: getSubMetaInventoryEntries,
@@ -5876,6 +5947,8 @@ const CardEngine = (() => {
         getWorldAvailableCards(World, slotKey, slotIndex, ensureSubMetaWorld(World)),
       getWorldBindingAvailableCards,
       getPrgAvailableCards,
+      assignPlaceholderCard,
+      getPlaceholderAssignments,
       getForgeAvailableStacks,
       getCardByKey: (cardKey) => getSubMetaCardByKey(cardKey) || getPrgCardByKey(cardKey),
       getCardTitle: getSubMetaCardTitle,

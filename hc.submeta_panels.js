@@ -79,7 +79,8 @@
     selectedInventoryEntryKey: null,
     selectedPossibleEntryKey: null,
     selectedCardRef: null,
-    selectedSource: null
+    selectedSource: null,
+    assignmentMessage: null
   };
 
   function resolvePublicAssetUrl(path) {
@@ -334,13 +335,71 @@
     return { entries: entries.map(normalizeEntry).filter(Boolean), context };
   }
 
+  function getAssignmentMessage(reason) {
+    return ({
+      "missing-data": "Brak wybranego placeholdera albo danych karty.",
+      "missing-state": "Stan SUB-META nie jest dostępny.",
+      occupied: "Ten placeholder jest już zajęty.",
+      incompatible: "Ta karta nie pasuje do wybranego placeholdera.",
+      unavailable: "Ta karta nie jest już dostępna w Magazynie."
+    })[reason] || "Nie udało się przypisać karty.";
+  }
+
+  function selectAssignedCard(placeholderId, assignment) {
+    const placeholder = root.HC?.SubMetaPlaceholders?.getPlaceholders?.().find((item) => item.id === placeholderId);
+    const card = resolveCardRef({ ...assignment, key: assignment?.cardKey });
+    if (!placeholder || !card) return false;
+    cardSelection.selectedPlaceholderId = placeholderId;
+    cardSelection.selectedPlaceholder = { ...placeholder };
+    cardSelection.selectedInventoryEntryKey = null;
+    cardSelection.selectedPossibleEntryKey = null;
+    cardSelection.selectedCardRef = card;
+    cardSelection.selectedSource = "assigned";
+    cardSelection.assignmentMessage = "Karta przypisana do tego placeholdera.";
+    root.HC?.SubMetaPlaceholders?.selectPlaceholder?.(placeholderId, { allowOccupied: true, notifyPanels: false });
+    syncDom();
+    return true;
+  }
+
+  function assignPossibleCard(card) {
+    const World = getWorld();
+    const api = getCardApi();
+    const placeholderId = cardSelection.selectedPlaceholderId;
+    const target = mapPlaceholderContext(cardSelection.selectedPlaceholder);
+    if (!World || !api?.assignPlaceholderCard || !placeholderId) {
+      cardSelection.assignmentMessage = getAssignmentMessage("missing-data");
+      return false;
+    }
+    const result = api.assignPlaceholderCard(World, placeholderId, target, card);
+    if (!result?.ok) {
+      cardSelection.assignmentMessage = getAssignmentMessage(result?.reason);
+      debugLog("assignment rejected", { placeholderId, cardKey: card.key || card.viewKey, reason: result?.reason });
+      return false;
+    }
+    const assignedCard = resolveCardRef({ ...result.assignment, key: result.assignment.cardKey });
+    cardSelection.selectedCardRef = assignedCard || card;
+    cardSelection.selectedSource = "assigned";
+    cardSelection.selectedInventoryEntryKey = null;
+    cardSelection.selectedPossibleEntryKey = null;
+    cardSelection.assignmentMessage = "Karta została przypisana do placeholdera.";
+    root.HC?.SubMetaPlaceholders?.syncDom?.();
+    debugLog("card assigned", { placeholderId, assignment: result.assignment });
+    return true;
+  }
+
   function selectCard(entry, source) {
     const card = resolveCardRef(entry);
     if (!card) return false;
+    if (source === "possibilities") {
+      const assigned = assignPossibleCard(card);
+      syncDom();
+      return assigned;
+    }
     cardSelection.selectedCardRef = card;
     cardSelection.selectedSource = source;
     cardSelection.selectedInventoryEntryKey = source === "inventory" ? card.viewKey : null;
-    cardSelection.selectedPossibleEntryKey = source === "possibilities" ? card.viewKey : null;
+    cardSelection.selectedPossibleEntryKey = null;
+    cardSelection.assignmentMessage = null;
     syncDom();
     return true;
   }
@@ -353,6 +412,7 @@
     cardSelection.selectedPossibleEntryKey = null;
     cardSelection.selectedCardRef = null;
     cardSelection.selectedSource = "placeholder";
+    cardSelection.assignmentMessage = null;
     syncDom();
     return true;
   }
@@ -472,6 +532,7 @@
       appendText(desc, "p", model.meta);
       for (const line of model.effectLines) appendText(desc, "p", line);
       if (!model.effectLines.length) appendText(desc, "p", "Brak roboczego opisu efektu dla tego kontekstu.");
+      if (cardSelection.assignmentMessage) appendText(desc, "p", cardSelection.assignmentMessage);
       description.appendChild(desc);
       const poem = document.createElement("div");
       poem.className = "submeta-detail-content";
@@ -488,7 +549,7 @@
       appendText(desc, "code", model.placeholder.id);
       appendText(desc, "p", `${model.placeholder.group} · ${model.placeholder.subgroup} · ${model.placeholder.kind}`);
       appendText(desc, "p", `Stan: ${model.placeholder.state}`);
-      appendText(desc, "p", model.mapping.message || "Wybierz kartę z Możliwości.");
+      appendText(desc, "p", cardSelection.assignmentMessage || model.mapping.message || "Wybierz kartę z Możliwości.");
     } else {
       appendText(desc, "strong", "Opis");
       appendText(desc, "p", "Wybierz kartę w Magazynie albo placeholder gameplayowy.");
@@ -1098,6 +1159,8 @@
         <div class="submeta-png-diagnostics">
           <div class="overlay-row"><span class="k">preset</span><code class="v">${PRESET_URL}</code></div>
           <div class="overlay-row"><span class="k">selected slot</span><code class="v">${escapeHtml(selectedSlotId || "none")}</code></div>
+          <div class="overlay-row"><span class="k">selected placeholder</span><code class="v">${escapeHtml(cardSelection.selectedPlaceholderId || "none")}</code></div>
+          <div class="overlay-row"><span class="k">selected card</span><code class="v">${escapeHtml(cardSelection.selectedCardRef?.key || cardSelection.selectedCardRef?.cardKey || "none")}</code></div>
           <div class="overlay-row"><span class="k">storage</span><code class="v">${STORAGE_KEY}</code></div>
         </div>
       </details>`;
@@ -1151,7 +1214,7 @@
     VERSION, STORAGE_KEY, PRESET_URL, init, update, syncDom, setVisible, isVisible: () => actuallyVisible,
     getSelectedPanelId: () => selectedPanelId, getDebugState, resetToDefault, exportLayout, importLayout, saveLayout, loadLayout,
     setShowLabels, selectPanel, clearSelection, getPanels: () => items.map((item) => ({ ...item })), getExportPayload,
-    selectPlaceholder, clearPlaceholderSelection, selectCard, mapPlaceholderContext,
+    selectPlaceholder, clearPlaceholderSelection, selectCard, selectAssignedCard, mapPlaceholderContext,
     getCardViewState: () => ({ inventoryFilter, ...cardSelection }),
     getInventoryEntries, getPossibleEntries, getDetailModel,
     openFloatingPanelEditor, closeFloatingPanelEditor, syncFloatingPanelEditor, applyFloatingPanelEditorValues,
