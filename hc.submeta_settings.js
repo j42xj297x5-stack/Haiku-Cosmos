@@ -1,49 +1,104 @@
-import { publicPath } from "./hc.public_path.js";
+(function (root) {
+  "use strict";
 
-export const SUBMETA_LAYOUT_SETTING_PATHS = Object.freeze({
-  placeholders: "settings/submeta-placeholders.json",
-  panels: "settings/submeta-placeholders-panels.json",
-  pngLayout: "settings/submeta-png-layout-export.json"
-});
+  root.HC = root.HC || {};
 
-export async function loadSubMetaLayoutSetting(logicalPath, options = {}) {
-  const resolvedUrl = publicPath(logicalPath);
-  let status = null;
+  const SETTINGS_PATHS = Object.freeze({
+    placeholders: "settings/submeta-placeholders.json",
+    panels: "settings/submeta-placeholders-panels.json",
+    pngLayout: "settings/submeta-png-layout-export.json"
+  });
 
-  try {
-    const response = await fetch(resolvedUrl, { cache: "no-cache", ...options.fetchOptions });
-    status = response.status;
-    if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
+  function getLogicalPath(settingKey) {
+    return SETTINGS_PATHS[settingKey] || null;
+  }
 
-    const payload = await response.json();
-    if (typeof options.validate === "function" && !options.validate(payload)) {
-      throw new Error(options.invalidMessage || "Runtime setting JSON has an invalid structure");
+  function resolveSettingUrl(logicalPath) {
+    const resolvePublicPath = root.HC?.publicPath || root.HC?.publicAssetPath;
+    if (typeof resolvePublicPath !== "function") {
+      throw new Error("HC.publicPath is unavailable");
     }
-    console.info("[HC.SubMetaSettings] runtime setting loaded", {
+    return resolvePublicPath(logicalPath);
+  }
+
+  function failureResult(failureKind, error, context) {
+    const result = {
+      ok: false,
+      payload: null,
+      logicalPath: context.logicalPath,
+      resolvedUrl: context.resolvedUrl,
+      status: context.status,
+      success: false,
+      fallbackUsed: true,
+      failureKind,
+      error
+    };
+    console.warn(`[HC.SubMetaSettings] ${failureKind}; fallback used`, result);
+    return result;
+  }
+
+  async function loadJsonSetting(logicalPath, options = {}) {
+    let resolvedUrl = null;
+    let status = null;
+
+    try {
+      resolvedUrl = resolveSettingUrl(logicalPath);
+    } catch (error) {
+      return failureResult("public path unavailable", error, { logicalPath, resolvedUrl, status });
+    }
+
+    let response;
+    try {
+      response = await root.fetch(resolvedUrl, { cache: "no-cache", ...options.fetchOptions });
+      status = response.status;
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
+    } catch (error) {
+      return failureResult("fetch failed", error, { logicalPath, resolvedUrl, status });
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(await response.text());
+    } catch (error) {
+      return failureResult("invalid JSON", error, { logicalPath, resolvedUrl, status });
+    }
+
+    if (typeof options.validate === "function" && !options.validate(payload)) {
+      const error = new Error(options.invalidMessage || "Runtime setting JSON has an invalid structure");
+      return failureResult("invalid JSON structure", error, { logicalPath, resolvedUrl, status });
+    }
+
+    const result = {
+      ok: true,
+      payload,
+      logicalPath,
+      resolvedUrl,
+      status,
+      success: true,
+      fallbackUsed: false,
+      failureKind: null
+    };
+    console.info("[HC.SubMetaSettings] settings loaded successfully", {
       logicalPath,
       resolvedUrl,
       status,
       success: true,
       fallbackUsed: false
     });
-    return { ok: true, payload, logicalPath, resolvedUrl, status, fallbackUsed: false };
-  } catch (error) {
-    console.warn("[HC.SubMetaSettings] runtime setting load failed; using fallback", {
-      logicalPath,
-      resolvedUrl,
-      status,
-      success: false,
-      fallbackUsed: true,
-      error
-    });
-    return { ok: false, payload: null, logicalPath, resolvedUrl, status, fallbackUsed: true, error };
+    return result;
   }
-}
 
-if (typeof window !== "undefined") {
-  window.HC = window.HC || {};
-  window.HC.SubMetaSettings = Object.freeze({
-    paths: SUBMETA_LAYOUT_SETTING_PATHS,
-    loadJson: loadSubMetaLayoutSetting
+  root.HC.SubMetaSettings = Object.freeze({
+    paths: SETTINGS_PATHS,
+    SETTINGS_PATHS,
+    getLogicalPath,
+    loadJson: loadJsonSetting,
+    loadJsonSetting
   });
-}
+
+  console.info("[HC.SubMetaSettings] loaded", {
+    available: !!root.HC.SubMetaSettings,
+    publicPathAvailable: typeof root.HC.publicPath === "function",
+    paths: SETTINGS_PATHS
+  });
+})(window);

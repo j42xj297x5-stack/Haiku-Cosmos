@@ -350,9 +350,19 @@
   async function restoreRuntimeSettingOrFallback() {
     const settings = root.HC?.SubMetaSettings;
     const logicalPath = settings?.paths?.[SETTING_KEY];
-    if (!logicalPath || typeof settings?.loadJson !== "function") {
+    if (!settings || typeof settings.loadJson !== "function") {
       console.warn("[HC.SubMetaPngLayout] runtime settings loader unavailable; using fallback", {
         logicalPath: logicalPath || null,
+        resolvedUrl: null,
+        status: null,
+        success: false,
+        fallbackUsed: true
+      });
+      return false;
+    }
+    if (!logicalPath) {
+      console.warn("[HC.SubMetaPngLayout] runtime settings path unavailable; using fallback", {
+        logicalPath: null,
         resolvedUrl: null,
         status: null,
         success: false,
@@ -369,6 +379,13 @@
       dataSource = "runtime setting";
       return true;
     }
+    console.warn("[HC.SubMetaPngLayout] runtime setting fallback used", {
+      logicalPath: result.logicalPath,
+      resolvedUrl: result.resolvedUrl,
+      status: result.status,
+      failureKind: result.failureKind,
+      fallbackUsed: true
+    });
     dataSource = "DEFAULT_ELEMENTS fallback";
     return false;
   }

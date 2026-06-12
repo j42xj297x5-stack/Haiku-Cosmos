@@ -1083,9 +1083,19 @@
     const logicalPath = settings?.paths?.[SETTING_KEY];
     debugLog("loading panel runtime setting", { logicalPath, reason });
 
-    if (!logicalPath || typeof settings?.loadJson !== "function") {
+    if (!settings || typeof settings.loadJson !== "function") {
       console.warn("[HC.SubMetaPanels] runtime settings loader unavailable; using fallback", {
         logicalPath: logicalPath || null,
+        resolvedUrl: null,
+        status: null,
+        success: false,
+        fallbackUsed: true
+      });
+      return false;
+    }
+    if (!logicalPath) {
+      console.warn("[HC.SubMetaPanels] runtime settings path unavailable; using fallback", {
+        logicalPath: null,
         resolvedUrl: null,
         status: null,
         success: false,
@@ -1105,6 +1115,13 @@
       return true;
     }
 
+    console.warn("[HC.SubMetaPanels] runtime setting fallback used", {
+      logicalPath: result.logicalPath,
+      resolvedUrl: result.resolvedUrl,
+      status: result.status,
+      failureKind: result.failureKind,
+      fallbackUsed: true
+    });
     items = cloneDefaults();
     enabled = true;
     showLabels = true;
