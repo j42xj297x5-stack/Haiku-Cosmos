@@ -7,7 +7,6 @@
   const VERSION = "submeta-png-layout-v0.1";
   const DESIGN_SIZE = Object.freeze({ width: 1536, height: 1024 });
   const ENABLED_STORAGE_KEY = "hc.submetaPng.enabled.v1";
-  const LAYOUT_STORAGE_KEY = "hc.submetaPng.layout.v1";
   const ASSET_DIR = "png/submeta/";
   const LAYOUT_JSON_PATH = "settings/submeta-png-layout-export.json";
   const SETTING_KEY = "pngLayout";
@@ -61,7 +60,9 @@
   let initialized = false;
   let previewEnabled = false;
   let initializationPromise = null;
-  let dataSource = "DEFAULT_ELEMENTS fallback";
+  let dataSource = "fallback";
+  let lastAction = "startup";
+  let lastError = "";
   let lastLayoutUrl = resolvedAssetUrl(LAYOUT_JSON_PATH);
 
   function cloneElement(item) {
@@ -323,16 +324,6 @@
     return elements.find((item) => item.id === selectedId) || elements[0];
   }
 
-  function saveLayout() {
-    const payload = getExportPayload();
-    try {
-      root.localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(payload));
-      return true;
-    } catch (_error) {
-      return false;
-    }
-  }
-
   function applyPayload(payload) {
     if (!payload || !Array.isArray(payload.elements)) return false;
     const incomingById = new Map(payload.elements.map((item) => [item && item.id, item]));
@@ -342,61 +333,63 @@
     return true;
   }
 
-  function loadLayout() {
-    try {
-      const raw = root.localStorage.getItem(LAYOUT_STORAGE_KEY);
-      if (!raw) return false;
-      const applied = applyPayload(JSON.parse(raw));
-      if (applied) {
-        dataSource = "localStorage";
-        debugLog("layout loaded from localStorage", { storageKey: LAYOUT_STORAGE_KEY });
-      }
-      return applied;
-    } catch (error) {
-      debugLog("localStorage layout is invalid; trying JSON default", {
-        storageKey: LAYOUT_STORAGE_KEY,
-        error: String(error?.message || error)
-      });
-      return false;
-    }
-  }
-
-  async function restoreJsonDefaultOrFallback() {
-    const logicalPath = LAYOUT_JSON_PATH;
+  async function restoreJsonDefaultOrFallback(reason = "reset") {
+    const settings = root.HC?.SubMetaSettings;
+    const logicalPath = settings?.paths?.[SETTING_KEY] || LAYOUT_JSON_PATH;
     const resolvedUrl = resolvedAssetUrl(logicalPath);
     lastLayoutUrl = resolvedUrl;
 
     try {
-      const response = await root.fetch(resolvedUrl, { cache: "no-cache" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const payload = await response.json();
-      if (!applyPayload(payload)) throw new Error("Layout JSON does not contain an elements array");
+      if (!settings || typeof settings.loadJson !== "function") {
+        throw new Error("SUB-META settings loader is unavailable");
+      }
+      const result = await settings.loadJson(logicalPath, {
+        validate: (payload) => !!payload && Array.isArray(payload.elements),
+        invalidMessage: "Runtime setting JSON does not contain an elements array"
+      });
+      lastLayoutUrl = result.resolvedUrl || resolvedUrl;
+      if (!result.ok || !applyPayload(result.payload)) {
+        throw result.error || new Error(result.failureKind || "PNG layout settings load failed");
+      }
       dataSource = "settings JSON";
-      debugLog("layout loaded from settings JSON", { logicalPath, resolvedUrl });
+      lastAction = reason === "startup" ? "loaded" : "reset";
+      lastError = "";
+      updateSettingsStatus("png", lastAction);
+      debugLog("layout loaded from settings JSON", { logicalPath, resolvedUrl: lastLayoutUrl });
       return true;
     } catch (error) {
       elements = cloneDefaults();
       selectedId = elements[0].id;
-      dataSource = "DEFAULT_ELEMENTS fallback";
+      dataSource = "fallback";
+      lastAction = "error";
+      lastError = String(error?.message || error);
+      updateSettingsStatus("png", `error: ${lastError}`);
       renderElements();
       debugLog("layout loaded from DEFAULT_ELEMENTS fallback", {
         logicalPath,
-        resolvedUrl,
-        error: String(error?.message || error)
+        resolvedUrl: lastLayoutUrl,
+        error: lastError
       });
       return false;
     }
   }
 
-  function importLayout(payload) {
-    if (!applyPayload(payload)) return false;
-    dataSource = "localStorage";
-    const saved = saveLayout();
-    debugLog("imported layout saved as localStorage override", {
-      storageKey: LAYOUT_STORAGE_KEY,
-      saved
-    });
-    return saved;
+  function importLayout(json) {
+    try {
+      const payload = typeof json === "string" ? JSON.parse(json) : json;
+      if (!applyPayload(payload)) throw new Error("JSON does not contain a valid elements array");
+      dataSource = "imported runtime";
+      lastAction = "imported";
+      lastError = "";
+      updateSettingsStatus("png", lastAction);
+      return true;
+    } catch (error) {
+      lastAction = "error";
+      lastError = String(error?.message || error);
+      updateSettingsStatus("png", `error: ${lastError}`);
+      console.warn("[HC.SubMetaPngLayout] JSON import failed", error);
+      return false;
+    }
   }
 
   function resetSelected() {
@@ -404,11 +397,9 @@
     if (!fallback) return;
     elements = elements.map((item) => item.id === selectedId ? cloneElement(fallback) : item);
     renderElements();
-    saveLayout();
   }
 
   async function resetAll() {
-    try { root.localStorage.removeItem(LAYOUT_STORAGE_KEY); } catch (_error) { /* storage is optional */ }
     const restored = await restoreJsonDefaultOrFallback();
     update();
     return restored;
@@ -423,15 +414,15 @@
   }
 
   function exportLayout() {
-    const blob = new Blob([`${JSON.stringify(getExportPayload(), null, 2)}\n`], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "submeta-png-layout-export.json";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    lastAction = "exported";
+    lastError = "";
+    updateSettingsStatus("png", lastAction);
+    return JSON.stringify(getExportPayload(), null, 2);
+  }
+
+  function updateSettingsStatus(section, text) {
+    const node = document.querySelector(`[data-submeta-settings-status="${section}"]`);
+    if (node) node.textContent = text;
   }
 
   function updateSelectedField(field, rawValue) {
@@ -445,7 +436,6 @@
     else return;
     elements = elements.map((item) => item.id === next.id ? next : item);
     renderElements();
-    saveLayout();
   }
 
   function handleDebugControl(target) {
@@ -469,13 +459,13 @@
     }
     const action = target.dataset && target.dataset.submetaPngAction;
     if (!action) return false;
-    if (action === "close-submeta") closeSubMeta();
-    else if (action === "hide-preview") hidePreview();
-    else if (action === "reset-selected") resetSelected();
+    if (action === "reset-selected") resetSelected();
     else if (action === "reset-all") resetAll();
-    else if (action === "save") saveLayout();
-    else if (action === "load") loadLayout();
-    else if (action === "export") exportLayout();
+    else {
+      const textarea = document.getElementById("dbgSubMetaPngJson");
+      if (action === "export") { if (textarea) textarea.value = exportLayout(); }
+      else if (action === "import") importLayout(textarea?.value || "");
+    }
     return true;
   }
 
@@ -519,11 +509,10 @@
     const diagnostics = getDiagnostics();
     const elementOptions = elements.map((item) => option(item.id, item.id, item.id === selected.id)).join("");
     return `
-      <details class="submeta-png-debug overlay-collapsible" data-runtime-debug-section="submeta-png-layout"${options.open === false ? "" : " open"}>
+      <details class="submeta-png-debug overlay-collapsible" data-runtime-debug-section="submeta-png-layout"${options.open === true ? " open" : ""}>
         <summary>SUB-META PNG Layout</summary>
         <div class="overlay-grid">
           <label class="overlay-select-row" for="dbgSubMetaPngEnabled">Use new PNG SUB-META <input id="dbgSubMetaPngEnabled" type="checkbox"${enabled ? " checked" : ""}></label>
-          <label class="overlay-select-row" for="dbgSubMetaPngPreview">Show PNG layout preview <input id="dbgSubMetaPngPreview" type="checkbox"${diagnostics.preview ? " checked" : ""}></label>
           <label class="submeta-png-debug-row" for="dbgSubMetaPngElement"><span>Element</span><select id="dbgSubMetaPngElement">${elementOptions}</select></label>
           ${renderNumberControl("x", "x", selected.x, 0, 1, 0.001)}
           ${renderNumberControl("y", "y", selected.y, 0, 1, 0.001)}
@@ -532,33 +521,19 @@
           ${renderNumberControl("opacity", "opacity", selected.opacity, 0, 1, 0.01)}
           <label class="submeta-png-debug-row"><span>visible</span><input type="checkbox" data-submeta-png-field="visible"${selected.visible ? " checked" : ""}></label>
           ${renderNumberControl("zIndex", "zIndex", selected.zIndex, -100, 1000, 1)}
-          <div class="submeta-png-debug-actions submeta-png-emergency-actions">
-            <button class="overlay-btn" type="button" data-submeta-png-action="close-submeta">Close SUB-META</button>
-            <button class="overlay-btn" type="button" data-submeta-png-action="hide-preview">Hide PNG preview</button>
-          </div>
           <div class="submeta-png-debug-actions">
             <button class="overlay-btn" type="button" data-submeta-png-action="reset-selected">Reset selected</button>
-            <button class="overlay-btn" type="button" data-submeta-png-action="reset-all">Reset all</button>
-            <button class="overlay-btn" type="button" data-submeta-png-action="save">Save layout to localStorage</button>
-            <button class="overlay-btn" type="button" data-submeta-png-action="load">Load layout from localStorage</button>
-            <button class="overlay-btn" type="button" data-submeta-png-action="export">Export layout JSON</button>
+            <button class="overlay-btn" type="button" data-submeta-png-action="reset-all">Reset defaults</button>
+            <button class="overlay-btn" type="button" data-submeta-png-action="export">Export JSON</button>
+            <button class="overlay-btn" type="button" data-submeta-png-action="import">Import JSON</button>
           </div>
+          <textarea id="dbgSubMetaPngJson" class="overlay-note submeta-settings-json" spellcheck="false" placeholder="Exported JSON appears here; paste PNG layout JSON here before Import."></textarea>
           <div class="submeta-png-diagnostics">
-            <div class="overlay-row"><span class="k">module loaded</span><span class="v">yes</span></div>
-            <div class="overlay-row"><span class="k">enabled</span><span class="v">${diagnostics.enabled ? "yes" : "no"}</span></div>
-            <div class="overlay-row"><span class="k">preview</span><span class="v">${diagnostics.preview ? "yes" : "no"}</span></div>
-            <div class="overlay-row"><span class="k">World.subMetaOpen</span><span class="v">${diagnostics.worldSubMetaOpen ? "yes" : "no"}</span></div>
-            <div class="overlay-row"><span class="k">overlay mounted</span><span class="v">${diagnostics.overlayMounted ? "yes" : "no"}</span></div>
-            <div class="overlay-row"><span class="k">elements configured</span><span class="v">${diagnostics.elementsConfigured}</span></div>
-            <div class="overlay-row"><span class="k">elements rendered</span><code class="v">${diagnostics.elementsRendered}</code></div>
-            <div class="overlay-row"><span class="k">stage size</span><code class="v">${diagnostics.stageSize}</code></div>
-            <div class="overlay-row"><span class="k">viewport size</span><code class="v">${diagnostics.viewportSize}</code></div>
-            <div class="overlay-row"><span class="k">background fit</span><code class="v">${diagnostics.backgroundFitMode}</code></div>
-            <div class="overlay-row"><span class="k">stage scale</span><code class="v">${diagnostics.stageScale}</code></div>
-            <div class="overlay-row"><span class="k">sample background path</span><code class="v">${diagnostics.sampleBackgroundPath}</code></div>
-            <div class="overlay-row"><span class="k">layout source</span><code class="v">${diagnostics.layoutSource}</code></div>
-            <div class="overlay-row"><span class="k">layout URL</span><code class="v">${diagnostics.layoutUrl}</code></div>
-            <div class="overlay-row"><span class="k">storage</span><code class="v">${LAYOUT_STORAGE_KEY}</code></div>
+            <div class="overlay-row"><span class="k">source</span><code class="v">${diagnostics.layoutSource}</code></div>
+            <div class="overlay-row"><span class="k">configured</span><span class="v">${diagnostics.elementsConfigured}</span></div>
+            <div class="overlay-row"><span class="k">last action</span><code class="v" data-submeta-settings-status="png">${lastAction}</code></div>
+            <div class="overlay-row"><span class="k">settings URL</span><code class="v">${diagnostics.layoutUrl}</code></div>
+            ${lastError ? `<div class="overlay-row"><span class="k">error</span><code class="v">${lastError}</code></div>` : ""}
           </div>
         </div>
       </details>`;
@@ -568,12 +543,7 @@
     if (initialized) return initializationPromise;
     initialized = true;
     createDom();
-    if (loadLayout()) {
-      update();
-      initializationPromise = Promise.resolve(true);
-    } else {
-      initializationPromise = restoreJsonDefaultOrFallback().finally(update);
-    }
+    initializationPromise = restoreJsonDefaultOrFallback("startup").finally(update);
     return initializationPromise;
   }
 
@@ -581,7 +551,6 @@
     VERSION,
     DESIGN_SIZE,
     ENABLED_STORAGE_KEY,
-    LAYOUT_STORAGE_KEY,
     BACKGROUND_FIT_MODE,
     SETTING_KEY,
     LAYOUT_JSON_PATH,
@@ -598,8 +567,6 @@
     getDiagnostics,
     getElements: () => elements.map(cloneElement),
     getExportPayload,
-    saveLayout,
-    loadLayout,
     loadRuntimeSetting: restoreJsonDefaultOrFallback,
     loadJsonDefault: restoreJsonDefaultOrFallback,
     importLayout,
