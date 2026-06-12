@@ -648,6 +648,28 @@
             runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
             return;
           }
+          const cardsPresetBtn = event.target && event.target.closest
+            ? event.target.closest("[data-debug-cards-preset]")
+            : null;
+          if (cardsPresetBtn) {
+            const presetWorld = (window.HC.getWorld && window.HC.getWorld()) || window.World;
+            const result = window.CardEngine?.applyDebugCardPreset?.(presetWorld, 13);
+            if (presetWorld && result) {
+              presetWorld.score = 500;
+              updateScoreLabel(presetWorld, true);
+              window.HC?.SubMetaPanels?.syncDom?.();
+              window.HC?.SubMetaPlaceholders?.syncDom?.();
+              window.HC?.logEvent?.("debug", "cards_test_preset_applied", {
+                targetCount: result.targetCount,
+                stackCount: result.stackCount,
+                totalCards: result.totalCards,
+                rp: presetWorld.score,
+              });
+              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            }
+            return;
+          }
           const tabBtn = event.target && event.target.closest ? event.target.closest("[data-debug-tab]") : null;
           const forceBtn = event.target && event.target.closest ? event.target.closest("#dbgForceFullDiagnostics") : null;
           if (forceBtn) {
@@ -1186,7 +1208,11 @@
       ["cards DS DR", `${cards.DS_DR_RED || 0}/${cards.DS_DR_YELLOW || 0}/${cards.DS_DR_GREEN || 0}/${cards.DS_DR_BLUE || 0}`],
       ["last sequence event", summarizeEvent(snap.lastByCategory?.sequence)],
       ["last RP event", summarizeEvent(snap.lastByCategory?.rp)],
-    ], "", { open: false }));
+    ], `
+      <div class="overlay-actions">
+        <button class="overlay-btn" type="button" data-debug-cards-preset>Preset: karty ×13 + 500 RP</button>
+      </div>
+    `, { open: false }));
 
     const hudTopLayout = window.HC?.HudTopLayout;
     if (hudTopLayout?.renderDebugHtml) {
