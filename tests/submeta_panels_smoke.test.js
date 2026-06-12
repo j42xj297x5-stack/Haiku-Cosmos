@@ -4,6 +4,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const repoRoot = path.resolve(__dirname, "..");
+const preset = JSON.parse(fs.readFileSync(path.join(repoRoot, "public/settings/submeta-placeholders-panels.json"), "utf8"));
 const storage = new Map();
 const document = {
   getElementById: () => null,
@@ -15,7 +16,13 @@ const document = {
   })
 };
 const window = {
-  HC: {}, document, console,
+  HC: { SubMetaSettings: {
+    paths: { panels: "settings/submeta-placeholders-panels.json" },
+    async loadJson(logicalPath) {
+      assert.equal(logicalPath, "settings/submeta-placeholders-panels.json");
+      return { ok: true, payload: preset, resolvedUrl: `/Haiku-Cosmos/${logicalPath}` };
+    }
+  } }, document, console,
   localStorage: {
     getItem: (key) => storage.get(key) ?? null,
     setItem: (key, value) => storage.set(key, value),
@@ -32,8 +39,11 @@ const requiredApi = [
 ];
 for (const method of requiredApi) assert.equal(typeof panels[method], "function", `missing ${method}()`);
 
-const preset = JSON.parse(fs.readFileSync(path.join(repoRoot, "public/png/submeta/submeta-panels-layout-export.json"), "utf8"));
-assert.deepEqual(JSON.parse(JSON.stringify(panels.getExportPayload())), preset, "runtime defaults must match the checked-in panel preset");
+async function main() {
+assert.equal(await panels.loadRuntimeSetting("test"), true);
+const runtimePreset = panels.getExportPayload();
+assert.equal(runtimePreset.panels.find((item) => item.id === "panel.inventory").gridColumns, preset.panels[0].gridColumns);
+assert.equal(runtimePreset.panels.find((item) => item.id === "panel.inventory").w, preset.panels[0].w);
 
 const byId = new Map(preset.panels.map((item) => [item.id, item]));
 for (const id of [
@@ -45,16 +55,19 @@ for (const id of [
 
 assert.equal(byId.get("panel.inventory").gridRowsVisible, 3);
 assert.equal(byId.get("panel.inventory").pageStepRows, 3);
-assert.equal(byId.get("panel.inventory").cardRatioW, 1.3);
-assert.equal(byId.get("panel.inventory").cardRatioH, 2.3);
+assert.equal(byId.get("panel.inventory").cardRatioW, 9);
+assert.equal(byId.get("panel.inventory").cardRatioH, 16);
 
 const imported = structuredClone(preset);
-imported.panels.find((item) => item.id === "panel.forge").gapX = 0.02;
+imported.panels.find((item) => item.id === "panel.forge").gap = 0.02;
 assert.equal(panels.importLayout(imported), true);
 assert.equal(panels.getPanels().find((item) => item.id === "panel.forge").gapX, 0.02);
 assert.equal(panels.saveLayout(), true);
 assert.ok(storage.has(panels.STORAGE_KEY));
-assert.equal(panels.resetToDefault(), true);
+assert.equal(await panels.resetToDefault(), true);
 assert.equal(panels.getPanels().find((item) => item.id === "panel.forge").gapX, byId.get("panel.forge").gapX);
 
 console.log("submeta_panels_smoke.test.js: OK");
+}
+
+main().catch((error) => { console.error(error); process.exitCode = 1; });

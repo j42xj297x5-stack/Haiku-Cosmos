@@ -6,8 +6,7 @@
 
   const VERSION = "submeta-panels-layout-v0.3";
   const STORAGE_KEY = "hc.submetaPanels.layout.v1";
-  const PRESET_PATH = "png/submeta/submeta-placeholders-panels.json";
-  const PRESET_URL = resolvePublicAssetUrl(PRESET_PATH);
+  const SETTING_KEY = "panels";
   const LAYER_ID = "subMetaPanelsLayer";
   const FLOATING_EDITOR_ID = "subMetaPanelsFloatingEditor";
   const GRID_PANEL_IDS = Object.freeze(["panel.inventory", "panel.possibilities", "panel.forge"]);
@@ -83,20 +82,6 @@
     assignmentMessage: null
   };
   let pendingAssignment = null;
-
-  function resolvePublicAssetUrl(path) {
-    const helper = root.HC && (root.HC.publicAssetPath || root.HC.publicPath);
-    if (typeof helper === "function") return helper(path);
-    try {
-      const configuredBase = typeof root.HC_PUBLIC_BASE_URL === "string" && !root.HC_PUBLIC_BASE_URL.includes("%")
-        ? root.HC_PUBLIC_BASE_URL
-        : document.baseURI;
-      const baseUrl = new URL(configuredBase, root.location?.origin || document.baseURI);
-      return new URL(path, baseUrl).href;
-    } catch (_error) {
-      return path;
-    }
-  }
 
   function debugLog(message, details) {
     if (!isDebugMode()) return;
@@ -1094,28 +1079,40 @@
 
   async function restorePresetOrFallback(reason) {
     const requestId = ++presetRequestId;
-    debugLog("loading panel preset JSON", { url: PRESET_URL, reason });
-    try {
-      const response = await root.fetch(PRESET_URL, { cache: "no-cache" });
-      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
-      const payload = await response.json();
-      if (requestId !== presetRequestId) return false;
-      if (!applyPayload(payload)) throw new Error("Preset JSON does not contain a panels array");
-      dataSource = "JSON preset";
-      debugLog("panel preset loaded from JSON", { url: PRESET_URL, reason });
-      return true;
-    } catch (error) {
-      if (requestId !== presetRequestId) return false;
-      items = cloneDefaults();
-      enabled = true;
-      showLabels = true;
-      dataSource = "DEFAULT_ITEMS fallback";
-      clearSelection();
-      syncDom();
-      update();
-      debugLog("panel preset JSON unavailable; using DEFAULT_ITEMS fallback", { url: PRESET_URL, reason, error });
+    const settings = root.HC?.SubMetaSettings;
+    const logicalPath = settings?.paths?.[SETTING_KEY];
+    debugLog("loading panel runtime setting", { logicalPath, reason });
+
+    if (!logicalPath || typeof settings?.loadJson !== "function") {
+      console.warn("[HC.SubMetaPanels] runtime settings loader unavailable; using fallback", {
+        logicalPath: logicalPath || null,
+        resolvedUrl: null,
+        status: null,
+        success: false,
+        fallbackUsed: true
+      });
       return false;
     }
+
+    const result = await settings.loadJson(logicalPath, {
+      validate: (payload) => !!payload && Array.isArray(payload.panels),
+      invalidMessage: "Runtime setting JSON does not contain a panels array"
+    });
+    if (requestId !== presetRequestId) return false;
+    if (result.ok && applyPayload(result.payload)) {
+      dataSource = "runtime setting";
+      debugLog("panel runtime setting loaded", { logicalPath, resolvedUrl: result.resolvedUrl, reason });
+      return true;
+    }
+
+    items = cloneDefaults();
+    enabled = true;
+    showLabels = true;
+    dataSource = "DEFAULT_ITEMS fallback";
+    clearSelection();
+    syncDom();
+    update();
+    return false;
   }
 
   function resetToDefault() {
@@ -1231,7 +1228,7 @@
         </div>
         <textarea id="dbgSubMetaPanelsJson" class="overlay-note submeta-panels-json" spellcheck="false" placeholder="Exported JSON appears here; paste panel JSON here before Import."></textarea>
         <div class="submeta-png-diagnostics">
-          <div class="overlay-row"><span class="k">preset</span><code class="v">${PRESET_URL}</code></div>
+          <div class="overlay-row"><span class="k">preset</span><code class="v">${root.HC?.SubMetaSettings?.paths?.[SETTING_KEY] || "unavailable"}</code></div>
           <div class="overlay-row"><span class="k">selected slot</span><code class="v">${escapeHtml(selectedSlotId || "none")}</code></div>
           <div class="overlay-row"><span class="k">selected placeholder</span><code class="v">${escapeHtml(cardSelection.selectedPlaceholderId || "none")}</code></div>
           <div class="overlay-row"><span class="k">selected card</span><code class="v">${escapeHtml(cardSelection.selectedCardRef?.key || cardSelection.selectedCardRef?.cardKey || "none")}</code></div>
@@ -1275,7 +1272,7 @@
   function getDebugState() {
     return {
       version: VERSION, initialized, enabled, visible: actuallyVisible, overlayVisible: overlayIsVisible(),
-      showPanelLabels: showLabels, dataSource, presetUrl: PRESET_URL, selectedPanelId, selectedSlotId, configuredCount: items.length,
+      showPanelLabels: showLabels, dataSource, logicalPath: root.HC?.SubMetaSettings?.paths?.[SETTING_KEY] || null, selectedPanelId, selectedSlotId, configuredCount: items.length,
       inventoryFilter, cardSelection: { ...cardSelection }, selectedPlaceholderId: cardSelection.selectedPlaceholderId,
       pendingAssignment: clonePendingAssignment(), confirmButtonState: getConfirmButtonState(),
       assignedPlaceholders: getCardApi()?.getPlaceholderAssignments?.(getWorld()) || {}, inventoryEntryCount: getInventoryEntries().length,
@@ -1287,8 +1284,8 @@
   }
 
   root.HC.SubMetaPanels = {
-    VERSION, STORAGE_KEY, PRESET_URL, init, update, syncDom, setVisible, isVisible: () => actuallyVisible,
-    getSelectedPanelId: () => selectedPanelId, getDebugState, resetToDefault, exportLayout, importLayout, saveLayout, loadLayout,
+    VERSION, STORAGE_KEY, SETTING_KEY, init, update, syncDom, setVisible, isVisible: () => actuallyVisible,
+    getSelectedPanelId: () => selectedPanelId, getDebugState, resetToDefault, exportLayout, importLayout, saveLayout, loadLayout, loadRuntimeSetting: restorePresetOrFallback,
     setShowLabels, selectPanel, clearSelection, getPanels: () => items.map((item) => ({ ...item })), getExportPayload,
     selectPlaceholder, clearPlaceholderSelection, selectCard, selectAssignedCard, mapPlaceholderContext,
     getCardViewState: () => ({ inventoryFilter, ...cardSelection, pendingAssignment: clonePendingAssignment(), confirmButtonState: getConfirmButtonState() }),
