@@ -9,6 +9,8 @@
   const SETTING_KEY = "panels";
   const LAYER_ID = "subMetaPanelsLayer";
   const FLOATING_EDITOR_ID = "subMetaPanelsFloatingEditor";
+  const SUBMETA_CARD_GEOMETRY = root.HC.SubMetaCardGeometry;
+  if (!SUBMETA_CARD_GEOMETRY) throw new Error("[HC.SubMetaPanels] SubMetaCardGeometry must load before panel layout");
   const GRID_PANEL_IDS = Object.freeze(["panel.inventory", "panel.possibilities", "panel.forge"]);
   const PANEL_IDS = Object.freeze([...GRID_PANEL_IDS, "panel.detail"]);
   const INVENTORY_CONTROL_IDS = Object.freeze([
@@ -128,8 +130,10 @@
     if (fallback.type === "grid-panel") {
       normalized.gridColumns = Math.round(clampNumber(source.gridColumns, 1, 20, fallback.gridColumns));
       normalized.gridRowsVisible = Math.round(clampNumber(source.gridRowsVisible, 1, 20, fallback.gridRowsVisible));
-      normalized.cardRatioW = clampNumber(source.cardRatioW, 0.1, 10, fallback.cardRatioW);
-      normalized.cardRatioH = clampNumber(source.cardRatioH, 0.1, 10, fallback.cardRatioH);
+      // Legacy presets may contain arbitrary ratios. Keep the fields for round-trip
+      // compatibility, but migrate every runtime/exported grid to the global standard.
+      normalized.cardRatioW = SUBMETA_CARD_GEOMETRY.ratioW;
+      normalized.cardRatioH = SUBMETA_CARD_GEOMETRY.ratioH;
       normalized.cardScale = clampNumber(source.cardScale ?? source.cardSizeScale, 0.1, 2, fallback.cardScale);
       normalized.gap = clampNumber(source.gap ?? source.gapX ?? source.gapY, 0, 0.25, fallback.gap);
       normalized.gapX = normalized.gap;
@@ -159,17 +163,18 @@
       .submeta-panel-item.is-selected { border-color:rgba(255,219,112,.95); box-shadow:0 0 0 1px rgba(255,219,112,.3) inset; }
       .submeta-panel-label { position:absolute; left:2px; top:2px; max-width:calc(100% - 4px); padding:1px 3px; overflow:hidden; color:rgba(225,247,255,.9); background:rgba(3,15,23,.72); font:9px/1.2 var(--hc-font-mono, monospace); white-space:nowrap; pointer-events:none; }
       .submeta-panel-grid { position:absolute; inset:0; pointer-events:none; }
-      .submeta-panel-grid-slot { position:absolute; box-sizing:border-box; transform:translate(-50%,-50%); border:1px solid rgba(140,225,255,.35); background:rgba(80,185,220,.035); pointer-events:auto; cursor:crosshair; }
+      .submeta-panel-grid-slot { position:absolute; box-sizing:border-box; aspect-ratio:${SUBMETA_CARD_GEOMETRY.ratioW}/${SUBMETA_CARD_GEOMETRY.ratioH}; transform:translate(-50%,-50%); border:1px solid rgba(140,225,255,.35); background:rgba(80,185,220,.035); pointer-events:auto; cursor:crosshair; }
       .submeta-panel-grid-slot:hover { border-color:rgba(190,240,255,.75); }
       .submeta-panel-grid-slot.is-selected { border-color:rgba(255,219,112,.95); background:rgba(255,219,112,.12); }
       .submeta-panel-control { border-style:dashed !important; pointer-events:auto; cursor:crosshair; }
       .submeta-panel-detail-rect { border-color:rgba(206,165,255,.52) !important; background:rgba(160,90,220,.035) !important; pointer-events:auto; cursor:crosshair; }
       .submeta-panel-control.is-view-control { display:grid; place-items:center; border:1px solid rgba(183,205,214,.42); border-radius:3px; background:rgba(7,17,24,.72); color:#c8d7dc; font:600 clamp(6px,.55vw,10px)/1 system-ui,sans-serif; cursor:pointer; pointer-events:auto; }
       .submeta-panel-control.is-view-control:hover, .submeta-panel-control.is-view-control.is-active { border-color:rgba(255,219,112,.92); color:#fff2c7; background:rgba(91,72,27,.62); }
-      .submeta-card-view { position:absolute; box-sizing:border-box; transform:translate(-50%,-50%); display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; padding:3px; border:1px solid rgba(203,220,226,.48); border-radius:9%; background:linear-gradient(160deg,rgba(23,30,36,.96),rgba(4,8,12,.98)); color:#eef5f7; box-shadow:0 2px 5px rgba(0,0,0,.45); font:600 clamp(5px,.48vw,9px)/1 system-ui,sans-serif; pointer-events:auto; cursor:pointer; }
+      .submeta-card-view { position:absolute; box-sizing:border-box; aspect-ratio:${SUBMETA_CARD_GEOMETRY.ratioW}/${SUBMETA_CARD_GEOMETRY.ratioH}; transform:translate(-50%,-50%); display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; padding:3px; border:1px solid rgba(203,220,226,.48); border-radius:9%; background:linear-gradient(160deg,rgba(23,30,36,.96),rgba(4,8,12,.98)); color:#eef5f7; box-shadow:0 2px 5px rgba(0,0,0,.45); font:600 clamp(5px,.48vw,9px)/1 system-ui,sans-serif; pointer-events:auto; cursor:pointer; }
       .submeta-card-view:hover { border-color:rgba(234,245,248,.9); transform:translate(-50%,-50%) scale(1.04); }
       .submeta-card-view.is-selected { border-color:#ffdc72; box-shadow:0 0 0 1px rgba(255,220,114,.38),0 0 9px rgba(255,195,57,.58); }
-      .submeta-card-view.is-preview { position:relative; left:auto!important; top:auto!important; width:min(100%,58px)!important; height:auto!important; aspect-ratio:9/16; transform:none; cursor:default; pointer-events:none; }
+      .submeta-panel-detail-rect[data-submeta-panel-id="detail.preview_card"] { display:grid; place-items:center; }
+      .submeta-card-view.is-preview { position:relative; left:auto!important; top:auto!important; width:auto!important; height:100%!important; max-width:100%; max-height:100%; aspect-ratio:${SUBMETA_CARD_GEOMETRY.ratioW}/${SUBMETA_CARD_GEOMETRY.ratioH}; transform:none; cursor:default; pointer-events:none; }
       .submeta-panel-empty { position:absolute; inset:4px; display:grid; place-items:center; padding:5px; color:rgba(210,225,230,.72); font:clamp(7px,.6vw,11px)/1.25 system-ui,sans-serif; text-align:center; pointer-events:none; }
       .submeta-detail-content { position:absolute; inset:3px; overflow:hidden; color:#e7f0f3; font:clamp(6px,.52vw,10px)/1.25 system-ui,sans-serif; pointer-events:none; }
       .submeta-detail-content strong { display:block; margin-bottom:2px; color:#ffe39a; font-size:1.08em; }
@@ -670,11 +675,9 @@
     const maxSlotH = Math.max(0.001, (innerH - ((rows - 1) * panel.gapY)) / rows);
     const stageRect = stage?.getBoundingClientRect();
     const stageAspect = stageRect?.width && stageRect?.height ? stageRect.width / stageRect.height : 1.5;
-    const targetHeightForWidth = maxSlotW * stageAspect * (panel.cardRatioH / panel.cardRatioW);
-    const fittedSlotH = Math.min(maxSlotH, targetHeightForWidth);
-    const fittedSlotW = Math.min(maxSlotW, fittedSlotH / stageAspect * (panel.cardRatioW / panel.cardRatioH));
-    const slotW = fittedSlotW * panel.cardScale;
-    const slotH = fittedSlotH * panel.cardScale;
+    const slotSize = SUBMETA_CARD_GEOMETRY.fitNormalized(maxSlotW, maxSlotH, stageAspect, panel.cardScale);
+    const slotW = slotSize.w;
+    const slotH = slotSize.h;
     const usedW = (columns * slotW) + ((columns - 1) * panel.gapX);
     const usedH = (rows * slotH) + ((rows - 1) * panel.gapY);
     const left = panel.x - (usedW / 2) + panel.gridOffsetX;
@@ -825,6 +828,7 @@
       <div class="submeta-panel-floating-section">Siatka kart</div>
       ${floatingNumberControl(panel.id, "gridColumns", "gridColumns", panel.gridColumns, 1, 20, 1)}
       ${floatingNumberControl(panel.id, "gridRowsVisible", "gridRowsVisible", panel.gridRowsVisible, 1, 20, 1)}
+      <div class="submeta-panel-floating-row"><span>ratio</span><code>9:16</code></div>
       ${floatingNumberControl(panel.id, "cardScale", "cardScale", panel.cardScale, 0.1, 2, 0.01)}
       ${floatingNumberControl(panel.id, "gap", "gap", panel.gap, 0, 0.25, 0.001)}
       ${floatingNumberControl(panel.id, "paddingX", "gridPaddingX", panel.paddingX, 0, 0.45, 0.001)}
@@ -1173,7 +1177,8 @@
       const min = field === "zIndex" ? -100 : 1;
       const max = field === "zIndex" ? 1000 : 20;
       item[field] = Math.round(clampNumber(rawValue, min, max, fallback[field]));
-    } else if (["cardRatioW", "cardRatioH"].includes(field)) item[field] = clampNumber(rawValue, 0.1, 10, fallback[field]);
+    } else if (field === "cardRatioW") item[field] = SUBMETA_CARD_GEOMETRY.ratioW;
+    else if (field === "cardRatioH") item[field] = SUBMETA_CARD_GEOMETRY.ratioH;
     else if (field === "cardScale") item[field] = clampNumber(rawValue, 0.1, 2, fallback[field]);
     else if (["gap", "gapX", "gapY", "filterTopMargin", "arrowRightMargin"].includes(field)) {
       const value = clampNumber(rawValue, 0, 0.25, fallback[field] ?? fallback.gap);
@@ -1214,6 +1219,7 @@
     const gridControls = selected.type === "grid-panel" ? `
       ${renderNumberControl("gridColumns", selected.gridColumns, 1, 20, 1, disabled)}
       ${renderNumberControl("gridRowsVisible", selected.gridRowsVisible, 1, 20, 1, disabled)}
+      <div class="submeta-png-debug-row"><span>ratio</span><code>9:16</code></div>
       ${renderNumberControl("cardScale", selected.cardScale, 0.1, 2, 0.01, disabled)}
       ${renderNumberControl("gap", selected.gap, 0, 0.25, 0.001, disabled)}
       ${renderNumberControl("paddingX", selected.paddingX, 0, 0.45, 0.001, disabled)}

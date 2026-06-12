@@ -336,8 +336,10 @@ const CardEngine = (() => {
   const SUB_META_ASSIGN_COST = 10;
   const SUB_META_FORGE_ENABLED = true;
   const SUB_META_SCALE = 1.0;
-  const SUB_META_CARD_W = 20;
-  const SUB_META_CARD_H = 26;
+  const SUB_META_CARD_ASPECT = window.HC?.SubMetaCardGeometry?.aspect;
+  if (!Number.isFinite(SUB_META_CARD_ASPECT)) throw new Error("[HC.CardEngine] SubMetaCardGeometry must load before cards");
+  const SUB_META_CARD_H = 32;
+  const SUB_META_CARD_W = SUB_META_CARD_H * SUB_META_CARD_ASPECT;
   const SUB_META_CARD_GAP_X = 12;
   const SUB_META_CARD_GAP_Y = 10;
   const SUB_META_COUNT_PAD = 8;

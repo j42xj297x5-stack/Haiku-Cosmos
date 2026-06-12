@@ -12,7 +12,20 @@
   const STATES = Object.freeze(["free_active", "free_inactive", "hidden", "occupied"]);
   const GROUPS = Object.freeze(["PRG R1", "PRG R2", "R3", "R4", "Świat", "Świat R2"]);
   const EDITABLE_FIELDS = Object.freeze(["x", "y", "w", "h", "zIndex", "state", "visibleInGame", "visibleInDebug"]);
-  const SLOT_CARD_RATIO = Object.freeze({ width: 9, height: 16 });
+  const SUBMETA_CARD_GEOMETRY = root.HC.SubMetaCardGeometry || Object.freeze({
+    ratioW: 9,
+    ratioH: 16,
+    aspect: 9 / 16,
+    fitNormalized(maxW, maxH, stageAspect, scale = 1) {
+      const safeStageAspect = Number.isFinite(stageAspect) && stageAspect > 0 ? stageAspect : 1.5;
+      const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+      const fittedH = Math.min(maxH, maxW * safeStageAspect / this.aspect);
+      const fittedW = Math.min(maxW, fittedH * this.aspect / safeStageAspect);
+      return { w: fittedW * safeScale, h: fittedH * safeScale };
+    }
+  });
+  root.HC.SubMetaCardGeometry = SUBMETA_CARD_GEOMETRY;
+  const SLOT_CARD_RATIO = Object.freeze({ width: SUBMETA_CARD_GEOMETRY.ratioW, height: SUBMETA_CARD_GEOMETRY.ratioH });
   const SLOT_CARD_BASE_HEIGHT = 0.0644;
   const SLOT_CARD_BASE_UNIT = 0.028;
   const DEFAULT_SLOT_CARD_SCALE = 1;
@@ -195,7 +208,7 @@
       .submeta-placeholder:focus-visible { outline: 2px solid rgba(255, 239, 186, 0.92); outline-offset: 2px; }
       .submeta-placeholder-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 2px; }
       .submeta-assigned-card {
-        position:absolute; box-sizing:border-box; transform:translate(-50%,-50%); display:flex; flex-direction:column;
+        position:absolute; box-sizing:border-box; aspect-ratio:${SUBMETA_CARD_GEOMETRY.ratioW}/${SUBMETA_CARD_GEOMETRY.ratioH}; transform:translate(-50%,-50%); display:flex; flex-direction:column;
         justify-content:space-between; overflow:hidden; padding:3px; border:1px solid rgba(238,226,190,.8);
         border-radius:9%; background:linear-gradient(160deg,rgba(29,34,38,.98),rgba(5,8,11,.99)); color:#f4f0e5;
         box-shadow:0 3px 8px rgba(0,0,0,.58); font:600 clamp(5px,.48vw,9px)/1 system-ui,sans-serif;
@@ -224,8 +237,9 @@
         font-size:clamp(6px,.58vw,11px); line-height:1; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.72);
         box-shadow:0 1px 3px rgba(0,0,0,.45); pointer-events:none;
       }
+      .submeta-card-render { aspect-ratio:${SUBMETA_CARD_GEOMETRY.ratioW}/${SUBMETA_CARD_GEOMETRY.ratioH}; }
       .submeta-card-render.has-card-asset { overflow:visible; padding:0; border-color:transparent; background:transparent; box-shadow:none; }
-      .submeta-card-render-asset { display:block; width:100%; height:100%; border-radius:8%; object-fit:contain; pointer-events:none; }
+      .submeta-card-render-asset { display:block; width:100%; height:100%; box-sizing:border-box; border-radius:8%; object-fit:contain; pointer-events:none; }
       .submeta-card-view.has-card-asset:hover, .submeta-assigned-card.has-card-asset:hover { border-color:rgba(235,245,248,.7); box-shadow:0 0 0 1px rgba(235,245,248,.28); }
       .submeta-card-render.has-card-asset.is-selected { border-color:rgba(255,220,114,.9); box-shadow:0 0 0 1px rgba(255,220,114,.48),0 0 7px rgba(255,195,57,.38); }
       .submeta-card-render.has-card-asset.is-pending { border-color:rgba(255,226,151,.82); box-shadow:0 0 0 1px rgba(255,226,151,.34),0 0 7px rgba(255,205,105,.3); }
@@ -601,13 +615,12 @@
     // normalized size and may extend beyond the placeholder rectangle.
     const stageRect = getStage()?.getBoundingClientRect();
     const stageAspect = stageRect?.width && stageRect?.height ? stageRect.width / stageRect.height : 1.5;
-    const cardH = SLOT_CARD_BASE_HEIGHT * slotCardScale;
-    const cardW = cardH * (SLOT_CARD_RATIO.width / SLOT_CARD_RATIO.height) / stageAspect;
+    const cardSize = SUBMETA_CARD_GEOMETRY.fitNormalized(1, SLOT_CARD_BASE_HEIGHT, stageAspect, slotCardScale);
     return {
       x: item.x,
       y: item.y,
-      w: cardW,
-      h: cardH,
+      w: cardSize.w,
+      h: cardSize.h,
       zIndex: item.zIndex + 10
     };
   }
