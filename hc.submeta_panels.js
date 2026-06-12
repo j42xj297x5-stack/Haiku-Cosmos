@@ -4,7 +4,7 @@
 
   root.HC = root.HC || {};
 
-  const VERSION = "submeta-panels-layout-v0.3";
+  const VERSION = "submeta-panels-layout-v0.4";
   const STORAGE_KEY = "hc.submetaPanels.layout.v1";
   const SETTING_KEY = "panels";
   const LAYER_ID = "subMetaPanelsLayer";
@@ -1308,7 +1308,9 @@
     getCardViewState: () => ({ inventoryFilter, ...cardSelection, pendingAssignment: clonePendingAssignment(), confirmButtonState: getConfirmButtonState() }),
     getPendingAssignment: clonePendingAssignment, getConfirmButtonState, confirmPendingAssignment, clearPendingAssignment,
     getInventoryEntries, getPossibleEntries, getDetailModel,
-    resolveCardAsset: (card) => root.HC?.SubMetaPlaceholders?.resolveCardAsset?.(card) || null,
+    resolveCardAsset: (card, options) => root.HC?.SubMetaPlaceholders?.resolveCardAsset?.(card, options) || null,
+    resolveCardSvgAsset: (card) => root.HC?.SubMetaPlaceholders?.resolveCardSvgAsset?.(card) || null,
+    resolveCardPngAsset: (card) => root.HC?.SubMetaPlaceholders?.resolveCardPngAsset?.(card) || null,
     renderSubMetaCard,
     openFloatingPanelEditor, closeFloatingPanelEditor, syncFloatingPanelEditor, applyFloatingPanelEditorValues,
     updateSelectedField, renderDebugHtml, handleDebugControl

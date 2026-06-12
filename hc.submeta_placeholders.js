@@ -4,7 +4,7 @@
 
   root.HC = root.HC || {};
 
-  const VERSION = "submeta-placeholders-v0.3";
+  const VERSION = "submeta-placeholders-v0.4";
   const STORAGE_KEY = "hc.submetaPlaceholders.preset.v1";
   const SETTING_KEY = "placeholders";
   const LAYER_ID = "subMetaPlaceholderLayer";
@@ -16,7 +16,15 @@
   const SLOT_CARD_BASE_HEIGHT = 0.0644;
   const SLOT_CARD_BASE_UNIT = 0.028;
   const DEFAULT_SLOT_CARD_SCALE = 1;
-  const CARD_ASSET_PATHS = Object.freeze({
+  const CARD_SVG_ASSET_PATHS = Object.freeze(Object.fromEntries(
+    ["RED", "YELLOW", "GREEN", "BLUE"].flatMap((color) =>
+      ["DR", "SDR", "PDR"].map((tier) => [
+        `R1:${color}:${tier}`,
+        `svg/card_r1_${color.toLowerCase()}_${tier.toLowerCase()}.svg`
+      ])
+    )
+  ));
+  const CARD_PNG_ASSET_PATHS = Object.freeze({
     "R1:RED:DR": "png/cards/card_r1_red_dr.png",
     "R1:RED:SDR": "png/cards/card_r1_red_sdr.png",
     "R1:RED:PDR": "png/cards/card_r1_red_pdr.png"
@@ -472,22 +480,35 @@
     }
   }
 
-  function resolveCardAsset(card) {
+  function getCardAssetKey(card) {
     const identity = `${card?.id || ""} ${card?.key || ""} ${card?.cardKey || ""}`.toUpperCase();
     const kind = String(card?.kind || card?.type || (identity.includes("R1") ? "R1" : "")).toUpperCase();
     const tier = String(card?.tier || card?.fromTier
       || (identity.includes("PDR") ? "PDR" : (identity.includes("SDR") ? "SDR" : "DR"))).toUpperCase();
-    const color = String(card?.colors?.[0] || card?.color || card?.colorA
-      || (identity.includes("RED") ? "RED" : "")).toUpperCase();
-    const path = CARD_ASSET_PATHS[`${kind}:${color}:${tier}`];
-    if (!path) return null;
-    const url = resolvePublicAssetUrl(path);
-    return failedCardAssetUrls.has(url) ? null : { path, url };
+    const identityColor = ["RED", "YELLOW", "GREEN", "BLUE"].find((candidate) => identity.includes(candidate));
+    const color = String(card?.colors?.[0] || card?.color || card?.colorA || identityColor || "").toUpperCase();
+    return `${kind}:${color}:${tier}`;
   }
 
-  function getCardTierClass(card) {
-    const tier = String(card?.tier || card?.fromTier || "DR").toLowerCase();
-    return `tier-${["dr", "sdr", "pdr"].includes(tier) ? tier : "dr"}`;
+  function resolveMappedCardAsset(card, assetPaths, format) {
+    const path = assetPaths[getCardAssetKey(card)];
+    if (!path) return null;
+    const url = resolvePublicAssetUrl(path);
+    return failedCardAssetUrls.has(url) ? null : { path, url, format };
+  }
+
+  function resolveCardSvgAsset(card) {
+    return resolveMappedCardAsset(card, CARD_SVG_ASSET_PATHS, "svg");
+  }
+
+  function resolveCardPngAsset(card) {
+    return resolveMappedCardAsset(card, CARD_PNG_ASSET_PATHS, "png");
+  }
+
+  function resolveCardAsset(card, options = {}) {
+    return options.context === "detail"
+      ? (resolveCardPngAsset(card) || resolveCardSvgAsset(card))
+      : resolveCardSvgAsset(card);
   }
 
   function getProceduralCardSignature(card, showCount) {
@@ -545,8 +566,7 @@
     }
     node.classList.toggle("is-selected", options.selected === true);
     node.classList.toggle("is-pending", options.pending === true);
-    const asset = resolveCardAsset(card);
-    if (!asset) node.classList.add(getCardTierClass(card));
+    const asset = resolveCardAsset(card, { context });
     const signature = asset
       ? `asset:${asset.url}:${options.showCount === true ? card.count || 1 : 0}`
       : getProceduralCardSignature(card, options.showCount === true);
@@ -987,7 +1007,7 @@
   root.HC.SubMetaPlaceholders = {
     VERSION, STORAGE_KEY, SETTING_KEY, STATES, GROUPS, SLOT_CARD_RATIO, SLOT_CARD_BASE_UNIT, SLOT_CARD_BASE_HEIGHT, DEFAULT_SLOT_CARD_SCALE, init, update, render: syncDom, syncDom,
     setVisible, isVisible: () => actuallyVisible, setShowLabels, setShowHidden, setSlotCardScale, getSlotCardScale: () => slotCardScale,
-    resolveCardAsset, renderSubMetaCard,
+    resolveCardAsset, resolveCardSvgAsset, resolveCardPngAsset, renderSubMetaCard,
     selectPlaceholder, getSelectedPlaceholderId: () => selectedPlaceholderId, clearSelection, hitTest,
     openFloatingEditor, closeFloatingEditor, syncFloatingEditorFromPlaceholder, applyFloatingEditorValues, syncDebugPanelSelection,
     getDebugState, getPlaceholders: () => placeholders.map((item) => ({ ...item })), getExportPayload,
