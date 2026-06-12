@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa zależności projektu
 > Źródło prawdy: TAK, dla relacji między dokumentami/systemami
-> Ostatnia aktualizacja: 2026-05-01
+> Ostatnia aktualizacja: 2026-06-12
 > Powiązane dokumenty: PROJECT_INDEX.md, ../README.md, ../../../AGENTS.md
 
 ## 1. Cel dokumentu
@@ -34,13 +34,10 @@
 7. `docs/current/systems/PRG_SYSTEM.md`, `I18N_SYSTEM.md`
 
 ### B) Zadania UI / HUD / SUB-META
-1. Warstwa map jak wyżej
-2. `docs/current/ui/UI_WORLD.md`
-3. `docs/current/ui/HUD_SYSTEM.md` (roboczy kierunek RUN HUD v2)
-4. `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` jako główny roboczy master spec layout/design handoff
-5. aktywny stack pomocniczy SUB-META v2: `FRAME_COMPOSER_SPEC.md` (active technical contract), `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (SUB-META appendix), `SUB_META_V2_LAYOUT_TOKENS.md` (normalized appendix), `SUB_META_MEMORY_PACK.md`
-6. history/spec-history (legacy): `docs/legacy/ui/SUB_META_V2_LAYOUT_SPEC.md`, `docs/legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md`
-7. `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` i `SUB_META_V2_BOX_AUDIT.md`
+1. Warstwa map jak wyżej.
+2. Dla runtime SUB-META: `docs/current/ui/SUB_META_RUNTIME_SNAPSHOT.md` jako aktywny source-of-truth.
+3. `docs/current/ui/UI_WORLD.md` dla nadrzędnego flow UI oraz `docs/current/ui/HUD_SYSTEM.md` dla HUD.
+4. `SUB_META_V2_MASTER_SPEC.md`, FrameComposer, Figma, tokeny, stare canvasowe SUB-META i wireframe’y czytaj wyłącznie jako legacy/reference, gdy nie konfliktują ze snapshotem runtime.
 
 ### C) Zadania visual / SVG / Figma
 1. `docs/current/visual/README.md`
@@ -73,9 +70,18 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/systems/PRG_SYSTEM.md` (KANON STRUKTURALNY / DO STROJENIA)
 - `docs/current/systems/I18N_SYSTEM.md` (KANON STRUKTURALNY / DO WDROŻENIA)
 - `docs/current/ui/UI_WORLD.md`
-- `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT)
-- aktywny stack pomocniczy SUB-META v2: `FRAME_COMPOSER_SPEC.md` (active technical contract), `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (SUB-META appendix), `SUB_META_V2_LAYOUT_TOKENS.md` (normalized appendix), `SUB_META_MEMORY_PACK.md`
+- `docs/current/ui/SUB_META_RUNTIME_SNAPSHOT.md` (AKTYWNY SNAPSHOT RUNTIME SUB-META)
+- `docs/current/ui/SUB_META_V2_MASTER_SPEC.md`, FrameComposer/Figma/tokeny/memory pack (LEGACY/REFERENCE DLA BIEŻĄCEGO RUNTIME SUB-META)
 - legacy/history po migracji: `docs/legacy/ui/SUB_META_V2_LAYOUT_SPEC.md`, `docs/legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md` (zastąpione przez `SUB_META_V2_MASTER_SPEC.md`)
+
+## 3A. Zależności aktywnego runtime SUB-META
+
+- Runtime: `hc.submeta_png.js` -> `hc.submeta_placeholders.js` + `hc.submeta_panels.js`; wszystkie trzy korzystają z `hc.submeta_settings.js`, a kontrolki debug integruje `hc.ui_debug.js`.
+- Domena kart/state bridge: `cards.js` (`CardEngine.subMetaView`); bez szerokiego refaktoru w ramach prac layoutowych.
+- Settings source-of-truth: `public/settings/submeta-png-layout-export.json`, `public/settings/submeta-placeholders.json`, `public/settings/submeta-placeholders-panels.json`.
+- Runtime URL: odpowiednio `settings/submeta-png-layout-export.json`, `settings/submeta-placeholders.json`, `settings/submeta-placeholders-panels.json`.
+- Assety: `public/svg/` dla roboczych kart oraz `public/png/cards/` dla podglądu Opisu; `public/png/submeta/` zawiera obrazy overlayu, nie settings.
+- Legacy/reference: stare canvasowe SUB-META, FrameComposer, Figma i konfliktujące specy/wireframe’y SUB-META v2.
 
 ## 4. KIERUNEK visual
 
@@ -161,7 +167,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - Runtime relacja tekstur meteorów: zewnętrzne PNG palety `red`/`yellow` (`map` i `emissiveMap`) są ładowane osobno przez `THREE.TextureLoader`, cache’owane i przypisywane stabilnie per instancja. Zewnętrzne mapy uzupełniają wyłącznie brakujące sloty materiału GLB; imported `material.map` lub `material.emissiveMap` z obrazem nie są nadpisywane. `green`/`blue` nie mają jeszcze palet i brak palety nie jest błędem.
 - `SUB_META_LAYOUT_ANCHOR_AUDIT.md` opisuje warstwe layout anchors, ktora przekazuje recty/mount points do przyszlego `HC.FrameComposer` zamiast hardcodowania layoutu w composerze.
 - `hc.submeta_layout.js` tworzy namespace `HC.SubMetaLayout`; `cards.js` korzysta z niego przez wrapper `getSubMetaLayout()` i zachowuje defensywny fallback.
-- `cards.js` ma minimalny runtime probe root frame: `FRAME_COMPOSER_SUBMETA_ROOT_ENABLED`, `HC.VisualAssets` preload i `HC.FrameComposer.drawFrameParts` tylko dla glownej ramy SUB-META.
+- `cards.js` zawiera historyczny/minimalny probe FrameComposer root frame; nie należy go traktować jako aktywnej ścieżki runtime SUB-META.
 - `assets/visual/preview/frame_composer_sandbox.html` testuje repo-only wspolprace `hc.visual_assets.js` + `hc.frame_composer.js` poza runtime gry.
 - `FONT_SYSTEM_SPEC.md` porzadkuje tokeny typografii i rejestry tekstu dla HUD/SUB-META/kart bez zmiany mechaniki.
 - `cards.js` renderuje SUB-META i HUD kart oraz ma defensywny loader manifestu SVG.
@@ -176,7 +182,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - Nowe ramki v0.1 powstaly od zera w Figmie jako modular parts i zostaly wyeksportowane do `assets/visual/...`; runtime integration pozostaje future pass.
 - Derived kit v0.2 powstal w Figmie jako evidence/design source; nie jest jeszcze aktywnym asset manifestem runtime.
 - Derived kit v0.3 powstal w Figmie jako style correction evidence/design source; nie jest aktywnym asset manifestem runtime.
-- FrameComposer, live-coloring, new/seen-card state i animacje to osobne future pass.
+- FrameComposer nie jest planowanym aktywnym runtime SUB-META; ewentualny powrót wymaga osobnej decyzji architektonicznej. Live-coloring, new/seen-card state i animacje pozostają poza tym snapshotem.
 - `docs/legacy/` nie jest źródłem prawdy.
 
 

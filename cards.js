@@ -4437,6 +4437,26 @@ const CardEngine = (() => {
     };
   }
 
+  const subMetaCardAssetImages = new Map();
+
+  function getSubMetaCardAssetImage(card) {
+    const asset = window.HC?.CardAssets?.resolveCardAsset?.(card, { context: "card" }) || null;
+    if (!asset || typeof window.Image !== "function") return null;
+    const cached = subMetaCardAssetImages.get(asset.url);
+    if (cached) return cached.status === "loaded" ? cached.image : null;
+
+    const entry = { image: new window.Image(), status: "loading" };
+    subMetaCardAssetImages.set(asset.url, entry);
+    entry.image.decoding = "async";
+    entry.image.onload = () => { entry.status = "loaded"; };
+    entry.image.onerror = () => {
+      entry.status = "failed";
+      window.HC?.CardAssets?.markAssetFailed?.(asset, card);
+    };
+    entry.image.src = asset.url;
+    return null;
+  }
+
   function renderMetaCard(ctx, x, y, card, options = {}) {
     const typeLabel = String(card?.type || card?.kind || "R1");
     const tierLabel = normalizeSubMetaTier(card?.tier);
@@ -4450,7 +4470,10 @@ const CardEngine = (() => {
     const paintColors = normalizedColors.map((color) => PACK01_COLOR_HEX[color] || color || "#FFFFFF");
     ctx.save();
     ctx.globalAlpha = isDisabled ? 0.35 : 1.0;
-    if (paintColors.length <= 1 || typeLabel === "R1") {
+    const assetImage = getSubMetaCardAssetImage({ ...card, kind: typeLabel, tier: tierLabel, colors: normalizedColors });
+    if (assetImage) {
+      ctx.drawImage(assetImage, x, y, rectW, rectH);
+    } else if (paintColors.length <= 1 || typeLabel === "R1") {
       ctx.fillStyle = paintColors[0] || "#FFFFFF";
       ctx.fillRect(x, y, rectW, rectH);
     } else if (paintColors.length === 2 || typeLabel === "R2") {
@@ -4480,11 +4503,11 @@ const CardEngine = (() => {
       ctx.fillRect(x + halfW, y + halfH, rectW - halfW, rectH - halfH);
     }
 
-    if (tierLabel === "sDR") {
+    if (!assetImage && tierLabel === "sDR") {
       ctx.strokeStyle = "rgba(255,255,255,0.75)";
       ctx.lineWidth = 1.5;
       ctx.strokeRect(x + 0.5, y + 0.5, rectW - 1, rectH - 1);
-    } else if (tierLabel === "pDR") {
+    } else if (!assetImage && tierLabel === "pDR") {
       ctx.strokeStyle = "rgba(255,215,120,0.9)";
       ctx.lineWidth = 2;
       ctx.strokeRect(x + 0.5, y + 0.5, rectW - 1, rectH - 1);
@@ -4496,16 +4519,18 @@ const CardEngine = (() => {
       ctx.strokeRect(x - 1, y - 1, rectW + 2, rectH + 2);
     }
 
-    const textSquare = rectW - 4;
-    const textSquareX = x + Math.floor((rectW - textSquare) / 2);
-    const textSquareY = y + Math.floor((rectH - textSquare) / 2);
-    ctx.fillStyle = "rgb(0,0,0)";
-    ctx.textAlign = "center";
-    ctx.font = "8px system-ui";
-    ctx.fillText(typeLabel, textSquareX + textSquare / 2, textSquareY + 6);
-    ctx.font = "8px system-ui";
-    ctx.fillText(tierLabel, textSquareX + textSquare / 2, textSquareY + 14);
-    ctx.textAlign = "left";
+    if (!assetImage) {
+      const textSquare = rectW - 4;
+      const textSquareX = x + Math.floor((rectW - textSquare) / 2);
+      const textSquareY = y + Math.floor((rectH - textSquare) / 2);
+      ctx.fillStyle = "rgb(0,0,0)";
+      ctx.textAlign = "center";
+      ctx.font = "8px system-ui";
+      ctx.fillText(typeLabel, textSquareX + textSquare / 2, textSquareY + 6);
+      ctx.font = "8px system-ui";
+      ctx.fillText(tierLabel, textSquareX + textSquare / 2, textSquareY + 14);
+      ctx.textAlign = "left";
+    }
 
     if (showCount) {
       ctx.fillStyle = "rgba(255,255,255,0.95)";

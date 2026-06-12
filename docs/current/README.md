@@ -26,15 +26,15 @@ Ten katalog zawiera aktualną dokumentację projektu.
 ### 3) ui
 - `ui/UI_WORLD.md` - **KANON** - nadrzędny kontrakt UI/HUD/SUB-META/META.
 - `ui/HUD_SYSTEM.md` - **ROBOCZY / KIERUNEK HUD v2** - roboczy kierunek prawego panelu sekwencji, aktywacji i mikrodecyzji RUN.
-- `ui/SUB_META_V2_MASTER_SPEC.md` - **ROBOCZY / MASTER SPEC UI-LAYOUT** - nadrzędny roboczy dokument SUB-META v2 dla layout/design handoff.
+- `ui/SUB_META_RUNTIME_SNAPSHOT.md` - **AKTYWNY SNAPSHOT RUNTIME** - bieżąca ścieżka PNG/settings/placeholders/panels/debug; ma pierwszeństwo dla implementacji runtime SUB-META.
+- `ui/SUB_META_V2_MASTER_SPEC.md` - **LEGACY / REFERENCE DLA RUNTIME** - historyczny dokument layout/design handoff; nie nadpisuje aktywnego snapshotu.
 - `ui/SUB_META_V2_LAYOUT_TOKENS.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_MEMORY_PACK.md` - **HANDOFF / ROBOCZY / SPEC-HISTORY INPUT** - pomocniczy handoff, nie główny master spec layoutu.
 
 > Uwaga: `SUB_META_V2_LAYOUT_SPEC.md` i `SUB_META_V2_WIREFRAME_SPEC.md` zostały przeniesione do `docs/legacy/ui/` jako historyczne (zastąpione przez `SUB_META_V2_MASTER_SPEC.md`).
-> `FRAME_COMPOSER_SPEC.md` jest aktywnym technical contractem dla future FrameComposer handoff.
-> `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` i `SUB_META_V2_LAYOUT_TOKENS.md` pozostają appendiksami SUB-META/data.
-> Ten cleanup kontraktu nie zmienia runtime implementation.
+> Dla bieżącego runtime SUB-META FrameComposer, Figma i stare specyfikacje layoutowe są wyłącznie legacy/reference; aktywny source-of-truth opisuje `SUB_META_RUNTIME_SNAPSHOT.md`.
+> `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` i `SUB_META_V2_LAYOUT_TOKENS.md` pozostają materiałem historycznym/reference, nie aktywną ścieżką wdrożeniową.
 
 ### 4) visual
 - `visual/README.md` - **KIERUNEK** - mapa czytania dokumentów wizualnych.
