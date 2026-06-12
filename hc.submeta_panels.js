@@ -33,7 +33,7 @@
   const gridPanel = (id, label, x, y, w, h, zIndex, gridColumns, gridRowsVisible, gap, paddingX, paddingY, pageStepRows, filterTopMargin = 0.002, arrowRightMargin = 0.008, gridOffsetX = 0) =>
     Object.freeze({
       id, type: "grid-panel", label, x, y, w, h, zIndex, visibleInDebug: true, visibleInGame: false,
-      gridColumns, gridRowsVisible, cardRatioW: 1.3, cardRatioH: 2.3, cardScale: 1,
+      gridColumns, gridRowsVisible, cardRatioW: 9, cardRatioH: 16, cardScale: 1,
       gap, gapX: gap, gapY: gap, paddingX, paddingY, gridOffsetX, filterTopMargin, arrowRightMargin,
       ...(pageStepRows == null ? {} : { pageStepRows })
     });
@@ -184,7 +184,7 @@
       .submeta-card-view { position:absolute; box-sizing:border-box; transform:translate(-50%,-50%); display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; padding:3px; border:1px solid rgba(203,220,226,.48); border-radius:9%; background:linear-gradient(160deg,rgba(23,30,36,.96),rgba(4,8,12,.98)); color:#eef5f7; box-shadow:0 2px 5px rgba(0,0,0,.45); font:600 clamp(5px,.48vw,9px)/1 system-ui,sans-serif; pointer-events:auto; cursor:pointer; }
       .submeta-card-view:hover { border-color:rgba(234,245,248,.9); transform:translate(-50%,-50%) scale(1.04); }
       .submeta-card-view.is-selected { border-color:#ffdc72; box-shadow:0 0 0 1px rgba(255,220,114,.38),0 0 9px rgba(255,195,57,.58); }
-      .submeta-card-view.is-preview { position:relative; left:auto!important; top:auto!important; width:min(100%,58px)!important; height:min(100%,102px)!important; transform:none; cursor:default; pointer-events:none; }
+      .submeta-card-view.is-preview { position:relative; left:auto!important; top:auto!important; width:min(100%,58px)!important; height:auto!important; aspect-ratio:9/16; transform:none; cursor:default; pointer-events:none; }
       .submeta-panel-empty { position:absolute; inset:4px; display:grid; place-items:center; padding:5px; color:rgba(210,225,230,.72); font:clamp(7px,.6vw,11px)/1.25 system-ui,sans-serif; text-align:center; pointer-events:none; }
       .submeta-detail-content { position:absolute; inset:3px; overflow:hidden; color:#e7f0f3; font:clamp(6px,.52vw,10px)/1.25 system-ui,sans-serif; pointer-events:none; }
       .submeta-detail-content strong { display:block; margin-bottom:2px; color:#ffe39a; font-size:1.08em; }
