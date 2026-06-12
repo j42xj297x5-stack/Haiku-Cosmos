@@ -7,7 +7,7 @@
 > - NIE, jako zastępstwo pełnych dokumentów kanonicznych,  
 > - NIE, jako runtime spec,  
 > - NIE, jako dokument historyczny.  
-> Ostatnia aktualizacja: 2026-04-30  
+> Ostatnia aktualizacja: 2026-06-12
 > Powiązane: `../../README.md`, `../README.md`, `README.md`, `maps/PROJECT_INDEX.md`, `maps/DEPENDENCY_MAP.md`
 
 ## 1) Cel dokumentu
@@ -15,6 +15,12 @@
 Ten plik służy do **szybkiego startu rozmowy z ChatGPT-architektem**.  
 Kompresuje sens map, systemów, UI, visual i technical, żeby nie ładować 20+ plików na wejściu.  
 Nie zastępuje dokumentów źródłowych — wskazuje, co doładować warunkowo.
+
+## SUB-META runtime snapshot (2026-06-12)
+
+Aktywną ścieżką runtime SUB-META jest statyczny overlay PNG/CSS + settings z `public/settings/` + gameplayowe placeholdery + panele robocze + render kart SVG/PNG + debug Import/Export JSON. Pełny bieżący kontrakt: `ui/SUB_META_RUNTIME_SNAPSHOT.md`.
+
+Stare canvasowe SUB-META, FrameComposer, Figma oraz wcześniejsze specyfikacje/wireframe’y mają status legacy/reference dla SUB-META. Nie są źródłem prawdy bieżącego layoutu ani aktywnym systemem wdrożeniowym. Default po odświeżeniu pochodzi z plików settings; localStorage nie może mieć pierwszeństwa nad JSON.
 
 ## 2) Jak używać
 
@@ -32,8 +38,8 @@ Nie zastępuje dokumentów źródłowych — wskazuje, co doładować warunkowo.
 5. `docs/current/maps/DEPENDENCY_MAP.md` — relacje i ścieżki czytania.  
 6. `docs/current/systems/*` — kanon mechaniki/systemów.  
 7. `docs/current/ui/UI_WORLD.md` — kanon flow UI.  
-8. `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` — główny master layout/design handoff SUB-META v2.  
-9. `docs/current/technical/FRAME_COMPOSER_SPEC.md` — aktywny technical contract FrameComposera.  
+8. `docs/current/ui/SUB_META_RUNTIME_SNAPSHOT.md` — aktywny source-of-truth bieżącego runtime SUB-META.
+9. `SUB_META_V2_MASTER_SPEC.md`, FrameComposer i Figma — legacy/reference dla runtime SUB-META.
 10. `docs/current/visual/*` (core + execution) — kierunek i wykonanie visual.  
 11. `docs/legacy/`, `docs/audits/`, `docs/handoff/` — nie domyślny SoT (history/evidence/handoff).
 
@@ -109,11 +115,11 @@ Nie zastępuje dokumentów źródłowych — wskazuje, co doładować warunkowo.
 - Asset statusy (np. planned/review/production_candidate/evidence_only).
 - Raster traktować jako reference/source, nie runtime SVG.
 
-## 9) FrameComposer — skrót architekta
+## 9) FrameComposer — legacy/reference dla runtime SUB-META
 
 ### Hierarchia dokumentów
-1. `SUB_META_V2_MASTER_SPEC.md` — semantic/layout entrypoint.
-2. `FRAME_COMPOSER_SPEC.md` — active technical contract.
+1. `SUB_META_RUNTIME_SNAPSHOT.md` — aktywny runtime entrypoint.
+2. `SUB_META_V2_MASTER_SPEC.md` i `FRAME_COMPOSER_SPEC.md` — historyczny design/technical reference.
 3. `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` — SUB-META appendix.
 4. `SUB_META_V2_LAYOUT_TOKENS.md` — normalized data appendix.
 5. `CENTER_BASED_POSITIONING_SPEC.md` — ogólny standard visual layout.
@@ -149,12 +155,11 @@ Nie zastępuje dokumentów źródłowych — wskazuje, co doładować warunkowo.
 - `systems/PRG_SYSTEM.md`
 - opcjonalnie: `technical/SEQUENCE_STATE_CONTRACT.md`
 
-### B) SUB-META layout
+### B) SUB-META runtime/layout
 - `README_ARCHITECT.md`
+- `ui/SUB_META_RUNTIME_SNAPSHOT.md`
 - `ui/UI_WORLD.md`
-- `ui/SUB_META_V2_MASTER_SPEC.md`
-- `ui/SUB_META_V2_LAYOUT_TOKENS.md`
-- `ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`
+- master spec, layout tokens i FrameComposer contract tylko jako legacy/reference
 
 ### C) Visual / raster / Inkscape
 - `README_ARCHITECT.md`
@@ -172,7 +177,7 @@ Nie zastępuje dokumentów źródłowych — wskazuje, co doładować warunkowo.
 - `visual/SUB_META_ASSET_PIPELINE.md`
 - opcjonalnie: `ui/SUB_META_V2_MASTER_SPEC.md`
 
-### E) FrameComposer
+### E) FrameComposer (legacy/reference dla SUB-META)
 - `README_ARCHITECT.md`
 - `technical/FRAME_COMPOSER_SPEC.md`
 - `technical/CENTER_BASED_POSITIONING_SPEC.md`
@@ -223,9 +228,8 @@ Nie zastępuje dokumentów źródłowych — wskazuje, co doładować warunkowo.
 ## 15) Snapshot po cleanupie
 
 - `docs/current/` jest uporządkowaną warstwą kanoniczną.
-- `SUB_META_V2_MASTER_SPEC.md` zastąpił stare layout/wireframe specy.
+- `ui/SUB_META_RUNTIME_SNAPSHOT.md` ma pierwszeństwo dla bieżącego runtime SUB-META; wcześniejsze master specy, layouty i wireframe’y są reference, jeśli nie konfliktują ze snapshotem.
 - Visual workflow jest ustawiony na raster-first/Inkscape (+ optional Figma fitting).
-- Hierarchia FrameComposera jest uporządkowana.
-- Runtime integration FrameComposera pozostaje future pass.
+- FrameComposer i Figma są legacy/reference dla runtime SUB-META; nie planować ich integracji jako aktywnej ścieżki bez nowej decyzji architektonicznej.
 - Snapshot renderer/debug 2026-06-05 utrwala Three + `stage_normalized` + `stage_spot_v1` + compact logging oraz snapshot Three GLB + external meteor textures; nie zmienia mechaniki, kolizji, asteroid mechanics, PRG, SUB-META ani ekonomii.
 - `SUB_META_MEMORY_PACK.md` istnieje jako helper, ale ten plik jest głównym startem rozmowy z architektem.

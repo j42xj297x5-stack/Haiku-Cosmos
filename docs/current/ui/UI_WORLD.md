@@ -1,7 +1,7 @@
 > Status: KANON
 > Obszar: UI / flow świata i overlaye
 > Źródło prawdy: TAK
-> Ostatnia aktualizacja: 2026-04-24
+> Ostatnia aktualizacja: 2026-06-12
 > Powiązane dokumenty: ../maps/PROJECT_INDEX.md, ../systems/CARDS_SYSTEM.md, ../systems/ECONOMY_SYSTEM.md, ../systems/SUB_META_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../systems/I18N_SYSTEM.md
 
 # Haiku Cosmos — UI WORLD (KANON)
@@ -202,6 +202,8 @@ Przy atomowym zbieraniu koloru:
 ---
 
 ## 3. SUB-META Overlay (panel konfiguracyjny)
+
+> **Snapshot implementacyjny:** bieżący runtime opisuje `SUB_META_RUNTIME_SNAPSHOT.md`. Obecny etap używa PNG/settings/placeholders/panels i finalizacji przez pending + Potwierdź; nie implementuje jeszcze kosztów RP, wyjmowania/podmiany, pyłu ani pełnej Kuźni. Poniższe wymagania systemowe pozostają kierunkiem funkcjonalnym, nie opisem kompletności aktualnego runtime.
 
 SUB-META jest **panelem taktycznym**.
 

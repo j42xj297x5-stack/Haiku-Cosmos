@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa projektu / indeks dokumentacji aktualnej
 > Źródło prawdy: TAK
-> Ostatnia aktualizacja: 2026-06-05
+> Ostatnia aktualizacja: 2026-06-12
 > Powiązane dokumenty: ../../README.md, ../README.md, DEPENDENCY_MAP.md
 
 ## Rola dokumentu
@@ -38,7 +38,8 @@ Kanon jest mapowany warstwowo przez:
 
 - `docs/current/ui/UI_WORLD.md` (KANON)
 - `docs/current/ui/HUD_SYSTEM.md` (ROBOCZY / KIERUNEK HUD v2)
-- `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT)
+- `docs/current/ui/SUB_META_RUNTIME_SNAPSHOT.md` (AKTYWNY SNAPSHOT RUNTIME / PNG + SETTINGS + PLACEHOLDERS + PANELS + DEBUG)
+- `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (LEGACY/REFERENCE DLA RUNTIME / HISTORYCZNY DESIGN HANDOFF)
 - `docs/current/ui/SUB_META_V2_LAYOUT_TOKENS.md` (ROBOCZY / SPEC-HISTORY INPUT)
 - `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (ROBOCZY / SPEC-HISTORY INPUT)
 - `docs/current/ui/SUB_META_MEMORY_PACK.md` (ROBOCZY / HANDOFF / SPEC-HISTORY INPUT)
@@ -72,13 +73,21 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/technical/WORLD_RENDERING_MODEL.md` (ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA; zawiera checkpoint 2026-06-05: Three jako domyślny renderer gry/debug, Canvas2D legacy/fallback, `stage_normalized` camera, `stage_spot_v1` lighting z `mainStageSpot`, debug overlay/global helpers, compact evidence logging, SUB-META logging contract `future_event_based_v1` oraz snapshot Three GLB + external meteor textures: aktywny lokalny `GLTFLoader` dla meteorów/asteroid, cache template/clone GLB, cache PNG `map`/`emissiveMap` red/yellow przez `TextureLoader`, no-overwrite imported GLB materials i runtime asset policy)
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (ROBOCZY / ARCHITEKTURA TECHNICZNA)
 - `docs/current/technical/FONT_SYSTEM_SPEC.md` (ROBOCZY / DO WDROZENIA)
-- `docs/current/technical/FRAME_COMPOSER_SPEC.md` (ROBOCZY / KONTRAKT TECHNICZNY)
+- `docs/current/technical/FRAME_COMPOSER_SPEC.md` (LEGACY/REFERENCE DLA SUB-META; może być używany poza tym runtime tylko po osobnej decyzji)
 - `docs/current/technical/SUB_META_LAYOUT_ANCHOR_AUDIT.md` (ROBOCZY / AUDYT LAYOUTU)
 - `docs/current/technical/SUB_META_V2_BOX_AUDIT.md` (ROBOCZY / AUDYT PROJEKTOWO-TECHNICZNY)
 - `docs/current/technical/CENTER_BASED_POSITIONING_SPEC.md` (ROBOCZY / KONTRAKT TECHNICZNY VISUAL LAYOUT)
 - `docs/current/technical/IMPLEMENTATION_TRACKER.md` (ROBOCZY)
 - `docs/current/technical/LIVE_VALIDATION_PACK.md` (ROBOCZY)
 - `docs/current/technical/HUD_V2_RUNTIME_CONTRACT.md` (ROBOCZY / KONTRAKT TECHNICZNY HUD v2)
+
+## Aktywna ścieżka runtime SUB-META
+
+- Source-of-truth: `docs/current/ui/SUB_META_RUNTIME_SNAPSHOT.md`.
+- Runtime: `hc.submeta_png.js`, `hc.submeta_placeholders.js`, `hc.submeta_panels.js`, `hc.submeta_settings.js`, `hc.ui_debug.js`.
+- Settings: `public/settings/submeta-png-layout-export.json`, `public/settings/submeta-placeholders.json`, `public/settings/submeta-placeholders-panels.json`.
+- Assets kart: `public/svg/` oraz `public/png/cards/`.
+- Stare canvasowe SUB-META, FrameComposer, Figma oraz konfliktujące specy/wireframe’y są legacy/reference dla bieżącego runtime.
 
 ## Zasady użycia indeksu
 
@@ -89,14 +98,14 @@ Kanon jest mapowany warstwowo przez:
 - Modular Frame Kit v0.1 ma manifest evidence/export w `assets/visual/modular_frame_kit_v01_manifest.json`; runtime integration pozostaje future pass.
 - Modular Frame Kit v0.2 ma evidence w `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V02.md`; to Figma-only cleanup + derived kit pass bez eksportu SVG i bez runtime integration.
 - Modular Frame Kit v0.3 ma evidence w `docs/current/visual/SUB_META_FIGMA_DERIVED_FRAME_KIT_V03.md`; to Figma-only style correction + source re-cut pass z zywa rytualna linia, bez eksportu SVG i bez runtime integration.
-- `FRAME_COMPOSER_SPEC.md` opisuje kontrakt layoutu modularnych SVG (`anchorOffset`, `lineInset`, `ornamentScale`) i zawiera sekcje v0.1 implementation status (repo-only infrastructure).
+- `FRAME_COMPOSER_SPEC.md` opisuje historyczny kontrakt modularnych SVG (`anchorOffset`, `lineInset`, `ornamentScale`); dla SUB-META jest legacy/reference, nie aktywnym runtime.
 - `SVG_ASSET_STANDARDS.md` opisuje standard wykonawczy dla przyszlych SVG/rastrow: anchor metadata, nazewnictwo, statusy static/tintable/animatable i density.
 - `SUB_META_LAYOUT_ANCHOR_AUDIT.md` mapuje obecny layout SUB-META w `cards.js` i opisuje extraction pass v0.1 / kontrakt `SubMetaLayoutAnchors`.
 - `hc.submeta_layout.js` udostepnia runtime namespace `HC.SubMetaLayout` dla czystego layoutu SUB-META, density i mount points; produkcyjny FrameComposer jest podlaczony tylko jako `submeta.root_frame` probe za flaga.
 - `assets/visual/preview/frame_composer_sandbox.html` to manualny sandbox review dla `HC.VisualAssets` + `HC.FrameComposer` bez integracji runtime.
-- `SUB_META_V2_MASTER_SPEC.md` jest głównym roboczym dokumentem layout/design handoff dla SUB-META v2.
+- `SUB_META_V2_MASTER_SPEC.md` jest historycznym dokumentem layout/design handoff; aktywny runtime opisuje `SUB_META_RUNTIME_SNAPSHOT.md`.
 - `SUB_META_V2_LAYOUT_SPEC.md` i `SUB_META_V2_WIREFRAME_SPEC.md` zostały przeniesione do `docs/legacy/ui/` jako dokumenty historyczne zastąpione przez `SUB_META_V2_MASTER_SPEC.md`.
-- `FRAME_COMPOSER_SPEC.md` jest aktywnym nadrzednym technical contractem dla future FrameComposer handoff; `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` i `SUB_META_V2_LAYOUT_TOKENS.md` pozostaja appendiksami SUB-META/data. Cleanup kontraktu nie zmienil runtime implementation.
+- `FRAME_COMPOSER_SPEC.md`, `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` i `SUB_META_V2_LAYOUT_TOKENS.md` pozostają legacy/reference dla SUB-META i nie wyznaczają bieżącej implementacji runtime.
 - `SUB_META_MEMORY_PACK.md` pozostaje w `docs/current/ui/` jako pomocniczy handoff/memory pack (nie główny entrypoint layoutu).
 - Dokumenty evidence Figma (`SUB_META_FIGMA_*`) oraz manifesty legacy/evidence (`MODULAR_FRAME_KIT_ASSET_MANIFEST.md`) nie są aktywnym produkcyjnym source-of-truth dla runtime.
 
