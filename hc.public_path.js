@@ -1,18 +1,32 @@
-export function publicPath(path = "") {
-  const base = import.meta.env.BASE_URL || "/";
-  const cleanBase = base.endsWith("/") ? base : `${base}/`;
-  const cleanPath = String(path)
-    .replace(/^\/+/, "")
-    .replace(/^public\//, "");
+(function (root) {
+  "use strict";
 
-  return `${cleanBase}${cleanPath}`;
-}
+  root.HC = root.HC || {};
 
-export const publicAssetPath = publicPath;
+  function detectPublicBaseUrl() {
+    const currentScript = root.document?.currentScript;
+    if (currentScript?.src) {
+      const scriptUrl = new URL(currentScript.src, root.document.baseURI);
+      const runtimeMarker = "/runtime/hc.public_path.js";
+      const markerIndex = scriptUrl.pathname.lastIndexOf(runtimeMarker);
+      if (markerIndex >= 0) return `${scriptUrl.pathname.slice(0, markerIndex + 1)}`;
+    }
 
-if (typeof window !== "undefined") {
-  window.HC = window.HC || {};
-  window.HC.publicPath = publicPath;
-  window.HC.publicAssetPath = publicAssetPath;
-  window.HC.publicBaseUrl = publicPath("");
-}
+    const baseUrl = new URL(root.document?.baseURI || root.location?.href || "/", root.location?.href || "http://localhost/");
+    return baseUrl.pathname.endsWith("/") ? baseUrl.pathname : `${baseUrl.pathname}/`;
+  }
+
+  const publicBaseUrl = detectPublicBaseUrl();
+
+  function publicPath(path = "") {
+    const cleanPath = String(path)
+      .replace(/^\/+/, "")
+      .replace(/^public\//, "");
+
+    return `${publicBaseUrl}${cleanPath}`;
+  }
+
+  root.HC.publicPath = publicPath;
+  root.HC.publicAssetPath = publicPath;
+  root.HC.publicBaseUrl = publicBaseUrl;
+})(window);

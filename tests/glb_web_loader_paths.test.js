@@ -21,8 +21,10 @@ assert.match(rendererSource, /manager\.setURLModifier/, "GLTF dependencies must 
 assert.match(rendererSource, /gltfFailedDependencyUrls/, "failed dependency URLs must be exposed in diagnostics");
 assert.match(rendererSource, /loader\.setResourcePath\(resourcePath\)/, "resourcePath must be anchored to the resolved model URL");
 assert.doesNotMatch(bridgeSource, /new URL\("\.\/vendor\/three\/three\.core\.min\.js"/, "three.core must not be a redundant preflight hard gate");
-assert.match(publicPathSource, /import\.meta\.env\.BASE_URL/, "publicPath must use Vite BASE_URL");
+assert.doesNotMatch(publicPathSource, /import\.meta/, "legacy publicPath must not depend on module evaluation");
+assert.match(publicPathSource, /runtimeMarker = "\/runtime\/hc\.public_path\.js"/, "publicPath must derive the deployment base from its runtime script URL");
 assert.ok(publicPathSource.includes('.replace(/^public\\//, "")'), "publicPath must strip the physical public/ prefix");
+assert.match(bridgeSource, /window\.HC\?\.publicPath/, "Three bridge must consume the synchronous global publicPath helper");
 assert.match(bridgeSource, /publicPath\(THREE_MODULE_PUBLIC_PATH\)/, "Three module URL must use publicPath");
 assert.match(bridgeSource, /publicPath\(GLTF_LOADER_PUBLIC_PATH\)/, "GLTFLoader URL must use publicPath");
 assert.match(bridgeSource, /import\(\/\* @vite-ignore \*\//, "runtime vendor imports must preserve base-aware public URLs");

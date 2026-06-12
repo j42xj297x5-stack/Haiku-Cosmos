@@ -87,7 +87,7 @@ To jest project site GitHub Pages dla repozytorium `Haiku-Cosmos`, a nie user si
 
 ## Publiczne assety
 
-Publiczne URL-e do assetów należy budować przez helper `publicPath` / `publicAssetPath` z `hc.public_path.js`. Helper używa `import.meta.env.BASE_URL`, więc działa lokalnie i na GitHub Pages z base path `/Haiku-Cosmos/`.
+Publiczne URL-e do assetów należy budować przez globalny helper `HC.publicPath` / `HC.publicAssetPath` z `hc.public_path.js`. Helper jest klasycznym skryptem legacy i wyznacza base path z własnego URL `runtime/hc.public_path.js`, dzięki czemu jest dostępny synchronicznie przed pozostałym runtime zarówno lokalnie, jak i na GitHub Pages.
 
 Przykłady logicznych ścieżek, bez tworzenia tych plików w repo:
 
@@ -149,7 +149,7 @@ HTML ładuje klasyczne runtime skrypty przez ścieżki względne względem dokum
 
 W aktualnym `index.html` zapis może być znormalizowany przez przeglądarkę/narzędzia jako `runtime/nazwa_pliku.js`; istotny jest model względny, bez prefiksowania klasycznych globalnych skryptów przez `%BASE_URL%`. Dla GitHub Pages daje to poprawny URL pod `/Haiku-Cosmos/runtime/...`. Zachowuj kolejność `<script>` z `index.html`: `cards.js` musi pozostać przed modułami, które korzystają z kart, a `game.boot.js` po modułach świata.
 
-Powód tego rozdziału: przy klasycznych scriptach wariant `%BASE_URL%runtime/...` powodował w dev/build błędny, podwójny path `/Haiku-Cosmos/Haiku-Cosmos/runtime/...`. Module script tagi, np. `hc.public_path.js` i `hc.three_module_bridge.js`, pozostają na modelu `%BASE_URL%`, bo korzystają z Vite/base semantics dla modułów.
+Powód tego rozdziału: przy klasycznych scriptach wariant `%BASE_URL%runtime/...` powodował w dev/build błędny, podwójny path `/Haiku-Cosmos/Haiku-Cosmos/runtime/...`. `hc.public_path.js` oraz `hc.submeta_settings.js` są klasycznymi skryptami w `runtime/` i muszą wykonać się przed konsumentami legacy. `hc.three_module_bridge.js` pozostaje modułem, ale korzysta z wcześniej zarejestrowanego globalnego `HC.publicPath`.
 
 Po buildzie `postbuild` uruchamia `scripts/verify-legacy-runtime-dist.mjs`, który przerywa build, jeśli brakuje wymaganego legacy scriptu w `dist/runtime/` albo publicznych entry modules `dist/vendor/three/three.module.min.js` i `dist/vendor/loaders/GLTFLoader.js`.
 

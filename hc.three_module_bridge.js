@@ -1,4 +1,7 @@
-import { publicPath } from "./hc.public_path.js";
+const publicPath = window.HC?.publicPath;
+if (typeof publicPath !== "function") {
+  throw new Error("HC.publicPath must be loaded before hc.three_module_bridge.js");
+}
 
 const THREE_MODULE_PUBLIC_PATH = "vendor/three/three.module.min.js";
 const GLTF_LOADER_PUBLIC_PATH = "vendor/loaders/GLTFLoader.js";
