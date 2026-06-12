@@ -44,18 +44,18 @@
   const METEOR_TEXTURE_PALETTES = Object.freeze({
     red: Object.freeze({
       map: Object.freeze([
-        "/png/texture_meteor_red_01.png",
-        "/png/texture_meteor_red_02.png",
-        "/png/texture_meteor_red_03.png",
-        "/png/texture_meteor_red_04.png",
-        "/png/texture_meteor_red_05.png",
+        "png/texture_meteor_red_01.png",
+        "png/texture_meteor_red_02.png",
+        "png/texture_meteor_red_03.png",
+        "png/texture_meteor_red_04.png",
+        "png/texture_meteor_red_05.png",
       ]),
       emissiveMap: Object.freeze([
-        "/png/texture_meteor_red_emission_01.png",
-        "/png/texture_meteor_red_emission_02.png",
-        "/png/texture_meteor_red_emission_03.png",
-        "/png/texture_meteor_red_emission_04.png",
-        "/png/texture_meteor_red_emission_05.png",
+        "png/texture_meteor_red_emission_01.png",
+        "png/texture_meteor_red_emission_02.png",
+        "png/texture_meteor_red_emission_03.png",
+        "png/texture_meteor_red_emission_04.png",
+        "png/texture_meteor_red_emission_05.png",
       ]),
       baseColor: 0xffffff,
       emissiveColor: 0xff2f18,
@@ -65,18 +65,18 @@
     }),
     yellow: Object.freeze({
       map: Object.freeze([
-        "/png/texture_meteor_yellow_01.png",
-        "/png/texture_meteor_yellow_02.png",
-        "/png/texture_meteor_yellow_03.png",
-        "/png/texture_meteor_yellow_04.png",
-        "/png/texture_meteor_yellow_05.png",
+        "png/texture_meteor_yellow_01.png",
+        "png/texture_meteor_yellow_02.png",
+        "png/texture_meteor_yellow_03.png",
+        "png/texture_meteor_yellow_04.png",
+        "png/texture_meteor_yellow_05.png",
       ]),
       emissiveMap: Object.freeze([
-        "/png/texture_meteor_yellow_emission_01.png",
-        "/png/texture_meteor_yellow_emission_02.png",
-        "/png/texture_meteor_yellow_emission_03.png",
-        "/png/texture_meteor_yellow_emission_04.png",
-        "/png/texture_meteor_yellow_emission_05.png",
+        "png/texture_meteor_yellow_emission_01.png",
+        "png/texture_meteor_yellow_emission_02.png",
+        "png/texture_meteor_yellow_emission_03.png",
+        "png/texture_meteor_yellow_emission_04.png",
+        "png/texture_meteor_yellow_emission_05.png",
       ]),
       baseColor: 0xffffff,
       emissiveColor: 0xffb12a,
@@ -1458,17 +1458,20 @@
   }
 
   function loadMeteorTexture(THREE, assignment) {
-    if (!assignment?.url || !THREE?.TextureLoader) return null;
-    const resolvedUrl = resolvePublicAssetPath(assignment.url || assignment.path);
-    let entry = threeState.meteorTextureCache.get(resolvedUrl);
+    const logicalPath = assignment?.path || null;
+    if (!logicalPath || !THREE?.TextureLoader) return null;
+    const resolvedUrl = resolvePublicAssetPath(logicalPath);
+    let entry = threeState.meteorTextureCache.get(logicalPath);
     if (entry) return entry;
     if (!threeState.textureLoader) threeState.textureLoader = new THREE.TextureLoader();
     const startedAt = performance.now();
     entry = {
       status: "loading",
       url: resolvedUrl,
-      rawUrl: assignment.url || assignment.path,
-      path: assignment.path,
+      logicalPath,
+      resolvedUrl,
+      rawUrl: logicalPath,
+      path: logicalPath,
       name: assignment.path?.split("/").pop() || resolvedUrl,
       colorKey: assignment.colorKey,
       kind: assignment.kind,
@@ -1480,9 +1483,9 @@
       materials: new Set(),
       promise: null,
     };
-    threeState.meteorTextureCache.set(resolvedUrl, entry);
+    threeState.meteorTextureCache.set(logicalPath, entry);
     threeState.meteorTextureDiagnostics.textureLoadRequests += 1;
-    emitMeteorTextureDebugEvent("world.texture_load_started", { url: resolvedUrl, colorKey: entry.colorKey, kind: entry.kind, status: "loading" });
+    emitMeteorTextureDebugEvent("world.texture_load_started", { logicalPath, resolvedUrl, url: resolvedUrl, colorKey: entry.colorKey, kind: entry.kind, status: "loading" });
     entry.promise = threeState.textureLoader.loadAsync(resolvedUrl)
       .then((loadedTexture) => {
         entry.texture = configureMeteorTexture(THREE, loadedTexture, assignment.kind);
@@ -1493,7 +1496,7 @@
         entry.status = "ready";
         if (entry.texture) entry.texture.needsUpdate = true;
         markMeteorTextureMaterialsForUpdate(entry);
-        emitMeteorTextureDebugEvent("world.texture_load_ready", { url: resolvedUrl, colorKey: entry.colorKey, kind: entry.kind, status: "ready", durationMs: entry.durationMs, width: entry.imageWidth, height: entry.imageHeight });
+        emitMeteorTextureDebugEvent("world.texture_load_ready", { logicalPath, resolvedUrl, url: resolvedUrl, colorKey: entry.colorKey, kind: entry.kind, status: "ready", durationMs: entry.durationMs, width: entry.imageWidth, height: entry.imageHeight });
         syncMeteorTexturePalettesForActiveEntries(THREE);
         return entry.texture;
       })
@@ -1506,7 +1509,7 @@
         threeState.meteorTextureDiagnostics.meteorTextureLastError = `${entry.name}: ${entry.errorMessage}`;
         markMeteorTextureMaterialsForUpdate(entry);
         warnMeteorTextureOnce(resolvedUrl, entry.errorMessage);
-        emitMeteorTextureDebugEvent("world.texture_load_failed", { url: resolvedUrl, colorKey: entry.colorKey, kind: entry.kind, status: "failed", durationMs: entry.durationMs, errorMessage: entry.errorMessage });
+        emitMeteorTextureDebugEvent("world.texture_load_failed", { logicalPath, resolvedUrl, url: resolvedUrl, colorKey: entry.colorKey, kind: entry.kind, status: "failed", durationMs: entry.durationMs, errorMessage: entry.errorMessage });
         return null;
       });
     return entry;
@@ -1574,7 +1577,7 @@
     for (const colorKey of Object.keys(METEOR_TEXTURE_PALETTES)) {
       counts[colorKey] = 0;
       for (const paletteEntry of buildMeteorTexturePalette(colorKey, kind)) {
-        const cacheEntry = threeState.meteorTextureCache.get(paletteEntry.url);
+        const cacheEntry = threeState.meteorTextureCache.get(paletteEntry.path);
         if (cacheEntry?.status === "ready" && materialHasUsableTexture(cacheEntry.texture)) counts[colorKey] += 1;
       }
     }
@@ -2207,6 +2210,7 @@
     }
     if (!assignment) {
       if (previousUrl) disposeMeteorGlbInstance(entry);
+      entry.assetPath = null;
       entry.assetUrl = null;
       entry.variantIndex = null;
       entry.glbStatus = "fallback";
@@ -2218,6 +2222,7 @@
       return null;
     }
     if (previousUrl && previousUrl !== assignment.url) disposeMeteorGlbInstance(entry);
+    entry.assetPath = assignment.path;
     entry.assetUrl = assignment.url;
     entry.variantIndex = assignment.variantIndex;
     entry.glbStatus = "assigned";
@@ -2273,8 +2278,12 @@
     return matchedVariant || ASTEROID_GLB_DEFAULT_VARIANT;
   }
 
+  function getAsteroidGlbAssetPath(asteroid) {
+    return ASTEROID_GLB_ASSETS[normalizeAsteroidVisualVariant(asteroid)];
+  }
+
   function getAsteroidGlbAssetUrl(asteroid) {
-    return resolvePublicAssetPath(ASTEROID_GLB_ASSETS[normalizeAsteroidVisualVariant(asteroid)]);
+    return resolvePublicAssetPath(getAsteroidGlbAssetPath(asteroid));
   }
 
   function isPlanetVisualCandidate(planet) {
@@ -2303,8 +2312,12 @@
     return matchedVariant || PLANET_GLB_DEFAULT_VARIANT;
   }
 
+  function getPlanetGlbAssetPath(planet) {
+    return PLANET_GLB_ASSETS[normalizePlanetVisualVariant(planet)];
+  }
+
   function getPlanetGlbAssetUrl(planet) {
-    return resolvePublicAssetPath(PLANET_GLB_ASSETS[normalizePlanetVisualVariant(planet)]);
+    return resolvePublicAssetPath(getPlanetGlbAssetPath(planet));
   }
 
   function getAsteroidGlbCacheStats() {
@@ -3681,20 +3694,20 @@
     return loadGltfSceneWithDiagnostics(THREE, LoaderClass, url, assetKind, cacheEntry).then((result) => result.template);
   }
 
-  function loadGlbWithGltfLoader(THREE, assetPath, assetKind = "generic") {
-    const url = resolvePublicAssetPath(assetPath);
-    let entry = threeState.glbTemplateCache.get(url);
+  function loadGlbWithGltfLoader(THREE, logicalPath, assetKind = "generic") {
+    const resolvedUrl = resolvePublicAssetPath(logicalPath);
+    let entry = threeState.glbTemplateCache.get(logicalPath);
     if (entry) {
       if (entry.status === "loading") syncGltfLoaderUrlDiagnostics();
       return entry;
     }
     const startedAt = performance.now();
-    entry = { status: "loading", url, rawUrl: String(assetPath || ""), logicalPath: String(assetPath || ""), resolvedUrl: url, baseUrl: getBrowserAssetBaseUrl(), cacheKey: url, assetKind, loaderMode: "gltf_loader", loaderPrimary: "GLTFLoader", template: null, error: null, errorMessage: null, errorStack: null, startedAt, durationMs: null, timeoutMs: getGlbLoadTimeoutMs(assetKind), progressLoaded: null, progressTotal: null, progressEventEmitted: false, materialAudit: null, promise: null };
-    threeState.glbTemplateCache.set(url, entry);
-    entry.promise = parseGlbWithGltfLoader(THREE, url, assetKind, entry)
+    entry = { status: "loading", url: resolvedUrl, rawUrl: String(logicalPath || ""), logicalPath: String(logicalPath || ""), resolvedUrl, baseUrl: getBrowserAssetBaseUrl(), cacheKey: logicalPath, assetKind, loaderMode: "gltf_loader", loaderPrimary: "GLTFLoader", template: null, error: null, errorMessage: null, errorStack: null, startedAt, durationMs: null, timeoutMs: getGlbLoadTimeoutMs(assetKind), progressLoaded: null, progressTotal: null, progressEventEmitted: false, materialAudit: null, promise: null };
+    threeState.glbTemplateCache.set(logicalPath, entry);
+    entry.promise = parseGlbWithGltfLoader(THREE, resolvedUrl, assetKind, entry)
       .then((template) => {
         entry.template = template;
-        entry.materialAudit = collectGlbMaterialAudit(template, url);
+        entry.materialAudit = collectGlbMaterialAudit(template, resolvedUrl);
         logGlbMaterialAudit();
         entry.status = "ready";
         return template;
@@ -3706,20 +3719,20 @@
         entry.errorMessage = entry.error;
         entry.errorStack = entry.errorStack || safeGlbErrorStack(error);
         const diagnostics = refreshGltfLoaderAvailabilityDiagnostics();
-        diagnostics.gltfLoaderLastFailedUrl = url;
+        diagnostics.gltfLoaderLastFailedUrl = resolvedUrl;
         diagnostics.gltfLoaderLastDurationMs = entry.durationMs;
         diagnostics.gltfLoaderLastErrorName = safeGlbErrorName(error);
         diagnostics.gltfLoaderLastErrorMessage = entry.error;
         diagnostics.gltfLoaderLastErrorStack = entry.errorStack;
-        pushUniqueLimited(diagnostics.gltfLoaderFailedUrls, url);
-        removeFromList(diagnostics.gltfLoaderPendingUrls, url);
+        pushUniqueLimited(diagnostics.gltfLoaderFailedUrls, resolvedUrl);
+        removeFromList(diagnostics.gltfLoaderPendingUrls, resolvedUrl);
         syncGltfLoaderUrlDiagnostics();
-        if (!error?.hcGlbTimeout && !error?.hcGlbEventEmitted) emitGlbDebugEvent("world.glb_load_failed", makeGlbEventPayload("failed", { assetKind, url, cacheKey: entry.cacheKey, durationMs: entry.durationMs, loaded: entry.progressLoaded, total: entry.progressTotal, error, status: "failed" }));
-        warnGlbLoadFailureOnce(url, entry.error, { assetKind, durationMs: entry.durationMs, progressLoaded: entry.progressLoaded, progressTotal: entry.progressTotal });
+        if (!error?.hcGlbTimeout && !error?.hcGlbEventEmitted) emitGlbDebugEvent("world.glb_load_failed", makeGlbEventPayload("failed", { assetKind, logicalPath, url: resolvedUrl, cacheKey: entry.cacheKey, durationMs: entry.durationMs, loaded: entry.progressLoaded, total: entry.progressTotal, error, status: "failed" }));
+        warnGlbLoadFailureOnce(resolvedUrl, entry.error, { assetKind, durationMs: entry.durationMs, progressLoaded: entry.progressLoaded, progressTotal: entry.progressTotal });
         if (assetKind === "asteroid") {
           threeState.asteroidGlbTextureDiagnostics = Object.assign(createAsteroidGlbTextureDiagnostics(), {
             asteroidGlbLoaderMode: "gltf_loader",
-            lastAssetUrl: url,
+            lastAssetUrl: resolvedUrl,
             lastError: entry.error,
           });
         }
@@ -3728,10 +3741,10 @@
     return entry;
   }
 
-  function loadMeteorGlb(THREE, url) {
-    const entry = loadGlbWithGltfLoader(THREE, url, "meteor");
-    threeState.meteorGlbCache.set(url, entry);
-    if (entry.status === "failed") warnMeteorGlbOnce(url, entry.error || "GLTFLoader failed");
+  function loadMeteorGlb(THREE, logicalPath) {
+    const entry = loadGlbWithGltfLoader(THREE, logicalPath, "meteor");
+    threeState.meteorGlbCache.set(logicalPath, entry);
+    if (entry.status === "failed") warnMeteorGlbOnce(entry.resolvedUrl, entry.error || "GLTFLoader failed");
     return entry;
   }
 
@@ -3832,7 +3845,7 @@
     root.userData.rotationSpeed = rotationState.rotationSpeed;
     root.userData.rotationPhase = rotationState.rotationPhase;
     root.userData.rotationDominantAxis = rotationState.dominantAxis;
-    const entry = { root, fallback, glb: null, visualId, colorKey: null, meteorColorKey: colorKey, sourceMeteor: null, meteor: null, assetUrl: null, variantIndex: null, glbStatus: "fallback", rotationState, meteorTextureAssignments: null, meteorTextureAppliedUrls: { map: null, emissiveMap: null }, meteorTextureApplySignature: null, meteorTextureLastMaterialMode: null, meteorTextureLastToggleEnabled: null, meteorTextureStatus: "idle", meteorTextureRestorePending: false };
+    const entry = { root, fallback, glb: null, visualId, colorKey: null, meteorColorKey: colorKey, sourceMeteor: null, meteor: null, assetPath: null, assetUrl: null, variantIndex: null, glbStatus: "fallback", rotationState, meteorTextureAssignments: null, meteorTextureAppliedUrls: { map: null, emissiveMap: null }, meteorTextureApplySignature: null, meteorTextureLastMaterialMode: null, meteorTextureLastToggleEnabled: null, meteorTextureStatus: "idle", meteorTextureRestorePending: false };
     assignMeteorGlbAsset(entry, colorKey);
     return entry;
   }
@@ -3947,15 +3960,16 @@
 
   function updateMeteorGlbVisual(THREE, entry) {
     if (!entry) return false;
+    const logicalPath = entry.assetPath || null;
     const assetUrl = entry.assetUrl || null;
-    if (!assetUrl) {
+    if (!logicalPath) {
       entry.glbStatus = "fallback";
       entry.root.userData.glbStatus = entry.glbStatus;
       entry.fallback.visible = true;
       if (entry.glb) entry.glb.visible = false;
       return false;
     }
-    const cacheEntry = loadMeteorGlb(THREE, assetUrl);
+    const cacheEntry = loadMeteorGlb(THREE, logicalPath);
     if (cacheEntry.status === "failed") {
       entry.glbStatus = "failed";
       entry.root.userData.glbStatus = entry.glbStatus;
@@ -3989,10 +4003,10 @@
   }
 
 
-  function loadAsteroidGlb(THREE, url) {
-    const entry = loadGlbWithGltfLoader(THREE, url, "asteroid");
-    threeState.asteroidGlbCache.set(url, entry);
-    if (entry.status === "failed") warnAsteroidGlbOnce(url, entry.error || "GLTFLoader failed");
+  function loadAsteroidGlb(THREE, logicalPath) {
+    const entry = loadGlbWithGltfLoader(THREE, logicalPath, "asteroid");
+    threeState.asteroidGlbCache.set(logicalPath, entry);
+    if (entry.status === "failed") warnAsteroidGlbOnce(entry.resolvedUrl, entry.error || "GLTFLoader failed");
     return entry;
   }
 
@@ -4009,6 +4023,7 @@
     const root = new THREE.Group();
     root.userData.hcObjectType = "asteroid";
     root.userData.asteroidKey = key;
+    root.userData.glbAssetPath = getAsteroidGlbAssetPath(asteroid);
     root.userData.glbAssetUrl = getAsteroidGlbAssetUrl(asteroid);
     root.userData.visualVariant = normalizeAsteroidVisualVariant(asteroid);
     root.frustumCulled = false;
@@ -4024,7 +4039,7 @@
     root.userData.rotationBase = rotationState.rotationBase;
     root.userData.rotationSpeed = rotationState.rotationSpeed;
     root.userData.rotationDominantAxis = rotationState.dominantAxis;
-    return { root, fallback, glb: null, key, assetUrl: getAsteroidGlbAssetUrl(asteroid), visualVariant: normalizeAsteroidVisualVariant(asteroid), glbStatus: "assigned", rotationState, asteroid: null };
+    return { root, fallback, glb: null, key, assetPath: getAsteroidGlbAssetPath(asteroid), assetUrl: getAsteroidGlbAssetUrl(asteroid), visualVariant: normalizeAsteroidVisualVariant(asteroid), glbStatus: "assigned", rotationState, asteroid: null };
   }
 
   function disposeAsteroidGlbInstance(entry) {
@@ -4049,8 +4064,9 @@
 
   function updateAsteroidGlbVisual(THREE, entry) {
     if (!entry) return false;
-    const assetUrl = entry.assetUrl || getAsteroidGlbAssetUrl(entry.asteroid);
-    const cacheEntry = loadAsteroidGlb(THREE, assetUrl);
+    const logicalPath = entry.assetPath || getAsteroidGlbAssetPath(entry.asteroid);
+    const assetUrl = entry.assetUrl || resolvePublicAssetPath(logicalPath);
+    const cacheEntry = loadAsteroidGlb(THREE, logicalPath);
     if (cacheEntry.status === "failed") {
       entry.glbStatus = "failed";
       entry.root.userData.glbStatus = entry.glbStatus;
@@ -4351,8 +4367,10 @@
       const desiredAssetUrl = getAsteroidGlbAssetUrl(a);
       if (visual.assetUrl !== desiredAssetUrl) {
         disposeAsteroidGlbInstance(visual);
+        visual.assetPath = getAsteroidGlbAssetPath(a);
         visual.assetUrl = desiredAssetUrl;
         visual.visualVariant = desiredVariant;
+        visual.root.userData.glbAssetPath = visual.assetPath;
         visual.root.userData.glbAssetUrl = desiredAssetUrl;
         visual.root.userData.visualVariant = desiredVariant;
         visual.glbStatus = "assigned";
@@ -4453,7 +4471,8 @@
   function createPlanetVisual(THREE, planet, key) {
     const root = new THREE.Group();
     const visualVariant = normalizePlanetVisualVariant(planet);
-    const assetUrl = getPlanetGlbAssetUrl(planet);
+    const assetPath = getPlanetGlbAssetPath(planet);
+    const assetUrl = resolvePublicAssetPath(assetPath);
     root.userData.hcObjectType = "planet";
     root.userData.planetKey = key;
     root.userData.glbAssetUrl = assetUrl;
@@ -4474,7 +4493,7 @@
     fallback.frustumCulled = false;
     fallback.renderOrder = 800;
     root.add(fallback);
-    return { root, fallback, glb: null, key, assetUrl, visualVariant, glbStatus: "assigned", planet, rotationStartMs: null };
+    return { root, fallback, glb: null, key, assetPath, assetUrl, visualVariant, glbStatus: "assigned", planet, rotationStartMs: null };
   }
 
   function applyPlanetVisualRotation(entry, planet, nowMs) {
@@ -4508,8 +4527,8 @@
   }
 
   function updatePlanetGlbVisual(THREE, entry) {
-    const cacheEntry = loadGlbWithGltfLoader(THREE, entry.assetUrl, "planet");
-    threeState.planetGlbCache.set(entry.assetUrl, cacheEntry);
+    const cacheEntry = loadGlbWithGltfLoader(THREE, entry.assetPath, "planet");
+    threeState.planetGlbCache.set(entry.assetPath, cacheEntry);
     if (cacheEntry.status === "failed") {
       entry.glbStatus = "failed";
       entry.root.userData.glbStatus = entry.glbStatus;
@@ -4990,7 +5009,7 @@
       asteroidGlbInstanceCreates: threeState.asteroidGlbInstanceCreates,
       planetGlbCacheEntries: summarizeGlbCacheEntries(threeState.planetGlbCache),
       planetGlbCacheSize: threeState.planetGlbCache.size,
-      planetGlbStatus: threeState.planetGlbCache.get(getPlanetGlbAssetUrl())?.status || "not_requested",
+      planetGlbStatus: threeState.planetGlbCache.get(getPlanetGlbAssetPath())?.status || "not_requested",
       planetGlbInstanceCreates: threeState.planetGlbInstanceCreates,
       activePlanetGlbInstances: Array.from(threeState.planetMeshes.values()).filter((entry) => !!entry.glb).length,
       activePlanetFallbacks: Array.from(threeState.planetMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
@@ -5123,7 +5142,17 @@
     };
   }
 
+  function getThreeAssetUrlContract() {
+    const rows = [
+      { kind: "meteorGlb", logicalPath: METEOR_GLB_ASSETS.red[0] },
+      { kind: "meteorTexture", logicalPath: METEOR_TEXTURE_PALETTES.red.map[0] },
+      { kind: "meteorEmissiveMap", logicalPath: METEOR_TEXTURE_PALETTES.red.emissiveMap[0] },
+      { kind: "asteroidGlb", logicalPath: ASTEROID_GLB_ASSETS[ASTEROID_GLB_DEFAULT_VARIANT] },
+    ];
+    return rows.map((row) => Object.assign({}, row, { resolvedUrl: resolvePublicAssetPath(row.logicalPath) }));
+  }
+
   function destroy() { destroyThree(); initialized = false; resetDiagnostics(); }
 
-  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, isPlanetVisualCandidate, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getMeteorGlbDepthScale, setMeteorGlbDepthScale, getThreeCameraModel, setThreeCameraModel, getGlobalHelpersEnabled, setGlobalHelpersEnabled, getThreeLightsSettings, setThreeLightsDebugSetting, getThreeMaterialSettings, setThreeMaterialDebugSetting };
+  window.HC.WorldRenderer = { init, resize, render, destroy, getDiagnostics, setMode, getMode, isPlanetVisualCandidate, getMeteorGlbVisualScale, setMeteorGlbVisualScale, getMeteorGlbDepthScale, setMeteorGlbDepthScale, getThreeCameraModel, setThreeCameraModel, getGlobalHelpersEnabled, setGlobalHelpersEnabled, getThreeLightsSettings, setThreeLightsDebugSetting, getThreeMaterialSettings, setThreeMaterialDebugSetting, getThreeAssetUrlContract };
 })();
