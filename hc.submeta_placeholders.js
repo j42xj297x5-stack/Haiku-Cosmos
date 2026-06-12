@@ -28,19 +28,6 @@
   const SLOT_CARD_BASE_HEIGHT = 0.0644;
   const SLOT_CARD_BASE_UNIT = 0.028;
   const DEFAULT_SLOT_CARD_SCALE = 1;
-  const CARD_SVG_ASSET_PATHS = Object.freeze(Object.fromEntries(
-    ["RED", "YELLOW", "GREEN", "BLUE"].flatMap((color) =>
-      ["DR", "SDR", "PDR"].map((tier) => [
-        `R1:${color}:${tier}`,
-        `svg/card_r1_${color.toLowerCase()}_${tier.toLowerCase()}.svg`
-      ])
-    )
-  ));
-  const CARD_PNG_ASSET_PATHS = Object.freeze({
-    "R1:RED:DR": "png/cards/card_r1_red_dr.png",
-    "R1:RED:SDR": "png/cards/card_r1_red_sdr.png",
-    "R1:RED:PDR": "png/cards/card_r1_red_pdr.png"
-  });
 
   const placeholder = (id, group, subgroup, kind, state, x, y, w, h, zIndex, visibleInGame, visibleInDebug, label) =>
     Object.freeze({ id, group, subgroup, kind, state, x, y, w, h, zIndex, visibleInGame, visibleInDebug, selected: false, label });
@@ -128,7 +115,6 @@
   let layer = null;
   let stage = null;
   let floatingEditor = null;
-  const failedCardAssetUrls = new Set();
 
   function cloneDefaults() {
     return DEFAULT_PLACEHOLDERS.map((item) => ({ ...item }));
@@ -481,49 +467,16 @@
     return ({ red: "#b8453d", yellow: "#c9a83b", green: "#4d9b62", blue: "#477eb7" })[String(color || "").toLowerCase()] || "#66737a";
   }
 
-  function resolvePublicAssetUrl(path) {
-    const helper = root.HC && (root.HC.publicAssetPath || root.HC.publicPath);
-    if (typeof helper === "function") return helper(path);
-    try {
-      const configuredBase = typeof root.HC_PUBLIC_BASE_URL === "string" && !root.HC_PUBLIC_BASE_URL.includes("%")
-        ? root.HC_PUBLIC_BASE_URL
-        : document.baseURI;
-      const baseUrl = new URL(configuredBase, root.location?.origin || document.baseURI);
-      return new URL(path, baseUrl).href;
-    } catch (_error) {
-      return path;
-    }
-  }
-
-  function getCardAssetKey(card) {
-    const identity = `${card?.id || ""} ${card?.key || ""} ${card?.cardKey || ""}`.toUpperCase();
-    const kind = String(card?.kind || card?.type || (identity.includes("R1") ? "R1" : "")).toUpperCase();
-    const tier = String(card?.tier || card?.fromTier
-      || (identity.includes("PDR") ? "PDR" : (identity.includes("SDR") ? "SDR" : "DR"))).toUpperCase();
-    const identityColor = ["RED", "YELLOW", "GREEN", "BLUE"].find((candidate) => identity.includes(candidate));
-    const color = String(card?.colors?.[0] || card?.color || card?.colorA || identityColor || "").toUpperCase();
-    return `${kind}:${color}:${tier}`;
-  }
-
-  function resolveMappedCardAsset(card, assetPaths, format) {
-    const path = assetPaths[getCardAssetKey(card)];
-    if (!path) return null;
-    const url = resolvePublicAssetUrl(path);
-    return failedCardAssetUrls.has(url) ? null : { path, url, format };
-  }
-
   function resolveCardSvgAsset(card) {
-    return resolveMappedCardAsset(card, CARD_SVG_ASSET_PATHS, "svg");
+    return root.HC.CardAssets?.resolveCardSvgAsset?.(card) || null;
   }
 
   function resolveCardPngAsset(card) {
-    return resolveMappedCardAsset(card, CARD_PNG_ASSET_PATHS, "png");
+    return root.HC.CardAssets?.resolveCardPngAsset?.(card) || null;
   }
 
   function resolveCardAsset(card, options = {}) {
-    return options.context === "detail"
-      ? (resolveCardPngAsset(card) || resolveCardSvgAsset(card))
-      : resolveCardSvgAsset(card);
+    return root.HC.CardAssets?.resolveCardAsset?.(card, options) || null;
   }
 
   function getProceduralCardSignature(card, showCount) {
@@ -602,7 +555,7 @@
     image.alt = "";
     image.draggable = false;
     image.addEventListener("error", () => {
-      failedCardAssetUrls.add(asset.url);
+      root.HC.CardAssets?.markAssetFailed?.(asset, card);
       delete node.dataset.cardRenderSignature;
       renderSubMetaCard(node, card, options);
     }, { once: true });
