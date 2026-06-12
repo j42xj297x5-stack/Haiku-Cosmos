@@ -578,7 +578,7 @@
       runtimeDebugOverlayBody = document.getElementById("runtimeDebugOverlayBody");
       runtimeDebugOverlayPanel = document.getElementById("runtimeDebugOverlayPanel");
       if (runtimeDebugOverlayBody) {
-        runtimeDebugOverlayBody.addEventListener("click", (event) => {
+        runtimeDebugOverlayBody.addEventListener("click", async (event) => {
           const interactiveControl = event.target && event.target.closest
             ? event.target.closest("input, select, textarea, button, label, option")
             : null;
@@ -619,8 +619,9 @@
           }
           const subMetaControl = event.target && event.target.closest ? event.target.closest("[data-submeta-png-action]") : null;
           if (subMetaControl) {
-            const json = document.getElementById("dbgSubMetaPngJson")?.value || "";
-            if (window.HC?.SubMetaPngLayout?.handleDebugControl?.(subMetaControl)) {
+            const handled = await window.HC?.SubMetaPngLayout?.handleDebugControl?.(subMetaControl);
+            if (handled) {
+              const json = document.getElementById("dbgSubMetaPngJson")?.value || "";
               const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
               runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
               const textarea = document.getElementById("dbgSubMetaPngJson");

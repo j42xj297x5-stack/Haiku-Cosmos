@@ -324,12 +324,65 @@
     return elements.find((item) => item.id === selectedId) || elements[0];
   }
 
+  function validatePayload(payload) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error("PNG layout must be a JSON object");
+    }
+    if (payload.version !== VERSION) {
+      throw new Error(`PNG layout version must be ${VERSION}`);
+    }
+    if (payload.designSize?.width !== DESIGN_SIZE.width || payload.designSize?.height !== DESIGN_SIZE.height) {
+      throw new Error(`PNG layout designSize must be ${DESIGN_SIZE.width} × ${DESIGN_SIZE.height}`);
+    }
+    if (!Array.isArray(payload.elements) || payload.elements.length !== DEFAULT_ELEMENTS.length) {
+      throw new Error(`PNG layout elements must contain exactly ${DEFAULT_ELEMENTS.length} entries`);
+    }
+
+    const seenIds = new Set();
+    for (const item of payload.elements) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        throw new Error("Every PNG layout element must be an object");
+      }
+      if (!defaultsById.has(item.id)) throw new Error(`Unknown PNG layout element id: ${String(item.id)}`);
+      if (seenIds.has(item.id)) throw new Error(`Duplicate PNG layout element id: ${item.id}`);
+      seenIds.add(item.id);
+      const fallback = defaultsById.get(item.id);
+      if (item.src !== fallback.src || item.mode !== fallback.mode) {
+        throw new Error(`PNG layout element ${item.id} has an incompatible src or mode`);
+      }
+      for (const field of ["x", "y", "scaleX", "scaleY", "opacity", "zIndex"]) {
+        if (typeof item[field] !== "number" || !Number.isFinite(item[field])) {
+          throw new Error(`PNG layout element ${item.id} has invalid ${field}`);
+        }
+      }
+      if (item.x < 0 || item.x > 1 || item.y < 0 || item.y > 1 || item.opacity < 0 || item.opacity > 1) {
+        throw new Error(`PNG layout element ${item.id} has a position or opacity outside 0..1`);
+      }
+      if (item.scaleX < 0.05 || item.scaleX > 5 || item.scaleY < 0.05 || item.scaleY > 5) {
+        throw new Error(`PNG layout element ${item.id} has a scale outside 0.05..5`);
+      }
+      if (!Number.isInteger(item.zIndex) || item.zIndex < -100 || item.zIndex > 1000) {
+        throw new Error(`PNG layout element ${item.id} has an invalid zIndex`);
+      }
+      if (typeof item.visible !== "boolean") {
+        throw new Error(`PNG layout element ${item.id} has invalid visible`);
+      }
+    }
+
+    for (const fallback of DEFAULT_ELEMENTS) {
+      if (!seenIds.has(fallback.id)) throw new Error(`Missing PNG layout element id: ${fallback.id}`);
+    }
+    return true;
+  }
+
   function applyPayload(payload) {
-    if (!payload || !Array.isArray(payload.elements)) return false;
-    const incomingById = new Map(payload.elements.map((item) => [item && item.id, item]));
-    elements = DEFAULT_ELEMENTS.map((fallback) => normalizeElement(incomingById.get(fallback.id), fallback));
+    validatePayload(payload);
+    const incomingById = new Map(payload.elements.map((item) => [item.id, item]));
+    const nextElements = DEFAULT_ELEMENTS.map((fallback) => normalizeElement(incomingById.get(fallback.id), fallback));
+    elements = nextElements;
     if (!elements.some((item) => item.id === selectedId)) selectedId = elements[0].id;
     renderElements();
+    refreshConfirmButton();
     return true;
   }
 
@@ -344,15 +397,23 @@
         throw new Error("SUB-META settings loader is unavailable");
       }
       const result = await settings.loadJson(logicalPath, {
-        validate: (payload) => !!payload && Array.isArray(payload.elements),
-        invalidMessage: "Runtime setting JSON does not contain an elements array"
+        validate: (payload) => {
+          try {
+            return validatePayload(payload);
+          } catch (_error) {
+            return false;
+          }
+        },
+        invalidMessage: "Runtime PNG layout setting has an invalid structure"
       });
       lastLayoutUrl = result.resolvedUrl || resolvedUrl;
       if (!result.ok || !applyPayload(result.payload)) {
         throw result.error || new Error(result.failureKind || "PNG layout settings load failed");
       }
       dataSource = "settings JSON";
-      lastAction = reason === "startup" ? "loaded" : "reset";
+      lastAction = reason === "startup"
+        ? `loaded settings JSON, elements: ${elements.length}`
+        : `reset from settings JSON, elements: ${elements.length}`;
       lastError = "";
       updateSettingsStatus("png", lastAction);
       debugLog("layout loaded from settings JSON", { logicalPath, resolvedUrl: lastLayoutUrl });
@@ -377,9 +438,9 @@
   function importLayout(json) {
     try {
       const payload = typeof json === "string" ? JSON.parse(json) : json;
-      if (!applyPayload(payload)) throw new Error("JSON does not contain a valid elements array");
+      applyPayload(payload);
       dataSource = "imported runtime";
-      lastAction = "imported";
+      lastAction = `imported PNG layout, elements: ${elements.length}`;
       lastError = "";
       updateSettingsStatus("png", lastAction);
       return true;
@@ -402,6 +463,8 @@
   async function resetAll() {
     const restored = await restoreJsonDefaultOrFallback();
     update();
+    const textarea = document.getElementById("dbgSubMetaPngJson");
+    if (textarea) textarea.value = JSON.stringify(getExportPayload(), null, 2);
     return restored;
   }
 
@@ -414,7 +477,7 @@
   }
 
   function exportLayout() {
-    lastAction = "exported";
+    lastAction = `exported current PNG layout, elements: ${elements.length}`;
     lastError = "";
     updateSettingsStatus("png", lastAction);
     return JSON.stringify(getExportPayload(), null, 2);
@@ -460,7 +523,7 @@
     const action = target.dataset && target.dataset.submetaPngAction;
     if (!action) return false;
     if (action === "reset-selected") resetSelected();
-    else if (action === "reset-all") resetAll();
+    else if (action === "reset-all") return resetAll().then(() => true);
     else {
       const textarea = document.getElementById("dbgSubMetaPngJson");
       if (action === "export") { if (textarea) textarea.value = exportLayout(); }
@@ -530,7 +593,7 @@
           <textarea id="dbgSubMetaPngJson" class="overlay-note submeta-settings-json" spellcheck="false" placeholder="Exported JSON appears here; paste PNG layout JSON here before Import."></textarea>
           <div class="submeta-png-diagnostics">
             <div class="overlay-row"><span class="k">source</span><code class="v">${diagnostics.layoutSource}</code></div>
-            <div class="overlay-row"><span class="k">configured</span><span class="v">${diagnostics.elementsConfigured}</span></div>
+            <div class="overlay-row"><span class="k">elements</span><span class="v">${diagnostics.elementsConfigured}</span></div>
             <div class="overlay-row"><span class="k">last action</span><code class="v" data-submeta-settings-status="png">${lastAction}</code></div>
             <div class="overlay-row"><span class="k">settings URL</span><code class="v">${diagnostics.layoutUrl}</code></div>
             ${lastError ? `<div class="overlay-row"><span class="k">error</span><code class="v">${lastError}</code></div>` : ""}
@@ -567,6 +630,7 @@
     getDiagnostics,
     getElements: () => elements.map(cloneElement),
     getExportPayload,
+    validatePayload,
     loadRuntimeSetting: restoreJsonDefaultOrFallback,
     loadJsonDefault: restoreJsonDefaultOrFallback,
     importLayout,
