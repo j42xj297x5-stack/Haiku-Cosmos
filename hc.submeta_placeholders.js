@@ -11,7 +11,8 @@
   const STATES = Object.freeze(["free_active", "free_inactive", "hidden", "occupied"]);
   const GROUPS = Object.freeze(["PRG R1", "PRG R2", "R3", "R4", "Świat", "Świat R2"]);
   const EDITABLE_FIELDS = Object.freeze(["x", "y", "w", "h", "zIndex", "state", "visibleInGame", "visibleInDebug"]);
-  const SLOT_CARD_RATIO = Object.freeze({ width: 1.3, height: 2.3 });
+  const SLOT_CARD_RATIO = Object.freeze({ width: 9, height: 16 });
+  const SLOT_CARD_BASE_HEIGHT = 0.0644;
   const SLOT_CARD_BASE_UNIT = 0.028;
   const DEFAULT_SLOT_CARD_SCALE = 1;
   const CARD_ASSET_PATHS = Object.freeze({
@@ -206,14 +207,18 @@
       .submeta-card-render-stripe { flex:1; }
       .submeta-card-render-kind { align-self:flex-start; padding:1px 2px; border-radius:2px; background:rgba(0,0,0,.58); }
       .submeta-card-render-tier { color:#dfecf1; }
-      .submeta-card-render-count { position:absolute; right:2px; top:2px; z-index:2; min-width:12px; padding:1px 2px; border-radius:8px; background:#f0d36d; color:#17120a; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.45); }
-      .submeta-card-render.has-card-asset { overflow:visible; padding:0; border-color:transparent; background:transparent; }
-      .submeta-card-render.has-card-asset:hover { border-color:transparent; }
+      .submeta-card-render-count {
+        position:absolute; right:0; top:0; z-index:2; display:grid; place-items:center; box-sizing:border-box;
+        height:25%; min-width:25%; padding:0 .3em; border-radius:0 28% 0 36%; color:#fff;
+        font-size:clamp(6px,.58vw,11px); line-height:1; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.72);
+        box-shadow:0 1px 3px rgba(0,0,0,.45); pointer-events:none;
+      }
+      .submeta-card-render.has-card-asset { overflow:visible; padding:0; border-color:transparent; background:transparent; box-shadow:none; }
       .submeta-card-render-asset { display:block; width:100%; height:100%; border-radius:8%; object-fit:contain; pointer-events:none; }
-      .submeta-card-render.has-card-asset.tier-dr { box-shadow:0 0 0 1px rgba(177,132,69,.72),0 0 5px rgba(171,119,45,.28),0 3px 8px rgba(0,0,0,.5); }
-      .submeta-card-render.has-card-asset.tier-sdr { box-shadow:0 0 0 1px rgba(242,205,106,.88),0 0 0 2px rgba(116,79,22,.34),0 0 7px rgba(239,190,67,.42),0 3px 8px rgba(0,0,0,.5); }
-      .submeta-card-render.has-card-asset.tier-pdr { box-shadow:0 0 0 1px rgba(255,239,184,.92),0 0 8px rgba(255,220,130,.58),0 0 13px rgba(223,232,255,.28),0 3px 8px rgba(0,0,0,.5); }
-      .submeta-card-render.has-card-asset.tier-pdr::after { content:""; position:absolute; top:-2px; right:-2px; width:5px; height:5px; border:1px solid rgba(255,245,207,.92); background:rgba(231,194,99,.9); box-shadow:0 0 4px rgba(255,239,181,.75); transform:rotate(45deg); pointer-events:none; }
+      .submeta-card-view.has-card-asset:hover, .submeta-assigned-card.has-card-asset:hover { border-color:rgba(235,245,248,.7); box-shadow:0 0 0 1px rgba(235,245,248,.28); }
+      .submeta-card-render.has-card-asset.is-selected { border-color:rgba(255,220,114,.9); box-shadow:0 0 0 1px rgba(255,220,114,.48),0 0 7px rgba(255,195,57,.38); }
+      .submeta-card-render.has-card-asset.is-pending { border-color:rgba(255,226,151,.82); box-shadow:0 0 0 1px rgba(255,226,151,.34),0 0 7px rgba(255,205,105,.3); }
+      .submeta-card-render.has-card-asset:focus-visible { border-color:rgba(220,241,248,.92); outline:1px solid rgba(220,241,248,.82); outline-offset:2px; }
       #${FLOATING_EDITOR_ID} {
         position: fixed; z-index: 10000; width: 190px; box-sizing: border-box; padding: 10px;
         border: 0; border-radius: 4px; background: rgba(18, 20, 24, 0.96); color: #f2f2f2;
@@ -516,8 +521,13 @@
   function appendCardCount(node, card, options) {
     const countValue = Math.max(1, Math.floor(Number(card?.count) || 1));
     if (options.showCount !== true || countValue <= 1) return;
+    const primaryColor = Array.isArray(card?.colors) && card.colors.length
+      ? card.colors[0]
+      : (card?.color || card?.colorA);
     const count = document.createElement("span");
     count.className = "submeta-card-render-count";
+    count.style.backgroundColor = assignedCardColorCss(primaryColor);
+    count.style.color = String(primaryColor || "").toLowerCase() === "yellow" ? "#17120a" : "#fff";
     count.textContent = String(countValue);
     node.appendChild(count);
   }
@@ -530,10 +540,10 @@
       if (className.startsWith("tier-")) node.classList.remove(className);
       if (className.startsWith("submeta-card-render--") && className !== `submeta-card-render--${context}`) node.classList.remove(className);
     }
-    node.classList.add(getCardTierClass(card));
     node.classList.toggle("is-selected", options.selected === true);
     node.classList.toggle("is-pending", options.pending === true);
     const asset = resolveCardAsset(card);
+    if (!asset) node.classList.add(getCardTierClass(card));
     const signature = asset
       ? `asset:${asset.url}:${options.showCount === true ? card.count || 1 : 0}`
       : getProceduralCardSignature(card, options.showCount === true);
@@ -566,8 +576,10 @@
   function getAssignedCardBox(item) {
     // Placeholder coordinates are center anchors only. Slot cards use one global
     // normalized size and may extend beyond the placeholder rectangle.
-    const cardW = SLOT_CARD_BASE_UNIT * SLOT_CARD_RATIO.width * slotCardScale;
-    const cardH = SLOT_CARD_BASE_UNIT * SLOT_CARD_RATIO.height * slotCardScale;
+    const stageRect = getStage()?.getBoundingClientRect();
+    const stageAspect = stageRect?.width && stageRect?.height ? stageRect.width / stageRect.height : 1.5;
+    const cardH = SLOT_CARD_BASE_HEIGHT * slotCardScale;
+    const cardW = cardH * (SLOT_CARD_RATIO.width / SLOT_CARD_RATIO.height) / stageAspect;
     return {
       x: item.x,
       y: item.y,
@@ -919,7 +931,7 @@
   }
 
   root.HC.SubMetaPlaceholders = {
-    VERSION, STORAGE_KEY, STATES, GROUPS, SLOT_CARD_RATIO, SLOT_CARD_BASE_UNIT, DEFAULT_SLOT_CARD_SCALE, init, update, render: syncDom, syncDom,
+    VERSION, STORAGE_KEY, STATES, GROUPS, SLOT_CARD_RATIO, SLOT_CARD_BASE_UNIT, SLOT_CARD_BASE_HEIGHT, DEFAULT_SLOT_CARD_SCALE, init, update, render: syncDom, syncDom,
     setVisible, isVisible: () => actuallyVisible, setShowLabels, setShowHidden, setSlotCardScale, getSlotCardScale: () => slotCardScale,
     resolveCardAsset, renderSubMetaCard,
     selectPlaceholder, getSelectedPlaceholderId: () => selectedPlaceholderId, clearSelection, hitTest,
