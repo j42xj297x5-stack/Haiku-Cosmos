@@ -86,9 +86,9 @@ Konfiguracja paneli znajduje się w `public/settings/submeta-placeholders-panels
 
 ## Card rendering
 
-Karty w Magazynie, Możliwościach, slotach PRG, slotach Świata i pending preview renderują assety z `public/svg/`; docelowo ta sama zasada obejmie Kuźnię. Panel Opis używa PNG z `public/png/cards/`, jeśli odpowiedni plik jest dostępny.
+Karty w Magazynie, Możliwościach, slotach PRG, slotach Świata, pending preview i Kuźni renderują assety z `public/svg/`. Panel Opis używa PNG z `public/png/cards/`, jeśli odpowiedni plik jest dostępny, a w przeciwnym razie wraca do SVG. Wszystkie publiczne URL-e kart przechodzą przez `HC.publicPath` / `HC.publicAssetPath`; błąd ładowania zachowuje proceduralny fallback i emituje pojedynczy warning dla danego assetu.
 
-Obsługiwane minimum to R1 RED/YELLOW/GREEN/BLUE w tierach DR/sDR/pDR, np. `card_r1_red_dr.svg`, `card_r1_red_sdr.svg`, `card_r1_red_pdr.svg` i odpowiedniki kolorów.
+Obsługiwane są R1 RED/YELLOW/GREEN/BLUE oraz wszystkie sześć kanonicznych, nieuporządkowanych par R2 w tierach DR/sDR/pDR. Resolver normalizuje pary R2 według kolejności RED, YELLOW, GREEN, BLUE, więc dane `yellow/red` wskazują `card_r2_red_yellow_<tier>.svg`.
 
 - standardowy ratio karty: `9:16`;
 - tier jest częścią assetu SVG/PNG;
