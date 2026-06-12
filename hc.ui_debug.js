@@ -40,22 +40,7 @@
   let warnedMissingSubMetaPlaceholders = false;
   let warnedMissingSubMetaPanels = false;
   let warnedMissingHudTopLayout = false;
-  const RUNTIME_DEBUG_SECTIONS_STORAGE_KEY = "hc.runtimeDebug.sections.v1";
-  const DEFAULT_RUNTIME_DEBUG_SECTIONS = Object.freeze({
-    "renderer-scene": true,
-    "lighting": true,
-    "lighting-advanced": false,
-    "glb-materials": false,
-    "world-mechanics": false,
-    "cards-sequence-economy": false,
-    "hud-top-layout": true,
-    "submeta-prg": true,
-    "submeta-png-layout": true,
-    "submeta-placeholders": true,
-    "submeta-panels": true,
-    "logging-evidence": true,
-  });
-  let runtimeDebugSectionState = readRuntimeDebugSectionState();
+  let runtimeDebugSectionState = {};
 
   const DEBUG_UI_TEXT = Object.freeze({
     "common.back": "Back",
@@ -536,33 +521,13 @@
   }
 
 
-  function readRuntimeDebugSectionState() {
-    try {
-      const stored = JSON.parse(window.localStorage.getItem(RUNTIME_DEBUG_SECTIONS_STORAGE_KEY) || "null");
-      return stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
-    } catch (_error) {
-      return {};
-    }
-  }
-
-  function isRuntimeDebugSectionOpen(sectionId, fallback = false) {
-    if (Object.prototype.hasOwnProperty.call(runtimeDebugSectionState, sectionId)) {
-      return runtimeDebugSectionState[sectionId] === true;
-    }
-    if (Object.prototype.hasOwnProperty.call(DEFAULT_RUNTIME_DEBUG_SECTIONS, sectionId)) {
-      return DEFAULT_RUNTIME_DEBUG_SECTIONS[sectionId] === true;
-    }
-    return fallback === true;
+  function isRuntimeDebugSectionOpen(sectionId) {
+    return runtimeDebugSectionState[sectionId] === true;
   }
 
   function saveRuntimeDebugSectionState(sectionId, open) {
     if (!sectionId) return;
     runtimeDebugSectionState = { ...runtimeDebugSectionState, [sectionId]: open === true };
-    try {
-      window.localStorage.setItem(RUNTIME_DEBUG_SECTIONS_STORAGE_KEY, JSON.stringify(runtimeDebugSectionState));
-    } catch (_error) {
-      // Persisting debug ergonomics is best-effort; the current DOM state still works.
-    }
   }
 
   function updateRuntimeOverlayCollapseUi() {
@@ -625,28 +590,43 @@
             return;
           }
           const panelControl = event.target && event.target.closest ? event.target.closest("[data-submeta-panel-action]") : null;
-          if (panelControl && window.HC?.SubMetaPanels?.handleDebugControl?.(panelControl)) {
+          if (panelControl) {
             const action = panelControl.dataset.submetaPanelAction;
-            if (["clear-selection", "reset", "import", "select"].includes(action)) {
-              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
-              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            const json = document.getElementById("dbgSubMetaPanelsJson")?.value || "";
+            if (window.HC?.SubMetaPanels?.handleDebugControl?.(panelControl)) {
+              if (["clear-selection", "reset", "import", "select"].includes(action)) {
+                const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+                runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+                const textarea = document.getElementById("dbgSubMetaPanelsJson");
+                if (textarea) textarea.value = json;
+              }
+              return;
             }
-            return;
           }
           const placeholderControl = event.target && event.target.closest ? event.target.closest("[data-submeta-placeholder-action]") : null;
-          if (placeholderControl && window.HC?.SubMetaPlaceholders?.handleDebugControl?.(placeholderControl)) {
+          if (placeholderControl) {
             const action = placeholderControl.dataset.submetaPlaceholderAction;
-            if (["clear-selection", "reset", "import"].includes(action)) {
-              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
-              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            const json = document.getElementById("dbgSubMetaPlaceholderJson")?.value || "";
+            if (window.HC?.SubMetaPlaceholders?.handleDebugControl?.(placeholderControl)) {
+              if (["clear-selection", "reset", "import"].includes(action)) {
+                const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+                runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+                const textarea = document.getElementById("dbgSubMetaPlaceholderJson");
+                if (textarea) textarea.value = json;
+              }
+              return;
             }
-            return;
           }
           const subMetaControl = event.target && event.target.closest ? event.target.closest("[data-submeta-png-action]") : null;
-          if (subMetaControl && window.HC?.SubMetaPngLayout?.handleDebugControl?.(subMetaControl)) {
-            const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
-            runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
-            return;
+          if (subMetaControl) {
+            const json = document.getElementById("dbgSubMetaPngJson")?.value || "";
+            if (window.HC?.SubMetaPngLayout?.handleDebugControl?.(subMetaControl)) {
+              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+              const textarea = document.getElementById("dbgSubMetaPngJson");
+              if (textarea) textarea.value = json;
+              return;
+            }
           }
           const cardsPresetBtn = event.target && event.target.closest
             ? event.target.closest("[data-debug-cards-preset]")

@@ -5,7 +5,6 @@
   root.HC = root.HC || {};
 
   const VERSION = "submeta-placeholders-v0.4";
-  const STORAGE_KEY = "hc.submetaPlaceholders.preset.v1";
   const SETTING_KEY = "placeholders";
   const LAYER_ID = "subMetaPlaceholderLayer";
   const FLOATING_EDITOR_ID = "subMetaPlaceholderFloatingEditor";
@@ -116,7 +115,10 @@
   let placeholders = cloneDefaults();
   let initialized = false;
   let initializationPromise = null;
-  let dataSource = "DEFAULT_PLACEHOLDERS fallback";
+  let dataSource = "fallback";
+  let lastAction = "startup";
+  let lastError = "";
+  let lastSettingsUrl = null;
   let enabled = true;
   let showLabels = false;
   let showHidden = false;
@@ -394,7 +396,6 @@
       if (action === "close") closeFloatingEditor();
       if (action === "save") {
         applyFloatingEditorValues();
-        savePreset();
         closeFloatingEditor();
       }
     });
@@ -737,12 +738,7 @@
     initialized = true;
     createStyle();
     if (createLayer()) syncDom();
-    if (loadPreset()) {
-      update();
-      initializationPromise = Promise.resolve(true);
-    } else {
-      initializationPromise = restoreRuntimeSettingOrFallback().finally(update);
-    }
+    initializationPromise = restoreRuntimeSettingOrFallback("startup").finally(update);
     return initializationPromise;
   }
 
@@ -765,7 +761,6 @@
   function setSlotCardScale(nextValue, options = {}) {
     slotCardScale = clampNumber(nextValue, 0.25, 3, DEFAULT_SLOT_CARD_SCALE);
     syncDom();
-    if (options.persist === true) savePreset();
     return slotCardScale;
   }
 
@@ -818,30 +813,7 @@
     return true;
   }
 
-  function savePreset() {
-    try {
-      root.localStorage.setItem(STORAGE_KEY, JSON.stringify(getExportPayload()));
-      return true;
-    } catch (error) {
-      console.warn("[HC.SubMetaPlaceholders] preset save failed", error);
-      return false;
-    }
-  }
-
-  function loadPreset() {
-    try {
-      const raw = root.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return false;
-      const applied = applyPayload(JSON.parse(raw));
-      if (applied) dataSource = "localStorage";
-      return applied;
-    } catch (error) {
-      console.warn("[HC.SubMetaPlaceholders] preset load failed", error);
-      return false;
-    }
-  }
-
-  async function restoreRuntimeSettingOrFallback() {
+  async function restoreRuntimeSettingOrFallback(reason = "reset") {
     const settings = root.HC?.SubMetaSettings;
     const logicalPath = settings?.paths?.[SETTING_KEY];
     if (!settings || typeof settings.loadJson !== "function") {
@@ -869,8 +841,12 @@
       validate: (payload) => !!payload && Array.isArray(payload.placeholders),
       invalidMessage: "Runtime setting JSON does not contain a placeholders array"
     });
+    lastSettingsUrl = result.resolvedUrl || null;
     if (result.ok && applyPayload(result.payload)) {
-      dataSource = "runtime setting";
+      dataSource = "settings JSON";
+      lastAction = reason === "startup" ? "loaded" : "reset";
+      lastError = "";
+      updateSettingsStatus("placeholders", lastAction);
       return true;
     }
     console.warn("[HC.SubMetaPlaceholders] runtime setting fallback used", {
@@ -880,31 +856,38 @@
       failureKind: result.failureKind,
       fallbackUsed: true
     });
-    dataSource = "DEFAULT_PLACEHOLDERS fallback";
-    return false;
-  }
-
-  function resetAll() {
     placeholders = cloneDefaults();
     enabled = true;
     showLabels = false;
     showHidden = false;
     slotCardScale = DEFAULT_SLOT_CARD_SCALE;
-    dataSource = "DEFAULT_PLACEHOLDERS fallback";
-    clearSelection();
-    try { root.localStorage.removeItem(STORAGE_KEY); } catch (_error) { /* storage is optional */ }
+    dataSource = "fallback";
+    lastAction = "error";
+    lastError = String(result.error?.message || result.failureKind || "settings load failed");
+    updateSettingsStatus("placeholders", `error: ${lastError}`);
     syncDom();
     update();
-    return restoreRuntimeSettingOrFallback();
+    return false;
+  }
+
+  function resetAll() {
+    clearSelection();
+    return restoreRuntimeSettingOrFallback("reset");
   }
 
   function importJson(json) {
     try {
       const payload = typeof json === "string" ? JSON.parse(json) : json;
-      const applied = applyPayload(payload);
-      if (applied) savePreset();
-      return applied;
+      if (!applyPayload(payload)) throw new Error("JSON does not contain a valid placeholders array");
+      dataSource = "imported runtime";
+      lastAction = "imported";
+      lastError = "";
+      updateSettingsStatus("placeholders", lastAction);
+      return true;
     } catch (error) {
+      lastAction = "error";
+      lastError = String(error?.message || error);
+      updateSettingsStatus("placeholders", `error: ${lastError}`);
       console.warn("[HC.SubMetaPlaceholders] JSON import failed", error);
       return false;
     }
@@ -913,7 +896,15 @@
   function exportJson() {
     const json = JSON.stringify(getExportPayload(), null, 2);
     console.info("[HC.SubMetaPlaceholders] preset JSON\n" + json);
+    lastAction = "exported";
+    lastError = "";
+    updateSettingsStatus("placeholders", lastAction);
     return json;
+  }
+
+  function updateSettingsStatus(section, text) {
+    const node = document.querySelector(`[data-submeta-settings-status="${section}"]`);
+    if (node) node.textContent = text;
   }
 
   function updateSelectedField(field, rawValue, options = {}) {
@@ -948,7 +939,7 @@
     const stateOptions = STATES.map((state) => `<option value="${state}"${selected.state === state ? " selected" : ""}>${state}</option>`).join("");
     const groupCounts = GROUPS.map((group) => `${group}: ${placeholders.filter((item) => item.group === group).length}`).join(" · ");
     return `
-      <details class="submeta-png-debug" data-runtime-debug-section="submeta-placeholders"${options.open === false ? "" : " open"}>
+      <details class="submeta-png-debug" data-runtime-debug-section="submeta-placeholders"${options.open === true ? " open" : ""}>
         <summary>SUB-META Placeholders</summary>
         <div class="submeta-png-debug-row"><span>showSubMetaPlaceholders</span><input id="dbgSubMetaPlaceholdersVisible" type="checkbox" data-submeta-placeholder-setting="enabled"${enabled ? " checked" : ""}></div>
         <div class="submeta-png-debug-row"><span>showPlaceholderLabels</span><input id="dbgSubMetaPlaceholderLabels" type="checkbox" data-submeta-placeholder-setting="labels"${showLabels ? " checked" : ""}></div>
@@ -966,18 +957,17 @@
         <label class="submeta-png-debug-row"><span>visibleInDebug</span><input type="checkbox" data-submeta-placeholder-field="visibleInDebug"${selected.visibleInDebug ? " checked" : ""}${controlsDisabled ? " disabled" : ""}></label>
         <div class="submeta-png-debug-actions">
           <button class="overlay-btn" type="button" data-submeta-placeholder-action="clear-selection">Clear selection</button>
-          <button class="overlay-btn" type="button" data-submeta-placeholder-action="save">Save preset</button>
           <button class="overlay-btn" type="button" data-submeta-placeholder-action="reset">Reset defaults</button>
           <button class="overlay-btn" type="button" data-submeta-placeholder-action="export">Export JSON</button>
           <button class="overlay-btn" type="button" data-submeta-placeholder-action="import">Import JSON</button>
         </div>
         <textarea id="dbgSubMetaPlaceholderJson" class="overlay-note submeta-placeholder-json" spellcheck="false" placeholder="Exported JSON appears here; paste JSON here before Import."></textarea>
         <div class="submeta-png-diagnostics">
+          <div class="overlay-row"><span class="k">source</span><code class="v">${dataSource}</code></div>
           <div class="overlay-row"><span class="k">configured</span><span class="v">${placeholders.length}</span></div>
-          <div class="overlay-row"><span class="k">rendered</span><span class="v">${layer?.querySelectorAll("[data-submeta-placeholder-id]").length || 0}</span></div>
-          <div class="overlay-row"><span class="k">selected</span><code class="v">${escapeHtml(selectedPlaceholderId || "none")}</code></div>
-          <div class="overlay-row"><span class="k">assigned cards</span><code class="v">${escapeHtml(JSON.stringify(getAssignedCards()))}</code></div>
-          <div class="overlay-row"><span class="k">storage</span><code class="v">${STORAGE_KEY}</code></div>
+          <div class="overlay-row"><span class="k">last action</span><code class="v" data-submeta-settings-status="placeholders">${lastAction}</code></div>
+          <div class="overlay-row"><span class="k">settings URL</span><code class="v">${escapeHtml(lastSettingsUrl || root.HC?.SubMetaSettings?.paths?.[SETTING_KEY] || "unavailable")}</code></div>
+          ${lastError ? `<div class="overlay-row"><span class="k">error</span><code class="v">${escapeHtml(lastError)}</code></div>` : ""}
         </div>
       </details>`;
   }
@@ -988,14 +978,13 @@
     if (setting === "enabled") { setVisible(target.checked); return true; }
     if (setting === "labels") { setShowLabels(target.checked); return true; }
     if (setting === "hidden") { setShowHidden(target.checked); return true; }
-    if (setting === "slot-card-scale") { setSlotCardScale(target.value, { persist: true }); return true; }
+    if (setting === "slot-card-scale") { setSlotCardScale(target.value); return true; }
     const field = target.dataset?.submetaPlaceholderField;
     if (field) return updateSelectedField(field, ["visibleInGame", "visibleInDebug"].includes(field) ? target.checked : target.value);
     const action = target.dataset?.submetaPlaceholderAction;
     if (!action) return false;
     if (action === "select") return selectPlaceholder(target.value);
     if (action === "clear-selection") { clearSelection(); return true; }
-    if (action === "save") return savePreset();
     if (action === "reset") return resetAll();
     const textarea = document.getElementById("dbgSubMetaPlaceholderJson");
     if (action === "export") { if (textarea) textarea.value = exportJson(); return true; }
@@ -1018,13 +1007,13 @@
   }
 
   root.HC.SubMetaPlaceholders = {
-    VERSION, STORAGE_KEY, SETTING_KEY, STATES, GROUPS, SLOT_CARD_RATIO, SLOT_CARD_BASE_UNIT, SLOT_CARD_BASE_HEIGHT, DEFAULT_SLOT_CARD_SCALE, init, update, render: syncDom, syncDom,
+    VERSION, SETTING_KEY, STATES, GROUPS, SLOT_CARD_RATIO, SLOT_CARD_BASE_UNIT, SLOT_CARD_BASE_HEIGHT, DEFAULT_SLOT_CARD_SCALE, init, update, render: syncDom, syncDom,
     setVisible, isVisible: () => actuallyVisible, setShowLabels, setShowHidden, setSlotCardScale, getSlotCardScale: () => slotCardScale,
     resolveCardAsset, resolveCardSvgAsset, resolveCardPngAsset, renderSubMetaCard,
     selectPlaceholder, getSelectedPlaceholderId: () => selectedPlaceholderId, clearSelection, hitTest,
     openFloatingEditor, closeFloatingEditor, syncFloatingEditorFromPlaceholder, applyFloatingEditorValues, syncDebugPanelSelection,
     getDebugState, getPlaceholders: () => placeholders.map((item) => ({ ...item })), getExportPayload,
-    savePreset, loadPreset, loadRuntimeSetting: restoreRuntimeSettingOrFallback, resetAll, importJson, exportJson, updateSelectedField, renderDebugHtml, handleDebugControl
+    loadRuntimeSetting: restoreRuntimeSettingOrFallback, resetAll, importJson, exportJson, updateSelectedField, renderDebugHtml, handleDebugControl
   };
 
   Object.defineProperties(root, {

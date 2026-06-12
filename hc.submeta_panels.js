@@ -5,7 +5,6 @@
   root.HC = root.HC || {};
 
   const VERSION = "submeta-panels-layout-v0.4";
-  const STORAGE_KEY = "hc.submetaPanels.layout.v1";
   const SETTING_KEY = "panels";
   const LAYER_ID = "subMetaPanelsLayer";
   const FLOATING_EDITOR_ID = "subMetaPanelsFloatingEditor";
@@ -70,7 +69,10 @@
   let stage = null;
   let floatingEditor = null;
   let floatingEditorTargetId = null;
-  let dataSource = "DEFAULT_ITEMS fallback";
+  let dataSource = "fallback";
+  let lastAction = "startup";
+  let lastError = "";
+  let lastSettingsUrl = null;
   let presetRequestId = 0;
   let initializationPromise = null;
   let inventoryFilter = "normal";
@@ -936,7 +938,6 @@
       if (action === "close") closeFloatingPanelEditor();
       if (action === "save") {
         applyFloatingPanelEditorValues();
-        saveLayout();
         closeFloatingPanelEditor();
       }
     });
@@ -997,12 +998,7 @@
     initialized = true;
     createStyle();
     createLayer();
-    if (loadLayout()) {
-      update();
-      initializationPromise = Promise.resolve(true);
-    } else {
-      initializationPromise = restorePresetOrFallback("init");
-    }
+    initializationPromise = restorePresetOrFallback("startup");
     return initializationPromise;
   }
 
@@ -1055,32 +1051,6 @@
     return true;
   }
 
-  function saveLayout() {
-    try {
-      root.localStorage.setItem(STORAGE_KEY, JSON.stringify(getExportPayload()));
-      return true;
-    } catch (error) {
-      console.warn("[HC.SubMetaPanels] layout save failed", error);
-      return false;
-    }
-  }
-
-  function loadLayout() {
-    try {
-      const raw = root.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return false;
-      const applied = applyPayload(JSON.parse(raw));
-      if (applied) {
-        dataSource = "localStorage";
-        debugLog("panel preset loaded from localStorage", { storageKey: STORAGE_KEY });
-      }
-      return applied;
-    } catch (error) {
-      debugLog("localStorage panel preset could not be loaded; trying JSON", error);
-      return false;
-    }
-  }
-
   async function restorePresetOrFallback(reason) {
     const requestId = ++presetRequestId;
     const settings = root.HC?.SubMetaSettings;
@@ -1113,8 +1083,12 @@
       invalidMessage: "Runtime setting JSON does not contain a panels array"
     });
     if (requestId !== presetRequestId) return false;
+    lastSettingsUrl = result.resolvedUrl || null;
     if (result.ok && applyPayload(result.payload)) {
-      dataSource = "runtime setting";
+      dataSource = "settings JSON";
+      lastAction = reason === "startup" ? "loaded" : "reset";
+      lastError = "";
+      updateSettingsStatus("panels", lastAction);
       debugLog("panel runtime setting loaded", { logicalPath, resolvedUrl: result.resolvedUrl, reason });
       return true;
     }
@@ -1129,7 +1103,10 @@
     items = cloneDefaults();
     enabled = true;
     showLabels = true;
-    dataSource = "DEFAULT_ITEMS fallback";
+    dataSource = "fallback";
+    lastAction = "error";
+    lastError = String(result.error?.message || result.failureKind || "settings load failed");
+    updateSettingsStatus("panels", `error: ${lastError}`);
     clearSelection();
     syncDom();
     update();
@@ -1137,24 +1114,23 @@
   }
 
   function resetToDefault() {
-    try { root.localStorage.removeItem(STORAGE_KEY); } catch (_error) { /* storage is optional */ }
-    items = cloneDefaults();
-    enabled = true;
-    showLabels = true;
-    dataSource = "DEFAULT_ITEMS fallback";
     clearSelection();
-    syncDom();
-    update();
     return restorePresetOrFallback("reset");
   }
 
   function importLayout(json) {
     try {
       const payload = typeof json === "string" ? JSON.parse(json) : json;
-      const applied = applyPayload(payload);
-      if (applied) saveLayout();
-      return applied;
+      if (!applyPayload(payload)) throw new Error("JSON does not contain a valid panels array");
+      dataSource = "imported runtime";
+      lastAction = "imported";
+      lastError = "";
+      updateSettingsStatus("panels", lastAction);
+      return true;
     } catch (error) {
+      lastAction = "error";
+      lastError = String(error?.message || error);
+      updateSettingsStatus("panels", `error: ${lastError}`);
       console.warn("[HC.SubMetaPanels] JSON import failed", error);
       return false;
     }
@@ -1163,7 +1139,15 @@
   function exportLayout() {
     const json = JSON.stringify(getExportPayload(), null, 2);
     console.info("[HC.SubMetaPanels] layout JSON\n" + json);
+    lastAction = "exported";
+    lastError = "";
+    updateSettingsStatus("panels", lastAction);
     return json;
+  }
+
+  function updateSettingsStatus(section, text) {
+    const node = document.querySelector(`[data-submeta-settings-status="${section}"]`);
+    if (node) node.textContent = text;
   }
 
   function updateItemField(itemId, field, rawValue, options = {}) {
@@ -1229,7 +1213,7 @@
       ${selected.id === "panel.inventory" ? renderNumberControl("filterTopMargin", selected.filterTopMargin, 0, 0.25, 0.001, disabled) : ""}
       ${selected.id === "panel.inventory" ? renderNumberControl("pageStepRows", selected.pageStepRows, 1, 20, 1, disabled) : ""}` : "";
     return `
-      <details class="submeta-png-debug" data-runtime-debug-section="submeta-panels"${options.open === false ? "" : " open"}>
+      <details class="submeta-png-debug" data-runtime-debug-section="submeta-panels"${options.open === true ? " open" : ""}>
         <summary>SUB-META Panels</summary>
         <div class="submeta-png-debug-row"><span>showSubMetaPanelsDebug</span><input id="dbgSubMetaPanelsVisible" type="checkbox" data-submeta-panel-setting="enabled"${enabled ? " checked" : ""}></div>
         <div class="submeta-png-debug-row"><span>showPanelLabels</span><input id="dbgSubMetaPanelLabels" type="checkbox" data-submeta-panel-setting="labels"${showLabels ? " checked" : ""}></div>
@@ -1244,18 +1228,17 @@
         ${gridControls}
         <div class="submeta-png-debug-actions">
           <button class="overlay-btn" type="button" data-submeta-panel-action="clear-selection">Clear selection</button>
-          <button class="overlay-btn" type="button" data-submeta-panel-action="save">Save layout</button>
-          <button class="overlay-btn" type="button" data-submeta-panel-action="reset">Reset preset</button>
+          <button class="overlay-btn" type="button" data-submeta-panel-action="reset">Reset defaults</button>
           <button class="overlay-btn" type="button" data-submeta-panel-action="export">Export JSON</button>
           <button class="overlay-btn" type="button" data-submeta-panel-action="import">Import JSON</button>
         </div>
         <textarea id="dbgSubMetaPanelsJson" class="overlay-note submeta-panels-json" spellcheck="false" placeholder="Exported JSON appears here; paste panel JSON here before Import."></textarea>
         <div class="submeta-png-diagnostics">
-          <div class="overlay-row"><span class="k">preset</span><code class="v">${root.HC?.SubMetaSettings?.paths?.[SETTING_KEY] || "unavailable"}</code></div>
-          <div class="overlay-row"><span class="k">selected slot</span><code class="v">${escapeHtml(selectedSlotId || "none")}</code></div>
-          <div class="overlay-row"><span class="k">selected placeholder</span><code class="v">${escapeHtml(cardSelection.selectedPlaceholderId || "none")}</code></div>
-          <div class="overlay-row"><span class="k">selected card</span><code class="v">${escapeHtml(cardSelection.selectedCardRef?.key || cardSelection.selectedCardRef?.cardKey || "none")}</code></div>
-          <div class="overlay-row"><span class="k">storage</span><code class="v">${STORAGE_KEY}</code></div>
+          <div class="overlay-row"><span class="k">source</span><code class="v">${dataSource}</code></div>
+          <div class="overlay-row"><span class="k">configured</span><span class="v">${items.length}</span></div>
+          <div class="overlay-row"><span class="k">last action</span><code class="v" data-submeta-settings-status="panels">${lastAction}</code></div>
+          <div class="overlay-row"><span class="k">settings URL</span><code class="v">${escapeHtml(lastSettingsUrl || root.HC?.SubMetaSettings?.paths?.[SETTING_KEY] || "unavailable")}</code></div>
+          ${lastError ? `<div class="overlay-row"><span class="k">error</span><code class="v">${escapeHtml(lastError)}</code></div>` : ""}
         </div>
       </details>`;
   }
@@ -1284,7 +1267,6 @@
     if (!action) return false;
     if (action === "select") return selectPanel(target.value);
     if (action === "clear-selection") { clearSelection(); return true; }
-    if (action === "save") return saveLayout();
     if (action === "reset") return resetToDefault();
     const textarea = document.getElementById("dbgSubMetaPanelsJson");
     if (action === "export") { if (textarea) textarea.value = exportLayout(); return true; }
@@ -1307,8 +1289,8 @@
   }
 
   root.HC.SubMetaPanels = {
-    VERSION, STORAGE_KEY, SETTING_KEY, init, update, syncDom, setVisible, isVisible: () => actuallyVisible,
-    getSelectedPanelId: () => selectedPanelId, getDebugState, resetToDefault, exportLayout, importLayout, saveLayout, loadLayout, loadRuntimeSetting: restorePresetOrFallback,
+    VERSION, SETTING_KEY, init, update, syncDom, setVisible, isVisible: () => actuallyVisible,
+    getSelectedPanelId: () => selectedPanelId, getDebugState, resetToDefault, exportLayout, importLayout, loadRuntimeSetting: restorePresetOrFallback,
     setShowLabels, selectPanel, clearSelection, getPanels: () => items.map((item) => ({ ...item })), getExportPayload,
     selectPlaceholder, clearPlaceholderSelection, selectCard, selectAssignedCard, mapPlaceholderContext,
     getCardViewState: () => ({ inventoryFilter, ...cardSelection, pendingAssignment: clonePendingAssignment(), confirmButtonState: getConfirmButtonState() }),
