@@ -9,7 +9,7 @@
   const ENABLED_STORAGE_KEY = "hc.submetaPng.enabled.v1";
   const LAYOUT_STORAGE_KEY = "hc.submetaPng.layout.v1";
   const ASSET_DIR = "png/submeta/";
-  const LAYOUT_JSON_PATH = `${ASSET_DIR}submeta-png-layout-export.json`;
+  const LAYOUT_JSON_PATH = "settings/submeta-png-layout-export.json";
   const SETTING_KEY = "pngLayout";
   const BACKGROUND_FIT_MODE = "contain";
 
@@ -371,8 +371,8 @@
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload = await response.json();
       if (!applyPayload(payload)) throw new Error("Layout JSON does not contain an elements array");
-      dataSource = "submeta-png-layout-export.json";
-      debugLog("layout loaded from JSON", { logicalPath, resolvedUrl });
+      dataSource = "settings JSON";
+      debugLog("layout loaded from settings JSON", { logicalPath, resolvedUrl });
       return true;
     } catch (error) {
       elements = cloneDefaults();
