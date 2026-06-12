@@ -1,13 +1,11 @@
-export function publicPath(path) {
-  const envBase = import.meta.env && import.meta.env.BASE_URL;
-  const cleanBase = String(envBase || "/").replace(/\/+$/, "/");
-  const cleanPath = String(path || "").replace(/^\/+/, "");
-  const baseSegment = cleanBase.replace(/^\/+|\/+$/g, "");
-  const hasDuplicateBase = baseSegment && (cleanPath === baseSegment || cleanPath.startsWith(`${baseSegment}/`));
-  const pathWithoutDuplicateBase = hasDuplicateBase
-    ? cleanPath.slice(baseSegment.length).replace(/^\/+/, "")
-    : cleanPath;
-  return `${cleanBase}${pathWithoutDuplicateBase}`;
+export function publicPath(path = "") {
+  const base = import.meta.env.BASE_URL || "/";
+  const cleanBase = base.endsWith("/") ? base : `${base}/`;
+  const cleanPath = String(path)
+    .replace(/^\/+/, "")
+    .replace(/^public\//, "");
+
+  return `${cleanBase}${cleanPath}`;
 }
 
 export const publicAssetPath = publicPath;
@@ -16,4 +14,5 @@ if (typeof window !== "undefined") {
   window.HC = window.HC || {};
   window.HC.publicPath = publicPath;
   window.HC.publicAssetPath = publicAssetPath;
+  window.HC.publicBaseUrl = publicPath("");
 }

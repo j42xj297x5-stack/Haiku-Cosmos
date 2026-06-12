@@ -13,12 +13,21 @@ function readGlbJson(filePath) {
 
 const rendererSource = fs.readFileSync("hc.world_renderer.js", "utf8");
 const bridgeSource = fs.readFileSync("hc.three_module_bridge.js", "utf8");
+const publicPathSource = fs.readFileSync("hc.public_path.js", "utf8");
+const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
 
 assert.match(rendererSource, /new THREE\.LoadingManager\(\)/, "GLTFLoader must use a dedicated LoadingManager");
 assert.match(rendererSource, /manager\.setURLModifier/, "GLTF dependencies must pass through a base-safe URL modifier");
 assert.match(rendererSource, /gltfFailedDependencyUrls/, "failed dependency URLs must be exposed in diagnostics");
 assert.match(rendererSource, /loader\.setResourcePath\(resourcePath\)/, "resourcePath must be anchored to the resolved model URL");
 assert.doesNotMatch(bridgeSource, /new URL\("\.\/vendor\/three\/three\.core\.min\.js"/, "three.core must not be a redundant preflight hard gate");
+assert.match(publicPathSource, /import\.meta\.env\.BASE_URL/, "publicPath must use Vite BASE_URL");
+assert.ok(publicPathSource.includes('.replace(/^public\\//, "")'), "publicPath must strip the physical public/ prefix");
+assert.match(bridgeSource, /publicPath\(THREE_MODULE_PUBLIC_PATH\)/, "Three module URL must use publicPath");
+assert.match(bridgeSource, /publicPath\(GLTF_LOADER_PUBLIC_PATH\)/, "GLTFLoader URL must use publicPath");
+assert.match(bridgeSource, /import\(\/\* @vite-ignore \*\//, "runtime vendor imports must preserve base-aware public URLs");
+assert.doesNotMatch(bridgeSource, /new URL\("\.\/vendor\//, "vendor module URLs must not bypass publicPath");
+assert.match(packageJson.scripts.prebuild, /sync-public-vendor\.mjs/, "build must sync vendor files into public/");
 
 const glbDir = path.join("public", "glb");
 const glbFiles = fs.readdirSync(glbDir).filter((name) => name.endsWith(".glb")).sort();

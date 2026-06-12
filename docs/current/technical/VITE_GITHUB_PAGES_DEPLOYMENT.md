@@ -97,6 +97,7 @@ publicPath("/models/world/nazwa_modelu.glb")
 publicPath("png/nazwa_pliku.png")
 publicPath("svg/nazwa_pliku.svg")
 publicPath("textures/nazwa_tekstury.webp")
+publicPath("vendor/loaders/GLTFLoader.js")
 ```
 
 Na GitHub Pages wynik zaczyna się od:
@@ -105,7 +106,7 @@ Na GitHub Pages wynik zaczyna się od:
 /Haiku-Cosmos/
 ```
 
-Nie należy hardkodować absolutnych URL-i do raw GitHub ani ścieżek zależnych od lokalnego dysku.
+Fizyczny prefiks `public/` nie należy do browser-visible URL. Helper usuwa go defensywnie, ale kanoniczne metadane przechowują logical paths bez `public/`. Nie należy hardkodować nazwy repozytorium, absolutnych URL-i do raw GitHub ani ścieżek zależnych od lokalnego dysku.
 
 ## Katalogi przyszłych assetów publicznych
 
@@ -122,7 +123,7 @@ public/
 
 Puste katalogi są utrzymywane przez `.gitkeep`. W tym pass nie dodaje się żadnych placeholderów binarnych ani przykładowych assetów: GLB, GLTF, BIN, FBX, OBJ, BLEND, PNG, JPG, JPEG, WEBP ani SVG.
 
-Obecny Three.js runtime pozostaje przy lokalnie vendored Three (`vendor/three`) i nie przełącza się automatycznie na npm `three`; dodanie GLTFLoadera lub render passu GLB wymaga osobnej decyzji, żeby nie mieszać runtime vendored/npm bez kontroli wersji.
+Three.js i `GLTFLoader` pozostają lokalnie vendored w root `vendor/`. Przed dev/build `scripts/sync-public-vendor.mjs` tworzy generowaną kopię `public/vendor/`, dzięki czemu Vite serwuje ten sam kontrakt jako `BASE_URL + vendor/...` lokalnie i kopiuje go do `dist/vendor/`. `hc.three_module_bridge.js` rozwiązuje oba dynamiczne importy wyłącznie przez `publicPath()`; zależność `../three/three.module.min.js` wewnątrz vendored `GLTFLoader.js` pozostaje dostępna w tym samym drzewie.
 
 ## Legacy runtime JS w buildzie Vite
 
@@ -150,7 +151,7 @@ W aktualnym `index.html` zapis może być znormalizowany przez przeglądarkę/na
 
 Powód tego rozdziału: przy klasycznych scriptach wariant `%BASE_URL%runtime/...` powodował w dev/build błędny, podwójny path `/Haiku-Cosmos/Haiku-Cosmos/runtime/...`. Module script tagi, np. `hc.public_path.js` i `hc.three_module_bridge.js`, pozostają na modelu `%BASE_URL%`, bo korzystają z Vite/base semantics dla modułów.
 
-Po buildzie `postbuild` uruchamia `scripts/verify-legacy-runtime-dist.mjs`, który przerywa build, jeśli którykolwiek wymagany legacy script nie istnieje w `dist/runtime/`.
+Po buildzie `postbuild` uruchamia `scripts/verify-legacy-runtime-dist.mjs`, który przerywa build, jeśli brakuje wymaganego legacy scriptu w `dist/runtime/` albo publicznych entry modules `dist/vendor/three/three.module.min.js` i `dist/vendor/loaders/GLTFLoader.js`.
 
 ## Dependency hygiene
 

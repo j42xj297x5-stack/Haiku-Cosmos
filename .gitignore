@@ -6,6 +6,8 @@ logs/runs/**
 # Generated Vite public copies of root legacy runtime scripts
 public/runtime/*.js
 !public/runtime/.gitkeep
+# Generated public copy of the authoritative root vendor tree
+public/vendor/
 node_modules/
 dist/
 .DS_Store
