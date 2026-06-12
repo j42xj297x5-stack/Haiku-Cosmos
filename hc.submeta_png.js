@@ -9,6 +9,7 @@
   const ENABLED_STORAGE_KEY = "hc.submetaPng.enabled.v1";
   const LAYOUT_STORAGE_KEY = "hc.submetaPng.layout.v1";
   const ASSET_DIR = "png/submeta/";
+  const LAYOUT_JSON_PATH = `${ASSET_DIR}submeta-png-layout-export.json`;
   const SETTING_KEY = "pngLayout";
   const BACKGROUND_FIT_MODE = "contain";
 
@@ -61,6 +62,7 @@
   let previewEnabled = false;
   let initializationPromise = null;
   let dataSource = "DEFAULT_ELEMENTS fallback";
+  let lastLayoutUrl = resolvedAssetUrl(LAYOUT_JSON_PATH);
 
   function cloneElement(item) {
     return { ...item };
@@ -121,6 +123,11 @@
 
   function isDebugMode() {
     return root.HC?.Session?.mode === "debug";
+  }
+
+  function debugLog(message, details = {}) {
+    if (!isDebugMode()) return;
+    console.info(`[HC.SubMetaPngLayout] ${message}`, details);
   }
 
   function isPreviewEnabled() {
@@ -340,54 +347,56 @@
       const raw = root.localStorage.getItem(LAYOUT_STORAGE_KEY);
       if (!raw) return false;
       const applied = applyPayload(JSON.parse(raw));
-      if (applied) dataSource = "localStorage";
+      if (applied) {
+        dataSource = "localStorage";
+        debugLog("layout loaded from localStorage", { storageKey: LAYOUT_STORAGE_KEY });
+      }
       return applied;
-    } catch (_error) {
+    } catch (error) {
+      debugLog("localStorage layout is invalid; trying JSON default", {
+        storageKey: LAYOUT_STORAGE_KEY,
+        error: String(error?.message || error)
+      });
       return false;
     }
   }
 
-  async function restoreRuntimeSettingOrFallback() {
-    const settings = root.HC?.SubMetaSettings;
-    const logicalPath = settings?.paths?.[SETTING_KEY];
-    if (!settings || typeof settings.loadJson !== "function") {
-      console.warn("[HC.SubMetaPngLayout] runtime settings loader unavailable; using fallback", {
-        logicalPath: logicalPath || null,
-        resolvedUrl: null,
-        status: null,
-        success: false,
-        fallbackUsed: true
-      });
-      return false;
-    }
-    if (!logicalPath) {
-      console.warn("[HC.SubMetaPngLayout] runtime settings path unavailable; using fallback", {
-        logicalPath: null,
-        resolvedUrl: null,
-        status: null,
-        success: false,
-        fallbackUsed: true
-      });
-      return false;
-    }
+  async function restoreJsonDefaultOrFallback() {
+    const logicalPath = LAYOUT_JSON_PATH;
+    const resolvedUrl = resolvedAssetUrl(logicalPath);
+    lastLayoutUrl = resolvedUrl;
 
-    const result = await settings.loadJson(logicalPath, {
-      validate: (payload) => !!payload && Array.isArray(payload.elements),
-      invalidMessage: "Runtime setting JSON does not contain an elements array"
-    });
-    if (result.ok && applyPayload(result.payload)) {
-      dataSource = "runtime setting";
+    try {
+      const response = await root.fetch(resolvedUrl, { cache: "no-cache" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      if (!applyPayload(payload)) throw new Error("Layout JSON does not contain an elements array");
+      dataSource = "submeta-png-layout-export.json";
+      debugLog("layout loaded from JSON", { logicalPath, resolvedUrl });
       return true;
+    } catch (error) {
+      elements = cloneDefaults();
+      selectedId = elements[0].id;
+      dataSource = "DEFAULT_ELEMENTS fallback";
+      renderElements();
+      debugLog("layout loaded from DEFAULT_ELEMENTS fallback", {
+        logicalPath,
+        resolvedUrl,
+        error: String(error?.message || error)
+      });
+      return false;
     }
-    console.warn("[HC.SubMetaPngLayout] runtime setting fallback used", {
-      logicalPath: result.logicalPath,
-      resolvedUrl: result.resolvedUrl,
-      status: result.status,
-      failureKind: result.failureKind,
-      fallbackUsed: true
+  }
+
+  function importLayout(payload) {
+    if (!applyPayload(payload)) return false;
+    dataSource = "localStorage";
+    const saved = saveLayout();
+    debugLog("imported layout saved as localStorage override", {
+      storageKey: LAYOUT_STORAGE_KEY,
+      saved
     });
-    dataSource = "DEFAULT_ELEMENTS fallback";
-    return false;
+    return saved;
   }
 
   function resetSelected() {
@@ -398,13 +407,11 @@
     saveLayout();
   }
 
-  function resetAll() {
+  async function resetAll() {
     try { root.localStorage.removeItem(LAYOUT_STORAGE_KEY); } catch (_error) { /* storage is optional */ }
-    elements = cloneDefaults();
-    selectedId = elements[0].id;
-    dataSource = "DEFAULT_ELEMENTS fallback";
-    renderElements();
-    return restoreRuntimeSettingOrFallback();
+    const restored = await restoreJsonDefaultOrFallback();
+    update();
+    return restored;
   }
 
   function getExportPayload() {
@@ -500,7 +507,9 @@
       backgroundFitMode: BACKGROUND_FIT_MODE,
       confirmButtonState: refreshConfirmButton(),
       stageScale: `${scaleX.toFixed(4)} × ${scaleY.toFixed(4)}`,
-      sampleBackgroundPath: resolvedAssetUrl(`${ASSET_DIR}submeta_background.png`)
+      sampleBackgroundPath: resolvedAssetUrl(`${ASSET_DIR}submeta_background.png`),
+      layoutSource: dataSource,
+      layoutUrl: lastLayoutUrl
     };
   }
 
@@ -547,6 +556,8 @@
             <div class="overlay-row"><span class="k">background fit</span><code class="v">${diagnostics.backgroundFitMode}</code></div>
             <div class="overlay-row"><span class="k">stage scale</span><code class="v">${diagnostics.stageScale}</code></div>
             <div class="overlay-row"><span class="k">sample background path</span><code class="v">${diagnostics.sampleBackgroundPath}</code></div>
+            <div class="overlay-row"><span class="k">layout source</span><code class="v">${diagnostics.layoutSource}</code></div>
+            <div class="overlay-row"><span class="k">layout URL</span><code class="v">${diagnostics.layoutUrl}</code></div>
             <div class="overlay-row"><span class="k">storage</span><code class="v">${LAYOUT_STORAGE_KEY}</code></div>
           </div>
         </div>
@@ -561,7 +572,7 @@
       update();
       initializationPromise = Promise.resolve(true);
     } else {
-      initializationPromise = restoreRuntimeSettingOrFallback().finally(update);
+      initializationPromise = restoreJsonDefaultOrFallback().finally(update);
     }
     return initializationPromise;
   }
@@ -573,6 +584,7 @@
     LAYOUT_STORAGE_KEY,
     BACKGROUND_FIT_MODE,
     SETTING_KEY,
+    LAYOUT_JSON_PATH,
     init,
     update,
     isActive,
@@ -588,7 +600,9 @@
     getExportPayload,
     saveLayout,
     loadLayout,
-    loadRuntimeSetting: restoreRuntimeSettingOrFallback,
+    loadRuntimeSetting: restoreJsonDefaultOrFallback,
+    loadJsonDefault: restoreJsonDefaultOrFallback,
+    importLayout,
     resetSelected,
     resetAll,
     exportLayout,
