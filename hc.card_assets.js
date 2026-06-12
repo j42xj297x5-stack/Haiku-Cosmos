@@ -27,7 +27,8 @@
   function normalizeKind(card) {
     const identity = getIdentity(card);
     const explicitKind = String(card?.kind || card?.type || "").toUpperCase();
-    if (explicitKind === "R1" || explicitKind === "R2") return explicitKind;
+    if (["R1", "R2", "R3"].includes(explicitKind)) return explicitKind;
+    if (/(?:CARD|PRG)_R3(?:_|\b)|\bR3\b/.test(identity)) return "R3";
     if (/(?:CARD|PRG)_R2(?:_|\b)|\bR2\b/.test(identity)) return "R2";
     if (/(?:CARD|PRG)_R1(?:_|\b)|\bR1\b/.test(identity)) return "R1";
     return explicitKind;
@@ -64,6 +65,7 @@
     const colors = collectColors(card);
     if (kind === "R1" && colors.length >= 1) return `${kind}:${colors[0]}:${tier}`;
     if (kind === "R2" && colors.length >= 2) return `${kind}:${colors[0]}_${colors[1]}:${tier}`;
+    if (kind === "R3" && colors.length >= 3) return `${kind}:${colors[0]}_${colors[1]}_${colors[2]}:${tier}`;
     return null;
   }
 
@@ -76,6 +78,9 @@
     }
     if (kind === "R2" && colors.length >= 2) {
       return `svg/card_r2_${colors.slice(0, 2).map((color) => color.toLowerCase()).join("_")}_${tier}.svg`;
+    }
+    if (kind === "R3" && colors.length >= 3) {
+      return `svg/card_r3_${colors.slice(0, 3).map((color) => color.toLowerCase()).join("_")}_${tier}.svg`;
     }
     return null;
   }
@@ -106,8 +111,9 @@
     const asset = context === "detail"
       ? (resolveCardPngAsset(card) || resolveCardSvgAsset(card))
       : resolveCardSvgAsset(card);
-    if (!asset && normalizeKind(card) === "R2") {
-      warnOnce(`unresolved:${getCardAssetKey(card) || getIdentity(card)}`, "R2 card asset could not be resolved; using procedural fallback", {
+    const kind = normalizeKind(card);
+    if (!asset && (kind === "R2" || kind === "R3")) {
+      warnOnce(`unresolved:${getCardAssetKey(card) || getIdentity(card)}`, `${kind} card asset could not be resolved; using procedural fallback`, {
         cardId: card?.id || card?.key || card?.cardKey || null,
         tier: card?.tier || card?.fromTier || null,
         colors: collectColors(card),
