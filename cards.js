@@ -3427,6 +3427,46 @@ const CardEngine = (() => {
     recomputeTotalCards(World);
   }
 
+  function applyDebugCardPreset(World, countPerCard = 13) {
+    if (!World) return null;
+    ensureCardsPool(World);
+    const targetCount = Math.max(0, Math.floor(Number(countPerCard) || 0));
+    const specs = [];
+    const addSpecs = (kind, combos) => {
+      combos.forEach((colors) => {
+        SUB_META_TIERS.forEach((tier) => specs.push({ kind, tier, colors }));
+      });
+    };
+    addSpecs("R1", SUB_META_COLORS.map((color) => [color]));
+    addSpecs("R2", SUB_META_R2_PAIRS);
+    addSpecs("R3", SUB_META_R3_COMBOS.map((combo) => combo.colors));
+    addSpecs("R4", SUB_META_R4_COMBOS.map((combo) => combo.colors));
+
+    let added = 0;
+    let removed = 0;
+    specs.forEach((spec) => {
+      const available = World.cardsPool.filter((card) => !card?.inSlotKey
+        && cardMatches(card, spec.kind, spec.colors, spec.tier));
+      for (let i = targetCount; i < available.length; i += 1) {
+        const index = World.cardsPool.lastIndexOf(available[i]);
+        if (index >= 0) {
+          World.cardsPool.splice(index, 1);
+          removed += 1;
+        }
+      }
+      for (let i = available.length; i < targetCount; i += 1) {
+        const card = createCardEntity({ kind: spec.kind, tier: spec.tier, colors: spec.colors });
+        if (card) {
+          World.cardsPool.push(card);
+          added += 1;
+        }
+      }
+    });
+    World._cardsPoolMigrated = true;
+    recomputeTotalCards(World);
+    return { targetCount, stackCount: specs.length, added, removed, totalCards: World.totalCards };
+  }
+
   function cardMatches(card, kind, colors, tier) {
     if (!card) return false;
     const kindKey = String(kind || "").toUpperCase();
@@ -5938,6 +5978,7 @@ const CardEngine = (() => {
     getTotalCardCount,
     recomputeTotalCards,
     resetCardPool,
+    applyDebugCardPreset,
     onCardCollected,
 
     // Narrow bridge for the DOM SUB-META layer. Stage-one placeholder assignment
