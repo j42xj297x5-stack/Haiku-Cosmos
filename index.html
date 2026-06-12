@@ -309,19 +309,22 @@
     }
     .overlay-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(max-content, 1fr);
-      gap: 8px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2px;
+      min-width: 0;
       max-width: 100%;
-      overflow-x: auto;
-      scrollbar-width: thin;
+      overflow: hidden;
     }
     .overlay-row .k { opacity: 0.75; }
     .overlay-row .v {
-      min-width: max-content;
+      min-width: 0;
+      max-width: 100%;
       color: inherit;
       font: inherit;
-      text-align: right;
-      white-space: nowrap;
+      text-align: left;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
     .overlay-section {
       min-width: 0;
@@ -489,8 +492,15 @@
     .submeta-png-debug-actions .overlay-btn:last-child {
       grid-column: 1 / -1;
     }
-    .submeta-png-emergency-actions .overlay-btn:last-child {
-      grid-column: auto;
+    .submeta-settings-json,
+    .submeta-placeholder-json,
+    .submeta-panels-json {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 150px;
+      resize: vertical;
+      white-space: pre;
+      overflow: auto;
     }
   </style>
   <script>
