@@ -4,7 +4,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const repoRoot = path.resolve(__dirname, "..");
-const presetPath = path.join(repoRoot, "public/png/submeta/submeta-placeholders.json");
+const presetPath = path.join(repoRoot, "public/settings/submeta-placeholders.json");
 const expectedDefault = JSON.parse(fs.readFileSync(presetPath, "utf8"));
 const storage = new Map();
 const headChildren = [];
@@ -18,7 +18,16 @@ const document = {
 };
 const cardsPool = [{ key: "sentinel-card" }];
 const window = {
-  HC: { Session: { mode: "debug" } },
+  HC: {
+    Session: { mode: "debug" },
+    SubMetaSettings: {
+      paths: { placeholders: "settings/submeta-placeholders.json" },
+      async loadJson(logicalPath) {
+        assert.equal(logicalPath, "settings/submeta-placeholders.json");
+        return { ok: true, payload: expectedDefault, resolvedUrl: `/Haiku-Cosmos/${logicalPath}` };
+      }
+    }
+  },
   World: { cardsPool },
   document,
   localStorage: {
@@ -37,7 +46,8 @@ assert.ok(api, "HC.SubMetaPlaceholders should be registered");
 assert.equal(api.VERSION, "submeta-placeholders-v0.3");
 assert.deepEqual(Array.from(api.GROUPS), ["PRG R1", "PRG R2", "R3", "R4", "Świat", "Świat R2"]);
 
-api.init();
+async function main() {
+await api.init();
 const placeholders = api.getPlaceholders();
 assert.deepEqual(
   JSON.parse(api.exportJson()),
@@ -92,3 +102,6 @@ assert.equal(storage.has(api.STORAGE_KEY), false, "reset should remove the saved
 assert.deepEqual(window.World.cardsPool, cardsPool, "reset must not mutate the card pool");
 
 console.log("submeta_placeholders_smoke.test.js: OK");
+}
+
+main().catch((error) => { console.error(error); process.exitCode = 1; });

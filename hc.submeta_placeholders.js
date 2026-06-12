@@ -6,6 +6,7 @@
 
   const VERSION = "submeta-placeholders-v0.3";
   const STORAGE_KEY = "hc.submetaPlaceholders.preset.v1";
+  const SETTING_KEY = "placeholders";
   const LAYER_ID = "subMetaPlaceholderLayer";
   const FLOATING_EDITOR_ID = "subMetaPlaceholderFloatingEditor";
   const STATES = Object.freeze(["free_active", "free_inactive", "hidden", "occupied"]);
@@ -93,6 +94,8 @@
   const defaultsById = new Map(DEFAULT_PLACEHOLDERS.map((item) => [item.id, item]));
   let placeholders = cloneDefaults();
   let initialized = false;
+  let initializationPromise = null;
+  let dataSource = "DEFAULT_PLACEHOLDERS fallback";
   let enabled = true;
   let showLabels = false;
   let showHidden = false;
@@ -697,12 +700,17 @@
   }
 
   function init() {
-    if (initialized) return;
+    if (initialized) return initializationPromise;
     initialized = true;
     createStyle();
-    loadPreset();
     if (createLayer()) syncDom();
-    update();
+    if (loadPreset()) {
+      update();
+      initializationPromise = Promise.resolve(true);
+    } else {
+      initializationPromise = restoreRuntimeSettingOrFallback().finally(update);
+    }
+    return initializationPromise;
   }
 
   function setVisible(nextEnabled) {
@@ -791,11 +799,39 @@
     try {
       const raw = root.localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
-      return applyPayload(JSON.parse(raw));
+      const applied = applyPayload(JSON.parse(raw));
+      if (applied) dataSource = "localStorage";
+      return applied;
     } catch (error) {
       console.warn("[HC.SubMetaPlaceholders] preset load failed", error);
       return false;
     }
+  }
+
+  async function restoreRuntimeSettingOrFallback() {
+    const settings = root.HC?.SubMetaSettings;
+    const logicalPath = settings?.paths?.[SETTING_KEY];
+    if (!logicalPath || typeof settings?.loadJson !== "function") {
+      console.warn("[HC.SubMetaPlaceholders] runtime settings loader unavailable; using fallback", {
+        logicalPath: logicalPath || null,
+        resolvedUrl: null,
+        status: null,
+        success: false,
+        fallbackUsed: true
+      });
+      return false;
+    }
+
+    const result = await settings.loadJson(logicalPath, {
+      validate: (payload) => !!payload && Array.isArray(payload.placeholders),
+      invalidMessage: "Runtime setting JSON does not contain a placeholders array"
+    });
+    if (result.ok && applyPayload(result.payload)) {
+      dataSource = "runtime setting";
+      return true;
+    }
+    dataSource = "DEFAULT_PLACEHOLDERS fallback";
+    return false;
   }
 
   function resetAll() {
@@ -804,11 +840,12 @@
     showLabels = false;
     showHidden = false;
     slotCardScale = DEFAULT_SLOT_CARD_SCALE;
+    dataSource = "DEFAULT_PLACEHOLDERS fallback";
     clearSelection();
     try { root.localStorage.removeItem(STORAGE_KEY); } catch (_error) { /* storage is optional */ }
     syncDom();
     update();
-    return true;
+    return restoreRuntimeSettingOrFallback();
   }
 
   function importJson(json) {
@@ -931,13 +968,13 @@
   }
 
   root.HC.SubMetaPlaceholders = {
-    VERSION, STORAGE_KEY, STATES, GROUPS, SLOT_CARD_RATIO, SLOT_CARD_BASE_UNIT, SLOT_CARD_BASE_HEIGHT, DEFAULT_SLOT_CARD_SCALE, init, update, render: syncDom, syncDom,
+    VERSION, STORAGE_KEY, SETTING_KEY, STATES, GROUPS, SLOT_CARD_RATIO, SLOT_CARD_BASE_UNIT, SLOT_CARD_BASE_HEIGHT, DEFAULT_SLOT_CARD_SCALE, init, update, render: syncDom, syncDom,
     setVisible, isVisible: () => actuallyVisible, setShowLabels, setShowHidden, setSlotCardScale, getSlotCardScale: () => slotCardScale,
     resolveCardAsset, renderSubMetaCard,
     selectPlaceholder, getSelectedPlaceholderId: () => selectedPlaceholderId, clearSelection, hitTest,
     openFloatingEditor, closeFloatingEditor, syncFloatingEditorFromPlaceholder, applyFloatingEditorValues, syncDebugPanelSelection,
     getDebugState, getPlaceholders: () => placeholders.map((item) => ({ ...item })), getExportPayload,
-    savePreset, loadPreset, resetAll, importJson, exportJson, updateSelectedField, renderDebugHtml, handleDebugControl
+    savePreset, loadPreset, loadRuntimeSetting: restoreRuntimeSettingOrFallback, resetAll, importJson, exportJson, updateSelectedField, renderDebugHtml, handleDebugControl
   };
 
   Object.defineProperties(root, {

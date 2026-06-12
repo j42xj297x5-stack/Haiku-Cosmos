@@ -9,6 +9,7 @@
   const ENABLED_STORAGE_KEY = "hc.submetaPng.enabled.v1";
   const LAYOUT_STORAGE_KEY = "hc.submetaPng.layout.v1";
   const ASSET_DIR = "png/submeta/";
+  const SETTING_KEY = "pngLayout";
   const BACKGROUND_FIT_MODE = "contain";
 
   const element = (id, src, x, y, scaleX = 1, scaleY = 1, zIndex = 10, visible = true, mode = "image") => ({
@@ -58,6 +59,8 @@
   let stage = null;
   let initialized = false;
   let previewEnabled = false;
+  let initializationPromise = null;
+  let dataSource = "DEFAULT_ELEMENTS fallback";
 
   function cloneElement(item) {
     return { ...item };
@@ -336,10 +339,38 @@
     try {
       const raw = root.localStorage.getItem(LAYOUT_STORAGE_KEY);
       if (!raw) return false;
-      return applyPayload(JSON.parse(raw));
+      const applied = applyPayload(JSON.parse(raw));
+      if (applied) dataSource = "localStorage";
+      return applied;
     } catch (_error) {
       return false;
     }
+  }
+
+  async function restoreRuntimeSettingOrFallback() {
+    const settings = root.HC?.SubMetaSettings;
+    const logicalPath = settings?.paths?.[SETTING_KEY];
+    if (!logicalPath || typeof settings?.loadJson !== "function") {
+      console.warn("[HC.SubMetaPngLayout] runtime settings loader unavailable; using fallback", {
+        logicalPath: logicalPath || null,
+        resolvedUrl: null,
+        status: null,
+        success: false,
+        fallbackUsed: true
+      });
+      return false;
+    }
+
+    const result = await settings.loadJson(logicalPath, {
+      validate: (payload) => !!payload && Array.isArray(payload.elements),
+      invalidMessage: "Runtime setting JSON does not contain an elements array"
+    });
+    if (result.ok && applyPayload(result.payload)) {
+      dataSource = "runtime setting";
+      return true;
+    }
+    dataSource = "DEFAULT_ELEMENTS fallback";
+    return false;
   }
 
   function resetSelected() {
@@ -351,10 +382,12 @@
   }
 
   function resetAll() {
+    try { root.localStorage.removeItem(LAYOUT_STORAGE_KEY); } catch (_error) { /* storage is optional */ }
     elements = cloneDefaults();
     selectedId = elements[0].id;
+    dataSource = "DEFAULT_ELEMENTS fallback";
     renderElements();
-    saveLayout();
+    return restoreRuntimeSettingOrFallback();
   }
 
   function getExportPayload() {
@@ -504,11 +537,16 @@
   }
 
   function init() {
-    if (initialized) return;
+    if (initialized) return initializationPromise;
     initialized = true;
     createDom();
-    loadLayout();
-    update();
+    if (loadLayout()) {
+      update();
+      initializationPromise = Promise.resolve(true);
+    } else {
+      initializationPromise = restoreRuntimeSettingOrFallback().finally(update);
+    }
+    return initializationPromise;
   }
 
   root.HC.SubMetaPngLayout = {
@@ -517,6 +555,7 @@
     ENABLED_STORAGE_KEY,
     LAYOUT_STORAGE_KEY,
     BACKGROUND_FIT_MODE,
+    SETTING_KEY,
     init,
     update,
     isActive,
@@ -532,6 +571,7 @@
     getExportPayload,
     saveLayout,
     loadLayout,
+    loadRuntimeSetting: restoreRuntimeSettingOrFallback,
     resetSelected,
     resetAll,
     exportLayout,
