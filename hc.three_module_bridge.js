@@ -1,22 +1,24 @@
-// Local Three.js ESM vendor bridge with preflight diagnostics (v5 + GLTFLoader)
+import { publicPath } from "./hc.public_path.js";
+
+const THREE_MODULE_PUBLIC_PATH = "vendor/three/three.module.min.js";
+const GLTF_LOADER_PUBLIC_PATH = "vendor/loaders/GLTFLoader.js";
+
+// Local Three.js ESM vendor bridge with base-aware public URLs and preflight diagnostics.
 (function initThreeBridgeGlobals() {
   if (typeof window === "undefined") return;
 
-  window.HC_THREE_BRIDGE_VERSION = "esm_vendor_probe_v6_gltf_base_safe";
-  window.HC_THREE_SOURCE = "local_vendor_esm";
+  window.HC_THREE_BRIDGE_VERSION = "esm_public_vendor_v7_base_aware";
+  window.HC_THREE_SOURCE = "public_vendor_esm";
   window.HC_THREE_READY = false;
   window.HC_THREE_LOAD_STATUS = "loading";
   window.HC_THREE_LOAD_ERROR = null;
-  window.HC_THREE_MODULE_URL = new URL("./vendor/three/three.module.min.js", import.meta.url).href;
-  window.HC_GLTF_LOADER_MODULE_URL = new URL("./vendor/loaders/GLTFLoader.js", import.meta.url).href;
+  window.HC_THREE_MODULE_PATH = THREE_MODULE_PUBLIC_PATH;
+  window.HC_GLTF_LOADER_MODULE_PATH = GLTF_LOADER_PUBLIC_PATH;
+  window.HC_THREE_MODULE_URL = publicPath(THREE_MODULE_PUBLIC_PATH);
+  window.HC_GLTF_LOADER_MODULE_URL = publicPath(GLTF_LOADER_PUBLIC_PATH);
   window.HC_GLTF_LOADER_IMPORT_STATUS = "loading";
   window.HC_GLTF_LOADER_IMPORT_ERROR = null;
-  // Only public entry modules belong in the preflight. three.core is an internal
-  // Vite/Rollup chunk and importing the entry modules is the authoritative check.
-  window.HC_THREE_VENDOR_URLS = [
-    window.HC_THREE_MODULE_URL,
-    window.HC_GLTF_LOADER_MODULE_URL
-  ];
+  window.HC_THREE_VENDOR_URLS = [window.HC_THREE_MODULE_URL, window.HC_GLTF_LOADER_MODULE_URL];
 
   if (window.location && window.location.protocol === "file:") {
     window.HC_THREE_LOAD_STATUS = "failed";
@@ -40,8 +42,8 @@
         }
       }
 
-      const moduleNs = await import(window.HC_THREE_MODULE_URL);
-      const loaderNs = await import(window.HC_GLTF_LOADER_MODULE_URL);
+      const moduleNs = await import(/* @vite-ignore */ window.HC_THREE_MODULE_URL);
+      const loaderNs = await import(/* @vite-ignore */ window.HC_GLTF_LOADER_MODULE_URL);
       window.HC_THREE = moduleNs;
       window.HC_GLTFLoader = loaderNs.GLTFLoader;
       window.HC_GLTF_LOADER_IMPORT_STATUS = typeof loaderNs.GLTFLoader === "function" ? "ready" : "failed";
@@ -50,7 +52,6 @@
       window.HC_THREE_READY = true;
       window.HC_THREE_LOAD_STATUS = "ready";
       window.HC_THREE_LOAD_ERROR = null;
-      window.HC_THREE_SOURCE = "local_vendor_esm";
     } catch (error) {
       window.HC_THREE_READY = false;
       window.HC_THREE_LOAD_STATUS = "failed";

@@ -473,12 +473,15 @@
     catch (_) { return String(url || "") === String(modelUrl || ""); }
   }
 
-  function makeGlbEventPayload(type, { assetKind, url, cacheKey, startedAt, durationMs = null, loaded = null, total = null, error = null, status = null, readyState = null, meshCount = null, materialCount = null, textureCount = null } = {}) {
+  function makeGlbEventPayload(type, { assetKind, logicalPath = null, url, baseUrl = null, cacheKey, startedAt, durationMs = null, loaded = null, total = null, error = null, status = null, readyState = null, meshCount = null, materialCount = null, textureCount = null, fallbackUsed = false } = {}) {
     const elapsedMs = Number.isFinite(durationMs) ? durationMs : (Number.isFinite(startedAt) ? performance.now() - startedAt : null);
     const errorMessage = error ? formatGlbError(error) : null;
     return {
       assetKind,
+      logicalPath,
       url,
+      resolvedUrl: url,
+      baseUrl,
       loaderMode: "gltf_loader",
       cacheKey: cacheKey || url || null,
       durationMs: Number.isFinite(elapsedMs) ? elapsedMs : null,
@@ -492,6 +495,7 @@
       meshCount,
       materialCount,
       textureCount,
+      fallbackUsed: !!fallbackUsed,
       eventKind: type,
     };
   }
@@ -3358,7 +3362,8 @@
   function loadGltfSceneWithDiagnostics(THREE, GLTFLoader, url, assetKind, cacheEntry = null) {
     const startedAt = performance.now();
     const rawUrl = String(url || "");
-    const baseUrl = getBrowserAssetBaseUrl();
+    const baseUrl = window.HC?.publicBaseUrl || getBrowserAssetBaseUrl();
+    const logicalPath = cacheEntry?.logicalPath || cacheEntry?.rawUrl || rawUrl;
     let resolvedUrl = rawUrl;
     const timeoutMs = getGlbLoadTimeoutMs(assetKind);
     const diagnostics = refreshGltfLoaderAvailabilityDiagnostics();
@@ -3382,11 +3387,12 @@
     diagnostics.gltfLoaderLastErrorStack = null;
     pushUniqueLimited(diagnostics.gltfLoaderPendingUrls, resolvedUrl);
     removeFromList(diagnostics.gltfLoaderFailedUrls, resolvedUrl);
-    emitGlbDebugEvent("world.glb_load_started", makeGlbEventPayload("started", { assetKind, url: resolvedUrl, cacheKey, startedAt, status: "loading" }));
+    emitGlbDebugEvent("world.glb_load_started", makeGlbEventPayload("started", { assetKind, logicalPath, url: resolvedUrl, baseUrl, cacheKey, startedAt, status: "loading", fallbackUsed: false }));
     if (cacheEntry) {
       cacheEntry.status = "loading";
       cacheEntry.url = resolvedUrl;
       cacheEntry.rawUrl = rawUrl;
+      cacheEntry.logicalPath = logicalPath;
       cacheEntry.resolvedUrl = resolvedUrl;
       cacheEntry.baseUrl = baseUrl;
       cacheEntry.cacheKey = cacheKey;
@@ -3543,7 +3549,9 @@
               syncGltfLoaderUrlDiagnostics();
               emitGlbDebugEvent("world.glb_load_ready", makeGlbEventPayload("ready", {
                 assetKind,
+                logicalPath,
                 url: resolvedUrl,
+                baseUrl,
                 cacheKey,
                 startedAt,
                 durationMs,
@@ -3562,7 +3570,9 @@
               error.hcGlbEventEmitted = true;
               emitGlbDebugEvent("world.glb_load_failed", makeGlbEventPayload("failed", {
                 assetKind,
+                logicalPath,
                 url: resolvedUrl,
+                baseUrl,
                 cacheKey,
                 startedAt,
                 durationMs,
@@ -3570,6 +3580,7 @@
                 total: cacheEntry?.progressTotal ?? null,
                 error,
                 status: "failed",
+                fallbackUsed: assetKind === "meteor" || assetKind === "asteroid",
               }));
               settle("reject", error);
             }
@@ -3591,7 +3602,9 @@
             if (shouldEmitProgress) {
               emitGlbDebugEvent("world.glb_load_progress", makeGlbEventPayload("progress", {
                 assetKind,
+                logicalPath,
                 url: resolvedUrl,
+                baseUrl,
                 cacheKey,
                 startedAt,
                 loaded,
@@ -3610,13 +3623,16 @@
             normalizedError.hcGlbEventEmitted = true;
             emitGlbDebugEvent("world.glb_load_failed", makeGlbEventPayload("failed", {
               assetKind,
+              logicalPath,
               url: resolvedUrl,
+              baseUrl,
               cacheKey,
               startedAt,
               durationMs,
               loaded: cacheEntry?.progressLoaded ?? null,
               total: cacheEntry?.progressTotal ?? null,
               error: normalizedError,
+              fallbackUsed: assetKind === "meteor" || assetKind === "asteroid",
               readyState: error?.target?.readyState ?? error?.currentTarget?.readyState ?? null,
               status: error?.target?.status ?? error?.currentTarget?.status ?? null,
             }));
@@ -3630,7 +3646,9 @@
         error.hcGlbEventEmitted = true;
         emitGlbDebugEvent("world.glb_load_failed", makeGlbEventPayload("failed", {
           assetKind,
+          logicalPath,
           url: resolvedUrl,
+          baseUrl,
           cacheKey,
           startedAt,
           durationMs,
@@ -3638,6 +3656,7 @@
           total: cacheEntry?.progressTotal ?? null,
           error,
           status: "failed",
+          fallbackUsed: assetKind === "meteor" || assetKind === "asteroid",
         }));
         settle("reject", error);
       }
@@ -3670,7 +3689,7 @@
       return entry;
     }
     const startedAt = performance.now();
-    entry = { status: "loading", url, rawUrl: String(assetPath || ""), resolvedUrl: url, baseUrl: getBrowserAssetBaseUrl(), cacheKey: url, assetKind, loaderMode: "gltf_loader", loaderPrimary: "GLTFLoader", template: null, error: null, errorMessage: null, errorStack: null, startedAt, durationMs: null, timeoutMs: getGlbLoadTimeoutMs(assetKind), progressLoaded: null, progressTotal: null, progressEventEmitted: false, materialAudit: null, promise: null };
+    entry = { status: "loading", url, rawUrl: String(assetPath || ""), logicalPath: String(assetPath || ""), resolvedUrl: url, baseUrl: getBrowserAssetBaseUrl(), cacheKey: url, assetKind, loaderMode: "gltf_loader", loaderPrimary: "GLTFLoader", template: null, error: null, errorMessage: null, errorStack: null, startedAt, durationMs: null, timeoutMs: getGlbLoadTimeoutMs(assetKind), progressLoaded: null, progressTotal: null, progressEventEmitted: false, materialAudit: null, promise: null };
     threeState.glbTemplateCache.set(url, entry);
     entry.promise = parseGlbWithGltfLoader(THREE, url, assetKind, entry)
       .then((template) => {
