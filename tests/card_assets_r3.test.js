@@ -58,12 +58,12 @@ assert.equal(
 );
 
 const detailCard = { kind: "R3", colorA: "blue", colorB: "yellow", colorC: "green", tier: "sDR" };
-assert.equal(api.resolveCardPngAsset(detailCard), null, "R3 detail should not invent an absent PNG path");
 assert.equal(
-  api.resolveCardAsset(detailCard, { context: "detail" }).path,
-  "svg/card_r3_yellow_green_blue_sdr.svg",
-  "R3 detail should safely use SVG when no PNG mapping exists"
+  api.resolveCardPngAsset(detailCard).path,
+  "png/cards/card_r3_yellow_green_blue_sdr.png",
+  "R3 detail should generate a canonical PNG path even when runtime may need to fall back after load failure"
 );
+assert.equal(api.resolveCardAsset(detailCard, { context: "detail" }).format, "png", "R3 detail should prefer PNG");
 
 const missingAsset = api.resolveCardAsset({ kind: "R3", colors: ["red", "green", "blue"], tier: "DR" });
 api.markAssetFailed(missingAsset, { id: "CARD_R3_RED_GREEN_BLUE", tier: "DR" });

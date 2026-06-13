@@ -572,9 +572,11 @@
     node.classList.add("has-card-asset");
     node.classList.remove("is-procedural-card");
     node.replaceChildren();
-    const image = document.createElement("img");
+    const cachedEntry = context === "detail"
+      ? root.HC.CardAssets?.getCachedImage?.(asset, card)
+      : null;
+    const image = cachedEntry?.image || document.createElement("img");
     image.className = "submeta-card-render-asset";
-    image.src = asset.url;
     image.alt = "";
     image.draggable = false;
     image.addEventListener("error", () => {
@@ -582,6 +584,7 @@
       delete node.dataset.cardRenderSignature;
       renderSubMetaCard(node, card, options);
     }, { once: true });
+    if (!cachedEntry) image.src = asset.url;
     node.appendChild(image);
     appendCardCount(node, card, options);
     return { asset, mode: "asset" };

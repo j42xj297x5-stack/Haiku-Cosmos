@@ -67,8 +67,8 @@ api.markAssetFailed(failedPng, r1Detail);
 assert.equal(api.resolveCardAsset(r1Detail, { context: "detail" }).format, "svg", "detail should fall back to SVG after PNG load failure");
 
 const r2Detail = { kind: "R2", colors: ["blue", "red"], tier: "sDR" };
-assert.equal(api.resolveCardPngAsset(r2Detail), null, "R2 detail should not invent a PNG path that is absent from the manifest");
-assert.equal(api.resolveCardAsset(r2Detail, { context: "detail" }).path, "svg/card_r2_red_blue_sdr.svg", "R2 detail should use SVG when no PNG exists");
+assert.equal(api.resolveCardPngAsset(r2Detail).path, "png/cards/card_r2_red_blue_sdr.png", "R2 detail should generate the canonical PNG path");
+assert.equal(api.resolveCardAsset(r2Detail, { context: "detail" }).format, "png", "R2 detail should prefer PNG without changing the standard card renderer");
 
 const malformedR2 = { kind: "R2", colorA: "red", tier: "DR", id: "BROKEN_R2" };
 assert.equal(api.resolveCardAsset(malformedR2), null, "an incomplete R2 identity should preserve the procedural fallback");
