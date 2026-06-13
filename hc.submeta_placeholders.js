@@ -62,6 +62,8 @@
     placeholder("core.r3.2.dust", "R3", "slot.2", "dust", "free_inactive", 0.557, 0.300, 0.017, 0.025, 121, true, true, "Pył R3 / 2"),
     placeholder("core.r3.3.card", "R3", "slot.3", "card", "free_inactive", 0.500, 0.350, 0.043, 0.066, 120, true, true, "R3 / 3"),
     placeholder("core.r3.3.dust", "R3", "slot.3", "dust", "free_inactive", 0.527, 0.380, 0.017, 0.025, 121, true, true, "Pył R3 / 3"),
+    placeholder("core.r3.4.card", "R3", "slot.4", "card", "free_inactive", 0.560, 0.350, 0.043, 0.066, 120, true, true, "R3 / 4"),
+    placeholder("core.r3.4.dust", "R3", "slot.4", "dust", "free_inactive", 0.587, 0.380, 0.017, 0.025, 121, true, true, "Pył R3 / 4"),
 
     // Core R4. Special and dust sockets are intentionally hidden until their gameplay rules exist.
     placeholder("core.r4.main", "R4", "main", "card", "free_inactive", 0.500, 0.500, 0.050, 0.076, 130, true, true, "Rdzeń R4"),
