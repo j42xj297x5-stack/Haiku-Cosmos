@@ -368,6 +368,36 @@
       "label": "Pył R3 / 3"
     },
     {
+      "id": "core.r3.4.card",
+      "group": "R3",
+      "subgroup": "slot.4",
+      "kind": "card",
+      "state": "free_inactive",
+      "x": 0.585,
+      "y": 0.27,
+      "w": 0.013,
+      "h": 0.023,
+      "zIndex": 120,
+      "visibleInGame": true,
+      "visibleInDebug": true,
+      "label": "R3 / 4"
+    },
+    {
+      "id": "core.r3.4.dust",
+      "group": "R3",
+      "subgroup": "slot.4",
+      "kind": "dust",
+      "state": "free_inactive",
+      "x": 0.585,
+      "y": 0.215,
+      "w": 0.013,
+      "h": 0.023,
+      "zIndex": 121,
+      "visibleInGame": true,
+      "visibleInDebug": true,
+      "label": "Pył R3 / 4"
+    },
+    {
       "id": "core.r4.main",
       "group": "R4",
       "subgroup": "main",

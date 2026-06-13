@@ -4304,6 +4304,11 @@ const CardEngine = (() => {
     if (target.type === "world-r2") {
       return getWorldBindingAvailableCards(World, target.bindingIndex);
     }
+    if (target.type === "card-kind") {
+      const requiredKind = String(target.kind || "").toUpperCase();
+      if (!["DS", "R3", "R4"].includes(requiredKind)) return [];
+      return getSubMetaInventoryEntries(World).filter((entry) => String(entry.kind || "").toUpperCase() === requiredKind);
+    }
     return [];
   }
 
@@ -6015,6 +6020,7 @@ const CardEngine = (() => {
         getWorldAvailableCards(World, slotKey, slotIndex, ensureSubMetaWorld(World)),
       getWorldBindingAvailableCards,
       getPrgAvailableCards,
+      getPlaceholderAvailableCards,
       assignPlaceholderCard,
       getPlaceholderAssignments,
       getForgeAvailableStacks,

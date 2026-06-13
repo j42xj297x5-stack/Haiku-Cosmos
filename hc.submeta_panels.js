@@ -342,7 +342,7 @@
   function classifyInventoryEntry(entry) {
     const kind = String(entry?.kind || "").toUpperCase();
     if (["R1", "R2", "R3", "R4"].includes(kind)) return "normal";
-    if (["RESOURCE", "RESOURCES", "DUST", "PYL", "PYŁ"].includes(kind)) return "resources";
+    if (["DS", "RESOURCE", "RESOURCES", "DUST", "PYL", "PYŁ"].includes(kind)) return "resources";
     return "special";
   }
 
@@ -362,8 +362,9 @@
     if (prgR2) return { type: "prg-r2", selection: { type: "r2", bindingIndex: Number(prgR2[1]) - 1 }, slotKey: placeholder.subgroup };
     const worldR2 = placeholder.id.match(/^world\.r2\.(\d+)\.card$/);
     if (worldR2) return { type: "world-r2", bindingIndex: Number(worldR2[1]) - 1, slotKey: placeholder.subgroup };
-    if (/r3/i.test(placeholder.id)) return { type: "pending", message: "R3: filtrowanie kart do podpięcia później." };
-    if (/r4/i.test(placeholder.id)) return { type: "pending", message: "R4: filtrowanie kart do podpięcia później." };
+    if (placeholder.kind === "dust") return { type: "card-kind", kind: "DS", slotKey: placeholder.subgroup };
+    if (/^core\.r3\.\d+\.card$/.test(placeholder.id)) return { type: "card-kind", kind: "R3", slotKey: placeholder.subgroup };
+    if (placeholder.id === "core.r4.main") return { type: "card-kind", kind: "R4", slotKey: placeholder.subgroup };
     return { type: "unsupported", message: placeholder.kind === "card" ? "Ten typ miejsca nie ma jeszcze mapowania kart." : "To miejsce nie przyjmuje kart w tym etapie." };
   }
 
@@ -379,6 +380,7 @@
     if (context.type === "prg-r1" || context.type === "prg-r2") entries = api.getPrgAvailableCards?.(World, context.selection) || [];
     if (context.type === "world-r1") entries = api.getWorldAvailableCards?.(World, context.slotKey, context.slotIndex) || [];
     if (context.type === "world-r2") entries = api.getWorldBindingAvailableCards?.(World, context.bindingIndex) || [];
+    if (context.type === "card-kind") entries = api.getPlaceholderAvailableCards?.(World, context) || [];
     return { entries: entries.map(normalizeEntry).filter(Boolean), context };
   }
 
