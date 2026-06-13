@@ -8,11 +8,7 @@
   const VALID_TIERS = Object.freeze(["DR", "SDR", "PDR"]);
   const failedAssetUrls = new Set();
   const warnedKeys = new Set();
-  const CARD_PNG_ASSET_PATHS = Object.freeze({
-    "R1:RED:DR": "png/cards/card_r1_red_dr.png",
-    "R1:RED:SDR": "png/cards/card_r1_red_sdr.png",
-    "R1:RED:PDR": "png/cards/card_r1_red_pdr.png"
-  });
+  const imageCache = new Map();
 
   function warnOnce(key, message, details) {
     if (warnedKeys.has(key)) return;
@@ -27,7 +23,8 @@
   function normalizeKind(card) {
     const identity = getIdentity(card);
     const explicitKind = String(card?.kind || card?.type || "").toUpperCase();
-    if (["R1", "R2", "R3"].includes(explicitKind)) return explicitKind;
+    if (["R1", "R2", "R3", "R4"].includes(explicitKind)) return explicitKind;
+    if (/(?:CARD|PRG)_R4(?:_|\b)|\bR4\b/.test(identity)) return "R4";
     if (/(?:CARD|PRG)_R3(?:_|\b)|\bR3\b/.test(identity)) return "R3";
     if (/(?:CARD|PRG)_R2(?:_|\b)|\bR2\b/.test(identity)) return "R2";
     if (/(?:CARD|PRG)_R1(?:_|\b)|\bR1\b/.test(identity)) return "R1";
@@ -66,7 +63,18 @@
     if (kind === "R1" && colors.length >= 1) return `${kind}:${colors[0]}:${tier}`;
     if (kind === "R2" && colors.length >= 2) return `${kind}:${colors[0]}_${colors[1]}:${tier}`;
     if (kind === "R3" && colors.length >= 3) return `${kind}:${colors[0]}_${colors[1]}_${colors[2]}:${tier}`;
+    if (kind === "R4" && colors.length >= 4) return `${kind}:${colors[0]}_${colors[1]}_${colors[2]}_${colors[3]}:${tier}`;
     return null;
+  }
+
+  function getCardPngPath(card) {
+    const kind = normalizeKind(card);
+    const tier = normalizeTier(card).toLowerCase();
+    const colors = collectColors(card);
+    const requiredColorCount = ({ R1: 1, R2: 2, R3: 3, R4: 4 })[kind];
+    if (!requiredColorCount || colors.length < requiredColorCount) return null;
+    const colorPart = colors.slice(0, requiredColorCount).map((color) => color.toLowerCase()).join("_");
+    return `png/cards/card_${kind.toLowerCase()}_${colorPart}_${tier}.png`;
   }
 
   function getCardSvgPath(card) {
@@ -102,8 +110,7 @@
   }
 
   function resolveCardPngAsset(card) {
-    const key = getCardAssetKey(card);
-    return resolvePublicAsset(key ? CARD_PNG_ASSET_PATHS[key] : null, "png");
+    return resolvePublicAsset(getCardPngPath(card), "png");
   }
 
   function resolveCardAsset(card, options = {}) {
@@ -112,7 +119,7 @@
       ? (resolveCardPngAsset(card) || resolveCardSvgAsset(card))
       : resolveCardSvgAsset(card);
     const kind = normalizeKind(card);
-    if (!asset && (kind === "R2" || kind === "R3")) {
+    if (!asset && ["R2", "R3", "R4"].includes(kind)) {
       warnOnce(`unresolved:${getCardAssetKey(card) || getIdentity(card)}`, `${kind} card asset could not be resolved; using procedural fallback`, {
         cardId: card?.id || card?.key || card?.cardKey || null,
         tier: card?.tier || card?.fromTier || null,
@@ -133,16 +140,34 @@
     });
   }
 
+  function getCachedImage(asset, card) {
+    if (!asset?.url || typeof root.Image !== "function") return null;
+    let entry = imageCache.get(asset.url);
+    if (entry) return entry;
+    const image = new root.Image();
+    entry = { image, status: "loading", url: asset.url };
+    imageCache.set(asset.url, entry);
+    image.onload = () => { entry.status = "loaded"; };
+    image.onerror = () => {
+      entry.status = "failed";
+      markAssetFailed(asset, card);
+    };
+    image.src = asset.url;
+    return entry;
+  }
+
   root.HC.CardAssets = Object.freeze({
     COLOR_ORDER,
     normalizeKind,
     normalizeTier,
     collectColors,
     getCardAssetKey,
+    getCardPngPath,
     getCardSvgPath,
     resolveCardAsset,
     resolveCardSvgAsset,
     resolveCardPngAsset,
+    getCachedImage,
     markAssetFailed,
     hasAssetFailed: (url) => failedAssetUrls.has(url)
   });
