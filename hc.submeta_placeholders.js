@@ -221,9 +221,17 @@
       .submeta-card-render-tier { color:#dfecf1; }
       .submeta-card-render-count {
         position:absolute; right:0; top:0; z-index:2; display:grid; place-items:center; box-sizing:border-box;
-        height:25%; min-width:25%; padding:0 .3em; border-radius:0 28% 0 36%; color:#fff;
+        height:25%; min-width:25%; padding:0 .3em; color:#fff;
         font-size:clamp(6px,.58vw,11px); line-height:1; text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.72);
-        box-shadow:0 1px 3px rgba(0,0,0,.45); pointer-events:none;
+        pointer-events:none;
+      }
+      .submeta-card-render-count::before {
+        content:""; position:absolute; inset:0; z-index:-1; border-radius:0 28% 0 36%;
+        background:var(--submeta-count-badge-color,#66737a); box-shadow:0 1px 3px rgba(0,0,0,.45);
+        transform:scale(var(--submeta-count-badge-scale,1)); transform-origin:top right;
+      }
+      .submeta-card-render-count-text {
+        display:block; transform:scale(var(--submeta-count-text-scale,1)); transform-origin:center;
       }
       .submeta-card-render { aspect-ratio:${SUBMETA_CARD_GEOMETRY.ratioW}/${SUBMETA_CARD_GEOMETRY.ratioH}; }
       .submeta-card-render.has-card-asset { overflow:visible; padding:0; border-color:transparent; background:transparent; box-shadow:none; }
@@ -467,6 +475,10 @@
     return ({ red: "#b8453d", yellow: "#c9a83b", green: "#4d9b62", blue: "#477eb7" })[String(color || "").toLowerCase()] || "#66737a";
   }
 
+  function inventoryCountBadgeColorCss(color) {
+    return ({ red: "#ff0f0fff", yellow: "#e9d51bff", green: "#279a15ff", blue: "#2b2bfaff" })[String(color || "").toLowerCase()] || "#66737a";
+  }
+
   function resolveCardSvgAsset(card) {
     return root.HC.CardAssets?.resolveCardSvgAsset?.(card) || null;
   }
@@ -479,13 +491,19 @@
     return root.HC.CardAssets?.resolveCardAsset?.(card, options) || null;
   }
 
-  function getProceduralCardSignature(card, showCount) {
+  function getCardCountSignature(card, options) {
+    return options.showCount === true
+      ? `${card?.count || 1}:${options.countTextScale ?? 1}:${options.countBadgeScale ?? 1}`
+      : "0";
+  }
+
+  function getProceduralCardSignature(card, options) {
     const colors = Array.isArray(card?.colors) ? card.colors : [card?.color, card?.colorA, card?.colorB].filter(Boolean);
-    return `procedural:${card?.kind || "CARD"}:${card?.tier || "DR"}:${colors.join(",")}:${showCount ? card?.count || 1 : 0}`;
+    return `procedural:${card?.kind || "CARD"}:${card?.tier || "DR"}:${colors.join(",")}:${getCardCountSignature(card, options)}`;
   }
 
   function renderProceduralCard(node, card, options = {}) {
-    node.dataset.cardRenderSignature = getProceduralCardSignature(card, options.showCount === true);
+    node.dataset.cardRenderSignature = getProceduralCardSignature(card, options);
     node.classList.remove("has-card-asset");
     node.classList.add("is-procedural-card");
     node.replaceChildren();
@@ -518,9 +536,14 @@
       : (card?.color || card?.colorA);
     const count = document.createElement("span");
     count.className = "submeta-card-render-count";
-    count.style.backgroundColor = assignedCardColorCss(primaryColor);
+    count.style.setProperty("--submeta-count-badge-color", inventoryCountBadgeColorCss(primaryColor));
+    count.style.setProperty("--submeta-count-text-scale", String(options.countTextScale ?? 1));
+    count.style.setProperty("--submeta-count-badge-scale", String(options.countBadgeScale ?? 1));
     count.style.color = String(primaryColor || "").toLowerCase() === "yellow" ? "#17120a" : "#fff";
-    count.textContent = String(countValue);
+    const text = document.createElement("span");
+    text.className = "submeta-card-render-count-text";
+    text.textContent = String(countValue);
+    count.appendChild(text);
     node.appendChild(count);
   }
 
@@ -536,8 +559,8 @@
     node.classList.toggle("is-pending", options.pending === true);
     const asset = resolveCardAsset(card, { context });
     const signature = asset
-      ? `asset:${asset.url}:${options.showCount === true ? card.count || 1 : 0}`
-      : getProceduralCardSignature(card, options.showCount === true);
+      ? `asset:${asset.url}:${getCardCountSignature(card, options)}`
+      : getProceduralCardSignature(card, options);
     if (node.dataset.cardRenderSignature === signature && node.childElementCount > 0) {
       return { asset, mode: asset ? "asset" : "procedural" };
     }

@@ -1,5 +1,5 @@
 {
-  "version": "submeta-panels-layout-v0.4",
+  "version": "submeta-panels-layout-v0.5",
   "settings": {
     "showSubMetaPanelsDebug": true,
     "showPanelLabels": true
@@ -29,7 +29,9 @@
       "gridOffsetX": -0.024,
       "filterTopMargin": 0.003,
       "arrowRightMargin": 0.005,
-      "pageStepRows": 3
+      "pageStepRows": 3,
+      "inventoryCountTextScale": 1,
+      "inventoryCountBadgeScale": 1
     },
     {
       "id": "inventory.filter.normal",
