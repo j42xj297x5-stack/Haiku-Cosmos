@@ -4,7 +4,7 @@
 
   root.HC = root.HC || {};
 
-  const VERSION = "submeta-panels-layout-v0.5";
+  const VERSION = "submeta-panels-layout-v0.6";
   const SETTING_KEY = "panels";
   const LAYER_ID = "subMetaPanelsLayer";
   const FLOATING_EDITOR_ID = "subMetaPanelsFloatingEditor";
@@ -22,6 +22,14 @@
     "forge.scroll.up", "forge.scroll.down"
   ]);
   const DETAIL_RECT_IDS = Object.freeze(["detail.preview_card", "detail.description", "detail.haiku"]);
+  const SCROLL_CONTROL_CONFIG = Object.freeze({
+    "inventory.scroll.up": Object.freeze({ panelId: "panel.inventory", direction: -1, asset: "png/arrow-up.png" }),
+    "inventory.scroll.down": Object.freeze({ panelId: "panel.inventory", direction: 1, asset: "png/arrow-down.png" }),
+    "possibilities.scroll.up": Object.freeze({ panelId: "panel.possibilities", direction: -1, asset: "png/arrow-up.png" }),
+    "possibilities.scroll.down": Object.freeze({ panelId: "panel.possibilities", direction: 1, asset: "png/arrow-down.png" }),
+    "forge.scroll.up": Object.freeze({ panelId: "panel.forge", direction: -1, asset: "png/arrow-up.png" }),
+    "forge.scroll.down": Object.freeze({ panelId: "panel.forge", direction: 1, asset: "png/arrow-down.png" })
+  });
   const BASE_FIELDS = Object.freeze(["x", "y", "w", "h", "zIndex", "visibleInDebug", "visibleInGame"]);
   const GRID_FIELDS = Object.freeze([
     "gridColumns", "gridRowsVisible", "cardRatioW", "cardRatioH", "cardScale",
@@ -76,6 +84,9 @@
   let presetRequestId = 0;
   let initializationPromise = null;
   let inventoryFilter = "normal";
+  let inventoryScrollRow = 0;
+  let possibilitiesScrollRow = 0;
+  let forgeScrollRow = 0;
   const cardSelection = {
     selectedPlaceholderId: null,
     selectedPlaceholder: null,
@@ -174,6 +185,12 @@
       .submeta-panel-detail-rect { border-color:rgba(206,165,255,.52) !important; background:rgba(160,90,220,.035) !important; pointer-events:auto; cursor:crosshair; }
       .submeta-panel-control.is-view-control { display:grid; place-items:center; border:1px solid rgba(183,205,214,.42); border-radius:3px; background:rgba(7,17,24,.72); color:#c8d7dc; font:600 clamp(6px,.55vw,10px)/1 system-ui,sans-serif; cursor:pointer; pointer-events:auto; }
       .submeta-panel-control.is-view-control:hover, .submeta-panel-control.is-view-control.is-active { border-color:rgba(255,219,112,.92); color:#fff2c7; background:rgba(91,72,27,.62); }
+      .submeta-panel-control.is-scroll-control { display:grid; place-items:center; border:0!important; background:transparent!important; pointer-events:auto; cursor:pointer; }
+      .submeta-panel-control.is-scroll-control img { display:block; width:min(100%,50px); height:min(100%,53px); object-fit:contain; opacity:.86; transition:opacity 120ms ease, transform 120ms ease, filter 120ms ease; pointer-events:none; }
+      .submeta-panel-control.is-scroll-control.is-active img { opacity:.86; }
+      .submeta-panel-control.is-scroll-control:not(.is-disabled):hover img { opacity:1; transform:scale(1.08); filter:brightness(1.08); }
+      .submeta-panel-control.is-scroll-control.is-disabled { cursor:default; }
+      .submeta-panel-control.is-scroll-control.is-disabled img { opacity:.28; filter:saturate(.55); }
       .submeta-card-view { position:absolute; box-sizing:border-box; aspect-ratio:${SUBMETA_CARD_GEOMETRY.ratioW}/${SUBMETA_CARD_GEOMETRY.ratioH}; transform:translate(-50%,-50%); display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; padding:3px; border:1px solid rgba(203,220,226,.48); border-radius:9%; background:linear-gradient(160deg,rgba(23,30,36,.96),rgba(4,8,12,.98)); color:#eef5f7; box-shadow:0 2px 5px rgba(0,0,0,.45); font:600 clamp(5px,.48vw,9px)/1 system-ui,sans-serif; pointer-events:auto; cursor:pointer; }
       .submeta-card-view:hover { border-color:rgba(234,245,248,.9); transform:translate(-50%,-50%) scale(1.04); }
       .submeta-card-view.is-selected { border-color:#ffdc72; box-shadow:0 0 0 1px rgba(255,220,114,.38),0 0 9px rgba(255,195,57,.58); }
@@ -222,6 +239,43 @@
 
   function getItem(id) {
     return items.find((item) => item.id === id) || null;
+  }
+
+  function resolvePublicAsset(logicalPath) {
+    return new URL(logicalPath, document.baseURI).href;
+  }
+
+  function getScrollRow(panelId) {
+    if (panelId === "panel.inventory") return inventoryScrollRow;
+    if (panelId === "panel.possibilities") return possibilitiesScrollRow;
+    if (panelId === "panel.forge") return forgeScrollRow;
+    return 0;
+  }
+
+  function setScrollRow(panelId, row) {
+    const nextRow = Math.max(0, Math.floor(Number(row) || 0));
+    if (panelId === "panel.inventory") inventoryScrollRow = nextRow;
+    if (panelId === "panel.possibilities") possibilitiesScrollRow = nextRow;
+    if (panelId === "panel.forge") forgeScrollRow = nextRow;
+    return nextRow;
+  }
+
+  function resetScrollRows() {
+    inventoryScrollRow = 0;
+    possibilitiesScrollRow = 0;
+    forgeScrollRow = 0;
+  }
+
+  function getScrollMetrics(panelId, itemCount) {
+    const panel = getItem(panelId);
+    const columns = Math.max(1, panel?.gridColumns || 1);
+    const visibleRows = Math.max(1, panel?.gridRowsVisible || 1);
+    const totalRows = Math.ceil(Math.max(0, itemCount) / columns);
+    const maxScrollRow = Math.max(0, totalRows - visibleRows);
+    const scrollRow = Math.min(maxScrollRow, getScrollRow(panelId));
+    const pageStepRows = Math.max(1, Math.floor(panel?.pageStepRows || visibleRows));
+    setScrollRow(panelId, scrollRow);
+    return { columns, visibleRows, totalRows, maxScrollRow, scrollRow, pageStepRows };
   }
 
   function getWorld() {
@@ -480,6 +534,7 @@
 
   function selectPlaceholder(context) {
     if (!context?.id) return false;
+    possibilitiesScrollRow = 0;
     const retainedPending = pendingAssignment?.placeholderId === context.id ? pendingAssignment : null;
     const clearedPending = pendingAssignment && !retainedPending;
     if (clearedPending) clearPendingAssignment({ reason: "placeholder-changed", render: false });
@@ -496,6 +551,7 @@
   }
 
   function clearPlaceholderSelection() {
+    possibilitiesScrollRow = 0;
     clearPendingAssignment({ reason: "placeholder-selection-cleared", render: false });
     cardSelection.selectedPlaceholderId = null;
     cardSelection.selectedPlaceholder = null;
@@ -542,10 +598,13 @@
     const panel = getItem(panelId);
     if (!panel || !shouldRender(panel)) return;
     const slots = slotRectsByPanelId.get(panelId) || [];
-    entries.slice(0, slots.length).forEach((entry, index) => {
+    const metrics = getScrollMetrics(panelId, entries.length);
+    const startIndex = metrics.scrollRow * metrics.columns;
+    entries.slice(startIndex, startIndex + slots.length).forEach((entry, index) => {
       const node = createCardNode(entry, source, slots[index], panel.zIndex);
       if (node) layer.appendChild(node);
     });
+    syncScrollControls(panelId, metrics);
     if (!entries.length) {
       const panelNode = getPanelNode(panelId);
       if (!panelNode) return;
@@ -628,6 +687,20 @@
     description.appendChild(desc);
   }
 
+  function syncScrollControls(panelId, metrics) {
+    for (const [controlId, config] of Object.entries(SCROLL_CONTROL_CONFIG)) {
+      if (config.panelId !== panelId) continue;
+      const node = getPanelNode(controlId);
+      if (!node) continue;
+      const disabled = config.direction < 0 ? metrics.scrollRow <= 0 : metrics.scrollRow >= metrics.maxScrollRow;
+      node.classList.toggle("is-active", !disabled);
+      node.classList.toggle("is-disabled", disabled);
+      node.dataset.submetaScrollDisabled = disabled ? "true" : "false";
+      node.setAttribute("aria-disabled", disabled ? "true" : "false");
+      node.setAttribute("tabindex", disabled ? "-1" : "0");
+    }
+  }
+
   function renderCardView(slotRectsByPanelId) {
     const inventory = getInventoryEntries().filter((entry) => classifyInventoryEntry(entry) === inventoryFilter);
     const possible = getPossibleEntries();
@@ -638,6 +711,7 @@
       ? "Kliknij placeholder gameplayowy."
       : (possible.context.message || "Brak pasujących dostępnych kart.");
     renderGridEntries("panel.possibilities", possible.entries, "possibilities", possibleEmpty, slotRectsByPanelId);
+    renderGridEntries("panel.forge", [], "forge", "Kuźnia nie ma jeszcze kart do wyświetlenia.", slotRectsByPanelId);
     renderDetail();
   }
 
@@ -752,12 +826,27 @@
         node.setAttribute("tabindex", "0");
         node.textContent = item.label;
       }
+      const scrollConfig = SCROLL_CONTROL_CONFIG[item.id];
+      if (scrollConfig) {
+        node.classList.add("is-scroll-control", "is-disabled");
+        node.dataset.submetaScrollControl = item.id;
+        node.dataset.submetaScrollDisabled = "true";
+        node.setAttribute("role", "button");
+        node.setAttribute("aria-disabled", "true");
+        node.setAttribute("tabindex", "-1");
+        node.setAttribute("aria-label", scrollConfig.direction < 0 ? "Przewiń karty w górę" : "Przewiń karty w dół");
+        const image = document.createElement("img");
+        image.src = resolvePublicAsset(scrollConfig.asset);
+        image.alt = "";
+        image.draggable = false;
+        node.appendChild(image);
+      }
       if (item.type === "detail-rect") node.classList.add("submeta-panel-detail-rect");
       if (isDebugMode() && (PANEL_IDS.includes(item.id) || DETAIL_RECT_IDS.includes(item.id))) node.classList.add("is-debug-clickable");
       if (item.id === selectedPanelId) node.classList.add("is-selected");
       node.dataset.submetaPanelId = item.id;
       applyBox(node, item);
-      if (showLabels && isDebugMode() && !item.id.startsWith("inventory.filter.")) {
+      if (showLabels && isDebugMode() && !item.id.startsWith("inventory.filter.") && !SCROLL_CONTROL_CONFIG[item.id]) {
         const label = document.createElement("span");
         label.className = "submeta-panel-label";
         label.textContent = item.label || item.id;
@@ -958,7 +1047,28 @@
     return true;
   }
 
+  function scrollPanel(controlId) {
+    const config = SCROLL_CONTROL_CONFIG[controlId];
+    if (!config) return false;
+    const entries = config.panelId === "panel.inventory"
+      ? getInventoryEntries().filter((entry) => classifyInventoryEntry(entry) === inventoryFilter)
+      : (config.panelId === "panel.possibilities" ? getPossibleEntries().entries : []);
+    const metrics = getScrollMetrics(config.panelId, entries.length);
+    const nextRow = Math.min(metrics.maxScrollRow, Math.max(0, metrics.scrollRow + (config.direction * metrics.pageStepRows)));
+    if (nextRow === metrics.scrollRow) return false;
+    setScrollRow(config.panelId, nextRow);
+    syncDom();
+    return true;
+  }
+
   function handlePointerDown(event) {
+    const scrollTarget = event.target.closest?.("[data-submeta-scroll-control]");
+    if (scrollTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (scrollTarget.dataset.submetaScrollDisabled !== "true") scrollPanel(scrollTarget.dataset.submetaScrollControl);
+      return;
+    }
     const cardTarget = event.target.closest?.("[data-submeta-card-key]");
     if (cardTarget) {
       event.preventDefault();
@@ -974,6 +1084,7 @@
       event.preventDefault();
       event.stopPropagation();
       inventoryFilter = filterTarget.dataset.submetaInventoryFilter;
+      inventoryScrollRow = 0;
       cardSelection.selectedInventoryEntryKey = null;
       if (cardSelection.selectedSource === "inventory") {
         cardSelection.selectedCardRef = null;
@@ -1048,6 +1159,7 @@
 
   function applyPayload(payload) {
     if (!payload || !Array.isArray(payload.panels)) return false;
+    resetScrollRows();
     const candidatesById = new Map(payload.panels.map((item) => [item?.id, item]));
     items = DEFAULT_ITEMS.map((fallback) => normalizeItem(candidatesById.get(fallback.id), fallback));
     if (payload.settings && typeof payload.settings === "object") {
@@ -1110,6 +1222,7 @@
       fallbackUsed: true
     });
     items = cloneDefaults();
+    resetScrollRows();
     enabled = true;
     showLabels = true;
     dataSource = "fallback";
@@ -1290,7 +1403,8 @@
     return {
       version: VERSION, initialized, enabled, visible: actuallyVisible, overlayVisible: overlayIsVisible(),
       showPanelLabels: showLabels, dataSource, logicalPath: root.HC?.SubMetaSettings?.paths?.[SETTING_KEY] || null, selectedPanelId, selectedSlotId, configuredCount: items.length,
-      inventoryFilter, cardSelection: { ...cardSelection }, selectedPlaceholderId: cardSelection.selectedPlaceholderId,
+      inventoryFilter, inventoryScrollRow, possibilitiesScrollRow, forgeScrollRow,
+      cardSelection: { ...cardSelection }, selectedPlaceholderId: cardSelection.selectedPlaceholderId,
       pendingAssignment: clonePendingAssignment(), confirmButtonState: getConfirmButtonState(),
       assignedPlaceholders: getCardApi()?.getPlaceholderAssignments?.(getWorld()) || {}, inventoryEntryCount: getInventoryEntries().length,
       possibleEntryCount: getPossibleEntries().entries.length,
@@ -1305,7 +1419,7 @@
     getSelectedPanelId: () => selectedPanelId, getDebugState, resetToDefault, exportLayout, importLayout, loadRuntimeSetting: restorePresetOrFallback,
     setShowLabels, selectPanel, clearSelection, getPanels: () => items.map((item) => ({ ...item })), getExportPayload,
     selectPlaceholder, clearPlaceholderSelection, selectCard, selectAssignedCard, mapPlaceholderContext,
-    getCardViewState: () => ({ inventoryFilter, ...cardSelection, pendingAssignment: clonePendingAssignment(), confirmButtonState: getConfirmButtonState() }),
+    getCardViewState: () => ({ inventoryFilter, inventoryScrollRow, possibilitiesScrollRow, forgeScrollRow, ...cardSelection, pendingAssignment: clonePendingAssignment(), confirmButtonState: getConfirmButtonState() }),
     getPendingAssignment: clonePendingAssignment, getConfirmButtonState, confirmPendingAssignment, clearPendingAssignment,
     getInventoryEntries, getPossibleEntries, getDetailModel,
     resolveCardAsset: (card, options) => root.HC?.SubMetaPlaceholders?.resolveCardAsset?.(card, options) || null,
