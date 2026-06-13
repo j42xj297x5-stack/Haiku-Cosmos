@@ -4,7 +4,7 @@
 
   root.HC = root.HC || {};
 
-  const VERSION = "submeta-panels-layout-v0.4";
+  const VERSION = "submeta-panels-layout-v0.5";
   const SETTING_KEY = "panels";
   const LAYER_ID = "subMetaPanelsLayer";
   const FLOATING_EDITOR_ID = "subMetaPanelsFloatingEditor";
@@ -35,7 +35,7 @@
       id, type: "grid-panel", label, x, y, w, h, zIndex, visibleInDebug: true, visibleInGame: false,
       gridColumns, gridRowsVisible, cardRatioW: 9, cardRatioH: 16, cardScale: 1,
       gap, gapX: gap, gapY: gap, paddingX, paddingY, gridOffsetX, filterTopMargin, arrowRightMargin,
-      ...(pageStepRows == null ? {} : { pageStepRows })
+      ...(pageStepRows == null ? {} : { pageStepRows, inventoryCountTextScale: 1, inventoryCountBadgeScale: 1 })
     });
 
   const DEFAULT_ITEMS = Object.freeze([
@@ -147,6 +147,8 @@
       normalized.arrowRightMargin = clampNumber(source.arrowRightMargin, 0, 0.25, fallback.arrowRightMargin);
       if (fallback.id === "panel.inventory") {
         normalized.pageStepRows = Math.round(clampNumber(source.pageStepRows, 1, 20, fallback.pageStepRows));
+        normalized.inventoryCountTextScale = clampNumber(source.inventoryCountTextScale, 0.5, 3, fallback.inventoryCountTextScale);
+        normalized.inventoryCountBadgeScale = clampNumber(source.inventoryCountBadgeScale, 0.5, 3, fallback.inventoryCountBadgeScale);
       }
     }
     return normalized;
@@ -527,7 +529,11 @@
       context: preview ? "detail" : source,
       selected,
       pending: source === "possibilities" && cardSelection.selectedSource === "pending" && selected,
-      showCount: source === "inventory"
+      showCount: source === "inventory",
+      ...(source === "inventory" ? {
+        countTextScale: getItem("panel.inventory")?.inventoryCountTextScale ?? 1,
+        countBadgeScale: getItem("panel.inventory")?.inventoryCountBadgeScale ?? 1
+      } : {})
     });
     return node;
   }
@@ -837,6 +843,9 @@
       ${floatingNumberControl(panel.id, "paddingY", "gridPaddingY", panel.paddingY, 0, 0.45, 0.001)}
       ${floatingNumberControl(panel.id, "gridOffsetX", "gridOffsetX", panel.gridOffsetX, -1, 1, 0.001)}
       ${panel.id === "panel.inventory" ? `
+        <div class="submeta-panel-floating-section">Badge ilości kart</div>
+        ${floatingNumberControl(panel.id, "inventoryCountTextScale", "Skala cyfry", panel.inventoryCountTextScale, 0.5, 3, 0.05)}
+        ${floatingNumberControl(panel.id, "inventoryCountBadgeScale", "Skala tła badge", panel.inventoryCountBadgeScale, 0.5, 3, 0.05)}
         <div class="submeta-panel-floating-section">Filtry</div>
         ${floatingNumberControl(panel.id, "filterTopMargin", "filterTopMargin", panel.filterTopMargin, 0, 0.25, 0.001)}` : ""}
       <div class="submeta-panel-floating-section">Strzałki</div>
@@ -1154,7 +1163,7 @@
     const item = getItem(itemId);
     const fallback = defaultsById.get(itemId);
     if (!item || !fallback) return false;
-    const allowed = new Set([...BASE_FIELDS, ...(item.type === "grid-panel" ? GRID_FIELDS : []), ...(item.id === "panel.inventory" ? ["pageStepRows"] : [])]);
+    const allowed = new Set([...BASE_FIELDS, ...(item.type === "grid-panel" ? GRID_FIELDS : []), ...(item.id === "panel.inventory" ? ["pageStepRows", "inventoryCountTextScale", "inventoryCountBadgeScale"] : [])]);
     if (!allowed.has(field)) return false;
     if (field === "visibleInDebug" || field === "visibleInGame") item[field] = rawValue === true;
     else if (["zIndex", "gridColumns", "gridRowsVisible", "pageStepRows"].includes(field)) {
@@ -1164,6 +1173,7 @@
     } else if (field === "cardRatioW") item[field] = SUBMETA_CARD_GEOMETRY.ratioW;
     else if (field === "cardRatioH") item[field] = SUBMETA_CARD_GEOMETRY.ratioH;
     else if (field === "cardScale") item[field] = clampNumber(rawValue, 0.1, 2, fallback[field]);
+    else if (["inventoryCountTextScale", "inventoryCountBadgeScale"].includes(field)) item[field] = clampNumber(rawValue, 0.5, 3, fallback[field]);
     else if (["gap", "gapX", "gapY", "filterTopMargin", "arrowRightMargin"].includes(field)) {
       const value = clampNumber(rawValue, 0, 0.25, fallback[field] ?? fallback.gap);
       if (["gap", "gapX", "gapY"].includes(field)) item.gap = item.gapX = item.gapY = value;
@@ -1210,6 +1220,8 @@
       ${renderNumberControl("paddingY", selected.paddingY, 0, 0.45, 0.001, disabled)}
       ${renderNumberControl("gridOffsetX", selected.gridOffsetX, -1, 1, 0.001, disabled)}
       ${renderNumberControl("arrowRightMargin", selected.arrowRightMargin, 0, 0.25, 0.001, disabled)}
+      ${selected.id === "panel.inventory" ? renderNumberControl("inventoryCountTextScale", selected.inventoryCountTextScale, 0.5, 3, 0.05, disabled) : ""}
+      ${selected.id === "panel.inventory" ? renderNumberControl("inventoryCountBadgeScale", selected.inventoryCountBadgeScale, 0.5, 3, 0.05, disabled) : ""}
       ${selected.id === "panel.inventory" ? renderNumberControl("filterTopMargin", selected.filterTopMargin, 0, 0.25, 0.001, disabled) : ""}
       ${selected.id === "panel.inventory" ? renderNumberControl("pageStepRows", selected.pageStepRows, 1, 20, 1, disabled) : ""}` : "";
     return `
