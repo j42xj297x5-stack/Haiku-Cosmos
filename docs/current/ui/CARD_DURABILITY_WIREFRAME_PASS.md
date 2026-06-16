@@ -240,7 +240,13 @@ Projektant zatwierdza poniższy minimalny zestaw decyzji jako roboczy kierunek p
 - Pasek karty R nie może być używany jako wskaźnik stabilizatora.
 - Relacja trwałość karty vs pojemność stabilizatora musi pozostać czytelna.
 
-## 15. Dokumenty powiązane
+## 15. Nota synchronizacyjna — layout-token readiness
+
+- Minimalna gotowość pod przyszłe layout tokens jest rozwinięta w `CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md`.
+- Wireframe pozostaje dokumentem relacji visual.
+- Readiness nie tworzy jeszcze tokenów ani placeholderów.
+
+## 16. Dokumenty powiązane
 
 - `CARD_DURABILITY_VISUAL_DECISION.md`,
 - `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md`,
