@@ -59,6 +59,14 @@ Slot należy traktować jak mały ekosystem: karta R daje aktywność, a pozosta
 
 ### B. Stabilizator
 
+Nota synchronizacyjna — HUD collection:
+
+- Stabilizator w slocie może być pyłem, flakonem/naczyniem albo kryształem.
+- Visual HUD collection dotyczy stosiku pyłu.
+- Visual flakonu/naczynia i kryształu należy do Magazynu, Kuźni albo slotu, nie do bazowego HUD collection.
+- Szczegóły przepływu opisuje `../systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
+
+
 - Mały element przy karcie R.
 - Pokazuje pył, naczynie albo kryształ.
 - Może mieć kolor lub mieszankę kolorów.

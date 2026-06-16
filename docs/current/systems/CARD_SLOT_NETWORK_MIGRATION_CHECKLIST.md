@@ -85,6 +85,19 @@ Pozostają otwarte:
 
 ### 3.8. HUD pyłu
 
+Model HUD pyłu częściowo zamknięty:
+
+- [x] HUD zbiera tylko surowy pył do stosiku.
+- [x] Flakon/naczynie i kryształ powstają w Kuźni, nie w bazowym HUD collection.
+
+Nadal otwarte:
+
+- [ ] finalny visual maski stosiku co 10%,
+- [ ] finalny multi-color collection,
+- [ ] auto-collection z kart specjalnych,
+- [ ] finalne koszty i balans Kuźni.
+
+
 - [ ] Jak pokazać chmurkę pyłu po kolizji?
 - [ ] Jak działa zbieranie jednego koloru naraz na początku?
 - [ ] Jak działa zasobnik 100%?

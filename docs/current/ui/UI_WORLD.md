@@ -396,6 +396,17 @@ bez wchodzenia w implementację techniczną.
 
 ## 7. Migracja HUD/SUB-META / DO AKTUALIZACJI względem CARD_SLOT_NETWORK_SYSTEM
 
+### 7A. Nota UI — HUD stosiku pyłu
+
+- HUD pokazuje aktualny stosik pyłu `0–100%`.
+- Jedna ukończona sekwencja daje `80%` stosiku.
+- Do `100%` potrzebne jest dodatkowe zebranie pyłu tego samego koloru.
+- Postęp może być pokazany maską albo warstwą visual co `10%`.
+- HUD nie pokazuje zbierania do flakonu/naczynia ani kryształu w bazowym modelu.
+- Flakon/naczynie i kryształ są wynikiem Kuźni.
+- Szczegóły opisuje `../systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
+
+
 - System aktywowania koloru w HUD ma zostać wycofany zgodnie z kierunkiem `CARD_SLOT_NETWORK_SYSTEM.md`; karta staje się aktywna po włożeniu do slotu.
 - Stare fragmenty opisujące aktywację koloru przez HUD/sekwencję są **DO AKTUALIZACJI**, ale nie są usuwane przed pełną migracją runtime.
 - HUD będzie musiał obsłużyć pył, chmurki pyłu, zasobnik i deponowanie w osobnym kroku projektowym.

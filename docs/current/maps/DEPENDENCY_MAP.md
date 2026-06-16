@@ -104,6 +104,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/systems/ROADMAP.md`
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU)
 - `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - nie jest kanonem mechaniki, tylko listą decyzji przed runtime dla `CARD_SLOT_NETWORK_SYSTEM.md`.
+- `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - doprecyzowuje przepływ pyłu: HUD zbiera tylko stosik pyłu, Magazyn przechowuje stosiki, Kuźnia rafinuje 3 stosiki w flakon/naczynie i 3 flakony/naczynia w kryształ. Dokument synchronizuje `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md` i `UI_WORLD.md`.
 - `docs/current/systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
 - `docs/current/ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` (ROBOCZY / CHECKLISTA UI-VISUAL / PRZED LAYOUT TOKENS) - checklista UI/visual dla czteroelementowego slotu; nie jest kanonem mechaniki ani layout tokens.
 - `docs/current/ui/CARD_DURABILITY_VISUAL_DECISION.md` (ROBOCZY / DOKUMENT DECYZYJNY UI-VISUAL / PRZED WIREFRAME / PRZED RUNTIME) - rozstrzyga kierunek przed wireframe dla visual trwałości karty R opisanej w `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md`; nie jest kanonem mechaniki ani runtime.
@@ -147,6 +148,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `CARD_DURABILITY_WIREFRAME_PASS.md` rozwija `CARD_DURABILITY_VISUAL_DECISION.md` w minimalny wireframe wariantu C i zawiera zatwierdzone roboczo decyzje przed layout-token pass dla visual trwałości karty R. Nie jest layout tokenem, mechaniką ani runtime.
 - `CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md` przygotowuje przyszły layout-token pass dla `CARD_DURABILITY_WIREFRAME_PASS.md` i zawiera zatwierdzone roboczo decyzje readiness przed layout-token pass. Nadal nie jest layout tokenem, runtime ani mechaniką.
 - `CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` nie jest kanonem mechaniki, tylko listą decyzji i zależności, które trzeba zamknąć przed pierwszym runtime pass `CARD_SLOT_NETWORK_SYSTEM.md`.
+- `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` doprecyzowuje przepływ pyłu: HUD zbiera tylko stosik pyłu, Magazyn przechowuje stosiki, Kuźnia rafinuje 3 stosiki w flakon/naczynie i 3 flakony/naczynia w kryształ. Dokument synchronizuje `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md` i `UI_WORLD.md`.
 - `SUB_META_SYSTEM.md` definiuje sens konfiguracji SUB-META oraz gałęzie ŚWIAT/PRG.
 - `ECONOMY_SYSTEM.md` definiuje RP i koszty, które muszą zostać dostosowane do kosztów slotowych R1/R2/R3/R4 oraz kosztów pyłu/stabilizacji.
 - `PRG_SYSTEM.md` definiuje strukturę PRG, którą trzeba zsynchronizować z decyzją, że R2 PRG jest lokalne, a jedna z wcześniejszych pozycji dodatkowego slotu przechodzi w kartę naprawczą.

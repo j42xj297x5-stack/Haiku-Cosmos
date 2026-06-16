@@ -41,6 +41,16 @@ Wszystkie liczby startowe są wartościami roboczymi i muszą być skalowalne w 
 
 ---
 
+## 1B. Nota synchronizacyjna — HUD zbiera tylko stosik pyłu
+
+- HUD zbiera tylko surowy pył do stosiku.
+- HUD nie zbiera bezpośrednio do flakonu/naczynia ani do kryształu.
+- Flakon/naczynie i kryształ powstają w Kuźni.
+- Stabilizatory slotów nadal mają formy: pył, flakon/naczynie i kryształ.
+- Szczegóły pętli zbierania i rafinacji opisuje `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
+
+---
+
 
 ## 2. Zasada nadrzędna
 
@@ -1195,18 +1205,13 @@ Gdy zasobnik jest pełen, pojawia się przycisk:
 Zdeponuj
 ```
 
-### 26.3. Koszt deponowania
+### 26.3. Koszt deponowania / DO AKTUALIZACJI
 
-Startowe koszty deponowania:
+DO AKTUALIZACJI względem `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`: bazowy HUD deponuje pełny stosik surowego pyłu, a nie naczynie ani kryształ.
 
-```text
-pył       = 2 RP
-naczynie  = 5 RP
-kryształ  = 10 RP
-szary pył = 1 RP
-```
+Dawne startowe koszty deponowania naczynia/kryształu pozostają historycznym zapisem roboczym i wymagają synchronizacji z Kuźnią oraz ekonomią RP.
 
-Wartości muszą być skalowalne w debug.
+Wartości deponowania pyłu, jeśli wrócą do runtime, muszą być skalowalne w debug.
 
 ### 26.4. Mieszanie pyłu
 
@@ -1227,8 +1232,7 @@ W późniejszej grze gracz może tworzyć lepsze stabilizatory z szarego pyłu.
 Startowe koszty:
 
 ```text
-naczynie pyłowe = 3 zasobniki szarego pyłu + 5 RP
-kryształ        = 10 zasobników szarego pyłu + 10 RP
+DO AKTUALIZACJI: `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` przyjmuje roboczo 3 stosiki pyłu = 1 flakon/naczynie oraz 3 flakony/naczynia = 1 kryształ. Koszty RP i wariant szarego pyłu wymagają osobnego balansu.
 ```
 
 Wartości muszą być skalowalne w debug.
@@ -1248,15 +1252,9 @@ Poziomy:
 4 kolory
 ```
 
-W HUD gracz wybiera:
+DO AKTUALIZACJI względem `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`: bazowy HUD nie wybiera typu zasobnika flakon/naczynie/kryształ. HUD zbiera wyłącznie surowy pył do stosiku; ewentualny multi-color HUD i automatyczne zbieranie wymagają osobnego passu.
 
-1. typ zasobnika:
-
-   * pył,
-   * naczynie,
-   * kryształ,
-
-2. liczbę kolorów:
+W przyszłym, niebazowym modelu gracz może wybierać liczbę kolorów:
 
    * 1,
    * 2,
