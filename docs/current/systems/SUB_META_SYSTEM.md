@@ -216,6 +216,13 @@ Roboczy kierunek trwałości kart osadzonych w slotach:
 Sekcja jest robocza i wymaga dalszej synchronizacji z runtime i balansem.
 
 
+## 9A. Nota synchronizacyjna — struktura slotu
+
+- Slot SUB-META docelowo może mieć kilka miejsc: karta R, stabilizator, karta specjalna, artefakt.
+- Karta R jest rdzeniem aktywności slotu.
+- Pozostałe elementy pozostają w slocie, ale są nieaktywne bez aktywnej karty R albo minimalnego warunku działania slotu.
+- Szczegóły opisuje `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`.
+
 ## 10. Migracja / DO SYNCHRONIZACJI Z CARD_SLOT_NETWORK_SYSTEM
 
 - R1 pozostaje fundamentem lokalnych slotów ŚWIATA i PRG.

@@ -334,6 +334,14 @@ DS jest kartą Specjalną niezależną od tierów R1–R4.
 W przyszłości karta Specjalna może być „barwiona” i przekuwana do slotów (np. przez użycie pDR R1 koloru slotu),
 ale nie jest to wymagane dla podstawowego działania DS jako Dodatkowego Slotu.
 
+### 6.2.6. Nota migracyjna — DS jako karta naprawcza
+
+- DS z AAA pozostaje źródłem karty specjalnej/naprawczej.
+- Funkcja DS zmienia się w kierunku naprawy slotów.
+- Nie usuwać pętli AAA.
+- Szczegóły DS jako karty naprawczej opisują `CARD_SLOT_NETWORK_SYSTEM.md` oraz `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`.
+- Nie zmieniać ID kart w runtime na podstawie tej noty.
+
 ## 7. KUŹNIA (META) — wzmocnienia kart
 
 ### 7.1. Zasady ogólne

@@ -335,6 +335,14 @@ Zasady kosztów są w `ECONOMY_SYSTEM.md`.
 
 ---
 
+### 3.4. Nota synchronizacyjna — UI struktury slotu i degradacji
+
+- Przyszłe UI musi pokazać strukturę slotu: karta R, stabilizator, karta specjalna, artefakt.
+- Karta R może pokazywać trwałość paskiem bocznym albo warstwami degradacji.
+- Elementy specjalne i artefakty pozostają widoczne, ale mogą być przyciemnione lub nieaktywne, gdy karta R zniknie.
+- Finalny kierunek visual wymaga osobnego passu.
+- Szczegóły robocze opisuje `../systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`.
+
 ## 4. META Overlay (koniec cyklu / EON)
 
 META:

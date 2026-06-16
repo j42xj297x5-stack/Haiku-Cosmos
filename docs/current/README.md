@@ -19,6 +19,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `systems/CARDS_SYSTEM.md` - **KANON** - system kart, sekwencji i DS.
 - `systems/CARD_SLOT_NETWORK_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU** - sieć slotów kart: aktywacja R1→R4, lokalne R2, globalne R3/R4, trwałość, pył, napięcie, blizny i karta naprawcza; wymaga synchronizacji z CARDS/SUB_META/ECONOMY/PRG/UI.
 - `systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` - **ROBOCZY / CHECKLISTA MIGRACYJNA** - lista decyzji i zależności do zamknięcia przed pierwszym runtime pass `CARD_SLOT_NETWORK_SYSTEM.md`.
+- `systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME** - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
 - `systems/ECONOMY_SYSTEM.md` - **KANON** - ekonomia RP i koszty działań.
 - `systems/SUB_META_SYSTEM.md` - **KANON** - logika SUB-META i konfiguracja gałęzi.
 - `systems/PRG_SYSTEM.md` - **KANON STRUKTURALNY** - struktura PRG (wymaga dalszego strojenia balansu).

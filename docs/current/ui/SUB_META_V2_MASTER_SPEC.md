@@ -126,6 +126,14 @@ Ten dokument jest roboczym **master specem SUB-META v2**. Jego rolą jest zastą
 - DS jest traktowany jako rozszerzenie/zasób specjalny poza centrum rdzenia.
 - Relacje semantyczne pozostają zgodne z `SUB_META_SYSTEM.md` i `UI_WORLD.md`.
 
+### 6A. Nota synchronizacyjna — DS i czteroelementowy slot
+
+- Master spec musi uwzględnić czteroelementową strukturę slotu: karta R, stabilizator, karta specjalna, artefakt.
+- DS jest interpretowany jako karta naprawcza zdobywana przez AAA.
+- Karty specjalne i artefakty wymagają przyszłych placeholderów lub stref w slotach.
+- Nie zmieniać layout tokens ani JSON na podstawie tej noty.
+- Szczegóły robocze opisuje `../systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`.
+
 ## 7. Resonance core
 
 - Rdzeń jest centralnym punktem konfiguracji SUB-META v2.
