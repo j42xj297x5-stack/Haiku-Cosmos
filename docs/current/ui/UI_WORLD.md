@@ -384,3 +384,12 @@ Dokument opisuje UI i flow,
 bez wchodzenia w implementację techniczną.
 
 ---
+
+
+## 7. Migracja HUD/SUB-META / DO AKTUALIZACJI względem CARD_SLOT_NETWORK_SYSTEM
+
+- System aktywowania koloru w HUD ma zostać wycofany zgodnie z kierunkiem `CARD_SLOT_NETWORK_SYSTEM.md`; karta staje się aktywna po włożeniu do slotu.
+- Stare fragmenty opisujące aktywację koloru przez HUD/sekwencję są **DO AKTUALIZACJI**, ale nie są usuwane przed pełną migracją runtime.
+- HUD będzie musiał obsłużyć pył, chmurki pyłu, zasobnik i deponowanie w osobnym kroku projektowym.
+- SUB-META będzie musiała pokazywać aktywność slotów, trwałość kart, stabilizatory, napięcia, blizny i naprawę slotów.
+- To jest kierunek dokumentacyjny i nie oznacza implementacji ani zmiany działania gry w tym patchu.

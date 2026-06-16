@@ -398,3 +398,11 @@ są **nieaktualne**.
 ---
 
 11 stycznia 2026
+
+
+## 10. Migracja / DO SYNCHRONIZACJI Z CARD_SLOT_NETWORK_SYSTEM
+
+- Typy kart R1/R2/R3/R4, ich ID oraz zasady powstawania w sekwencjach RUN pozostają w `CARDS_SYSTEM.md`.
+- Zasady osadzania kart w slotach, sieć wzmocnień, trwałość, pył, napięcia i blizny są przenoszone/rozszerzane przez `CARD_SLOT_NETWORK_SYSTEM.md`.
+- DS / karta specjalna z pętli AAA wymaga synchronizacji znaczeniowej z nową rolą karty naprawczej slotu; obecny opis DS należy traktować jako **TODO / DO SYNCHRONIZACJI**, a nie jako decyzję o usunięciu pętli R1/AA/AAA/DS.
+- Dotychczasowe zasady RUN i sekwencji pozostają oddzielone od nowej logiki slotów SUB-META do czasu osobnego passu implementacyjnego.

@@ -214,3 +214,12 @@ Roboczy kierunek trwałości kart osadzonych w slotach:
 - jeśli karta stabilizująca wygaśnie, przestaje stabilizować niższą kartę.
 
 Sekcja jest robocza i wymaga dalszej synchronizacji z runtime i balansem.
+
+
+## 10. Migracja / DO SYNCHRONIZACJI Z CARD_SLOT_NETWORK_SYSTEM
+
+- R1 pozostaje fundamentem lokalnych slotów ŚWIATA i PRG.
+- R2 działa lokalnie osobno dla ŚWIATA i osobno dla PRG.
+- R3 i R4 działają globalnie ponad gałęziami ŚWIAT/PRG.
+- Szczegółowe warunki aktywacji slotów R1→R4 oraz trwałość, napięcia i blizny opisuje `CARD_SLOT_NETWORK_SYSTEM.md`.
+- Wcześniejsze opisy R3 jako „rezerwacja/stabilizacja” i R4 jako „jedność” pozostają kierunkiem, ale wymagają rozszerzenia o nowy system sieci slotów. Fragmenty sprzeczne z lokalnością R2 lub globalnością R3/R4 są **DO SYNCHRONIZACJI Z CARD_SLOT_NETWORK_SYSTEM**.

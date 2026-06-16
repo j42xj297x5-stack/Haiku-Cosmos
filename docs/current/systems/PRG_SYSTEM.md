@@ -210,3 +210,11 @@ To oznacza, że:
 - nazwy osi są obowiązujące,
 - dokument nie jest jeszcze finalną specyfikacją balansu,
 - dalsze strojenie wymaga osobnych kroków runtime/balans.
+
+
+## 14. Migracja PRG / DO SYNCHRONIZACJI Z CARD_SLOT_NETWORK_SYSTEM
+
+- R2 PRG działa lokalnie w obrębie gałęzi PRG.
+- R3/R4 są globalnym rdzeniem ponad PRG i ŚWIATEM.
+- Układ PRG musi zostać zsynchronizowany z decyzją, że w PRG docelowo pozostaje jedna standardowa karta funkcjonalna, a wcześniejszy drugi/dodatkowy slot przechodzi w rolę karty naprawczej albo systemu naprawy slotów.
+- Szczegóły aktywacji slotów, trwałości, napięć, blizn i naprawy opisuje `CARD_SLOT_NETWORK_SYSTEM.md`. Ten krok nie projektuje nowego layoutu PRG i nie zmienia runtime.
