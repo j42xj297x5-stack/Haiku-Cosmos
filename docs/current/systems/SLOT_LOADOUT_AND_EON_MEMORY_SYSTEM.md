@@ -79,6 +79,15 @@ Dotychczasowy sens DS jako „Dodatkowego Slotu” jest historycznym/technicznym
 
 ## E. Naprawa slotu przez DS
 
+### E1. Nota synchronizacyjna — stabilizator a HUD collection
+
+- Slot stabilizatora może przyjmować pył, flakon/naczynie albo kryształ.
+- HUD zbiera tylko surowy pył do stosiku.
+- Flakon/naczynie i kryształ są rafinowane w Kuźni, nie zbierane bezpośrednio w HUD.
+- Karty specjalne mogą w przyszłości rozszerzać sposób zbierania pyłu.
+- Szczegóły pętli opisuje `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
+
+
 Model naprawy pozostaje zgodny z kierunkiem `CARD_SLOT_NETWORK_SYSTEM.md`:
 
 * DS jest używana do naprawy blizny slotu,

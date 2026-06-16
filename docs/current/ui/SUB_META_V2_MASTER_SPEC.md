@@ -154,6 +154,14 @@ Ten dokument jest roboczym **master specem SUB-META v2**. Jego rolą jest zastą
 - ID pochodzi z readiness opisanej w `CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md`.
 - Ta nota nie oznacza zmiany runtime ani finalnego layoutu slotu.
 
+### 6E. Nota synchronizacyjna — pył, Kuźnia i stabilizator slotu
+
+- W SUB-META stabilizator slotu może mieć formy: pył, flakon/naczynie albo kryształ.
+- HUD collection jest ograniczony do stosiku surowego pyłu.
+- Flakon/naczynie i kryształ są produktami Kuźni.
+- Nie zmieniać layout tokens, settings ani runtime na podstawie tej noty.
+- Szczegóły opisuje `../systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
+
 ## 7. Resonance core
 
 - Rdzeń jest centralnym punktem konfiguracji SUB-META v2.
