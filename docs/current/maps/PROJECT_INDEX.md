@@ -28,6 +28,7 @@ Kanon jest mapowany warstwowo przez:
 ## Systemy gry
 
 - `docs/current/systems/CARDS_SYSTEM.md` (KANON)
+- `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU) - roboczy system sieci slotów kart, wzmocnień, trwałości, pyłu, napięć, blizn i naprawy slotów.
 - `docs/current/systems/ECONOMY_SYSTEM.md` (KANON)
 - `docs/current/systems/SUB_META_SYSTEM.md` (KANON)
 - `docs/current/systems/PRG_SYSTEM.md` (KANON STRUKTURALNY / DO STROJENIA)

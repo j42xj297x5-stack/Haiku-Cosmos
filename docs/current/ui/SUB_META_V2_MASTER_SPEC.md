@@ -338,3 +338,13 @@ Uwaga porządkowa:
 - active technical contract: `docs/current/technical/FRAME_COMPOSER_SPEC.md`;
 - SUB-META appendix: `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md`;
 - normalized data appendix: `SUB_META_V2_LAYOUT_TOKENS.md`.
+
+
+## 20. Migracja / CARD_SLOT_NETWORK_SYSTEM reference
+
+- Master layout musi uwzględnić `CARD_SLOT_NETWORK_SYSTEM.md` przy przyszłych pracach projektowych, bez zmiany runtime w tym kroku.
+- R2 bridge rozdziela się lokalnie na PRG i ŚWIAT; R2 PRG nie wzmacnia bezpośrednio R1 ŚWIATA i odwrotnie.
+- R3/R4 są globalne w resonance core i powinny być prezentowane jako warstwa ponad gałęziami.
+- DS / specjalny zasób w inventory wymaga reinterpretacji jako karta naprawcza albo mechanika naprawy slotu.
+- Przyszłe placeholdery muszą uwzględnić stabilizatory przy kartach, blizny slotów i napięcia.
+- Nie zmieniać layout tokens, JSON ani runtime na podstawie tej noty bez osobnego zadania implementacyjnego.

@@ -17,6 +17,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 
 ### 2) systems
 - `systems/CARDS_SYSTEM.md` - **KANON** - system kart, sekwencji i DS.
+- `systems/CARD_SLOT_NETWORK_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU** - sieć slotów kart: aktywacja R1→R4, lokalne R2, globalne R3/R4, trwałość, pył, napięcie, blizny i karta naprawcza; wymaga synchronizacji z CARDS/SUB_META/ECONOMY/PRG/UI.
 - `systems/ECONOMY_SYSTEM.md` - **KANON** - ekonomia RP i koszty działań.
 - `systems/SUB_META_SYSTEM.md` - **KANON** - logika SUB-META i konfiguracja gałęzi.
 - `systems/PRG_SYSTEM.md` - **KANON STRUKTURALNY** - struktura PRG (wymaga dalszego strojenia balansu).

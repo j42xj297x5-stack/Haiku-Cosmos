@@ -182,3 +182,11 @@ Kierunek do synchronizacji z HUD v2 (`../ui/HUD_SYSTEM.md`):
 - Finalne liczby i formuły balansu pozostają **DO STROJENIA**.
 
 To jest kierunek roboczy i wymaga osobnego passu runtime/balance.
+
+
+## 10. Migracja ekonomii slotów / DO AKTUALIZACJI względem CARD_SLOT_NETWORK_SYSTEM
+
+- Dotychczasowy stały koszt `10 RP` za włożenie/wyciągnięcie karty pozostaje zapisem dotychczasowego kanonu, ale jest **DO AKTUALIZACJI**.
+- `CARD_SLOT_NETWORK_SYSTEM.md` proponuje koszty zależne od rzędu slotu/karty: R1/R2/R3/R4.
+- Pył, naczynia pyłowe, kryształy, deponowanie, stabilizacja i naprawa slotów wymagają osobnej synchronizacji ekonomii.
+- Do czasu implementacji wartości slotowe są robocze i powinny trafić do debug/strojenia, a nie do twardego runtime bez osobnej decyzji balance.

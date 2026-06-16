@@ -30,7 +30,7 @@
 3. `docs/current/README.md`
 4. `docs/current/maps/PROJECT_INDEX.md`
 5. `docs/current/maps/DEPENDENCY_MAP.md`
-6. `docs/current/systems/CARDS_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `SUB_META_SYSTEM.md`
+6. `docs/current/systems/CARDS_SYSTEM.md`, `CARD_SLOT_NETWORK_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `SUB_META_SYSTEM.md`
 7. `docs/current/systems/PRG_SYSTEM.md`, `I18N_SYSTEM.md`
 
 ### B) Zadania UI / HUD / SUB-META
@@ -102,6 +102,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 ## 5. ROBOCZY / EVIDENCE
 
 - `docs/current/systems/ROADMAP.md`
+- `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU)
 - `docs/current/technical/README.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
 - `docs/current/technical/WORLD_RENDERING_MODEL.md`
@@ -132,10 +133,12 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 ### Systemy
 
-- `CARDS_SYSTEM.md` definiuje typy kart, sekwencje i DS.
-- `ECONOMY_SYSTEM.md` definiuje RP i koszty.
-- `SUB_META_SYSTEM.md` definiuje strukturę konfiguracji kart w SUB-META.
-- `UI_WORLD.md` definiuje sposób prezentacji HUD, SUB-META i META.
+- `CARDS_SYSTEM.md` definiuje typy kart, ID i sekwencje RUN.
+- `CARD_SLOT_NETWORK_SYSTEM.md` definiuje osadzanie kart w slotach, sieć wzmocnień, trwałość, pył, napięcie, blizny i naprawę slotów; status: ROBOCZY / KANDYDAT DO KANONU.
+- `SUB_META_SYSTEM.md` definiuje sens konfiguracji SUB-META oraz gałęzie ŚWIAT/PRG.
+- `ECONOMY_SYSTEM.md` definiuje RP i koszty, które muszą zostać dostosowane do kosztów slotowych R1/R2/R3/R4 oraz kosztów pyłu/stabilizacji.
+- `PRG_SYSTEM.md` definiuje strukturę PRG, którą trzeba zsynchronizować z decyzją, że R2 PRG jest lokalne, a jedna z wcześniejszych pozycji dodatkowego slotu przechodzi w kartę naprawczą.
+- `UI_WORLD.md` i `SUB_META_V2_MASTER_SPEC.md` opisują prezentację logiki slotów, aktywności, trwałości, stabilizatorów, napięć, blizn i naprawy w HUD/SUB-META.
 - `HUD_SYSTEM.md` definiuje roboczy kierunek RUN HUD v2: romby sekwencji, mikrodecyzje i dolne sloty kart specjalnych/eventowych.
 
 ### Visual / assets
