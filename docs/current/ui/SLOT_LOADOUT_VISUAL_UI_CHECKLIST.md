@@ -40,8 +40,11 @@ Checklistę należy traktować jako kontrakt czytelności i listę przyszłych s
 ### Nota synchronizacyjna — trwałość karty R
 
 - Decyzja visual trwałości karty R jest rozwinięta w `CARD_DURABILITY_VISUAL_DECISION.md`.
+- Szczegóły wireframe i zatwierdzone decyzje robocze są zapisane w `CARD_DURABILITY_WIREFRAME_PASS.md`.
+- Decyzje dla visual trwałości karty R zostały częściowo zamknięte.
+- Obowiązuje roboczy kierunek: wariant C, pasek po prawej, normal UI bez procentu, debug z procentem.
 - Ta checklista slotu pozostaje dokumentem szerszym.
-- Wariant C / hybryda jest roboczo rekomendowany do zatwierdzenia, nie kanon.
+- Pełny layout czteroelementowego slotu nadal nie jest zamknięty.
 
 ## 3. Czteroelementowy slot — model visual
 

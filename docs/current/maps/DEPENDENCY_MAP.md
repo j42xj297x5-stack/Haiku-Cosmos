@@ -107,7 +107,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
 - `docs/current/ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` (ROBOCZY / CHECKLISTA UI-VISUAL / PRZED LAYOUT TOKENS) - checklista UI/visual dla czteroelementowego slotu; nie jest kanonem mechaniki ani layout tokens.
 - `docs/current/ui/CARD_DURABILITY_VISUAL_DECISION.md` (ROBOCZY / DOKUMENT DECYZYJNY UI-VISUAL / PRZED WIREFRAME / PRZED RUNTIME) - rozstrzyga kierunek przed wireframe dla visual trwałości karty R opisanej w `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md`; nie jest kanonem mechaniki ani runtime.
-- `docs/current/ui/CARD_DURABILITY_WIREFRAME_PASS.md` (ROBOCZY / WIREFRAME UI / WARIANT C / PRZED LAYOUT TOKENS / PRZED RUNTIME) - rozwija `CARD_DURABILITY_VISUAL_DECISION.md` w minimalny wireframe wariantu C; nie jest layout tokenem, mechaniką ani runtime.
+- `docs/current/ui/CARD_DURABILITY_WIREFRAME_PASS.md` (ROBOCZY / WIREFRAME UI / WARIANT C / PRZED LAYOUT TOKENS / PRZED RUNTIME) - rozwija `CARD_DURABILITY_VISUAL_DECISION.md` w minimalny wireframe wariantu C i zawiera zatwierdzone roboczo decyzje przed layout-token pass dla visual trwałości karty R; nie jest layout tokenem, mechaniką ani runtime.
 - `docs/current/technical/README.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
 - `docs/current/technical/WORLD_RENDERING_MODEL.md`
@@ -143,7 +143,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` rozszerza `CARD_SLOT_NETWORK_SYSTEM.md` o strukturę slotu, DS jako kartę naprawczą, karty specjalne, artefakty i pamięć eonów.
 - `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` jest checklistą UI/visual dla `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` i `CARD_SLOT_NETWORK_SYSTEM.md`; nie jest kanonem mechaniki ani layout tokens.
 - `CARD_DURABILITY_VISUAL_DECISION.md` rozstrzyga kierunek przed wireframe dla visual trwałości karty R opisanej w `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md`. Nie jest kanonem mechaniki ani runtime.
-- `CARD_DURABILITY_WIREFRAME_PASS.md` rozwija `CARD_DURABILITY_VISUAL_DECISION.md` w minimalny wireframe wariantu C. Nie jest layout tokenem, mechaniką ani runtime.
+- `CARD_DURABILITY_WIREFRAME_PASS.md` rozwija `CARD_DURABILITY_VISUAL_DECISION.md` w minimalny wireframe wariantu C i zawiera zatwierdzone roboczo decyzje przed layout-token pass dla visual trwałości karty R. Nie jest layout tokenem, mechaniką ani runtime.
 - `CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` nie jest kanonem mechaniki, tylko listą decyzji i zależności, które trzeba zamknąć przed pierwszym runtime pass `CARD_SLOT_NETWORK_SYSTEM.md`.
 - `SUB_META_SYSTEM.md` definiuje sens konfiguracji SUB-META oraz gałęzie ŚWIAT/PRG.
 - `ECONOMY_SYSTEM.md` definiuje RP i koszty, które muszą zostać dostosowane do kosztów slotowych R1/R2/R3/R4 oraz kosztów pyłu/stabilizacji.

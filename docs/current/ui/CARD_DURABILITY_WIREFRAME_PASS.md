@@ -181,18 +181,64 @@ Warianty do późniejszego testu:
 
 Rekomendacja: prawa krawędź jako default dla pierwszego wireframe.
 
-## 14. Decyzje do zatwierdzenia przed layout tokens
+## 14. Zatwierdzone decyzje robocze przed layout-token pass
 
-Checklist przed layout-token pass:
+Projektant zatwierdza poniższy minimalny zestaw decyzji jako roboczy kierunek przed przyszłym layout-token pass. Zatwierdzenie nie oznacza finalnych assetów, finalnego layoutu całego czteroelementowego slotu ani implementacji runtime.
 
-- [ ] Czy pasek zostaje przy prawej krawędzi?
-- [ ] Czy pasek maleje od góry do dołu?
-- [ ] Czy normalny UI nie pokazuje procentu?
-- [ ] Czy debug pokazuje procent?
-- [ ] Czy degradacja jest progowa?
-- [ ] Czy degradacja jest przyciemnieniem + rysy/pęknięcia, a nie kolorem?
-- [ ] Czy blizna slotu jest poza kartą R?
-- [ ] Czy stabilizator ma osobny wskaźnik zużycia?
+### 14.1. Wariant C
+
+- Wariant C zostaje zatwierdzony jako roboczy kierunek przed layout-token pass.
+- Obowiązuje hybryda: cienki pasek boczny + progowe warstwy degradacji karty R.
+- Decyzja nie oznacza finalnych assetów degradacji.
+- Decyzja nie oznacza implementacji runtime.
+
+### 14.2. Pasek trwałości
+
+- Pasek trwałości domyślnie znajduje się przy prawej krawędzi karty R.
+- Pasek jest cienki i pionowy.
+- Pasek pokazuje trwałość karty R.
+- Pasek nie pokazuje stanu stabilizatora.
+- Pasek nie może zasłaniać koloru, tieru ani głównego znaku karty.
+
+### 14.3. Kierunek odczytu paska
+
+- Dół oznacza niski stan / zbliżanie się do pęknięcia.
+- Pasek ma wizualnie prowadzić oko ku dołowi przy degradacji.
+- Dokładna animacja zanikania albo opróżniania pozostaje do przyszłego UI/runtime pass.
+
+### 14.4. Normalny UI
+
+- Normalny UI nie pokazuje liczby procentowej.
+- Normalny UI pokazuje tylko pasek i jakościową degradację.
+- Stan normalny ma pozostać spokojny i rytualny.
+- Pasek nie może wyglądać jak arcade healthbar.
+
+### 14.5. Debug UI
+
+- Debug UI może pokazywać procent trwałości.
+- Debug UI może pokazywać progi `stable` / `worn` / `cracked` / `critical`.
+- Debug UI może tymczasowo pogrubiać pasek.
+- Debug nie jest finalnym UI.
+
+### 14.6. Degradacja
+
+- Degradacja jest progowa.
+- Degradacja idzie w ciemność, zabrudzenie, rysy, pęknięcia i czarne wżery.
+- Degradacja może być w przyszłości SVG/PNG overlay albo inną warstwą visual.
+- Degradacja nie może zakrywać całkowicie koloru i tieru karty.
+
+### 14.7. Blizna slotu
+
+- Blizna slotu nie jest degradacją karty.
+- Blizna należy do gniazda / ramy slotu.
+- Blizna pozostaje widoczna po usunięciu karty R.
+- Blizna wymaga osobnego future visual pass.
+
+### 14.8. Stabilizator
+
+- Stabilizator ma mieć osobny sygnał zużycia.
+- Pasek karty R nie może być używany jako wskaźnik stabilizatora.
+- Relacja trwałość karty vs pojemność stabilizatora musi pozostać czytelna.
 
 ## 15. Dokumenty powiązane
 
