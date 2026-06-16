@@ -243,8 +243,10 @@ Projektant zatwierdza poniższy minimalny zestaw decyzji jako roboczy kierunek p
 ## 15. Nota synchronizacyjna — layout-token readiness
 
 - Minimalna gotowość pod przyszłe layout tokens jest rozwinięta w `CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md`.
+- Readiness zatwierdza roboczy scoped ID `submeta.slot.card_r.durability_bar` dla paska trwałości karty R.
+- Pasek jest wewnętrznym elementem karty R przy prawej krawędzi.
 - Wireframe pozostaje dokumentem relacji visual.
-- Readiness nie tworzy jeszcze tokenów ani placeholderów.
+- Pełne tokeny, placeholdery i runtime pozostają poza zakresem.
 
 ## 16. Dokumenty powiązane
 

@@ -148,6 +148,12 @@ Ten dokument jest roboczym **master specem SUB-META v2**. Jego rolą jest zastą
 - Ta nota nie oznacza jeszcze finalnego layoutu całego czteroelementowego slotu.
 - Ta nota nie zmienia runtime.
 
+### 6D. Nota synchronizacyjna — scoped ID paska trwałości karty R
+
+- Przyszłe layout tokens dla SUB-META powinny uwzględnić scoped ID `submeta.slot.card_r.durability_bar` jako roboczy identyfikator paska trwałości karty R.
+- ID pochodzi z readiness opisanej w `CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md`.
+- Ta nota nie oznacza zmiany runtime ani finalnego layoutu slotu.
+
 ## 7. Resonance core
 
 - Rdzeń jest centralnym punktem konfiguracji SUB-META v2.
