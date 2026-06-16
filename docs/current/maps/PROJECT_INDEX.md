@@ -45,6 +45,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT)
 - `docs/current/ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` (ROBOCZY / CHECKLISTA UI-VISUAL) - checklista stanów i czytelności visual/UI dla czteroelementowego slotu przed layout tokens.
 - `docs/current/ui/CARD_DURABILITY_VISUAL_DECISION.md` (ROBOCZY / DOKUMENT DECYZYJNY UI-VISUAL) - porównanie wariantów A/B/C visual trwałości karty R przed wireframe i runtime.
+- `docs/current/ui/CARD_DURABILITY_WIREFRAME_PASS.md` (ROBOCZY / WIREFRAME UI) - minimalny wireframe wariantu C dla paska, degradacji i debug procentu karty R.
 - `docs/current/ui/SUB_META_V2_LAYOUT_TOKENS.md` (ROBOCZY / SPEC-HISTORY INPUT)
 - `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (ROBOCZY / SPEC-HISTORY INPUT)
 - `docs/current/ui/SUB_META_MEMORY_PACK.md` (ROBOCZY / HANDOFF / SPEC-HISTORY INPUT)

@@ -229,3 +229,9 @@ Warstwy degradacji powinny działać jako state/accent overlay, a nie jako nowa 
 - `VISUAL_EXECUTION_GUIDE.md`,
 - `MODULAR_FRAME_KIT.md`,
 - `SVG_ASSET_STANDARDS.md`.
+
+## Nota synchronizacyjna — wireframe wariantu C
+
+- Minimalny wireframe wariantu C jest rozwinięty w `CARD_DURABILITY_WIREFRAME_PASS.md`.
+- Ten dokument decyzyjny pozostaje źródłem porównania wariantów A/B/C.
+- Wireframe pass nie oznacza jeszcze finalnego layoutu ani layout tokens.

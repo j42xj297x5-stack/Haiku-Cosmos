@@ -14,6 +14,7 @@
 - `SUB_META_V2_MASTER_SPEC.md` — główny roboczy master spec UI/layout dla SUB-META v2.
 - `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` — robocza checklista stanów i czytelności visual/UI dla czteroelementowego slotu przed layout tokens i runtime.
 - `CARD_DURABILITY_VISUAL_DECISION.md` — roboczy dokument decyzyjny UI-visual porównujący warianty A/B/C trwałości karty R przed wireframe i runtime.
+- `CARD_DURABILITY_WIREFRAME_PASS.md` — roboczy wireframe UI wariantu C opisujący pasek trwałości, degradację i debug procentu karty R przed layout tokens i runtime.
 
 ## Wejściowy stack SUB-META v2 (spec-history / input)
 
