@@ -29,6 +29,7 @@ Kanon jest mapowany warstwowo przez:
 
 - `docs/current/systems/CARDS_SYSTEM.md` (KANON)
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU) - roboczy system sieci slotów kart, wzmocnień, trwałości, pyłu, napięć, blizn i naprawy slotów.
+- `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - lista decyzji i zależności do zamknięcia przed pierwszym runtime pass CARD SLOT NETWORK.
 - `docs/current/systems/ECONOMY_SYSTEM.md` (KANON)
 - `docs/current/systems/SUB_META_SYSTEM.md` (KANON)
 - `docs/current/systems/PRG_SYSTEM.md` (KANON STRUKTURALNY / DO STROJENIA)
@@ -40,7 +41,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/ui/UI_WORLD.md` (KANON)
 - `docs/current/ui/HUD_SYSTEM.md` (ROBOCZY / KIERUNEK HUD v2)
 - `docs/current/ui/SUB_META_RUNTIME_SNAPSHOT.md` (AKTYWNY SNAPSHOT RUNTIME / PNG + SETTINGS + PLACEHOLDERS + PANELS + DEBUG)
-- `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (LEGACY/REFERENCE DLA RUNTIME / HISTORYCZNY DESIGN HANDOFF)
+- `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT)
 - `docs/current/ui/SUB_META_V2_LAYOUT_TOKENS.md` (ROBOCZY / SPEC-HISTORY INPUT)
 - `docs/current/ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` (ROBOCZY / SPEC-HISTORY INPUT)
 - `docs/current/ui/SUB_META_MEMORY_PACK.md` (ROBOCZY / HANDOFF / SPEC-HISTORY INPUT)
@@ -104,7 +105,7 @@ Kanon jest mapowany warstwowo przez:
 - `SUB_META_LAYOUT_ANCHOR_AUDIT.md` mapuje obecny layout SUB-META w `cards.js` i opisuje extraction pass v0.1 / kontrakt `SubMetaLayoutAnchors`.
 - `hc.submeta_layout.js` udostepnia runtime namespace `HC.SubMetaLayout` dla czystego layoutu SUB-META, density i mount points; produkcyjny FrameComposer jest podlaczony tylko jako `submeta.root_frame` probe za flaga.
 - `assets/visual/preview/frame_composer_sandbox.html` to manualny sandbox review dla `HC.VisualAssets` + `HC.FrameComposer` bez integracji runtime.
-- `SUB_META_V2_MASTER_SPEC.md` jest historycznym dokumentem layout/design handoff; aktywny runtime opisuje `SUB_META_RUNTIME_SNAPSHOT.md`.
+- `SUB_META_V2_MASTER_SPEC.md` jest aktywnym roboczym master specem UI/layout dla SUB-META v2; aktywny runtime opisuje `SUB_META_RUNTIME_SNAPSHOT.md`.
 - `SUB_META_V2_LAYOUT_SPEC.md` i `SUB_META_V2_WIREFRAME_SPEC.md` zostały przeniesione do `docs/legacy/ui/` jako dokumenty historyczne zastąpione przez `SUB_META_V2_MASTER_SPEC.md`.
 - `FRAME_COMPOSER_SPEC.md`, `SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` i `SUB_META_V2_LAYOUT_TOKENS.md` pozostają legacy/reference dla SUB-META i nie wyznaczają bieżącej implementacji runtime.
 - `SUB_META_MEMORY_PACK.md` pozostaje w `docs/current/ui/` jako pomocniczy handoff/memory pack (nie główny entrypoint layoutu).

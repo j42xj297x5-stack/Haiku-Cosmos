@@ -37,7 +37,7 @@
 1. Warstwa map jak wyżej.
 2. Dla runtime SUB-META: `docs/current/ui/SUB_META_RUNTIME_SNAPSHOT.md` jako aktywny source-of-truth.
 3. `docs/current/ui/UI_WORLD.md` dla nadrzędnego flow UI oraz `docs/current/ui/HUD_SYSTEM.md` dla HUD.
-4. `SUB_META_V2_MASTER_SPEC.md`, FrameComposer, Figma, tokeny, stare canvasowe SUB-META i wireframe’y czytaj wyłącznie jako legacy/reference, gdy nie konfliktują ze snapshotem runtime.
+4. `SUB_META_V2_MASTER_SPEC.md` czytaj jako aktywny roboczy master spec UI/layout dla SUB-META v2; FrameComposer, Figma, tokeny, stare canvasowe SUB-META i wireframe’y czytaj jako reference/history, gdy nie konfliktują ze snapshotem runtime.
 
 ### C) Zadania visual / SVG / Figma
 1. `docs/current/visual/README.md`
@@ -71,7 +71,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/systems/I18N_SYSTEM.md` (KANON STRUKTURALNY / DO WDROŻENIA)
 - `docs/current/ui/UI_WORLD.md`
 - `docs/current/ui/SUB_META_RUNTIME_SNAPSHOT.md` (AKTYWNY SNAPSHOT RUNTIME SUB-META)
-- `docs/current/ui/SUB_META_V2_MASTER_SPEC.md`, FrameComposer/Figma/tokeny/memory pack (LEGACY/REFERENCE DLA BIEŻĄCEGO RUNTIME SUB-META)
+- `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT dla SUB-META v2; nie kanon mechaniki i nie source-of-truth runtime)
 - legacy/history po migracji: `docs/legacy/ui/SUB_META_V2_LAYOUT_SPEC.md`, `docs/legacy/ui/SUB_META_V2_WIREFRAME_SPEC.md` (zastąpione przez `SUB_META_V2_MASTER_SPEC.md`)
 
 ## 3A. Zależności aktywnego runtime SUB-META
@@ -103,6 +103,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 - `docs/current/systems/ROADMAP.md`
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU)
+- `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - nie jest kanonem mechaniki, tylko listą decyzji przed runtime dla `CARD_SLOT_NETWORK_SYSTEM.md`.
 - `docs/current/technical/README.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
 - `docs/current/technical/WORLD_RENDERING_MODEL.md`
@@ -135,6 +136,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 - `CARDS_SYSTEM.md` definiuje typy kart, ID i sekwencje RUN.
 - `CARD_SLOT_NETWORK_SYSTEM.md` definiuje osadzanie kart w slotach, sieć wzmocnień, trwałość, pył, napięcie, blizny i naprawę slotów; status: ROBOCZY / KANDYDAT DO KANONU.
+- `CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` nie jest kanonem mechaniki, tylko listą decyzji i zależności, które trzeba zamknąć przed pierwszym runtime pass `CARD_SLOT_NETWORK_SYSTEM.md`.
 - `SUB_META_SYSTEM.md` definiuje sens konfiguracji SUB-META oraz gałęzie ŚWIAT/PRG.
 - `ECONOMY_SYSTEM.md` definiuje RP i koszty, które muszą zostać dostosowane do kosztów slotowych R1/R2/R3/R4 oraz kosztów pyłu/stabilizacji.
 - `PRG_SYSTEM.md` definiuje strukturę PRG, którą trzeba zsynchronizować z decyzją, że R2 PRG jest lokalne, a jedna z wcześniejszych pozycji dodatkowego slotu przechodzi w kartę naprawczą.
