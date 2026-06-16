@@ -1,6 +1,6 @@
 # SUB-META V2 MASTER SPEC
 
-> Status: LEGACY / REFERENCE DLA BIEŻĄCEGO RUNTIME
+> Status: ROBOCZY / MASTER SPEC UI-LAYOUT
 > Obszar: SUB-META v2 / cockpit resonance layout / UI handoff
 > Źródło prawdy:
 > - TAK, jako roboczy nadrzędny dokument dla SUB-META v2 layout/design handoff,
@@ -10,7 +10,7 @@
 > Ostatnia aktualizacja: 2026-06-12
 > Powiązane dokumenty: `../systems/SUB_META_SYSTEM.md`, `UI_WORLD.md`, `../systems/PRG_SYSTEM.md`, `../systems/CARDS_SYSTEM.md`, `../visual/VISUAL_EXECUTION_GUIDE.md`, `../technical/FRAME_COMPOSER_SPEC.md`, `SUB_META_V2_LAYOUT_TOKENS.md`
 
-> **Decyzja runtime 2026-06-12:** aktywnym source-of-truth implementacji jest `SUB_META_RUNTIME_SNAPSHOT.md` (PNG/CSS + `public/settings` + placeholdery + panele + SVG/PNG + debug Import/Export JSON). Ten master spec, FrameComposer i materiały Figma są legacy/reference i nie mogą nadpisywać snapshotu runtime.
+> **Decyzja runtime 2026-06-12:** aktywnym source-of-truth implementacji jest `SUB_META_RUNTIME_SNAPSHOT.md` (PNG/CSS + `public/settings` + placeholdery + panele + SVG/PNG + debug Import/Export JSON). Ten master spec pozostaje aktywnym roboczym master specem UI/layout dla SUB-META v2, ale nie może nadpisywać snapshotu runtime.
 
 ## 1. Cel dokumentu
 
