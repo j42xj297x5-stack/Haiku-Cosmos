@@ -4,7 +4,7 @@
 > Obszar: sieć slotów kart / aktywacja slotów / wzmocnienia / trwałość / pył / napięcie / blizny / naprawa slotów
 > Źródło prawdy: NIE, dopóki dokument nie zostanie zatwierdzony i zsynchronizowany z dokumentami kanonicznymi
 > Proponowana lokalizacja: `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md`
-> Powiązane dokumenty: `CARDS_SYSTEM.md`, `SUB_META_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `PRG_SYSTEM.md`, `UI_WORLD.md`, `SUB_META_V2_MASTER_SPEC.md`
+> Powiązane dokumenty: `CARDS_SYSTEM.md`, `SUB_META_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `PRG_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `UI_WORLD.md`, `SUB_META_V2_MASTER_SPEC.md`
 
 ---
 
@@ -32,6 +32,15 @@ Dokument nie definiuje finalnych wartości balansu.
 Wszystkie liczby startowe są wartościami roboczymi i muszą być skalowalne w debug.
 
 ---
+
+## 1A. Nota synchronizacyjna — DS i struktura slotu
+
+- DS jest interpretowana jako karta naprawcza zdobywana przez AAA.
+- Karta naprawcza nie jest osobnym nowym typem obok DS bez osobnej decyzji projektowej.
+- Szczegóły struktury slotu, kart specjalnych, artefaktów i pamięci eonów opisuje `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`.
+
+---
+
 
 ## 2. Zasada nadrzędna
 
