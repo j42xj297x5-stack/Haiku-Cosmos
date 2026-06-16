@@ -37,6 +37,12 @@ Ten dokument:
 
 Checklistę należy traktować jako kontrakt czytelności i listę przyszłych stanów visual/UI, a nie jako kanon mechaniki ani instrukcję implementacyjną.
 
+### Nota synchronizacyjna — trwałość karty R
+
+- Decyzja visual trwałości karty R jest rozwinięta w `CARD_DURABILITY_VISUAL_DECISION.md`.
+- Ta checklista slotu pozostaje dokumentem szerszym.
+- Wariant C / hybryda jest roboczo rekomendowany do zatwierdzenia, nie kanon.
+
 ## 3. Czteroelementowy slot — model visual
 
 Slot należy traktować jak mały ekosystem: karta R daje aktywność, a pozostałe elementy osadzają stabilność, wiedzę i ślad świata wokół rdzenia.
