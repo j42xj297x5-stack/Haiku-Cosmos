@@ -213,6 +213,70 @@ Przed utworzeniem właściwych layout tokens trzeba potwierdzić:
 - [ ] czy scar visual area będzie częścią slot frame,
 - [ ] czy stabilizer wear dostaje osobny token już w pierwszym passie.
 
+## 10A. Zatwierdzone decyzje readiness przed layout-token pass
+
+Projektant zatwierdza poniższy minimalny zestaw decyzji jako roboczą gotowość przed przyszłym layout-token pass. Zatwierdzenie nie tworzy layout tokens, JSON/settings, placeholderów, assetów ani runtime i nie oznacza finalnego kanonu mechaniki.
+
+### 10A.1. Scoped ID paska trwałości
+
+- Finalny roboczy scoped ID dla paska trwałości karty R to `submeta.slot.card_r.durability_bar`.
+- ID jest wejściem do przyszłych layout tokens.
+- ID nie jest jeszcze selektorem CSS, kluczem JSON/settings, placeholderem ani bindingiem runtime.
+
+### 10A.2. Pozycja paska trwałości
+
+- Pasek jest wewnętrznym elementem karty R.
+- Pasek znajduje się przy prawej krawędzi karty R.
+- Pasek nie należy do ramy slotu.
+- Pasek nie jest częścią slot scar visual.
+- Pasek nie jest wskaźnikiem stabilizatora.
+
+### 10A.3. Szerokość paska
+
+- Roboczy zakres szerokości paska to 2–4 px zależnie od density/skali.
+- Dokładna wartość zostanie wybrana dopiero w przyszłym token/layout pass.
+- Readiness zatwierdza tylko zakres, nie finalny rect ani finalny token.
+
+### 10A.4. Debug label
+
+- Procent trwałości jest widoczny tylko w debug.
+- Debug label nie należy do normal UI.
+- Preferowane położenie debug label: poza główną grafiką karty albo w debug overlay.
+- Debug label nie może zasłaniać koloru, tieru ani znaku karty.
+
+### 10A.5. Degradation overlay
+
+- Startowo degradation overlay jest jednym rectem obejmującym powierzchnię karty R.
+- Rect mieści się wewnątrz ramki karty.
+- Rect używa safe inset.
+- Overlay może później zostać rozbity na kilka warstw.
+- Overlay nie jest blizną slotu.
+
+### 10A.6. Threshold states
+
+- Nazwy jakościowe pozostają preferowane dla visual.
+- Zakresy procentowe opisują progi, ale nie są nazwą mechaniki.
+- Używać nazw jakościowych typu `clean`, `dirty`, `scratched`, `cracked`, `critical`, `break`.
+- Nie wiązać tych nazw jeszcze z finalnym balansem runtime.
+
+### 10A.7. Tension accent
+
+- Tension accent wymaga osobnego future token.
+- Tension accent nie może być mieszany z durability bar.
+- Readiness rezerwuje tylko relację warstw względem paska i degradacji.
+
+### 10A.8. Scar visual
+
+- Scar visual jest częścią slot frame / socket layer.
+- Scar visual nie należy do card R degradation overlay.
+- Scar visual wymaga osobnego future visual/token pass.
+
+### 10A.9. Stabilizer wear
+
+- Stabilizer wear dostanie osobny future token.
+- Stabilizer wear nie należy do pierwszego durability-only token pass.
+- Readiness rezerwuje nazwę i relację, żeby nie pomylić stabilizer wear z `submeta.slot.card_r.durability_bar`.
+
 ## 11. Kolejność przyszłych prac
 
 Proponowana kolejność po tym dokumencie:

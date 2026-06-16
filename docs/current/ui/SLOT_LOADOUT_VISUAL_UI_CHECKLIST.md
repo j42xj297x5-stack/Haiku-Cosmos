@@ -264,6 +264,12 @@ Rekomendowana kolejność przyszłych prac:
 
 Każdy pass powinien mieć osobny zakres i nie powinien mieszać decyzji layoutowych z implementacją mechaniki.
 
+## 14A. Nota synchronizacyjna — readiness trwałości karty R
+
+- Readiness dla trwałości karty R została częściowo zamknięta w `CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md`.
+- Stabilizer wear, scar visual i tension accent pozostają osobnymi future tokenami / visual passami.
+- Pełny layout czteroelementowego slotu nadal nie jest zamknięty.
+
 ## 15. Dokumenty powiązane
 
 - `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`
