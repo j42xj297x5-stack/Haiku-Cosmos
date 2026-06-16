@@ -134,6 +134,13 @@ Ten dokument jest roboczym **master specem SUB-META v2**. Jego rolą jest zastą
 - Nie zmieniać layout tokens ani JSON na podstawie tej noty.
 - Szczegóły robocze opisuje `../systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`.
 
+
+### 6B. Nota synchronizacyjna — visual/UI czteroelementowego slotu
+
+- Czteroelementowy slot wymaga osobnego visual/UI passu.
+- `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` opisuje stany i czytelność przed layout tokens.
+- Master spec nie powinien jeszcze przyjmować finalnego układu slotu bez decyzji visual.
+
 ## 7. Resonance core
 
 - Rdzeń jest centralnym punktem konfiguracji SUB-META v2.
