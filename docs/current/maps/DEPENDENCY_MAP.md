@@ -105,6 +105,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU)
 - `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - nie jest kanonem mechaniki, tylko listą decyzji przed runtime dla `CARD_SLOT_NETWORK_SYSTEM.md`.
 - `docs/current/systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
+- `docs/current/ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` (ROBOCZY / CHECKLISTA UI-VISUAL / PRZED LAYOUT TOKENS) - checklista UI/visual dla czteroelementowego slotu; nie jest kanonem mechaniki ani layout tokens.
 - `docs/current/technical/README.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
 - `docs/current/technical/WORLD_RENDERING_MODEL.md`
@@ -138,6 +139,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `CARDS_SYSTEM.md` definiuje typy kart, ID i sekwencje RUN.
 - `CARD_SLOT_NETWORK_SYSTEM.md` definiuje osadzanie kart w slotach, sieć wzmocnień, trwałość, pył, napięcie, blizny i naprawę slotów; status: ROBOCZY / KANDYDAT DO KANONU.
 - `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` rozszerza `CARD_SLOT_NETWORK_SYSTEM.md` o strukturę slotu, DS jako kartę naprawczą, karty specjalne, artefakty i pamięć eonów.
+- `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` jest checklistą UI/visual dla `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` i `CARD_SLOT_NETWORK_SYSTEM.md`; nie jest kanonem mechaniki ani layout tokens.
 - `CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` nie jest kanonem mechaniki, tylko listą decyzji i zależności, które trzeba zamknąć przed pierwszym runtime pass `CARD_SLOT_NETWORK_SYSTEM.md`.
 - `SUB_META_SYSTEM.md` definiuje sens konfiguracji SUB-META oraz gałęzie ŚWIAT/PRG.
 - `ECONOMY_SYSTEM.md` definiuje RP i koszty, które muszą zostać dostosowane do kosztów slotowych R1/R2/R3/R4 oraz kosztów pyłu/stabilizacji.

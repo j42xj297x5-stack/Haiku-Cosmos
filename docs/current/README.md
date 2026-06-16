@@ -31,6 +31,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `ui/HUD_SYSTEM.md` - **ROBOCZY / KIERUNEK HUD v2** - roboczy kierunek prawego panelu sekwencji, aktywacji i mikrodecyzji RUN.
 - `ui/SUB_META_RUNTIME_SNAPSHOT.md` - **AKTYWNY SNAPSHOT RUNTIME** - bieżąca ścieżka PNG/settings/placeholders/panels/debug; ma pierwszeństwo dla implementacji runtime SUB-META.
 - `ui/SUB_META_V2_MASTER_SPEC.md` - **ROBOCZY / MASTER SPEC UI-LAYOUT** - aktywny master spec UI/layout dla SUB-META v2; nie nadpisuje aktywnego snapshotu runtime.
+- `ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` - **ROBOCZY / CHECKLISTA UI-VISUAL / PRZED LAYOUT TOKENS** - checklista czytelności i stanów visual/UI dla czteroelementowego slotu przed layout-token i runtime pass.
 - `ui/SUB_META_V2_LAYOUT_TOKENS.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_MEMORY_PACK.md` - **HANDOFF / ROBOCZY / SPEC-HISTORY INPUT** - pomocniczy handoff, nie główny master spec layoutu.
