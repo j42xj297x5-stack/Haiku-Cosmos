@@ -33,6 +33,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `ui/SUB_META_V2_MASTER_SPEC.md` - **ROBOCZY / MASTER SPEC UI-LAYOUT** - aktywny master spec UI/layout dla SUB-META v2; nie nadpisuje aktywnego snapshotu runtime.
 - `ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` - **ROBOCZY / CHECKLISTA UI-VISUAL / PRZED LAYOUT TOKENS** - checklista czytelności i stanów visual/UI dla czteroelementowego slotu przed layout-token i runtime pass.
 - `ui/CARD_DURABILITY_VISUAL_DECISION.md` - **ROBOCZY / DOKUMENT DECYZYJNY UI-VISUAL** - porównanie wariantów A/B/C pokazywania trwałości karty R przed wireframe i runtime.
+- `ui/CARD_DURABILITY_WIREFRAME_PASS.md` - **ROBOCZY / WIREFRAME UI / WARIANT C** - minimalny układ paska trwałości, degradacji i debug procentu dla karty R przed layout tokens i runtime.
 - `ui/SUB_META_V2_LAYOUT_TOKENS.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_MEMORY_PACK.md` - **HANDOFF / ROBOCZY / SPEC-HISTORY INPUT** - pomocniczy handoff, nie główny master spec layoutu.
