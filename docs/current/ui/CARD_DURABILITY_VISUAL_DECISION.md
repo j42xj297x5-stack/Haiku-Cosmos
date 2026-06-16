@@ -232,6 +232,8 @@ Warstwy degradacji powinny działać jako state/accent overlay, a nie jako nowa 
 
 ## Nota synchronizacyjna — wireframe wariantu C
 
-- Minimalny wireframe wariantu C jest rozwinięty w `CARD_DURABILITY_WIREFRAME_PASS.md`.
+- Wariant C został zatwierdzony roboczo jako kierunek przed layout-token pass.
+- Minimalny wireframe wariantu C oraz zatwierdzone decyzje robocze są rozwinięte w `CARD_DURABILITY_WIREFRAME_PASS.md`.
 - Ten dokument decyzyjny pozostaje źródłem porównania wariantów A/B/C.
+- Finalne assety i runtime pozostają poza zakresem tej decyzji.
 - Wireframe pass nie oznacza jeszcze finalnego layoutu ani layout tokens.

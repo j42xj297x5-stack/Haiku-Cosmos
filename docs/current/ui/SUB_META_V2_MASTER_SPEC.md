@@ -141,6 +141,13 @@ Ten dokument jest roboczym **master specem SUB-META v2**. Jego rolą jest zastą
 - `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` opisuje stany i czytelność przed layout tokens.
 - Master spec nie powinien jeszcze przyjmować finalnego układu slotu bez decyzji visual.
 
+### 6C. Nota synchronizacyjna — trwałość karty R / wariant C
+
+- Dla trwałości karty R w przyszłych layout-tokenach należy uwzględnić zatwierdzony roboczo model wariantu C opisany w `CARD_DURABILITY_WIREFRAME_PASS.md`.
+- Model oznacza hybrydę: pasek boczny po prawej krawędzi karty R oraz jakościową, progową degradację karty.
+- Ta nota nie oznacza jeszcze finalnego layoutu całego czteroelementowego slotu.
+- Ta nota nie zmienia runtime.
+
 ## 7. Resonance core
 
 - Rdzeń jest centralnym punktem konfiguracji SUB-META v2.
