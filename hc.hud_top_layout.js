@@ -115,11 +115,13 @@
   }
   async function exportSaveFromHud() {
     const status = document.getElementById("hudSettingsStatus");
+    if (!root.HC?.SaveSystem?.exportToDownload) { if (status) status.textContent = "System zapisu nie został załadowany."; return; }
     try { await root.HC.SaveSystem.exportToDownload(root.HC.PlayerAlias || ""); if (status) status.textContent = "Save pobrany."; }
     catch (error) { if (status) status.textContent = error?.message || "Nie udało się zapisać gry."; console.warn("[HC.SaveSystem] HUD export failed", error); }
   }
   async function importSaveFromHud(file) {
     const status = document.getElementById("hudSettingsStatus");
+    if (!root.HC?.SaveSystem?.importFile) { if (status) status.textContent = "System zapisu nie został załadowany."; return; }
     try { await root.HC.SaveSystem.importFile(root.HC.PlayerAlias || "", file); if (status) status.textContent = "Save wczytany."; }
     catch (error) { if (status) status.textContent = root.HC.SaveSystem?.ERROR_MESSAGE || String(error?.message || error); console.warn("[HC.SaveSystem] HUD import failed", error); }
   }
