@@ -142,6 +142,7 @@ console.log("[HC] game.boot.js loaded");
       asteroidToMoonMassThreshold: 13,
       asteroidToMoonEnabled: true,
       moonToRockyPlanetMassThreshold: 34,
+      moonToRockyPlanetEnabled: true,
       dustCloudToGasPlanetMassThreshold: 55,
       dustDragStrength: 0.15,
       dustStopSpeedThreshold: 0.02,
@@ -577,6 +578,12 @@ meteorBaseScale: METEOR_BASE_SCALE,
     World.asteroids = [];
     World.planets = [];
     World.moons = [];
+    World.spaceMechanics = Object.assign({}, World.spaceMechanics, {
+      asteroidToMoonMassThreshold: Number(World.spaceMechanics?.asteroidToMoonMassThreshold) || 13,
+      asteroidToMoonEnabled: World.spaceMechanics?.asteroidToMoonEnabled !== false,
+      moonToRockyPlanetMassThreshold: Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold) || 34,
+      moonToRockyPlanetEnabled: World.spaceMechanics?.moonToRockyPlanetEnabled !== false,
+    });
     World.dustClouds = [];
     World.dustParticles = [];
     World.impactFragments = [];
