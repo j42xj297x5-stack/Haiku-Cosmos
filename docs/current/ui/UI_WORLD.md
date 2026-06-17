@@ -406,6 +406,12 @@ bez wchodzenia w implementację techniczną.
 - Flakon/naczynie i kryształ są wynikiem Kuźni.
 - Szczegóły opisuje `../systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
 
+Nota synchronizacyjna visual/UI:
+
+- Szczegóły visual HUD stosiku pyłu i maski `0–100%` są rozwinięte w `DUST_STACK_HUD_VISUAL_CHECKLIST.md`.
+- `UI_WORLD.md` pozostaje dokumentem wyższego poziomu.
+- Flakon/naczynie i kryształ nie są bazowymi celami HUD collection.
+
 
 - System aktywowania koloru w HUD ma zostać wycofany zgodnie z kierunkiem `CARD_SLOT_NETWORK_SYSTEM.md`; karta staje się aktywna po włożeniu do slotu.
 - Stare fragmenty opisujące aktywację koloru przez HUD/sekwencję są **DO AKTUALIZACJI**, ale nie są usuwane przed pełną migracją runtime.
