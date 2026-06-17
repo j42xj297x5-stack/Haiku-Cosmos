@@ -25,6 +25,8 @@ for (const threshold of [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]) {
 }
 
 assert(source.includes('`dust_pile_mask_${threshold}`'), 'mask asset names should be generated only from 10% thresholds');
+assert(!source.includes('ctx.drawImage(emptyEntry.image'), 'HUD dust pile should not draw the empty/base background layer');
+assert(!source.includes('drawDustPileFallback(ctx, x, y, w, h, { activeType: "NONE"'), 'HUD dust pile fallback should not draw an empty/base background layer');
 
 for (const forbidden of [
   'dust_pile_red_yellow',
