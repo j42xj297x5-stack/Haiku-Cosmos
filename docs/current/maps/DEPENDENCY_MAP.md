@@ -30,7 +30,7 @@
 3. `docs/current/README.md`
 4. `docs/current/maps/PROJECT_INDEX.md`
 5. `docs/current/maps/DEPENDENCY_MAP.md`
-6. `docs/current/systems/CARDS_SYSTEM.md`, `CARD_SLOT_NETWORK_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `SUB_META_SYSTEM.md`
+6. `docs/current/systems/CARDS_SYSTEM.md`, `CARD_SLOT_NETWORK_SYSTEM.md`, `COMETS_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `SUB_META_SYSTEM.md`
 7. `docs/current/systems/PRG_SYSTEM.md`, `I18N_SYSTEM.md`
 
 ### B) Zadania UI / HUD / SUB-META
@@ -103,6 +103,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 - `docs/current/systems/ROADMAP.md`
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU)
+- `docs/current/systems/COMETS_SYSTEM.md` (ROBOCZY / SYSTEM ŚWIATA) - projektowy kontrakt typów komet, kolorów, przemian świata, jawnych stanów obiektów, konfliktów efektów i debug/balansu; powiązany z kartami specjalnymi, SUB-META, PRG, roadmapą i mapą funkcji świata.
 - `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - nie jest kanonem mechaniki, tylko listą decyzji przed runtime dla `CARD_SLOT_NETWORK_SYSTEM.md`.
 - `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - doprecyzowuje przepływ pyłu: HUD zbiera jednokolorowy stosik pyłu, Magazyn przechowuje stosiki, mieszanie kolorów pyłu jest przeniesione do SUB-META / Kuźni, a Kuźnia rafinuje 3 stosiki w flakon/naczynie i 3 flakony/naczynia w kryształ. Dokument synchronizuje `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md` i `UI_WORLD.md`.
 - `docs/current/systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
@@ -143,6 +144,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 ### Systemy
 
 - `CARDS_SYSTEM.md` definiuje typy kart, ID i sekwencje RUN.
+- `COMETS_SYSTEM.md` definiuje roboczy kontrakt systemu komet jako rzadkich zdarzeń przemiany świata; synchronizuje przyszłe efekty świata z `CARDS_SYSTEM.md` (karty specjalne/eventowe, bez zmiany R1–R4), `SUB_META_SYSTEM.md` (sloty ŚWIAT i Kuźnia dla mieszania pyłów), `PRG_SYSTEM.md` (ograniczone nakierowywanie komety życia), `ROADMAP.md` (kolejność wdrożeń) oraz `WORLD_FUNCTION_MAP.md` (audyt przyszłych punktów runtime).
 - `CARD_SLOT_NETWORK_SYSTEM.md` definiuje osadzanie kart w slotach, sieć wzmocnień, trwałość, pył, napięcie, blizny i naprawę slotów; status: ROBOCZY / KANDYDAT DO KANONU.
 - `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` rozszerza `CARD_SLOT_NETWORK_SYSTEM.md` o strukturę slotu, DS jako kartę naprawczą, karty specjalne, artefakty i pamięć eonów.
 - `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` jest checklistą UI/visual dla `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` i `CARD_SLOT_NETWORK_SYSTEM.md`; nie jest kanonem mechaniki ani layout tokens.

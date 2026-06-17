@@ -18,6 +18,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 ### 2) systems
 - `systems/CARDS_SYSTEM.md` - **KANON** - system kart, sekwencji i DS.
 - `systems/CARD_SLOT_NETWORK_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU** - sieć slotów kart: aktywacja R1→R4, lokalne R2, globalne R3/R4, trwałość, pył, napięcie, blizny i karta naprawcza; wymaga synchronizacji z CARDS/SUB_META/ECONOMY/PRG/UI.
+- `systems/COMETS_SYSTEM.md` - **ROBOCZY / SYSTEM ŚWIATA** - projektowy kontrakt typów komet, przemian świata, stanów obiektów, konfliktów efektów i relacji z pyłem, kartami specjalnymi, SUB-META, PRG oraz debugiem.
 - `systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` - **ROBOCZY / CHECKLISTA MIGRACYJNA** - lista decyzji i zależności do zamknięcia przed pierwszym runtime pass `CARD_SLOT_NETWORK_SYSTEM.md`.
 - `systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME** - pętla meteor → pył → HUD stosik → depozyt → Magazyn → Kuźnia → flakon/naczynie → kryształ → stabilizator slotu; doprecyzowuje, że HUD zbiera tylko jeden kolor surowego pyłu do stosiku, a mieszanie kolorów jest przeniesione do SUB-META / Kuźni.
 - `systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME** - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
