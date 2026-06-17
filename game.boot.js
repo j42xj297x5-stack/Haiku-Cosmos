@@ -135,6 +135,8 @@ console.log("[HC] game.boot.js loaded");
     dustClouds: [],
     dustParticles: [],
     impactFragments: [],
+    harmonicDust: [],
+    harmonicDustCollected: { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0 },
 
     // Future mechanics contract only. These values are intentionally not wired
     // into gameplay until the space progression/dust/orbit rebuild patches.
@@ -150,7 +152,13 @@ console.log("[HC] game.boot.js loaded");
       cometIgnitionEnabled: true,
       dustBurnDurationMs: 8000,
       orbitMinSafeDistanceMul: 1.2,
-      gasPlanetRotationXSpeed: 0.12
+      gasPlanetRotationXSpeed: 0.12,
+      harmonicDustMergeRadiusMul: 2.0,
+      harmonicDustBaseCollectMs: 2400,
+      harmonicDustMassCollectMsMul: 850,
+      harmonicDustCollectDecayMul: 0.35,
+      harmonicDustPrgCollectRateMul: 1.0,
+      harmonicDustMaxCollectMs: 8000
     },
 
     flags: { firstPlanetZoomed: false, firstStarZoomed: false },
@@ -496,6 +504,7 @@ meteorBaseScale: METEOR_BASE_SCALE,
     if (HC.Meteors) HC.Meteors.update(dt, nowMs);
     if (HC.Comets) HC.Comets.update(dt, nowMs);
     if (HC.Collisions) HC.Collisions.resolve(dt, nowMs);
+    if (HC.HarmonicDust) HC.HarmonicDust.update(dt, nowMs);
     if (HC.Asteroids) HC.Asteroids.capture(dt, nowMs);
     if (HC.Planets) HC.Planets.capture(dt, nowMs);
     if (HC.Asteroids) HC.Asteroids.update(dt, nowMs);
@@ -547,6 +556,9 @@ meteorBaseScale: METEOR_BASE_SCALE,
   if (window.HC && window.HC.initMeteors && !window.HC.Meteors) {
     window.HC.initMeteors();
   }
+  if (window.HC && window.HC.initHarmonicDust && !window.HC.HarmonicDust) {
+    window.HC.initHarmonicDust();
+  }
   if (window.HC && window.HC.initRender && !window.HC.Render) {
     window.HC.initRender();
   }
@@ -583,10 +595,18 @@ meteorBaseScale: METEOR_BASE_SCALE,
       asteroidToMoonEnabled: World.spaceMechanics?.asteroidToMoonEnabled !== false,
       moonToRockyPlanetMassThreshold: Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold) || 34,
       moonToRockyPlanetEnabled: World.spaceMechanics?.moonToRockyPlanetEnabled !== false,
+      harmonicDustMergeRadiusMul: Number(World.spaceMechanics?.harmonicDustMergeRadiusMul) || 2.0,
+      harmonicDustBaseCollectMs: Number(World.spaceMechanics?.harmonicDustBaseCollectMs) || 2400,
+      harmonicDustMassCollectMsMul: Number(World.spaceMechanics?.harmonicDustMassCollectMsMul) || 850,
+      harmonicDustCollectDecayMul: Number(World.spaceMechanics?.harmonicDustCollectDecayMul) || 0.35,
+      harmonicDustPrgCollectRateMul: Number(World.spaceMechanics?.harmonicDustPrgCollectRateMul) || 1.0,
+      harmonicDustMaxCollectMs: Number(World.spaceMechanics?.harmonicDustMaxCollectMs) || 8000,
     });
     World.dustClouds = [];
     World.dustParticles = [];
     World.impactFragments = [];
+    World.harmonicDust = [];
+    World.harmonicDustCollected = { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0 };
     World.stars = [];
     World.spawnTimer = 0;
     World.meteorBaseScale = METEOR_BASE_SCALE;

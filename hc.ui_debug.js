@@ -1337,6 +1337,8 @@
       ["target mass → planet", wc.asteroidTargetMassToPlanet ?? thr.asteroidToPlanet?.current ?? 0],
       ["planets", `${wc.rockyPlanets ?? 0} rocky / ${wc.gasPlanets ?? 0} gas`],
       ["stars", wc.stars ?? 0],
+      ["harmonic dust", wc.harmonicDustCount ?? 0],
+      ["harmonic collected", JSON.stringify(window.World?.harmonicDustCollected || {})],
       ["A→P mass threshold", `${thr.asteroidToPlanet?.current ?? 0} (${thr.asteroidToPlanet?.source || "-"})`],
       ["P→S threshold", `${thr.planetToStar?.current ?? 0} (${thr.planetToStar?.source || "-"})`],
     ], "", { open: false }));

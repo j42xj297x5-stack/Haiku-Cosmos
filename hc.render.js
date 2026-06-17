@@ -540,6 +540,7 @@
         for (const moon of world.moons) drawMoon(moon);
       }
       for (const p of world.planets) drawPlanet(p);
+      if (window.HC?.HarmonicDust?.draw) window.HC.HarmonicDust.draw(ctx);
       if (world.stars && world.stars.length) {
         const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
         for (const s of world.stars) drawStar(s, nowMs);
