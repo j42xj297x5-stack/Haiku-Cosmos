@@ -93,6 +93,100 @@ const CardEngine = (() => {
 
   const PACK = normalizePack({ version: 1, cards: CARD_DEFS });
 
+
+  const DUST_PILE_ASSET_DIR = "png/dust/";
+  const DUST_PILE_NATIVE_W = 71;
+  const DUST_PILE_NATIVE_H = 130;
+  const DUST_PILE_THRESHOLDS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90];
+  const DUST_PILE_TYPES = ["RED", "YELLOW", "GREEN", "BLUE", "GREY"];
+  const DUST_PILE_ASSETS = {
+    empty: "dust_pile_empty",
+    RED: "dust_pile_red_full",
+    YELLOW: "dust_pile_yellow_full",
+    GREEN: "dust_pile_green_full",
+    BLUE: "dust_pile_blue_full",
+    GREY: "dust_pile_grey_full",
+  };
+  const DUST_PILE_COLOR_TO_TYPE = { red: "RED", yellow: "YELLOW", green: "GREEN", blue: "BLUE" };
+
+  const dustPileAssetCache = {
+    started: false,
+    byName: Object.create(null),
+    warned: new Set(),
+  };
+
+  function getPublicAssetUrl(path) {
+    if (typeof window !== "undefined" && window.HC && typeof window.HC.publicAssetPath === "function") return window.HC.publicAssetPath(path);
+    if (typeof window !== "undefined" && window.HC && typeof window.HC.publicPath === "function") return window.HC.publicPath(path);
+    const cleanBase = typeof window !== "undefined" ? String(window.HC_PUBLIC_BASE_URL || "/").replace(/\/+$/, "/") : "/";
+    const cleanPath = String(path || "").replace(/^\/+/, "").replace(/^public\//, "");
+    return `${cleanBase}${cleanPath}`;
+  }
+
+  function warnDustPileAsset(message, details) {
+    const key = `${message}:${details?.asset || ""}`;
+    if (dustPileAssetCache.warned.has(key)) return;
+    dustPileAssetCache.warned.add(key);
+    if (typeof console !== "undefined" && console.warn) console.warn(`[HUD_DUST_PILE] ${message}`, details || {});
+  }
+
+  function createDustPileMaskCanvas(image) {
+    if (typeof document === "undefined" || !image) return null;
+    const w = image.naturalWidth || DUST_PILE_NATIVE_W;
+    const h = image.naturalHeight || DUST_PILE_NATIVE_H;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(image, 0, 0, w, h);
+    try {
+      const data = ctx.getImageData(0, 0, w, h);
+      for (let i = 0; i < data.data.length; i += 4) {
+        const luminance = Math.round((data.data[i] * 0.2126) + (data.data[i + 1] * 0.7152) + (data.data[i + 2] * 0.0722));
+        data.data[i] = 255;
+        data.data[i + 1] = 255;
+        data.data[i + 2] = 255;
+        data.data[i + 3] = Math.round((data.data[i + 3] / 255) * luminance);
+      }
+      ctx.putImageData(data, 0, 0);
+      return canvas;
+    } catch (err) {
+      warnDustPileAsset("mask luminance conversion failed; using image alpha", { error: String(err?.message || err) });
+      return image;
+    }
+  }
+
+  function preloadDustPileAssets() {
+    if (dustPileAssetCache.started || typeof Image === "undefined") return dustPileAssetCache;
+    dustPileAssetCache.started = true;
+    const assetNames = [
+      DUST_PILE_ASSETS.empty,
+      DUST_PILE_ASSETS.RED,
+      DUST_PILE_ASSETS.YELLOW,
+      DUST_PILE_ASSETS.GREEN,
+      DUST_PILE_ASSETS.BLUE,
+      DUST_PILE_ASSETS.GREY,
+      ...DUST_PILE_THRESHOLDS.map((threshold) => `dust_pile_mask_${threshold}`),
+    ];
+    assetNames.forEach((assetName) => {
+      const image = new Image();
+      const entry = { assetName, image, loaded: false, failed: false, url: getPublicAssetUrl(`${DUST_PILE_ASSET_DIR}${assetName}.png`), maskCanvas: null };
+      dustPileAssetCache.byName[assetName] = entry;
+      image.onload = () => {
+        entry.loaded = true;
+        if (assetName.startsWith("dust_pile_mask_")) entry.maskCanvas = createDustPileMaskCanvas(image);
+      };
+      image.onerror = () => {
+        entry.failed = true;
+        warnDustPileAsset("asset failed to load; keeping procedural fallback", { asset: assetName, url: entry.url });
+      };
+      image.decoding = "async";
+      image.src = entry.url;
+    });
+    return dustPileAssetCache;
+  }
+
   const config = {
     offerXPad: 18,
     // UI: push card panel below top HUD (meteor rate slider/value)
@@ -1556,6 +1650,7 @@ const CardEngine = (() => {
       traceSeqHit("ignored", normalized, { reason: "invalid-world-or-color" });
       return { action: "ignored", snapshot: null };
     }
+    updateDustPileOnColorHit(World, normalized);
     const frame = Number(window.HC?.Session?.logger?.frame ?? -1);
     const hitSignature = `${normalized}:${frame}`;
     if (state.sequence.lastHitSignature === hitSignature) {
@@ -2792,6 +2887,131 @@ const CardEngine = (() => {
     ctx.restore();
   }
 
+
+  function ensureDustPileState(World) {
+    if (!World) return null;
+    if (!World.dustPile || typeof World.dustPile !== "object") {
+      World.dustPile = { activeType: "NONE", percent: 0 };
+    }
+    const pile = World.dustPile;
+    const activeType = String(pile.activeType || "NONE").toUpperCase();
+    pile.activeType = DUST_PILE_TYPES.includes(activeType) ? activeType : "NONE";
+    pile.percent = Math.max(0, Math.min(100, Math.floor(Number(pile.percent || 0))));
+    return pile;
+  }
+
+  function updateDustPileOnColorHit(World, colorKey) {
+    const type = DUST_PILE_COLOR_TO_TYPE[normalizePack01Color(colorKey)] || null;
+    const pile = ensureDustPileState(World);
+    if (!pile || !type) return;
+    if (pile.activeType === "NONE" || pile.percent <= 0) {
+      pile.activeType = type;
+    } else if (pile.activeType !== type && pile.activeType !== "GREY") {
+      pile.activeType = "GREY";
+    }
+    pile.percent = Math.max(0, Math.min(100, Math.floor(Number(pile.percent || 0)) + 10));
+  }
+
+  function floorDustPileMaskThreshold(percent) {
+    const safePercent = Math.max(0, Math.min(100, Math.floor(Number(percent || 0))));
+    if (safePercent >= 100) return 100;
+    return Math.floor(safePercent / 10) * 10;
+  }
+
+  function getDustPileRenderModel(World) {
+    preloadDustPileAssets();
+    const pile = ensureDustPileState(World);
+    const activeType = pile?.percent > 0 ? pile.activeType : "NONE";
+    const percent = Math.max(0, Math.min(100, Math.floor(Number(pile?.percent || 0))));
+    const threshold = floorDustPileMaskThreshold(percent);
+    const activeAsset = activeType !== "NONE" ? DUST_PILE_ASSETS[activeType] : null;
+    const maskAsset = activeAsset && threshold < 100 ? `dust_pile_mask_${threshold}` : null;
+    return {
+      activeType,
+      percent,
+      activeAsset,
+      maskAsset,
+      isGrey: activeType === "GREY",
+      isFull: percent >= 100,
+      usesMask: Boolean(activeAsset && maskAsset && threshold < 100),
+    };
+  }
+
+  function drawDustPileFallback(ctx, x, y, w, h, model) {
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = "rgba(34,30,26,0.78)";
+    ctx.beginPath();
+    ctx.ellipse(x + w * 0.5, y + h * 0.88, w * 0.44, h * 0.08, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (model.activeType !== "NONE" && model.percent > 0) {
+      const colors = { RED: "#d85b53", YELLOW: "#e4c75a", GREEN: "#70b96a", BLUE: "#5e91d8", GREY: "#8c8c8c" };
+      const fillH = h * 0.62 * (model.percent / 100);
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = colors[model.activeType] || "#ffffff";
+      ctx.beginPath();
+      ctx.ellipse(x + w * 0.5, y + h * 0.86 - fillH * 0.45, w * 0.34, Math.max(3, fillH * 0.5), 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function renderDustPileHud(ctx, screenW, screenH, layout) {
+    const World = state.world;
+    if (!World) return;
+    const model = getDustPileRenderModel(World);
+    World.dustPileEvidence = { ...model };
+    const scale = layout?.hudAssetScale || 0.5;
+    const w = Math.round(DUST_PILE_NATIVE_W * scale);
+    const h = Math.round(DUST_PILE_NATIVE_H * scale);
+    const x = Math.max(12, Math.floor((layout?.counterX || screenW - 22) - w - 36));
+    const y = Math.floor(layout?.y0 || 84);
+    const emptyEntry = dustPileAssetCache.byName[DUST_PILE_ASSETS.empty];
+    const activeEntry = model.activeAsset ? dustPileAssetCache.byName[model.activeAsset] : null;
+    const maskEntry = model.maskAsset ? dustPileAssetCache.byName[model.maskAsset] : null;
+
+    ctx.save();
+    if (emptyEntry?.loaded) ctx.drawImage(emptyEntry.image, x, y, w, h);
+    else drawDustPileFallback(ctx, x, y, w, h, { activeType: "NONE", percent: 0 });
+
+    if (model.activeType !== "NONE" && model.percent > 0 && activeEntry?.loaded) {
+      if (model.usesMask && maskEntry?.loaded) {
+        const offscreen = typeof document !== "undefined" ? document.createElement("canvas") : null;
+        if (offscreen) {
+          offscreen.width = DUST_PILE_NATIVE_W;
+          offscreen.height = DUST_PILE_NATIVE_H;
+          const offCtx = offscreen.getContext("2d");
+          if (offCtx) {
+            offCtx.drawImage(activeEntry.image, 0, 0, DUST_PILE_NATIVE_W, DUST_PILE_NATIVE_H);
+            offCtx.globalCompositeOperation = "destination-in";
+            offCtx.drawImage(maskEntry.maskCanvas || maskEntry.image, 0, 0, DUST_PILE_NATIVE_W, DUST_PILE_NATIVE_H);
+            ctx.drawImage(offscreen, x, y, w, h);
+          }
+        }
+      } else if (!model.usesMask) {
+        ctx.drawImage(activeEntry.image, x, y, w, h);
+      } else {
+        drawDustPileFallback(ctx, x, y, w, h, model);
+      }
+    } else if (model.activeType !== "NONE" && model.percent > 0) {
+      drawDustPileFallback(ctx, x, y, w, h, model);
+    }
+
+    if (model.percent >= 80 && !model.isGrey) {
+      // TODO(HUD dust sparks): 80% colored pile = future subtle sparks; 100% = stronger readiness. Grey pile = no colored sparks.
+      ctx.globalAlpha = model.isFull ? 0.95 : 0.45;
+      ctx.strokeStyle = model.isFull ? "rgba(255,238,170,0.9)" : "rgba(255,238,170,0.45)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+    }
+    ctx.globalAlpha = 0.88;
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(`${model.percent}%`, x + w / 2, y + h + 10);
+    ctx.restore();
+  }
+
   function renderPack01Collection(ctx, screenW, screenH) {
     const World = state.world;
     if (!World) return;
@@ -2815,6 +3035,7 @@ const CardEngine = (() => {
     const x = Math.floor(screenW - pad - rectW);
     const y0 = Math.floor(Math.max(pad + 6, hudTopSafeY));
     const frameH = rectH * order.length + gap * (order.length - 1) + 10;
+    renderDustPileHud(ctx, screenW, screenH, { hudAssetScale, counterX: x, y0 });
     // TODO(FrameComposer): replace this simple HUD fallback frame with modular static frame parts.
     drawManifestSvg(ctx, "hud.frame.color_counter_axis_01", x - 16, y0 - 6, 44, frameH, 0.95);
     const nowTime = nowMs();
@@ -6010,6 +6231,8 @@ const CardEngine = (() => {
     resetCardPool,
     applyDebugCardPreset,
     onCardCollected,
+    preloadDustPileAssets,
+    getDustPileRenderModel,
 
     // Narrow bridge for the DOM SUB-META layer. Stage-one placeholder assignment
     // is exposed explicitly; crafting and legacy cost-based mutations remain private.
@@ -6042,6 +6265,11 @@ if (typeof window !== "undefined") {
   window.HC = window.HC || {};
   if (!window.HC.seqSim) window.HC.seqSim = CardEngine.seqSim || null;
   if (!window.HC.seqSimTests) window.HC.seqSimTests = CardEngine.seqSimTests || null;
+  window.HC.DustPileHud = window.HC.DustPileHud || {
+    preload: CardEngine.preloadDustPileAssets,
+    getRenderModel: CardEngine.getDustPileRenderModel,
+  };
+  CardEngine.preloadDustPileAssets?.();
   window.HC_SEQ_PROBE = window.HC_SEQ_PROBE || {};
   window.HC_SEQ_PROBE.simAAA = CardEngine.seqProbeSimAAA || null;
 }
