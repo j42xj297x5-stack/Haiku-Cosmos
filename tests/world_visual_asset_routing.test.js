@@ -44,8 +44,13 @@ const planetRotationFields = [
 ];
 for (const planet of [rockyPlanet, gasPlanet]) {
   assert.equal(planet.visualKind, "planet");
-  assert.equal(planet.visualVariant, "planet_01");
-  assert.equal(planet.assetId, "planet_01.glb");
+  if (planet.planetKind === "rocky") {
+    assert.match(planet.visualVariant, /^rocky_planet_0[1-4]$/);
+    assert.match(planet.assetId, /^rocky_planet_0[1-4]\.glb$/);
+  } else {
+    assert.equal(planet.visualVariant, "planet_01");
+    assert.equal(planet.assetId, "planet_01.glb");
+  }
   assert.equal(context.window.HC.WorldRenderer.isPlanetVisualCandidate(planet), true);
   for (const field of planetRotationFields) assert.equal(Number.isFinite(planet[field]), true, `${field} must be finite`);
   assert.ok(Math.abs(planet.visualRotationSpeedY) >= 0.03 && Math.abs(planet.visualRotationSpeedY) <= 0.12);
@@ -70,8 +75,10 @@ assert.equal(snapshot.world.asteroids[0].visualVariant, "asteroid_02");
 assert.equal(snapshot.world.asteroids[0].assetId, "asteroid_02.glb");
 assert.equal(snapshot.world.planets.length, 2, "snapshot must retain rocky and gas planets");
 assert.deepEqual(Array.from(snapshot.world.planets, (planet) => planet.planetKind), ["rocky", "gas"]);
-assert.deepEqual(Array.from(snapshot.world.planets, (planet) => planet.visualVariant), ["planet_01", "planet_01"]);
-assert.deepEqual(Array.from(snapshot.world.planets, (planet) => planet.assetId), ["planet_01.glb", "planet_01.glb"]);
+assert.match(snapshot.world.planets[0].visualVariant, /^rocky_planet_0[1-4]$/);
+assert.match(snapshot.world.planets[0].assetId, /^rocky_planet_0[1-4]\.glb$/);
+assert.equal(snapshot.world.planets[1].visualVariant, "planet_01");
+assert.equal(snapshot.world.planets[1].assetId, "planet_01.glb");
 for (let index = 0; index < snapshot.world.planets.length; index += 1) {
   for (const field of planetRotationFields) {
     assert.equal(snapshot.world.planets[index][field], [rockyPlanet, gasPlanet][index][field], `snapshot must preserve ${field}`);

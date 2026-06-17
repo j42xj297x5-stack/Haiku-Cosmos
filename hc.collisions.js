@@ -54,7 +54,10 @@
           if (dist2 <= minDist * minDist) {
 
             if (a.colorName === b.colorName) {
-              Events.emit("METEOR_SAME_COLOR_COLLISION", { color: a.colorName });
+              const harmonicDust = window.HC?.HarmonicDust?.createOrMergeFromMeteorCollision
+                ? window.HC.HarmonicDust.createOrMergeFromMeteorCollision(a, b, nowMs)
+                : null;
+              Events.emit("METEOR_SAME_COLOR_COLLISION", { color: a.colorName, harmonicDustId: harmonicDust?.id || null });
               notifyHitColor(a.colorName, {
                 sourceObject: "meteor_collision",
                 meteorAColor: a.colorName,

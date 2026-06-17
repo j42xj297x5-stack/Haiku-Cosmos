@@ -788,6 +788,7 @@
           dustCloudsCount: Array.isArray(World?.dustClouds) ? World.dustClouds.length : 0,
           dustParticlesCount: Array.isArray(World?.dustParticles) ? World.dustParticles.length : 0,
           impactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.length : 0,
+          harmonicDustCount: Array.isArray(World?.harmonicDust) ? World.harmonicDust.length : 0,
         },
         rp: Math.max(0, Math.floor(Number(World?.score || 0))),
         activeSequence: sequence ? {
@@ -825,6 +826,7 @@
           dustCloudsCount: Array.isArray(World.dustClouds) ? World.dustClouds.length : 0,
           dustParticlesCount: Array.isArray(World.dustParticles) ? World.dustParticles.length : 0,
           impactFragmentsCount: Array.isArray(World.impactFragments) ? World.impactFragments.length : 0,
+          harmonicDustCount: Array.isArray(World.harmonicDust) ? World.harmonicDust.length : 0,
         },
         sequence: sequence ? {
           active: Boolean(sequence.active),

@@ -94,6 +94,15 @@
       absorbedMeteorCount: toNumber(body.absorbedMeteorCount, undefined),
       growthLevel: toNumber(body.growthLevel, undefined),
       mass: toNumber(body.mass, undefined),
+      density: toNumber(body.density, undefined),
+      dustKind: body.dustKind || null,
+      collectible: body.collectible === true,
+      isCosmicGrayDust: body.isCosmicGrayDust === true,
+      collectProgressMs: toNumber(body.collectProgressMs, undefined),
+      collectRequiredMs: toNumber(body.collectRequiredMs, undefined),
+      collectDecayMs: toNumber(body.collectDecayMs, undefined),
+      lastMergedAt: toNumber(body.lastMergedAt, undefined),
+      age: toNumber(body.age, undefined),
       baseR: toNumber(body.baseR, toNumber(body.massOneRadius, undefined)),
       sourceColors: Array.isArray(body.sourceColors) ? body.sourceColors.slice() : undefined,
       collapseVisualScale: toNumber(body.collapseVisualScale, undefined),
@@ -178,6 +187,7 @@
         dustClouds: mapCollection(World.dustClouds, "dustCloud"),
         dustParticles: mapCollection(World.dustParticles, "dustParticle"),
         impactFragments: mapCollection(World.impactFragments, "impactFragment"),
+        harmonicDust: mapCollection(World.harmonicDust, "harmonic_dust"),
         stars: mapCollection(World.stars, "star"),
         prg: World.prg || null,
         background: World.background || null,
@@ -201,8 +211,18 @@
           dustClouds: pickArray(World.dustClouds).length,
           dustParticles: pickArray(World.dustParticles).length,
           impactFragments: pickArray(World.impactFragments).length,
+          harmonicDust: pickArray(World.harmonicDust).length,
           stars: pickArray(World.stars).length,
         },
+        harmonicDustCount: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead).length,
+        collectibleDustCount: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead && dust.collectible === true).length,
+        harmonicDustMassByColor: pickArray(World.harmonicDust).reduce((acc, dust) => {
+          if (!dust || dust._dead) return acc;
+          const key = String(dust.colorName || "UNKNOWN").toUpperCase();
+          acc[key] = (acc[key] || 0) + (Number.isFinite(Number(dust.mass)) ? Number(dust.mass) : 0);
+          return acc;
+        }, {}),
+        harmonicDustCollected: Object.assign({}, World.harmonicDustCollected || {}),
         cameraAvailability: {
           hasCamera: !!opts.Camera,
           hasView: !!opts.View,
