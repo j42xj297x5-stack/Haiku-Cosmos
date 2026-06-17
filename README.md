@@ -6,7 +6,7 @@ Haiku Cosmos to kontemplacyjna gra-system, w której decyzje gracza wpływają n
 
 ## Mapa wejściowa repozytorium
 
-- Kod gry (runtime): pliki `game*.js`, `hc.*.js`, `cards.js`, `index.codex.html`.
+- Kod gry (runtime): pliki `game*.js`, `hc.*.js`, `cards.js`, `index.html`.
 - Dokumentacja projektowa: katalog [`docs/`](docs/README.md).
 - Logi uruchomień: katalog [`logs/`](logs/README.md).
 

@@ -4,11 +4,9 @@ const assert = require("assert");
 const ui = fs.readFileSync("hc.ui_debug.js", "utf8");
 const loader = fs.readFileSync("hc.asset_loader.js", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
-const codexHtml = fs.readFileSync("index.codex.html", "utf8");
 
 for (const id of ["playerAliasInput", "loaderProgressLabel", "startStatus", "startSaveFileInput", "btnStartNormal", "btnLoadSave", "btnStartDebug"]) {
   assert(html.includes(`id="${id}"`), `index.html missing ${id}`);
-  assert(codexHtml.includes(`id="${id}"`), `index.codex.html missing ${id}`);
 }
 
 assert(ui.includes("btnStartNormal.addEventListener"), "new game click handler is missing");

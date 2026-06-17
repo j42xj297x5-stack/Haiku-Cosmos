@@ -44,10 +44,10 @@
 ## 1. Globalny model RUN (init → update → render → reset)
 
 ### 1.1 Inicjalizacja świata (RUN start)
-**Źródła:** `index.codex.html`, `game.boot.js`
+**Źródła:** `index.html`, `game.boot.js`
 
-1) Ładowanie skryptów (kolejność w `index.codex.html`):
-- `cards.js` → `hc.hud_v2.js` → `hc.core.js` → `hc.util.js` → `hc.world.js` → `hc.view_input.js` → `hc.camera.js` → `hc.comets.js` → `hc.meteors.js` → `hc.render.js` → `hc.collisions.js` → `hc.asteroids.js` → `hc.planets.js` → `hc.stars_epoch.js` → `hc.ui_debug.js` → `game.boot.js`.
+1) Ładowanie skryptów (kolejność w `index.html`):
+- `hc.public_path.js` → `hc.card_assets.js` → `hc.asset_loader.js` → `hc.save_system.js` → `hc.submeta_settings.js` → `hc.debug.js` → `hc.visual_assets.js` → `hc.frame_composer.js` → `hc.card_visuals.js` → `hc.submeta_layout.js` → `hc.submeta_png.js` → `hc.submeta_placeholders.js` → `hc.submeta_panels.js` → `hc.prg_frame_probe.js` → `cards.js` → `hc.hud_v2.js` → `hc.hud_top_layout.js` → `hc.core.js` → `hc.util.js` → `hc.world.js` → `hc.view_input.js` → `hc.camera.js` → `hc.comets.js` → `hc.meteors.js` → `hc.render.js` → `hc.collisions.js` → `hc.asteroids.js` → `hc.planets.js` → `hc.stars_epoch.js` → `hc.world_render_snapshot.js` → `hc.three_module_bridge.js` → `hc.world_renderer.js` → `hc.ui_debug.js` → `game.boot.js`.
 
 2) Boot (IIFE w `game.boot.js`):
 - Tworzy `canvas/ctx`, `View`, `Input`, `Camera` oraz helpery globalne (`rand`, `clamp`, `screenToWorld`, `getWorldViewBounds`, itp.).

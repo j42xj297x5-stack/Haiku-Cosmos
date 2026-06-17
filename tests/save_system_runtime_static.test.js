@@ -3,7 +3,7 @@ const path = require("path");
 const assert = require("assert");
 
 const repoRoot = process.cwd();
-const codexHtml = fs.readFileSync(path.join(repoRoot, "index.codex.html"), "utf8");
+const html = fs.readFileSync(path.join(repoRoot, "index.html"), "utf8");
 const uiDebug = fs.readFileSync(path.join(repoRoot, "hc.ui_debug.js"), "utf8");
 const legacyRuntimeFiles = fs.readFileSync(path.join(repoRoot, "scripts", "legacy-runtime-files.mjs"), "utf8");
 
@@ -11,9 +11,9 @@ function scriptSrcs(html) {
   return [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/g)].map((match) => match[1]);
 }
 
-const srcs = scriptSrcs(codexHtml);
+const srcs = scriptSrcs(html);
 const saveSrc = srcs.find((src) => src.includes("hc.save_system.js"));
-assert(saveSrc, "index.codex.html must load hc.save_system.js");
+assert(saveSrc, "index.html must load hc.save_system.js");
 assert(!saveSrc.includes("/Haiku-Cosmos/"), "hc.save_system.js script src must not hardcode /Haiku-Cosmos/");
 
 const runtimePath = saveSrc.replace(/^%BASE_URL%/, "").replace(/^\.\//, "");
@@ -25,7 +25,7 @@ const assetLoaderIndex = srcs.findIndex((src) => src.includes("hc.asset_loader.j
 const saveIndex = srcs.findIndex((src) => src.includes("hc.save_system.js"));
 const uiIndex = srcs.findIndex((src) => src.includes("hc.ui_debug.js"));
 const bootIndex = srcs.findIndex((src) => src.includes("game.boot.js"));
-assert(assetLoaderIndex !== -1, "index.codex.html must load hc.asset_loader.js before start overlay code");
+assert(assetLoaderIndex !== -1, "index.html must load hc.asset_loader.js before start overlay code");
 assert(assetLoaderIndex < saveIndex, "hc.asset_loader.js should load before hc.save_system.js");
 assert(saveIndex < uiIndex, "hc.save_system.js must load before hc.ui_debug.js");
 assert(uiIndex < bootIndex, "hc.ui_debug.js must load before game.boot.js");

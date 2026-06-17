@@ -30,7 +30,7 @@ Mechanika pozostaje source-of-truth. Renderer otrzymuje dane i rysuje ich aktual
 
 Obecny loop runtime (stan na 2026-05-17):
 
-1. **Init/boot** (`index.codex.html` + `game.boot.js`):
+1. **Init/boot** (`index.html` + `game.boot.js`):
    - ładowanie modułów,
    - init `View/Input/Camera/World`,
    - bind `CardEngine` do `World`,
@@ -301,7 +301,7 @@ Ryzyka adresowane przez strategię:
 - kontrola wersjonowania i reprodukowalność,
 - cache invalidation i deterministyczność build/run,
 - różnice środowiskowe (lokalnie/CI/hosting),
-- kolejność ładowania skryptów w `index.codex.html` (szczególnie przy bootstrapie adaptera).
+- kolejność ładowania skryptów w `index.html` (szczególnie przy bootstrapie adaptera).
 
 ### 9.7. Canvas/layer strategy
 Decyzja dla Etapu 1/2:
@@ -476,7 +476,7 @@ Status na **2026-05-17**: sanity pass warstwy renderera został wykonany bez wej
 
 Status na **2026-05-17**: Etap 2.75 został wykonany jako repo-controlled integration point dla Three.js dependency, bez gameplay render pass w Three.js.
 
-- **Wybrany model delivery:** projekt działa jako runtime oparty o static HTML + script tags (bez bundlera i bez `package.json`), więc użyto lokalnego punktu podpięcia vendora: `./vendor/three/three.module.min.js` w `index.codex.html`.
+- **Wybrany model delivery:** projekt działa jako runtime oparty o static HTML + script tags (bez bundlera i z Vite/`package.json`), więc użyto lokalnego punktu podpięcia vendora: `./vendor/three/three.module.min.js` w `index.html`.
 - **Ładowanie dependency:** script vendora jest ładowany przed `hc.world_renderer.js`, a następnie ładowany jest mały marker `hc.three_vendor_marker.js` ustawiający `window.HC_THREE_SOURCE = "local_vendor"` jeśli `window.THREE` istnieje.
 - **Diagnostyka source:** `HC.WorldRenderer` raportuje `threeDependencySource = "local_vendor"` gdy wykryje marker; bez markera i z obecnym `window.THREE` raportuje `"window.THREE"`; przy braku dependency raportuje `"missing"`.
 - **CDN policy:** CDN nie jest używany jako production source-of-truth w runtime. Repo utrzymuje lokalny, jawny punkt podpięcia zależności.
@@ -509,7 +509,7 @@ Jeśli `./vendor/three/three.module.min.js` nie jest jeszcze fizycznie dostarczo
 ### Smoke QA (cache / browser)
 
 1. Uruchom lokalny serwer z root repo (np. `python -m http.server 8123`).
-2. Otwórz `http://localhost:8123/index.codex.html`.
+2. Otwórz `http://localhost:8123/index.html`.
 3. W DevTools ustaw **Network → Disable cache**.
 4. Wykonaj twarde odświeżenie (`Ctrl+F5`).
 5. Sprawdź bezpośrednio URL vendora: `http://localhost:8123/vendor/three/three.module.min.js`.
