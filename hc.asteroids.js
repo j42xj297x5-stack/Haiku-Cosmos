@@ -23,6 +23,7 @@
     rocky_planet_04: "rocky_planet_04.glb",
   });
   const PLANET_VISUAL_ROTATION_TWO_PI = Math.PI * 2;
+  const MOON_ASSET_ID = "moon_01.glb";
 
   function planetRotationUnit(seed, offset) {
     const value = Math.sin((seed + offset) * 43758.5453123) * 143758.5453;
@@ -56,9 +57,19 @@
     return ROCKY_PLANET_ASSET_IDS[variant] ? variant : null;
   }
 
+  function stableUnitFromString(value) {
+    const text = String(value || "");
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i += 1) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return ((hash >>> 0) % 1000000) / 1000000;
+  }
+
   function assignPlanetVisual(body, randomValue) {
     if (!body || typeof body !== "object") return body;
-    const roll = Number.isFinite(randomValue) ? randomValue : Math.random();
+    const roll = Number.isFinite(randomValue) ? randomValue : (body.sourceMoonId ? stableUnitFromString(body.sourceMoonId) : Math.random());
     const rockyVariant = normalizeRockyPlanetVariant(body.visualVariant || body.assetId);
     const shouldUseRockyPool = isRockyPlanet(body);
     const visualVariant = shouldUseRockyPool
@@ -90,6 +101,7 @@
     planetAssetId: PLANET_BASE_ASSET_ID,
     rockyPlanetVariants: ROCKY_PLANET_VISUAL_VARIANTS,
     rockyPlanetAssetIds: ROCKY_PLANET_ASSET_IDS,
+    moonAssetId: MOON_ASSET_ID,
     assignAsteroidVisual,
     assignPlanetVisual,
   });
@@ -223,6 +235,10 @@
         age: 0,
         orbitState: null,
         sourceAsteroidId: a._id || a.id || null,
+        asset: MOON_ASSET_ID,
+        assetId: MOON_ASSET_ID,
+        visualKind: "moon",
+        visualVariant: "moon_01",
         sourceColors: Array.isArray(a.sourceColors) ? a.sourceColors.slice() : [],
       };
       return moon;
@@ -644,12 +660,163 @@
       }
     }
 
+
+    function ensureMoonProgressionMechanics() {
+      World.spaceMechanics = World.spaceMechanics || {};
+      const rawThreshold = Number(World.spaceMechanics.moonToRockyPlanetMassThreshold);
+      if (!Number.isFinite(rawThreshold) || rawThreshold <= 0) World.spaceMechanics.moonToRockyPlanetMassThreshold = 34;
+      if (World.spaceMechanics.moonToRockyPlanetEnabled !== false) World.spaceMechanics.moonToRockyPlanetEnabled = true;
+      return World.spaceMechanics;
+    }
+
+    function isMoonToRockyPlanetEnabled() {
+      return ensureMoonProgressionMechanics().moonToRockyPlanetEnabled !== false;
+    }
+
+    function moonToRockyPlanetMassThreshold() {
+      const target = Number(ensureMoonProgressionMechanics().moonToRockyPlanetMassThreshold);
+      return Number.isFinite(target) && target > 0 ? target : 34;
+    }
+
+    function moonMassValue(moon) {
+      if (SpaceBodies?.getBodyMass) return SpaceBodies.getBodyMass(moon);
+      const mass = Number(moon && moon.mass);
+      return Number.isFinite(mass) && mass > 0 ? mass : 1;
+    }
+
+    function updateMoonRadius(moon) {
+      const nextR = SpaceBodies?.radiusFromMass?.("moon", moon.mass, {
+        baseRadius: Number(moon.massOneRadius || moon.baseR) || 1,
+        minRadius: Number(moon.minR) || 0.1,
+        maxRadius: Number(moon.maxR) || Infinity,
+      });
+      if (Number.isFinite(nextR) && nextR > 0) {
+        moon.r = nextR;
+        moon.radius = nextR;
+      }
+    }
+
+    function isAbsorbableByMoon(body) {
+      if (!body || body._dead || body.absorbingIntoStarId) return false;
+      if (body.parentKind === "planet" || body.parentRef || Number.isFinite(Number(body.orbitR)) || body.orbitState) return false;
+      return true;
+    }
+
+    function createRockyPlanetFromMoon(moon, reason) {
+      const mass = moonMassValue(moon);
+      const radius = SpaceBodies?.radiusFromMass?.("planet", mass, { baseRadius: Number(moon.massOneRadius || moon.baseR) || 1, minRadius: Number(moon.r) || 1 }) || Number(moon.r) || 1;
+      const planet = {
+        id: `rocky_planet:${moon.id || Date.now()}:${World.planets.length + 1}`,
+        type: "planet",
+        kind: "planet",
+        planetKind: "rocky",
+        isRocky: true,
+        isGas: false,
+        source: "moon_mass_threshold",
+        sourceMoonId: moon.id || moon._id || null,
+        transformReason: reason || "moon_mass_threshold",
+        x: Number(moon.x) || 0,
+        y: Number(moon.y) || 0,
+        vx: 0,
+        vy: 0,
+        mass,
+        r: radius,
+        radius,
+        fixedR: radius,
+        lockRadius: true,
+        stationary: true,
+        orbiters: [],
+        rings: [],
+        createdAt: World.nowMs ?? ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()),
+        age: 0,
+      };
+      window.HC?.WorldVisualAssets?.assignPlanetVisual?.(planet);
+      planet.asset = planet.assetId;
+      return planet;
+    }
+
+    function transformMoonToRockyPlanet(moon, reason) {
+      if (!moon || moon.__transformationInProgress) return null;
+      moon.__transformationInProgress = true;
+      const planet = createRockyPlanetFromMoon(moon, reason);
+      World.planets = Array.isArray(World.planets) ? World.planets : [];
+      World.planets.push(planet);
+      moon._dead = true;
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_TRANSFORMED, {
+        event: "MOON_TO_ROCKY_PLANET_CREATED",
+        fromType: "moon",
+        toType: "planet",
+        planetKind: "rocky",
+        moonId: moon.id || moon._id || null,
+        planetId: planet.id,
+        source: "moon_mass_threshold",
+        sourceMoonId: planet.sourceMoonId,
+        mass: planet.mass,
+        radius: planet.r,
+        asset: planet.asset,
+      }, { snapshot: true, source: reason || "Asteroids.transformMoonToRockyPlanet" });
+      Events.emit("MOON_TO_ROCKY_PLANET_CREATED", { planet, moon, source: "moon_mass_threshold" });
+      return planet;
+    }
+
+    function checkMoonRockyPlanetThreshold(moon, source) {
+      if (!isMoonToRockyPlanetEnabled() || moon?._dead) return null;
+      const target = moonToRockyPlanetMassThreshold();
+      if (moonMassValue(moon) >= target) return transformMoonToRockyPlanet(moon, source || "moon_mass_threshold");
+      return null;
+    }
+
+    function absorbBodyIntoMoon(moon, body, source) {
+      moon.mass = moonMassValue(moon) + (SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(body) : (Number(body.mass) || massFromR(Number(body.r) || 1)));
+      updateMoonRadius(moon);
+      body._dead = true;
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, {
+        sourceType: "moon",
+        sourceId: moon.id || moon._id || null,
+        absorbedType: body.kind || body.type || source,
+        absorbedId: body.id || body._id || null,
+        current: moon.mass,
+        target: moonToRockyPlanetMassThreshold(),
+        thresholdType: "moon_to_rocky_planet_mass",
+      }, { source: "Asteroids.absorbBodyIntoMoon" });
+      checkMoonRockyPlanetThreshold(moon, "moon_absorb_contact");
+    }
+
+    function resolveMoonDirectAbsorptions() {
+      ensureMoonProgressionMechanics();
+      if (!Array.isArray(World.moons) || !World.moons.length) return;
+      const isImpact = SpaceBodies?.isDirectImpact || ((a, b) => {
+        const dx = (Number(b.x) || 0) - (Number(a.x) || 0);
+        const dy = (Number(b.y) || 0) - (Number(a.y) || 0);
+        const r = (Number(a.r) || 1) + (Number(b.r) || 1);
+        return dx * dx + dy * dy <= r * r;
+      });
+      for (const moon of World.moons) {
+        if (!moon || moon._dead) continue;
+        checkMoonRockyPlanetThreshold(moon, "moon_update_threshold");
+        if (moon._dead) continue;
+        for (const m of (Array.isArray(World.meteors) ? World.meteors : [])) {
+          if (isAbsorbableByMoon(m) && isImpact(moon, m)) absorbBodyIntoMoon(moon, m, "meteor");
+          if (moon._dead) break;
+        }
+        if (moon._dead) continue;
+        for (const a of (Array.isArray(World.asteroids) ? World.asteroids : [])) {
+          if (isAbsorbableByMoon(a) && isImpact(moon, a)) absorbBodyIntoMoon(moon, a, "asteroid");
+          if (moon._dead) break;
+        }
+      }
+    }
+
     function updateMoons(dt) {
       if (!Array.isArray(World.moons)) return;
       for (const moon of World.moons) {
         moon.age = (Number(moon.age) || 0) + dt;
         moon.x += (Number(moon.vx) || 0) * dt;
         moon.y += (Number(moon.vy) || 0) * dt;
+      }
+      resolveMoonDirectAbsorptions();
+      for (let i = World.moons.length - 1; i >= 0; i--) {
+        if (World.moons[i]._dead) World.moons.splice(i, 1);
       }
     }
 
@@ -707,6 +874,8 @@
       },
       createMoonFromAsteroid,
       transformAsteroidToMoon,
+      transformMoonToRockyPlanet,
+      resolveMoonDirectAbsorptions,
     };
 
     return window.HC.Asteroids;

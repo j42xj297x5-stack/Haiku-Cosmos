@@ -72,7 +72,10 @@
       colorKey: body.colorKey || body.colorName || body.dominantKey || null,
       visualKind: body.visualKind || (isPlanet ? PLANET_BASE_VISUAL.visualKind : null),
       visualVariant: body.visualVariant || (isPlanet ? (planetKind === "rocky" ? ROCKY_PLANET_BASE_VISUAL.visualVariant : PLANET_BASE_VISUAL.visualVariant) : null),
-      assetId: body.assetId || (isPlanet ? (planetKind === "rocky" ? ROCKY_PLANET_BASE_VISUAL.assetId : PLANET_BASE_VISUAL.assetId) : null),
+      assetId: body.assetId || body.asset || (isPlanet ? (planetKind === "rocky" ? ROCKY_PLANET_BASE_VISUAL.assetId : PLANET_BASE_VISUAL.assetId) : null),
+      asset: body.asset || body.assetId || (isPlanet ? (planetKind === "rocky" ? ROCKY_PLANET_BASE_VISUAL.assetId : PLANET_BASE_VISUAL.assetId) : null),
+      source: body.source || null,
+      sourceMoonId: body.sourceMoonId || null,
       visualRotationSeed: isPlanet ? toNumber(body.visualRotationSeed, undefined) : undefined,
       visualRotationX: isPlanet ? toNumber(body.visualRotationX, undefined) : undefined,
       visualRotationY: isPlanet ? toNumber(body.visualRotationY, undefined) : undefined,
@@ -119,7 +122,7 @@
     const src = pickArray(items);
     for (let i = 0; i < src.length; i += 1) {
       const mapped = mapBody(src[i], kind, i);
-      if (mapped) result.push(mapped);
+      if (mapped && !mapped.flags?.dead) result.push(mapped);
     }
     return result;
   }

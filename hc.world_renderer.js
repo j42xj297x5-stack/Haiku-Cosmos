@@ -23,6 +23,8 @@
   });
   const PLANET_GLB_DEFAULT_VARIANT = "planet_01";
   const ROCKY_PLANET_GLB_DEFAULT_VARIANT = "rocky_planet_01";
+  const MOON_GLB_ASSETS = Object.freeze({ moon_01: "glb/moon_01.glb" });
+  const MOON_GLB_DEFAULT_VARIANT = "moon_01";
   const ASTEROID_GLB_RADIUS_SCALE = 0.82;
   const ASTEROID_GLB_DEPTH_SCALE = 1.0;
   const THREE_DEBUG_MARKER_ENABLED = true;
@@ -212,6 +214,7 @@
     meteorGroup: null,
     asteroidGroup: null,
     planetGroup: null,
+    moonGroup: null,
     lightsGroup: null,
     ambientLight: null,
     debugKeyLight: null,
@@ -247,8 +250,11 @@
     asteroidGlbWarnings: new Set(),
     planetGlbCache: new Map(),
     planetMeshes: new Map(),
+    moonMeshes: new Map(),
     planetGeometry: null,
     planetGroupChildrenCount: 0,
+    moonGroupChildrenCount: 0,
+    threeMoonCount: 0,
     planetGlbInstanceCreates: 0,
     threePlanetCount: 0,
     threeRockyPlanetCount: 0,
@@ -2331,6 +2337,15 @@
     return resolvePublicAssetPath(getPlanetGlbAssetPath(planet));
   }
 
+  function normalizeMoonVisualVariant(moon) {
+    const requested = String(moon?.visualVariant || moon?.assetId || moon?.asset || "").replace(/\.glb$/i, "");
+    return MOON_GLB_ASSETS[requested] ? requested : MOON_GLB_DEFAULT_VARIANT;
+  }
+
+  function getMoonGlbAssetPath(moon) {
+    return MOON_GLB_ASSETS[normalizeMoonVisualVariant(moon)];
+  }
+
   function getAsteroidGlbCacheStats() {
     const stats = { loading: 0, ready: 0, failed: 0, total: threeState.asteroidGlbCache.size };
     for (const entry of threeState.asteroidGlbCache.values()) {
@@ -4201,16 +4216,18 @@
       const meteorGroup = new THREE.Group();
       const asteroidGroup = new THREE.Group();
       const planetGroup = new THREE.Group();
+      const moonGroup = new THREE.Group();
       const lightsGroup = createThreeLights(THREE);
       scene.add(lightsGroup);
       if (threeState.mainStageSpotTarget) scene.add(threeState.mainStageSpotTarget);
       scene.add(planetGroup);
+      scene.add(moonGroup);
       scene.add(asteroidGroup);
       scene.add(meteorGroup);
       scene.background = new THREE.Color(0x05070a);
       canvas.style.display = "block";
       canvas.style.visibility = "visible";
-      Object.assign(threeState, { canvas, renderer, scene, camera, orthographicCamera, perspectiveCamera, meteorGroup, asteroidGroup, planetGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16), planetGeometry: new THREE.CircleGeometry(1, 32) });
+      Object.assign(threeState, { canvas, renderer, scene, camera, orthographicCamera, perspectiveCamera, meteorGroup, asteroidGroup, planetGroup, moonGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16), planetGeometry: new THREE.CircleGeometry(1, 32) });
       applyRendererPbrSettings();
       syncThreeLights();
       createDebugMarker(THREE);
@@ -4473,6 +4490,12 @@
     threeState.asteroidGlbCacheStats = getAsteroidGlbCacheStats();
   }
 
+  function getStableMoonSnapshotKey(moon, index) {
+    const key = moon?.renderKey || moon?.id || moon?._id || null;
+    if (key != null && key !== "") return `moon:${key}`;
+    return `moon:${index}:${Math.round(Number(moon?.x) || 0)}:${Math.round(Number(moon?.y) || 0)}`;
+  }
+
   function getStablePlanetSnapshotKey(planet, index) {
     const key = planet?.renderKey || planet?.id || planet?._id || null;
     if (key != null && key !== "") return `planet:${key}`;
@@ -4572,6 +4595,116 @@
     return true;
   }
 
+
+  function createMoonVisual(THREE, moon, key) {
+    const root = new THREE.Group();
+    const assetPath = getMoonGlbAssetPath(moon);
+    const assetUrl = resolvePublicAssetPath(assetPath);
+    root.userData.hcObjectType = "moon";
+    root.userData.moonKey = key;
+    root.userData.glbAssetUrl = assetUrl;
+    root.frustumCulled = false;
+    const fallbackMaterial = new THREE.MeshStandardMaterial({
+      color: 0xa8abb2,
+      roughness: 0.9,
+      metalness: 0.02,
+      envMapIntensity: getThreeMaterialSettings().envIntensity,
+      transparent: true,
+      opacity: 1,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const fallback = new THREE.Mesh(threeState.planetGeometry, fallbackMaterial);
+    fallback.frustumCulled = false;
+    fallback.renderOrder = 850;
+    root.add(fallback);
+    return { root, fallback, glb: null, key, assetPath, assetUrl, visualVariant: normalizeMoonVisualVariant(moon), glbStatus: "assigned", moon };
+  }
+
+  function removeMoonVisual(entry) {
+    threeState.moonGroup?.remove(entry?.root || entry);
+    disposePlanetVisual(entry);
+  }
+
+  function updateMoonGlbVisual(THREE, entry) {
+    const cacheEntry = loadGlbWithGltfLoader(THREE, entry.assetPath, "moon");
+    if (cacheEntry.status === "failed") {
+      entry.glbStatus = "failed";
+      entry.root.userData.glbStatus = entry.glbStatus;
+      entry.fallback.visible = true;
+      if (entry.glb) entry.glb.visible = false;
+      return false;
+    }
+    if (cacheEntry.status !== "ready" || !cacheEntry.template) {
+      entry.glbStatus = "loading";
+      entry.root.userData.glbStatus = entry.glbStatus;
+      entry.fallback.visible = true;
+      return false;
+    }
+    if (!entry.glb) {
+      entry.glb = cloneAsteroidGlbTemplate(cacheEntry.template);
+      entry.glb.userData.hcAssetUrl = entry.assetUrl;
+      entry.glb.userData.hcObjectType = "moon";
+      entry.glb.traverse?.((object) => { if (object.isMesh) object.renderOrder = 850; });
+      applyDebugMaterialMode(THREE, entry.glb);
+      entry.root.add(entry.glb);
+    }
+    entry.glbStatus = "ready_pending_validation";
+    entry.root.userData.glbStatus = entry.glbStatus;
+    entry.fallback.visible = true;
+    entry.glb.visible = false;
+    return true;
+  }
+
+  function syncMoonPass(renderSnapshot, nowMs) {
+    const THREE = window.HC_THREE || window.THREE;
+    const moons = Array.isArray(renderSnapshot?.world?.moons) ? renderSnapshot.world.moons : [];
+    threeState.threeMoonCount = moons.length;
+    const seen = new Set();
+    for (let i = 0; i < moons.length; i += 1) {
+      const moon = moons[i] || {};
+      const key = getStableMoonSnapshotKey(moon, i);
+      seen.add(key);
+      let visual = threeState.moonMeshes.get(key);
+      if (!visual) {
+        visual = createMoonVisual(THREE, moon, key);
+        threeState.moonGroup.add(visual.root);
+        threeState.moonMeshes.set(key, visual);
+      }
+      visual.moon = moon;
+      const desiredAssetPath = getMoonGlbAssetPath(moon);
+      const desiredAssetUrl = resolvePublicAssetPath(desiredAssetPath);
+      if (visual.assetUrl !== desiredAssetUrl) {
+        disposePlanetGlbInstance(visual);
+        visual.assetPath = desiredAssetPath;
+        visual.assetUrl = desiredAssetUrl;
+        visual.visualVariant = normalizeMoonVisualVariant(moon);
+        visual.root.userData.glbAssetUrl = desiredAssetUrl;
+        visual.glbStatus = "assigned";
+      }
+      const renderRadius = applyRenderSpaceToRadius(Math.max(1, Number(moon.radius ?? moon.r ?? moon.scale) || 1));
+      const renderPosition = applyRenderSpaceToVector(Number(moon.x) || 0, Number(moon.y) || 0, -0.15);
+      const hasGlbVisual = updateMoonGlbVisual(THREE, visual);
+      visual.root.position.set(renderPosition.x, renderPosition.y, renderPosition.z);
+      visual.root.renderOrder = 850;
+      visual.root.visible = !moon.flags?.dead;
+      visual.fallback.scale.set(renderRadius, renderRadius, 1);
+      if (visual.glb) {
+        const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
+        const glbScale = renderRadius / unitRadius;
+        visual.glb.scale.set(glbScale, glbScale, glbScale);
+        if (hasGlbVisual) applyGlbVisibilityGate(THREE, visual, "moon");
+      }
+    }
+    for (const [key, visual] of threeState.moonMeshes.entries()) {
+      if (seen.has(key)) continue;
+      removeMoonVisual(visual);
+      threeState.moonMeshes.delete(key);
+    }
+    threeState.moonGroupChildrenCount = threeState.moonGroup?.children?.length || 0;
+  }
+
   function syncPlanetPass(renderSnapshot, nowMs) {
     const THREE = window.HC_THREE || window.THREE;
     const rotationNowMs = getMeteorRotationNowMs(renderSnapshot, nowMs);
@@ -4639,6 +4772,8 @@
     threeState.asteroidMeshes.clear();
     threeState.planetMeshes.forEach((entry) => { removePlanetVisual(entry); });
     threeState.planetMeshes.clear();
+    threeState.moonMeshes.forEach((entry) => { removeMoonVisual(entry); });
+    threeState.moonMeshes.clear();
     threeState.meteorMaterials.forEach((mat) => mat?.dispose?.());
     threeState.meteorMaterials.clear();
     threeState.asteroidMaterials.forEach((mat) => mat?.dispose?.());
@@ -4659,7 +4794,7 @@
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
     if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], meteorGeometry: null, planetGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], meteorGeometry: null, planetGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -4688,6 +4823,7 @@
           threeState.threeAsteroidCount = 0;
         }
         try {
+          syncMoonPass(renderSnapshot || {}, nowMs);
           syncPlanetPass(renderSnapshot || {}, nowMs);
           threeState.threePlanetLastError = null;
         } catch (err) {
@@ -5155,6 +5291,9 @@
       meteorGroupChildrenCount: threeState.meteorGroupChildrenCount,
       asteroidGroupChildrenCount: threeState.asteroidGroupChildrenCount,
       planetGroupChildrenCount: threeState.planetGroupChildrenCount,
+      moonGroupChildrenCount: threeState.moonGroupChildrenCount,
+      threeMoonCount: threeState.threeMoonCount,
+      moonGlbAssets: MOON_GLB_ASSETS,
       cameraSnapshotCenter: threeState.cameraSnapshotCenter,
       cameraSnapshotZoom: threeState.cameraSnapshotZoom,
       cameraSnapshotWorldBounds: threeState.cameraSnapshotWorldBounds,

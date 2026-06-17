@@ -753,7 +753,7 @@
           const orbitR = (typeof p.orbitR === "number" && isFinite(p.orbitR)) ? p.orbitR : (parent.orbitPx || (parent.r * 2.6));
           p.x = parent.x + Math.cos(p.theta) * orbitR;
           p.y = parent.y + Math.sin(p.theta) * orbitR;
-        } else {
+        } else if (!p.stationary && p.source !== "moon_mass_threshold") {
           p.x += p.vx * dt;
           p.y += p.vy * dt;
 
@@ -764,6 +764,9 @@
           if (p.x + p.r > b.r) { p.x = b.r - p.r; p.vx = -Math.abs(p.vx) * bounceLoss; }
           if (p.y - p.r < b.t) { p.y = b.t + p.r; p.vy = Math.abs(p.vy) * bounceLoss; }
           if (p.y + p.r > b.b) { p.y = b.b - p.r; p.vy = -Math.abs(p.vy) * bounceLoss; }
+        } else {
+          p.vx = 0;
+          p.vy = 0;
         }
 
         // orbiters update
