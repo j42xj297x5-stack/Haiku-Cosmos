@@ -19,6 +19,7 @@ export const legacyRuntimeFiles = [
   "hc.core.js",
   "hc.util.js",
   "hc.world.js",
+  "hc.space_bodies.js",
   "hc.view_input.js",
   "hc.camera.js",
   "hc.comets.js",

@@ -131,6 +131,25 @@ console.log("[HC] game.boot.js loaded");
     meteors: [],
     asteroids: [],
     planets: [],
+    moons: [],
+    dustClouds: [],
+    dustParticles: [],
+    impactFragments: [],
+
+    // Future mechanics contract only. These values are intentionally not wired
+    // into gameplay until the space progression/dust/orbit rebuild patches.
+    spaceMechanics: {
+      asteroidToMoonMassThreshold: 13,
+      moonToRockyPlanetMassThreshold: 34,
+      dustCloudToGasPlanetMassThreshold: 55,
+      dustDragStrength: 0.15,
+      dustStopSpeedThreshold: 0.02,
+      dustMergeDistanceMul: 1.0,
+      cometIgnitionEnabled: true,
+      dustBurnDurationMs: 8000,
+      orbitMinSafeDistanceMul: 1.2,
+      gasPlanetRotationXSpeed: 0.12
+    },
 
     flags: { firstPlanetZoomed: false, firstStarZoomed: false },
 
@@ -556,6 +575,10 @@ meteorBaseScale: METEOR_BASE_SCALE,
     World.meteors = [];
     World.asteroids = [];
     World.planets = [];
+    World.moons = [];
+    World.dustClouds = [];
+    World.dustParticles = [];
+    World.impactFragments = [];
     World.stars = [];
     World.spawnTimer = 0;
     World.meteorBaseScale = METEOR_BASE_SCALE;
