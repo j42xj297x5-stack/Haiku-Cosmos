@@ -66,7 +66,9 @@
     },
     {
       "id": "hud_top_dust_pile",
-      "asset": "png/hud/hud_top_dust_pile.png",
+      "type": "hitbox",
+      "asset": null,
+      "kind": "hitbox",
       "x": 0.758,
       "y": 0.052,
       "w": 0.075,
@@ -74,14 +76,13 @@
       "zIndex": 32,
       "visible": true,
       "interactive": true,
+      "debugPreview": true,
       "preserveAspect": false,
       "mountRole": "dustPile",
       "interactiveRect": {
         "id": "dustPile",
         "role": "dust-pile"
-      },
-      "kind": "image",
-      "debugPreview": false
+      }
     },
     {
       "id": "hud_top_dust_reservoir",

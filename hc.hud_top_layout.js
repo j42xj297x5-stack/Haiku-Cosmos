@@ -24,7 +24,7 @@
       { id: "hud_top_dust_rp_background", asset: "png/hud/hud_top_dust_rp_background.png", x: 0.692708, y: 0.034739, w: 0.223958, h: 0.471464, zIndex: 20, visible: true, interactive: false, preserveAspect: false },
       { id: "hud_top_rp_background", asset: "png/hud/hud_top_rp.png", x: 0.804688, y: 0.203474, w: 0.114583, h: 0.198511, zIndex: 35, visible: true, interactive: false, preserveAspect: true, mountRole: "rpBackground" },
       { id: "hud_top_rp_value", asset: null, kind: "text", x: 0.865, y: 0.148, w: 0.05, h: 0.06, zIndex: 80, visible: true, interactive: false, preserveAspect: true, mountRole: "rpText" },
-      { id: "hud_top_dust_pile", asset: "png/hud/hud_top_dust_pile.png", x: 0.723958, y: 0.129032, w: 0.09375, h: 0.44665, zIndex: 32, visible: true, interactive: true, preserveAspect: true, mountRole: "dustPile", interactiveRect: { id: "dustPile", role: "dust-pile" } },
+      { id: "hud_top_dust_pile", type: "hitbox", asset: null, kind: "hitbox", x: 0.723958, y: 0.129032, w: 0.09375, h: 0.44665, zIndex: 32, visible: true, interactive: true, debugPreview: true, preserveAspect: false, mountRole: "dustPile", interactiveRect: { id: "dustPile", role: "dust-pile" } },
       { id: "hud_top_dust_reservoir", asset: "png/hud/hud_top_dust_pile.png", x: 0.68, y: 0.055, w: 0.045, h: 0.18, zIndex: 31, visible: true, interactive: false, preserveAspect: true, mountRole: "dustReservoir" },
       { id: "hud_top_submeta", asset: "png/hud/hud_top_submeta.png", x: 0.414062, y: 0, w: 0.171875, h: 0.421836, zIndex: 40, visible: true, interactive: false, preserveAspect: true },
       { id: "hud_top_button_submeta", type: "hitbox", asset: null, kind: "hitbox", x: 0.49, y: 0.035, w: 0.075, h: 0.105, zIndex: 140, visible: true, interactive: true, debugPreview: true, preserveAspect: false, interactiveRect: { id: "openSubMeta", role: "button" } },
@@ -57,7 +57,7 @@
     const isLegacyPx = c.scale !== undefined || Number(c.x) > 1 || Number(c.y) > 1;
     const x = isLegacyPx ? Number(c.x || 0) / LEGACY_BASE_WIDTH : c.x;
     const y = isLegacyPx ? Number(c.y || 0) / LEGACY_BASE_HEIGHT : c.y;
-    return {
+    const normalized = {
       ...fallback,
       ...c,
       id: fallback.id,
@@ -74,6 +74,14 @@
       debugPreview: c.debugPreview !== undefined ? c.debugPreview !== false : fallback.debugPreview === true,
       interactiveRect: c.interactiveRect || fallback.interactiveRect
     };
+    if (fallback.id === "hud_top_dust_pile") {
+      normalized.type = "hitbox";
+      normalized.kind = "hitbox";
+      normalized.asset = null;
+      normalized.debugPreview = c.debugPreview !== undefined ? c.debugPreview !== false : true;
+      normalized.preserveAspect = false;
+    }
+    return normalized;
   }
   function sanitizeLayout(candidate) {
     const byId = new Map((candidate?.elements || []).map((e) => [e?.id, e]));

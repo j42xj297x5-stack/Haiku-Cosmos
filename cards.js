@@ -2954,21 +2954,15 @@ const CardEngine = (() => {
   }
 
   function drawDustPileFallback(ctx, x, y, w, h, model) {
+    if (model.activeType === "NONE" || model.percent <= 0) return;
     ctx.save();
-    ctx.globalAlpha = 0.55;
-    ctx.fillStyle = "rgba(34,30,26,0.78)";
+    const colors = { RED: "#d85b53", YELLOW: "#e4c75a", GREEN: "#70b96a", BLUE: "#5e91d8", GREY: "#8c8c8c" };
+    const fillH = h * 0.62 * (model.percent / 100);
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = colors[model.activeType] || "#ffffff";
     ctx.beginPath();
-    ctx.ellipse(x + w * 0.5, y + h * 0.88, w * 0.44, h * 0.08, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + w * 0.5, y + h * 0.86 - fillH * 0.45, w * 0.34, Math.max(3, fillH * 0.5), 0, 0, Math.PI * 2);
     ctx.fill();
-    if (model.activeType !== "NONE" && model.percent > 0) {
-      const colors = { RED: "#d85b53", YELLOW: "#e4c75a", GREEN: "#70b96a", BLUE: "#5e91d8", GREY: "#8c8c8c" };
-      const fillH = h * 0.62 * (model.percent / 100);
-      ctx.globalAlpha = 0.9;
-      ctx.fillStyle = colors[model.activeType] || "#ffffff";
-      ctx.beginPath();
-      ctx.ellipse(x + w * 0.5, y + h * 0.86 - fillH * 0.45, w * 0.34, Math.max(3, fillH * 0.5), 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
     ctx.restore();
   }
 
@@ -2991,14 +2985,10 @@ const CardEngine = (() => {
       : Math.max(12, Math.floor((layout?.counterX || screenW - 22) - w - 36));
     const y = Number.isFinite(Number(hudTopDust?.y)) ? Math.floor(Number(hudTopDust.y)) : Math.floor(layout?.y0 || 84);
     World.dustPileEvidence = { ...World.dustPileEvidence, positionX: x, positionY: y, width: w, height: h };
-    const emptyEntry = dustPileAssetCache.byName[DUST_PILE_ASSETS.empty];
     const activeEntry = model.activeAsset ? dustPileAssetCache.byName[model.activeAsset] : null;
     const maskEntry = model.maskAsset ? dustPileAssetCache.byName[model.maskAsset] : null;
 
     ctx.save();
-    if (emptyEntry?.loaded) ctx.drawImage(emptyEntry.image, x, y, w, h);
-    else drawDustPileFallback(ctx, x, y, w, h, { activeType: "NONE", percent: 0 });
-
     if (model.activeType !== "NONE" && model.percent > 0 && activeEntry?.loaded) {
       if (model.usesMask && maskEntry?.loaded) {
         const offscreen = typeof document !== "undefined" ? document.createElement("canvas") : null;
