@@ -1248,7 +1248,7 @@
     ensureBaseThresholds(World) {
       if (this.baseThresholds || !World) return;
       this.baseThresholds = {
-        asteroidToPlanet: Number(World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 13),
+        asteroidToPlanet: Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 13),
         planetToStar: {
           blue: Number(World.STAR_REQ_BLUE || 30),
           green: Number(World.STAR_REQ_GREEN || 30),
@@ -1263,6 +1263,7 @@
       if (!World || !this.baseThresholds) return;
       World.asteroidGrowthTarget = this.baseThresholds.asteroidToPlanet;
       World.planetCaptureTarget = this.baseThresholds.asteroidToPlanet;
+      if (World.spaceMechanics) World.spaceMechanics.asteroidToMoonMassThreshold = this.baseThresholds.asteroidToPlanet;
       World.STAR_REQ_BLUE = this.baseThresholds.planetToStar.blue;
       World.STAR_REQ_GREEN = this.baseThresholds.planetToStar.green;
       World.STAR_REQ_RED = this.baseThresholds.planetToStar.red;
@@ -1278,6 +1279,7 @@
       if (overrides.asteroidToPlanet != null) {
         World.asteroidGrowthTarget = clampInt(overrides.asteroidToPlanet, World.asteroidGrowthTarget ?? World.planetCaptureTarget);
         World.planetCaptureTarget = World.asteroidGrowthTarget;
+        if (World.spaceMechanics) World.spaceMechanics.asteroidToMoonMassThreshold = World.asteroidGrowthTarget;
         applied.asteroidToPlanet = World.asteroidGrowthTarget;
       }
       if (overrides.planetToStar != null) {

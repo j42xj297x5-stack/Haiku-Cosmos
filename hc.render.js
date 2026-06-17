@@ -133,6 +133,26 @@
       ctx.globalAlpha = 1;
     }
 
+
+
+    function drawMoon(moon) {
+      const r = Math.max(1, Number(moon.r || moon.radius || 0));
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.beginPath();
+      ctx.fillStyle = "rgba(190, 205, 220, 0.72)";
+      ctx.arc(moon.x || 0, moon.y || 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = Math.max(0.8, r * 0.08);
+      ctx.strokeStyle = "rgba(235, 245, 255, 0.42)";
+      ctx.stroke();
+      ctx.globalAlpha = 0.28;
+      ctx.beginPath();
+      ctx.fillStyle = "white";
+      ctx.arc((moon.x || 0) - r * 0.22, (moon.y || 0) - r * 0.24, r * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
     
     // Visual rings created by comet impacts on planet orbiters
     function drawPlanetRings(p, nowMs) {
@@ -516,6 +536,9 @@
       drawPointerRing();
       window.HC.Comets.draw(ctx);
       for (const a of world.asteroids) drawAsteroid(a);
+      if (Array.isArray(world.moons)) {
+        for (const moon of world.moons) drawMoon(moon);
+      }
       for (const p of world.planets) drawPlanet(p);
       if (world.stars && world.stars.length) {
         const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
@@ -539,6 +562,7 @@
       frame,
       drawMeteor,
       drawPlanet,
+      drawMoon,
       drawStar,
     };
 

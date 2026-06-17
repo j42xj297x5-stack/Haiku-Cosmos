@@ -140,6 +140,7 @@ console.log("[HC] game.boot.js loaded");
     // into gameplay until the space progression/dust/orbit rebuild patches.
     spaceMechanics: {
       asteroidToMoonMassThreshold: 13,
+      asteroidToMoonEnabled: true,
       moonToRockyPlanetMassThreshold: 34,
       dustCloudToGasPlanetMassThreshold: 55,
       dustDragStrength: 0.15,
@@ -175,8 +176,8 @@ meteorBaseScale: METEOR_BASE_SCALE,
     // Difficulty knobs (cards / runs):
     asteroidDriftMul: 0.55,   // <- drift multiplier for new asteroids
 
-    // Asteroid mass threshold for collapse into a planet. planetCaptureTarget remains
-    // as a legacy card/debug alias for the same value.
+    // Legacy aliases for asteroid mass progression. The active Patch 2 path reads
+    // World.spaceMechanics.asteroidToMoonMassThreshold and transforms into a moon.
     asteroidGrowthTarget: 13,
     planetCaptureTarget: 13,
 
