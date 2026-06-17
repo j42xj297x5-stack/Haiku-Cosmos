@@ -168,7 +168,7 @@ Dodać minimalne moduly:
 - `hc.frame_composer.js`;
 - `hc.card_visuals.js`.
 
-Bez zmiany runtime behavior. Pliki moga byc no-op namespaces i nie musza byc jeszcze podlaczone do `index.codex.html`.
+Bez zmiany runtime behavior. Pliki moga byc no-op namespaces i nie musza byc jeszcze podlaczone do aktywnego entrypointu `index.html`.
 
 ### Etap 2 - extraction
 
@@ -295,7 +295,7 @@ Zasada:
 
 Ten dokument nie zmienia runtime behavior.
 
-Dodanie no-op namespace plikow jest bezpiecznym scaffoldingiem, ale ich podpiecie do `index.codex.html` powinno nastapic dopiero wtedy, gdy pierwszy extraction pass bedzie gotowy i testowany.
+Dodanie no-op namespace plikow jest bezpiecznym scaffoldingiem, ale ich podpiecie do aktywnego entrypointu `index.html` powinno nastapic dopiero wtedy, gdy pierwszy extraction pass bedzie gotowy i testowany.
 
 ## 14. Font relation (card visuals vs mechanika)
 

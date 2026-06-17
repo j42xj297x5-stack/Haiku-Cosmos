@@ -58,6 +58,6 @@ Służy do szybkiego rozróżnienia: co działa, co jest historyczne, co wymaga 
 ## 6. HUD v2 Etap 1 (2026-05-03)
 
 - Status: **DONE (techniczny adapter runtime, bez zmian visual/mechaniki)**.
-- Dodano `hc.hud_v2.js` (`HC.HUDV2.buildViewModel`) i podpięto w `index.codex.html`.
+- Dodano `hc.hud_v2.js` (`HC.HUDV2.buildViewModel`) i podpięto w aktywnym entrypoincie `index.html`.
 - Dodano smoke test `tests/hud_v2_view_model_smoke.test.js`.
 - Zakres ograniczeń: pending collect opiera się na obecnym single-slot `World.pendingCard` (`R2/R3/R4` rozdzielane po `kind`, bez nowych kanałów runtime).
