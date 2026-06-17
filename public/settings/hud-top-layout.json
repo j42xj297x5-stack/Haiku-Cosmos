@@ -31,13 +31,27 @@
       "preserveAspect": false
     },
     {
-      "id": "hud_top_rp",
+      "id": "hud_top_rp_background",
       "asset": "png/hud/hud_top_rp.png",
       "x": 0.845,
       "y": 0.058,
       "w": 0.114583,
       "h": 0.198511,
       "zIndex": 35,
+      "visible": true,
+      "interactive": false,
+      "preserveAspect": true,
+      "mountRole": "rpBackground"
+    },
+    {
+      "id": "hud_top_rp_value",
+      "asset": null,
+      "kind": "text",
+      "x": 0.865,
+      "y": 0.148,
+      "w": 0.05,
+      "h": 0.06,
+      "zIndex": 80,
       "visible": true,
       "interactive": false,
       "preserveAspect": true,
@@ -59,6 +73,19 @@
         "id": "dustPile",
         "role": "dust-pile"
       }
+    },
+    {
+      "id": "hud_top_dust_reservoir",
+      "asset": "png/hud/hud_top_dust_pile.png",
+      "x": 0.68,
+      "y": 0.055,
+      "w": 0.045,
+      "h": 0.18,
+      "zIndex": 31,
+      "visible": true,
+      "interactive": false,
+      "preserveAspect": true,
+      "mountRole": "dustReservoir"
     },
     {
       "id": "hud_top_submeta",

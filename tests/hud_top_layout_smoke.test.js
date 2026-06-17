@@ -8,13 +8,15 @@ const layout = JSON.parse(fs.readFileSync('public/settings/hud-top-layout.json',
 
 const required = [
   'hud_top_right',
-  'hud_top_rp',
+  'hud_top_rp_background',
+  'hud_top_rp_value',
   'hud_top_submeta',
   'hud_top_haiku_cosmos_settings',
   'hud_top_haiku_cosmos_logo',
   'hud_top_haiku_cosmos_info',
   'hud_top_dust_rp_background',
   'hud_top_dust_pile',
+  'hud_top_dust_reservoir',
 ];
 
 assert.equal(layout.version, 2, 'HUD TOP layout should be version 2');
@@ -33,8 +35,10 @@ for (const id of required) {
   assert.equal(typeof element.visible, 'boolean', `${id} should have visible`);
   assert.equal(typeof element.preserveAspect, 'boolean', `${id} should have preserveAspect`);
   assert(!('scale' in element), `${id} should not use legacy scale`);
-  assert(!String(element.asset).startsWith('/Haiku-Cosmos/'), `${id} should not hardcode GitHub Pages base`);
-  assert(!String(element.asset).startsWith('/'), `${id} should use public-relative asset path`);
+  if (element.asset !== null) {
+    assert(!String(element.asset).startsWith('/Haiku-Cosmos/'), `${id} should not hardcode GitHub Pages base`);
+    assert(!String(element.asset).startsWith('/'), `${id} should use public-relative asset path`);
+  }
 }
 
 for (const id of ['hud_top_submeta', 'hud_top_haiku_cosmos_settings', 'hud_top_haiku_cosmos_logo', 'hud_top_dust_pile']) {
@@ -43,8 +47,11 @@ for (const id of ['hud_top_submeta', 'hud_top_haiku_cosmos_settings', 'hud_top_h
   assert(element.interactiveRect?.id && element.interactiveRect?.role, `${id} should expose an interactive role/id`);
 }
 
-assert.equal(byId.get('hud_top_rp').mountRole, 'rpText', 'RP should have a normalized mount rect');
+assert.equal(byId.get('hud_top_rp_background').mountRole, 'rpBackground', 'RP background should have a normalized mount rect');
+assert.equal(byId.get('hud_top_rp_value').mountRole, 'rpText', 'RP value should have an independent normalized mount rect');
+assert.equal(byId.get('hud_top_rp_value').kind, 'text', 'RP value should be a text layout object, not a background image');
 assert.equal(byId.get('hud_top_dust_pile').mountRole, 'dustPile', 'dust pile should have a normalized mount rect');
+assert.equal(byId.get('hud_top_dust_reservoir').mountRole, 'dustReservoir', 'dust reservoir should have a normalized mount rect');
 
 assert(source.includes('COORDINATE_SYSTEM = "viewport_normalized"'), 'runtime should declare the normalized coordinate system');
 assert(source.includes('el.x * v.width') && source.includes('el.h * v.height'), 'runtime should convert normalized rects to viewport pixels');
@@ -64,6 +71,8 @@ assert(!source.includes('loaded localStorage'), 'HUD TOP public settings should 
 assert(!source.includes('root.localStorage.setItem(STORAGE_KEY'), 'HUD TOP debug edits should stay runtime-only until exported to public/settings JSON');
 
 assert(cardsSource.includes('dustPileMountRect'), 'dust pile render should consume normalized HUD TOP mount rect');
+assert(source.includes('dustReservoirMountRect'), 'HUD TOP runtime should export a dust reservoir mount rect');
+assert(source.includes('rpBackgroundMountRect'), 'HUD TOP runtime should keep RP background separate from RP value');
 assert(!cardsSource.includes('.dustPileHud'), 'dust pile render should not use legacy dustPileHud x/y/scale');
 assert(!/dustPileHud\s*=\s*\{\s*x\s*:/.test(source), 'runtime should not recreate px-only dustPileHud');
 
