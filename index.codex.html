@@ -442,10 +442,15 @@
   <div id="startOverlay">
     <div class="start-panel">
       <h2 style="margin:0; font-size:20px;">Haiku Cosmos</h2>
-      <div data-debug-i18n="start.chooseMode">Choose mode for this session.</div>
+      <div>Dwustopniowy loader przygotowuje krytyczne assety. Alias szyfruje lokalny plik save.</div>
+      <label class="start-field"><span>Imię / ksywa / znak</span><input id="playerAliasInput" type="text" autocomplete="nickname" placeholder="np. Luna" /></label>
+      <div id="loaderProgressLabel" class="loader-progress">Loader Phase 1: start…</div>
+      <div id="startStatus" class="start-status" role="status" aria-live="polite"></div>
+      <input id="startSaveFileInput" type="file" accept=".json,.hcsave,application/json" hidden />
       <div class="start-actions">
-        <button id="btnStartNormal" type="button" data-debug-i18n="start.normalGame">Normal Game</button>
-        <button id="btnStartDebug" type="button" data-debug-i18n="start.debugMode">Debug Mode</button>
+        <button id="btnStartNormal" type="button" disabled>Nowa gra</button>
+        <button id="btnLoadSave" type="button" disabled>Wczytaj save</button>
+        <button id="btnStartDebug" type="button" hidden>Debug asset groups</button>
       </div>
       <div id="debugConfigPanel" class="debug-config-panel" hidden>
         <div class="debug-config-grid">
