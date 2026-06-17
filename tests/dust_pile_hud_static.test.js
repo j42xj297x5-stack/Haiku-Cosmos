@@ -43,6 +43,7 @@ assert(source.includes('pile.percent = Math.max(0, Math.min(100'), 'grey transit
 assert(source.includes('!model.usesMask'), '100% state should render the full pile without a mask');
 assert(source.includes('setDustPileDebugState'), 'debug/probe setter should be exposed for the dust pile');
 assert(source.includes('setDebugState(debugState)'), 'HC.DustPileHud.setDebugState should be wired');
-assert(source.includes('dustPileHud') && source.includes('positionX') && source.includes('positionY') && source.includes('scale'), 'dust pile position/scale should be configurable and evidenced');
+assert(source.includes('dustPileMountRect') && source.includes('positionX') && source.includes('positionY') && source.includes('width') && source.includes('height'), 'dust pile position/size should come from the normalized HUD TOP mount and be evidenced');
+assert(!source.includes('.dustPileHud'), 'dust pile should not use legacy px-only dustPileHud x/y/scale');
 
 console.log('dust_pile_hud_static.test.js: OK');
