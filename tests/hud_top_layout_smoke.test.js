@@ -11,7 +11,9 @@ const required = [
   'hud_top_rp_background',
   'hud_top_rp_value',
   'hud_top_submeta',
+  'hud_top_button_submeta',
   'hud_top_haiku_cosmos_settings',
+  'hud_top_button_settings',
   'hud_top_haiku_cosmos_logo',
   'hud_top_haiku_cosmos_info',
   'hud_top_dust_rp_background',
@@ -41,7 +43,7 @@ for (const id of required) {
   }
 }
 
-for (const id of ['hud_top_submeta', 'hud_top_haiku_cosmos_settings', 'hud_top_haiku_cosmos_logo', 'hud_top_dust_pile']) {
+for (const id of ['hud_top_button_submeta', 'hud_top_button_settings', 'hud_top_dust_pile']) {
   const element = byId.get(id);
   assert.equal(element.interactive, true, `${id} should be interactive`);
   assert(element.interactiveRect?.id && element.interactiveRect?.role, `${id} should expose an interactive role/id`);
@@ -53,6 +55,18 @@ assert.equal(byId.get('hud_top_rp_value').kind, 'text', 'RP value should be a te
 assert.equal(byId.get('hud_top_dust_pile').mountRole, 'dustPile', 'dust pile should have a normalized mount rect');
 assert.equal(byId.get('hud_top_dust_reservoir').mountRole, 'dustReservoir', 'dust reservoir should have a normalized mount rect');
 
+for (const id of ['hud_top_button_submeta', 'hud_top_button_settings']) {
+  const hitbox = byId.get(id);
+  assert.equal(hitbox.kind, 'hitbox', `${id} should be a hitbox element`);
+  assert.equal(hitbox.type, 'hitbox', `${id} should expose hitbox type`);
+  assert.equal(hitbox.asset, null, `${id} should not depend on a PNG asset`);
+  assert.equal(hitbox.debugPreview, true, `${id} should default to debug preview`);
+  assert(hitbox.w < 0.15 && hitbox.h < 0.2, `${id} should not cover a large part of the viewport`);
+}
+assert.equal(byId.get('hud_top_submeta').interactive, false, 'SUB-META PNG should not be the click hitbox');
+assert.equal(byId.get('hud_top_haiku_cosmos_logo').interactive, false, 'Haiku Cosmos logo PNG should not be the settings hitbox');
+assert.equal(byId.get('hud_top_haiku_cosmos_settings').interactive, false, 'settings PNG should not be the settings hitbox');
+
 assert(source.includes('COORDINATE_SYSTEM = "viewport_normalized"'), 'runtime should declare the normalized coordinate system');
 assert(source.includes('el.x * v.width') && source.includes('el.h * v.height'), 'runtime should convert normalized rects to viewport pixels');
 assert(!source.includes('function getHudTopScale'), 'runtime should not expose global HUD TOP scale as source of truth');
@@ -61,6 +75,11 @@ for (const field of ['x', 'y', 'w', 'h']) {
   assert(source.includes(`row("${field}", "${field}", 0, 1, 0.001)`), `debug editor should expose normalized ${field}`);
 }
 assert(source.includes('preserveAspect'), 'debug/runtime should expose per-element preserveAspect');
+assert(source.includes('data-hud-top-field="interactive"'), 'debug editor should expose interactive for HUD TOP hitboxes');
+assert(source.includes('data-hud-top-field="debugPreview"'), 'debug editor should expose debugPreview for HUD TOP hitboxes');
+assert(source.includes('hud-top-layer--hitbox'), 'runtime should render a debug-previewable hitbox class');
+assert(source.includes('hud_top_button_submeta') && source.includes('hud_top_button_settings'), 'runtime defaults should include overlay button hitboxes');
+assert(source.includes('el?.interactiveRect?.id === "openSubMeta"') && source.includes('el?.interactiveRect?.id === "openSettings"'), 'click handlers should route through interactive overlay rect ids');
 assert(source.includes('publicAssetPath(el.asset)') || source.includes('publicPath(el.asset)'), 'HUD TOP assets should be resolved through publicPath/publicAssetPath');
 assert(source.includes('SETTINGS_PATH = "settings/hud-top-layout.json"'), 'HUD TOP should declare public/settings logical path');
 assert(source.includes('resolveSettingsUrl()'), 'HUD TOP settings URL should be resolved through publicPath/publicAssetPath helper');
@@ -81,5 +100,6 @@ assert(!indexHtml.includes('id="hudTopImage"'), 'legacy single full HUD TOP imag
 assert(!indexHtml.includes('id="btnSubMeta"'), 'legacy separate SUB-META hitbox should not render in parallel');
 assert(indexHtml.includes('id="scoreLabel"'), 'RP text should exist in the DOM');
 assert(indexHtml.includes('id="hudTopSettingsPopup"'), 'minimal settings popup should exist');
+assert(indexHtml.includes('.hud-top-layer--hitbox.is-debug-preview'), 'HUD TOP hitbox debug preview CSS should exist');
 
 console.log('hud_top_layout_smoke.test.js: OK');

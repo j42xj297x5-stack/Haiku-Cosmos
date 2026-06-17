@@ -101,13 +101,28 @@
       "h": 0.421836,
       "zIndex": 40,
       "visible": true,
-      "interactive": true,
+      "interactive": false,
       "preserveAspect": true,
+      "kind": "image"
+    },
+    {
+      "id": "hud_top_button_submeta",
+      "type": "hitbox",
+      "asset": null,
+      "kind": "hitbox",
+      "x": 0.49,
+      "y": 0.035,
+      "w": 0.075,
+      "h": 0.105,
+      "zIndex": 140,
+      "visible": true,
+      "interactive": true,
+      "debugPreview": true,
+      "preserveAspect": false,
       "interactiveRect": {
         "id": "openSubMeta",
         "role": "button"
-      },
-      "kind": "image"
+      }
     },
     {
       "id": "hud_top_haiku_cosmos_info",
@@ -132,12 +147,8 @@
       "h": 0.397022,
       "zIndex": 42,
       "visible": true,
-      "interactive": true,
+      "interactive": false,
       "preserveAspect": true,
-      "interactiveRect": {
-        "id": "openSettings",
-        "role": "button"
-      },
       "kind": "image"
     },
     {
@@ -149,13 +160,28 @@
       "h": 0.322581,
       "zIndex": 45,
       "visible": true,
-      "interactive": true,
+      "interactive": false,
       "preserveAspect": true,
+      "kind": "image"
+    },
+    {
+      "id": "hud_top_button_settings",
+      "type": "hitbox",
+      "asset": null,
+      "kind": "hitbox",
+      "x": 0.098,
+      "y": 0.055,
+      "w": 0.07,
+      "h": 0.1,
+      "zIndex": 145,
+      "visible": true,
+      "interactive": true,
+      "debugPreview": true,
+      "preserveAspect": false,
       "interactiveRect": {
         "id": "openSettings",
         "role": "button"
-      },
-      "kind": "image"
+      }
     }
   ]
 }
