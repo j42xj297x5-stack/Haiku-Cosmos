@@ -784,6 +784,10 @@
           asteroids: Array.isArray(World?.asteroids) ? World.asteroids.length : 0,
           planets: Array.isArray(World?.planets) ? World.planets.length : 0,
           stars: Array.isArray(World?.stars) ? World.stars.length : 0,
+          moonsCount: Array.isArray(World?.moons) ? World.moons.length : 0,
+          dustCloudsCount: Array.isArray(World?.dustClouds) ? World.dustClouds.length : 0,
+          dustParticlesCount: Array.isArray(World?.dustParticles) ? World.dustParticles.length : 0,
+          impactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.length : 0,
         },
         rp: Math.max(0, Math.floor(Number(World?.score || 0))),
         activeSequence: sequence ? {
@@ -817,6 +821,10 @@
           stars: Array.isArray(World.stars) ? World.stars.length : 0,
           rockyPlanets: Array.isArray(World.planets) ? World.planets.filter((p) => p && p.isRocky).length : 0,
           gasPlanets: Array.isArray(World.planets) ? World.planets.filter((p) => p && !p.isRocky).length : 0,
+          moonsCount: Array.isArray(World.moons) ? World.moons.length : 0,
+          dustCloudsCount: Array.isArray(World.dustClouds) ? World.dustClouds.length : 0,
+          dustParticlesCount: Array.isArray(World.dustParticles) ? World.dustParticles.length : 0,
+          impactFragmentsCount: Array.isArray(World.impactFragments) ? World.impactFragments.length : 0,
         },
         sequence: sequence ? {
           active: Boolean(sequence.active),
@@ -1791,6 +1799,10 @@
           rockyPlanets: Array.isArray(World?.planets) ? World.planets.filter((p) => p && p.isRocky).length : 0,
           gasPlanets: Array.isArray(World?.planets) ? World.planets.filter((p) => p && !p.isRocky).length : 0,
           stars: Array.isArray(World?.stars) ? World.stars.length : 0,
+          moonsCount: Array.isArray(World?.moons) ? World.moons.length : 0,
+          dustCloudsCount: Array.isArray(World?.dustClouds) ? World.dustClouds.length : 0,
+          dustParticlesCount: Array.isArray(World?.dustParticles) ? World.dustParticles.length : 0,
+          impactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.length : 0,
         },
         thresholds: {
           asteroidToPlanet: {

@@ -46,7 +46,7 @@
 
   function mapBody(body, fallbackKind, index) {
     if (!body || typeof body !== "object") return null;
-    const radius = toNumber(body.r, toNumber(body.radius, undefined));
+    const radius = toNumber(body.r, toNumber(body.radius, toNumber(body.collisionRadius, undefined)));
     const scale = toNumber(body.scale, undefined);
     const stableRenderKey = getStableRenderBodyId(body, fallbackKind) || `${fallbackKind}:snapshot:${index}`;
     const isPlanet = fallbackKind === "planet";
@@ -61,9 +61,14 @@
       isGas: isPlanet ? planetKind === "gas" : undefined,
       x: toNumber(body.x, 0),
       y: toNumber(body.y, 0),
+      z: toNumber(body.z, undefined),
       radius,
+      r: radius,
+      collisionRadius: toNumber(body.collisionRadius, toNumber(body.physicalRadius, radius)),
       scale,
       color: body.color || body.fill || body.colorName || body.gradientOuterColor || null,
+      colorName: body.colorName || body.colorKey || null,
+      colorMix: body.colorMix || body.palette || null,
       colorKey: body.colorKey || body.colorName || body.dominantKey || null,
       visualKind: body.visualKind || (isPlanet ? PLANET_BASE_VISUAL.visualKind : null),
       visualVariant: body.visualVariant || (isPlanet ? (planetKind === "rocky" ? ROCKY_PLANET_BASE_VISUAL.visualVariant : PLANET_BASE_VISUAL.visualVariant) : null),
@@ -90,6 +95,9 @@
       sourceColors: Array.isArray(body.sourceColors) ? body.sourceColors.slice() : undefined,
       collapseVisualScale: toNumber(body.collapseVisualScale, undefined),
       state: body.state || body.phase || (body.isCollapsing ? "collapsing" : null),
+      parentId: body.parentId || body.parentRef?.id || body.parentRef?._id || null,
+      orbit: body.orbitState || null,
+      orbitState: body.orbitState || null,
       visual: {
         isCollapsing: !!body.isCollapsing,
         absorbingIntoStarId: body.absorbingIntoStarId || null,
@@ -163,6 +171,10 @@
         comets: mapCollection(World.comets, "comet"),
         asteroids: mapCollection(World.asteroids, "asteroid"),
         planets: snapshotPlanets,
+        moons: mapCollection(World.moons, "moon"),
+        dustClouds: mapCollection(World.dustClouds, "dustCloud"),
+        dustParticles: mapCollection(World.dustParticles, "dustParticle"),
+        impactFragments: mapCollection(World.impactFragments, "impactFragment"),
         stars: mapCollection(World.stars, "star"),
         prg: World.prg || null,
         background: World.background || null,
@@ -182,6 +194,10 @@
           rockyPlanets: rockyPlanetCount,
           gasPlanets: gasPlanetCount,
           planetsInThreeSnapshot: snapshotPlanets.length,
+          moons: pickArray(World.moons).length,
+          dustClouds: pickArray(World.dustClouds).length,
+          dustParticles: pickArray(World.dustParticles).length,
+          impactFragments: pickArray(World.impactFragments).length,
           stars: pickArray(World.stars).length,
         },
         cameraAvailability: {
