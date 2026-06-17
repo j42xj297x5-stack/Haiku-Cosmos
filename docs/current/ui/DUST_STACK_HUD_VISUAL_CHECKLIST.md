@@ -14,7 +14,7 @@ Ten dokument przygotowuje visual/UI dla HUD stosiku pyłu zgodnie z `../systems/
 Celem jest opisanie, jak bazowy HUD ma komunikować:
 
 * ikonę aktualnego stosiku surowego pyłu,
-* kolor pyłu aktualnie zbieranego do stosiku,
+* jeden aktywny kolor pyłu aktualnie zbieranego do stosiku,
 * postęp napełnienia `0–100%`,
 * roboczą maskę albo warstwę visual w krokach co `10%`,
 * odczyt procentowy,
@@ -40,7 +40,7 @@ Ten dokument:
 * nie projektuje finalnego HUD,
 * nie obejmuje flakonu/naczynia ani kryształu jako celów HUD collection,
 * nie tworzy flakonu/naczynia ani kryształu jako HUD collection target,
-* nie rozstrzyga multi-color collection jako bazowego modelu,
+* wyklucza multi-color collection jako bazowy model HUD,
 * nie zmienia kosztów ani balansu Kuźni,
 * nie oznacza tej checklisty jako kanonu.
 
@@ -53,6 +53,7 @@ Flakon/naczynie i kryształ należą do Kuźni, Magazynu i slotu jako stabilizat
 Bazowy model HUD stosiku:
 
 * HUD pokazuje tylko aktualny stosik surowego pyłu.
+* HUD obsługuje tylko jeden aktywny kolor naraz.
 * Stosik ma kolor aktualnie zbieranego pyłu.
 * Stosik ma postęp `0–100%`.
 * Pełny stosik może zostać zdeponowany do Magazynu.
@@ -80,7 +81,7 @@ Lista stanów visual do uwzględnienia przed asset pass:
 * **Gotowy do depozytu** — `100%` może otrzymać spokojny sygnał gotowości i/lub akcję `Zdeponuj`.
 * **Zdeponowany** — pełny stosik został przeniesiony do Magazynu.
 * **Reset po depozycie** — HUD nie pokazuje już częściowego stosiku po depozycie; wraca do pustego lub neutralnego stanu.
-* **Niezgodny kolor / próba zebrania innego koloru** — future stan ostrzegawczy albo blokujący, gdy aktywny stosik ma już przypisany kolor.
+* **Niezgodny kolor / próba zebrania innego koloru** — future stan ostrzegawczy albo blokujący, gdy aktywny stosik ma już przypisany kolor; ten stan nie tworzy szarego stosiku i nie miesza kolorów w HUD.
 * **Future: auto-collection z karty specjalnej** — dodatkowy stan aktywności efektu karty, poza bazowym modelem HUD stosiku.
 
 ---
@@ -90,6 +91,8 @@ Lista stanów visual do uwzględnienia przed asset pass:
 Roboczy model napełnienia:
 
 * Visual napełnienia jest roboczo podzielony na `10` kroków między pustym a pełnym stosikiem.
+* Maski `0–90%` są wspólne dla czterech kolorów.
+* Stan `100%` używa pełnego stosiku danego koloru bez maski.
 * Każdy krok odpowiada `10%`.
 * Maska może odsłaniać coraz większą część stosiku.
 * Alternatywnie może rosnąć ilość cząstek albo ziaren pyłu.
@@ -150,12 +153,14 @@ Stan `100%` powinien odróżniać się od `80%` przede wszystkim komunikatem kom
 
 Zasady koloru stosiku:
 
+* HUD zbiera tylko jeden kolor pyłu naraz.
 * Stosik przyjmuje kolor zbieranego pyłu.
 * Kolory bazowe: `RED` / `YELLOW` / `GREEN` / `BLUE`.
-* Szary pył, jeśli występuje, jest osobnym stanem albo typem.
-* Mieszanie i multi-color collection nie są bazowym modelem tej checklisty.
-* Próba zebrania innego koloru przy aktywnym stosiku powinna mieć future stan ostrzegawczy albo blokujący.
-* Ten dokument nie rozstrzyga, czy szary pył używa osobnej ikony, osobnego materiału, czy wariantu koloru.
+* Dla bazowego HUD potrzebne są tylko `4` pełne stosiki kolorowe: `RED`, `YELLOW`, `GREEN`, `BLUE`.
+* Dla bazowego HUD nie potrzeba `15` pełnych stosików kombinacji kolorystycznych.
+* Szary stosik nie jest bazowym efektem błędnego zebrania innego koloru w HUD.
+* Mieszanie i multi-color collection nie są bazowym modelem tej checklisty; należą do future passu SUB-META / Kuźni.
+* Próba zebrania innego koloru przy aktywnym stosiku powinna mieć future stan ostrzegawczy albo blokujący, bez mieszania zawartości HUD.
 
 Kolor ma wspierać szybkie rozpoznanie, który stosik gracz aktualnie wypełnia. Nie powinien sugerować, że HUD miesza kolory w jednym bazowym stosiku.
 
@@ -198,7 +203,7 @@ Relacja HUD stosiku do Kuźni:
 * `3 flakony/naczynia = 1 kryształ`.
 * HUD nie tworzy flakonu/naczynia ani kryształu.
 * HUD collection kończy się na pełnym stosiku i depozycie.
-* Rafinacja jest osobną czynnością Kuźni, a nie stanem ikony stosiku HUD.
+* Rafinacja i mieszanie kolorów są osobnymi czynnościami Kuźni / SUB-META, a nie stanem ikony stosiku HUD.
 
 Ta checklista nie zmienia kosztów Kuźni ani balansu rafinacji.
 
@@ -210,7 +215,7 @@ Future direction dla kart specjalnych:
 
 * Karta specjalna może zwiększać ilość zbieranego pyłu.
 * Karta specjalna może automatycznie zbierać pył po pojawieniu się chmurki.
-* Karta specjalna może umożliwiać auto-zbieranie `1` / `2` / `3` kolorów.
+* Karta specjalna może w przyszłości pomagać w auto-zebraniu właściwego pojedynczego koloru; auto-zbieranie wielu kolorów naraz wymaga osobnego passu i nie jest bazowym HUD.
 * Future UI będzie musiało pokazać aktywność takich efektów.
 * Nie jest to bazowy stan HUD stosiku.
 * Auto-collection nie powinna być projektowana jako domyślne zachowanie stosiku bez osobnego passu mechaniki, visual i runtime.
@@ -230,9 +235,10 @@ Checklist przed asset pass:
 - [ ] Jak wygląda `80%`?
 - [ ] Jak wygląda `100%`?
 - [ ] Jak wygląda `Zdeponuj`?
-- [ ] Jak pokazać próbę zebrania innego koloru?
-- [ ] Czy szary pył używa osobnej ikony czy wariantu koloru?
-- [ ] Czy kroki co `10%` wymagają `11` assetów, jednej maski runtime, czy SVG z kontrolą wypełnienia?
+- [ ] Jak pokazać próbę zebrania innego koloru bez tworzenia szarego stosiku HUD?
+- [ ] Jak opisać future pass mieszania kolorów w SUB-META / Kuźni bez projektowania go w tym dokumencie?
+- [ ] Czy kroki co `10%` wymagają wspólnych `10` masek `0–90%`, jednej maski runtime, czy SVG z kontrolą wypełnienia?
+- [ ] Potwierdzić minimalny zakres asset readiness HUD: `1` pusta podstawa/talerzyk, `4` pełne stosiki kolorowe i `10` wspólnych masek `0–90%`; `100%` to pełny stosik bez maski.
 
 ---
 

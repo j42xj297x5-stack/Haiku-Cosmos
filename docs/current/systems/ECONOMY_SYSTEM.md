@@ -193,6 +193,9 @@ To jest kierunek roboczy i wymaga osobnego passu runtime/balance.
 - Wartości są robocze i wymagają przyszłego debug/balance tuningu.
 - Koszty RP, jeśli występują przy rafinacji, pozostają do synchronizacji i balansu.
 - HUD collection nie tworzy flakonów ani kryształów bezpośrednio.
+- Ekonomia pełnych stosików zaczyna się od jednokolorowych stosików z HUD.
+- HUD nie produkuje wielokolorowych stosików.
+- Mieszanie, rafinacja i kombinacje kolorów pyłu są rozstrzygane w Kuźni albo SUB-META, nie podczas szybkiego HUD collection.
 - Szczegóły opisuje `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
 
 

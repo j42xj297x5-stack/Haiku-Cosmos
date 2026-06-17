@@ -8,7 +8,7 @@
 ## RUN HUD
 
 - `HUD_SYSTEM.md` — roboczy kierunek RUN HUD v2 (prawy panel rombów sekwencji + dolne sloty kart specjalnych/eventowych).
-- `DUST_STACK_HUD_VISUAL_CHECKLIST.md` — robocza checklista UI-visual dla HUD stosiku pyłu, maski `0–100%`, stanu `80%`, `100%` i depozytu przed assetami i runtime.
+- `DUST_STACK_HUD_VISUAL_CHECKLIST.md` — robocza checklista UI-visual dla jednokolorowego HUD stosiku pyłu, 4 pełnych kolorów, wspólnych masek `0–90%`, stanu `80%`, `100%` i depozytu przed assetami i runtime.
 
 ## Dokument nadrzędny SUB-META v2
 

@@ -399,6 +399,9 @@ bez wchodzenia w implementację techniczną.
 ### 7A. Nota UI — HUD stosiku pyłu
 
 - HUD pokazuje aktualny stosik pyłu `0–100%`.
+- HUD pyłu jest modelem jednokolorowego zbierania: gracz zbiera jeden kolor pyłu naraz.
+- HUD nie pokazuje kombinacji kolorów jako bazowego modelu.
+- Mieszanie kolorów pyłu zostało przeniesione do SUB-META / Kuźni.
 - Jedna ukończona sekwencja daje `80%` stosiku.
 - Do `100%` potrzebne jest dodatkowe zebranie pyłu tego samego koloru.
 - Postęp może być pokazany maską albo warstwą visual co `10%`.

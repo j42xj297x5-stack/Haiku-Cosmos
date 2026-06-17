@@ -157,8 +157,10 @@ Ten dokument jest roboczym **master specem SUB-META v2**. Jego rolą jest zastą
 ### 6E. Nota synchronizacyjna — pył, Kuźnia i stabilizator slotu
 
 - W SUB-META stabilizator slotu może mieć formy: pył, flakon/naczynie albo kryształ.
-- HUD collection jest ograniczony do stosiku surowego pyłu.
+- HUD collection jest ograniczony do jednokolorowego stosiku surowego pyłu.
+- SUB-META / Kuźnia są właściwym miejscem mieszania kolorów pyłu.
 - Flakon/naczynie i kryształ są produktami Kuźni.
+- Przyszłe UI SUB-META może potrzebować osobnego passu dla mieszania stosików pyłu, ale ten dokument go nie rozstrzyga.
 - Nie zmieniać layout tokens, settings ani runtime na podstawie tej noty.
 - Szczegóły opisuje `../systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
 
