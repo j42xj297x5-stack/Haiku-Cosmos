@@ -53,6 +53,8 @@ assert.equal(byId.get('hud_top_rp_background').mountRole, 'rpBackground', 'RP ba
 assert.equal(byId.get('hud_top_rp_value').mountRole, 'rpText', 'RP value should have an independent normalized mount rect');
 assert.equal(byId.get('hud_top_rp_value').kind, 'text', 'RP value should be a text layout object, not a background image');
 assert.equal(byId.get('hud_top_dust_pile').mountRole, 'dustPile', 'dust pile should have a normalized mount rect');
+assert.equal(byId.get('hud_top_dust_pile').kind, 'hitbox', 'dust pile debug object should not render a baked HUD background asset');
+assert.equal(byId.get('hud_top_dust_pile').asset, null, 'dust pile debug object should not use the reservoir background PNG');
 assert.equal(byId.get('hud_top_dust_reservoir').mountRole, 'dustReservoir', 'dust reservoir should have a normalized mount rect');
 
 for (const id of ['hud_top_button_submeta', 'hud_top_button_settings']) {
@@ -91,6 +93,7 @@ assert(!source.includes('root.localStorage.setItem(STORAGE_KEY'), 'HUD TOP debug
 
 assert(cardsSource.includes('dustPileMountRect'), 'dust pile render should consume normalized HUD TOP mount rect');
 assert(source.includes('dustReservoirMountRect'), 'HUD TOP runtime should export a dust reservoir mount rect');
+assert(source.includes('fallback.id === "hud_top_dust_pile"'), 'HUD TOP runtime should normalize legacy dust pile settings into a background-free hitbox');
 assert(source.includes('rpBackgroundMountRect'), 'HUD TOP runtime should keep RP background separate from RP value');
 assert(!cardsSource.includes('.dustPileHud'), 'dust pile render should not use legacy dustPileHud x/y/scale');
 assert(!/dustPileHud\s*=\s*\{\s*x\s*:/.test(source), 'runtime should not recreate px-only dustPileHud');
