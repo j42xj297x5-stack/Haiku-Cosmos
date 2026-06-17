@@ -14,8 +14,15 @@
     asteroid_03: "glb/asteroid_03.glb",
   });
   const ASTEROID_GLB_DEFAULT_VARIANT = "asteroid_01";
-  const PLANET_GLB_ASSETS = Object.freeze({ planet_01: "glb/planet_01.glb" });
+  const PLANET_GLB_ASSETS = Object.freeze({
+    planet_01: "glb/planet_01.glb",
+    rocky_planet_01: "glb/rocky_planet_01.glb",
+    rocky_planet_02: "glb/rocky_planet_02.glb",
+    rocky_planet_03: "glb/rocky_planet_03.glb",
+    rocky_planet_04: "glb/rocky_planet_04.glb",
+  });
   const PLANET_GLB_DEFAULT_VARIANT = "planet_01";
+  const ROCKY_PLANET_GLB_DEFAULT_VARIANT = "rocky_planet_01";
   const ASTEROID_GLB_RADIUS_SCALE = 0.82;
   const ASTEROID_GLB_DEPTH_SCALE = 1.0;
   const THREE_DEBUG_MARKER_ENABLED = true;
@@ -2290,7 +2297,9 @@
     if (!planet || typeof planet !== "object") return false;
     return planet.visualKind === "planet"
       || planet.assetId === "planet_01.glb"
+      || /^rocky_planet_0[1-4]\.glb$/i.test(String(planet.assetId || ""))
       || planet.visualVariant === PLANET_GLB_DEFAULT_VARIANT
+      || /^rocky_planet_0[1-4]$/i.test(String(planet.visualVariant || ""))
       || planet.kind === "planet"
       || planet.type === "planet"
       || planet.planetKind === "rocky"
@@ -2305,11 +2314,13 @@
   }
 
   function normalizePlanetVisualVariant(planet) {
+    const planetKind = getPlanetKind(planet);
     const requestedVariant = String(planet?.visualVariant || "").replace(/\.glb$/i, "");
     if (PLANET_GLB_ASSETS[requestedVariant]) return requestedVariant;
     const assetId = String(planet?.assetId || "");
     const matchedVariant = Object.keys(PLANET_GLB_ASSETS).find((variant) => PLANET_GLB_ASSETS[variant].endsWith(`/${assetId}`));
-    return matchedVariant || PLANET_GLB_DEFAULT_VARIANT;
+    if (matchedVariant) return matchedVariant;
+    return planetKind === "rocky" ? ROCKY_PLANET_GLB_DEFAULT_VARIANT : PLANET_GLB_DEFAULT_VARIANT;
   }
 
   function getPlanetGlbAssetPath(planet) {
@@ -4507,17 +4518,20 @@
     );
   }
 
+  function disposePlanetGlbInstance(entry) {
+    if (!entry?.glb) return;
+    entry.root?.remove?.(entry.glb);
+    entry.glb.traverse?.((object) => {
+      if (!object.isMesh) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      Array.from(new Set(materials.filter(Boolean))).forEach((material) => material?.dispose?.());
+    });
+    entry.glb = null;
+  }
+
   function disposePlanetVisual(entry) {
     if (!entry) return;
-    if (entry.glb) {
-      entry.root?.remove?.(entry.glb);
-      entry.glb.traverse?.((object) => {
-        if (!object.isMesh) return;
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
-        Array.from(new Set(materials.filter(Boolean))).forEach((material) => material?.dispose?.());
-      });
-      entry.glb = null;
-    }
+    disposePlanetGlbInstance(entry);
     entry.fallback?.material?.dispose?.();
   }
 
@@ -4578,6 +4592,18 @@
         threeState.planetMeshes.set(key, visual);
       }
       visual.planet = planet;
+      const desiredVariant = normalizePlanetVisualVariant(planet);
+      const desiredAssetPath = getPlanetGlbAssetPath(planet);
+      const desiredAssetUrl = resolvePublicAssetPath(desiredAssetPath);
+      if (visual.assetUrl !== desiredAssetUrl) {
+        disposePlanetGlbInstance(visual);
+        visual.assetPath = desiredAssetPath;
+        visual.assetUrl = desiredAssetUrl;
+        visual.visualVariant = desiredVariant;
+        visual.root.userData.glbAssetUrl = desiredAssetUrl;
+        visual.root.userData.visualVariant = desiredVariant;
+        visual.glbStatus = "assigned";
+      }
       const sourceRadius = Number(planet.radius ?? planet.r ?? planet.scale) || 1;
       const renderRadius = applyRenderSpaceToRadius(Math.max(1, sourceRadius));
       const renderPosition = applyRenderSpaceToVector(Number(planet.x) || 0, Number(planet.y) || 0, -0.2);

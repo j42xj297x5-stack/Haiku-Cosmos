@@ -10,6 +10,18 @@
   });
   const PLANET_BASE_VISUAL_VARIANT = "planet_01";
   const PLANET_BASE_ASSET_ID = "planet_01.glb";
+  const ROCKY_PLANET_VISUAL_VARIANTS = Object.freeze([
+    "rocky_planet_01",
+    "rocky_planet_02",
+    "rocky_planet_03",
+    "rocky_planet_04",
+  ]);
+  const ROCKY_PLANET_ASSET_IDS = Object.freeze({
+    rocky_planet_01: "rocky_planet_01.glb",
+    rocky_planet_02: "rocky_planet_02.glb",
+    rocky_planet_03: "rocky_planet_03.glb",
+    rocky_planet_04: "rocky_planet_04.glb",
+  });
   const PLANET_VISUAL_ROTATION_TWO_PI = Math.PI * 2;
 
   function planetRotationUnit(seed, offset) {
@@ -35,11 +47,27 @@
     return body;
   }
 
+  function isRockyPlanet(body) {
+    return body?.planetKind === "rocky" || body?.isRocky === true;
+  }
+
+  function normalizeRockyPlanetVariant(value) {
+    const variant = String(value || "").replace(/\.glb$/i, "");
+    return ROCKY_PLANET_ASSET_IDS[variant] ? variant : null;
+  }
+
   function assignPlanetVisual(body, randomValue) {
     if (!body || typeof body !== "object") return body;
+    const roll = Number.isFinite(randomValue) ? randomValue : Math.random();
+    const rockyVariant = normalizeRockyPlanetVariant(body.visualVariant || body.assetId);
+    const shouldUseRockyPool = isRockyPlanet(body);
+    const visualVariant = shouldUseRockyPool
+      ? (rockyVariant || ROCKY_PLANET_VISUAL_VARIANTS[Math.max(0, Math.min(ROCKY_PLANET_VISUAL_VARIANTS.length - 1, Math.floor(roll * ROCKY_PLANET_VISUAL_VARIANTS.length)))])
+      : PLANET_BASE_VISUAL_VARIANT;
+
     body.visualKind = "planet";
-    body.visualVariant = PLANET_BASE_VISUAL_VARIANT;
-    body.assetId = PLANET_BASE_ASSET_ID;
+    body.visualVariant = visualVariant;
+    body.assetId = shouldUseRockyPool ? ROCKY_PLANET_ASSET_IDS[visualVariant] : PLANET_BASE_ASSET_ID;
 
     const existingSeed = Number(body.visualRotationSeed);
     const seed = Number.isFinite(existingSeed)
@@ -60,6 +88,8 @@
     asteroidAssetIds: ASTEROID_ASSET_IDS,
     planetVariant: PLANET_BASE_VISUAL_VARIANT,
     planetAssetId: PLANET_BASE_ASSET_ID,
+    rockyPlanetVariants: ROCKY_PLANET_VISUAL_VARIANTS,
+    rockyPlanetAssetIds: ROCKY_PLANET_ASSET_IDS,
     assignAsteroidVisual,
     assignPlanetVisual,
   });
