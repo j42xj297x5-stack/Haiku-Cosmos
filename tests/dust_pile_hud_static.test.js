@@ -16,6 +16,14 @@ for (const assetName of [
 }
 
 assert(source.includes('const DUST_PILE_THRESHOLDS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]'), 'all 0-90 mask thresholds should be wired');
+for (const typeName of ['NONE', 'RED', 'YELLOW', 'GREEN', 'BLUE', 'GREY']) {
+  assert(source.includes(typeName), `${typeName} should be supported by dust pile HUD/debug state`);
+}
+
+for (const threshold of [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]) {
+  assert(source.includes(String(threshold)), `${threshold}% should be supported by dust pile HUD/debug state`);
+}
+
 assert(source.includes('`dust_pile_mask_${threshold}`'), 'mask asset names should be generated only from 10% thresholds');
 
 for (const forbidden of [
@@ -33,5 +41,8 @@ assert(source.includes('floorDustPileMaskThreshold'), 'intermediate percentages 
 assert(source.includes('activeType !== type && pile.activeType !== "GREY"'), 'wrong color should switch the active layer to GREY');
 assert(source.includes('pile.percent = Math.max(0, Math.min(100'), 'grey transition should preserve and clamp existing fill instead of resetting');
 assert(source.includes('!model.usesMask'), '100% state should render the full pile without a mask');
+assert(source.includes('setDustPileDebugState'), 'debug/probe setter should be exposed for the dust pile');
+assert(source.includes('setDebugState(debugState)'), 'HC.DustPileHud.setDebugState should be wired');
+assert(source.includes('dustPileHud') && source.includes('positionX') && source.includes('positionY') && source.includes('scale'), 'dust pile position/scale should be configurable and evidenced');
 
 console.log('dust_pile_hud_static.test.js: OK');

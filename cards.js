@@ -98,7 +98,7 @@ const CardEngine = (() => {
   const DUST_PILE_NATIVE_W = 71;
   const DUST_PILE_NATIVE_H = 130;
   const DUST_PILE_THRESHOLDS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90];
-  const DUST_PILE_TYPES = ["RED", "YELLOW", "GREEN", "BLUE", "GREY"];
+  const DUST_PILE_TYPES = ["NONE", "RED", "YELLOW", "GREEN", "BLUE", "GREY"];
   const DUST_PILE_ASSETS = {
     empty: "dust_pile_empty",
     RED: "dust_pile_red_full",
@@ -2918,6 +2918,22 @@ const CardEngine = (() => {
     return Math.floor(safePercent / 10) * 10;
   }
 
+
+  function setDustPileDebugState(World, debugState = {}) {
+    const pile = ensureDustPileState(World);
+    if (!pile) return null;
+    const requestedType = String(debugState.activeType ?? debugState.type ?? pile.activeType ?? "NONE").toUpperCase();
+    const activeType = DUST_PILE_TYPES.includes(requestedType) ? requestedType : "NONE";
+    const percent = activeType === "NONE"
+      ? 0
+      : floorDustPileMaskThreshold(Math.max(0, Math.min(100, Math.floor(Number(debugState.percent ?? pile.percent ?? 0)))));
+    pile.activeType = activeType;
+    pile.percent = percent;
+    const model = getDustPileRenderModel(World);
+    World.dustPileEvidence = Object.assign({}, World.dustPileEvidence || {}, model, { debugOverrideActive: true });
+    return { activeType: pile.activeType, percent: pile.percent, renderModel: model };
+  }
+
   function getDustPileRenderModel(World) {
     preloadDustPileAssets();
     const pile = ensureDustPileState(World);
@@ -2960,12 +2976,18 @@ const CardEngine = (() => {
     const World = state.world;
     if (!World) return;
     const model = getDustPileRenderModel(World);
-    World.dustPileEvidence = { ...model };
-    const scale = layout?.hudAssetScale || 0.5;
+    World.dustPileEvidence = { ...model, positionX: null, positionY: null, scale: null };
+    const hudTopDust = (typeof window !== "undefined" && window.HC?.HudTopLayout?.getLayout)
+      ? window.HC.HudTopLayout.getLayout().dustPileHud
+      : null;
+    const scale = Number(hudTopDust?.scale || layout?.hudAssetScale || 0.5);
     const w = Math.round(DUST_PILE_NATIVE_W * scale);
     const h = Math.round(DUST_PILE_NATIVE_H * scale);
-    const x = Math.max(12, Math.floor((layout?.counterX || screenW - 22) - w - 36));
-    const y = Math.floor(layout?.y0 || 84);
+    const x = Number.isFinite(Number(hudTopDust?.x))
+      ? Math.floor(Number(hudTopDust.x))
+      : Math.max(12, Math.floor((layout?.counterX || screenW - 22) - w - 36));
+    const y = Number.isFinite(Number(hudTopDust?.y)) ? Math.floor(Number(hudTopDust.y)) : Math.floor(layout?.y0 || 84);
+    World.dustPileEvidence = { ...World.dustPileEvidence, positionX: x, positionY: y, scale };
     const emptyEntry = dustPileAssetCache.byName[DUST_PILE_ASSETS.empty];
     const activeEntry = model.activeAsset ? dustPileAssetCache.byName[model.activeAsset] : null;
     const maskEntry = model.maskAsset ? dustPileAssetCache.byName[model.maskAsset] : null;
@@ -6233,6 +6255,7 @@ const CardEngine = (() => {
     onCardCollected,
     preloadDustPileAssets,
     getDustPileRenderModel,
+    setDustPileDebugState,
 
     // Narrow bridge for the DOM SUB-META layer. Stage-one placeholder assignment
     // is exposed explicitly; crafting and legacy cost-based mutations remain private.
@@ -6265,10 +6288,14 @@ if (typeof window !== "undefined") {
   window.HC = window.HC || {};
   if (!window.HC.seqSim) window.HC.seqSim = CardEngine.seqSim || null;
   if (!window.HC.seqSimTests) window.HC.seqSimTests = CardEngine.seqSimTests || null;
-  window.HC.DustPileHud = window.HC.DustPileHud || {
+  window.HC.DustPileHud = Object.assign(window.HC.DustPileHud || {}, {
     preload: CardEngine.preloadDustPileAssets,
     getRenderModel: CardEngine.getDustPileRenderModel,
-  };
+    setDebugState(debugState) {
+      const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
+      return CardEngine.setDustPileDebugState(World, debugState);
+    },
+  });
   CardEngine.preloadDustPileAssets?.();
   window.HC_SEQ_PROBE = window.HC_SEQ_PROBE || {};
   window.HC_SEQ_PROBE.simAAA = CardEngine.seqProbeSimAAA || null;
