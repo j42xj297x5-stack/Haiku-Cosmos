@@ -1,14 +1,125 @@
 {
-  "baseWidth": 1920,
-  "baseHeight": 403,
+  "version": 2,
+  "coordinateSystem": "viewport_normalized",
+  "legacyReference": {
+    "baseWidth": 1920,
+    "baseHeight": 403
+  },
   "elements": [
-    { "id": "hud_top_right", "asset": "png/hud/hud_top_right.png", "x": 1450, "y": 0, "scale": 1, "zIndex": 10, "visible": true },
-    { "id": "hud_top_dust_rp_background", "asset": "png/hud/hud_top_dust_rp_background.png", "x": 1330, "y": 14, "scale": 1, "zIndex": 20, "visible": true },
-    { "id": "hud_top_rp", "asset": "png/hud/hud_top_rp.png", "x": 1545, "y": 82, "scale": 1, "zIndex": 35, "visible": true, "mountRole": "rpText" },
-    { "id": "hud_top_dust_pile", "asset": "png/hud/hud_top_dust_pile.png", "x": 1390, "y": 52, "scale": 1, "zIndex": 32, "visible": true, "mountRole": "dustPile", "interactiveRect": { "id": "dustPile", "role": "dust-pile", "x": 0, "y": 0, "width": 180, "height": 180 } },
-    { "id": "hud_top_submeta", "asset": "png/hud/hud_top_submeta.png", "x": 795, "y": 0, "scale": 1, "zIndex": 40, "visible": true, "interactiveRect": { "id": "openSubMeta", "role": "button", "x": 0, "y": 0, "width": 330, "height": 170 } },
-    { "id": "hud_top_haiku_cosmos_info", "asset": "png/hud/hud_top_haiku_cosmos_info.png", "x": 430, "y": 6, "scale": 1, "zIndex": 25, "visible": true, "mountRole": "info" },
-    { "id": "hud_top_haiku_cosmos_logo", "asset": "png/hud/hud_top_haiku_cosmos_logo.png", "x": 40, "y": 0, "scale": 1, "zIndex": 42, "visible": true, "interactiveRect": { "id": "openSettings", "role": "button", "x": 0, "y": 0, "width": 250, "height": 160 } },
-    { "id": "hud_top_haiku_cosmos_settings", "asset": "png/hud/hud_top_haiku_cosmos_settings.png", "x": 298, "y": 10, "scale": 1, "zIndex": 45, "visible": true, "interactiveRect": { "id": "openSettings", "role": "button", "x": 0, "y": 0, "width": 130, "height": 130 } }
+    {
+      "id": "hud_top_right",
+      "asset": "png/hud/hud_top_right.png",
+      "x": 0.755208,
+      "y": 0.0,
+      "w": 0.244792,
+      "h": 1.0,
+      "zIndex": 10,
+      "visible": true,
+      "interactive": false,
+      "preserveAspect": false
+    },
+    {
+      "id": "hud_top_dust_rp_background",
+      "asset": "png/hud/hud_top_dust_rp_background.png",
+      "x": 0.692708,
+      "y": 0.034739,
+      "w": 0.223958,
+      "h": 0.471464,
+      "zIndex": 20,
+      "visible": true,
+      "interactive": false,
+      "preserveAspect": false
+    },
+    {
+      "id": "hud_top_rp",
+      "asset": "png/hud/hud_top_rp.png",
+      "x": 0.804688,
+      "y": 0.203474,
+      "w": 0.114583,
+      "h": 0.198511,
+      "zIndex": 35,
+      "visible": true,
+      "interactive": false,
+      "preserveAspect": true,
+      "mountRole": "rpText"
+    },
+    {
+      "id": "hud_top_dust_pile",
+      "asset": "png/hud/hud_top_dust_pile.png",
+      "x": 0.723958,
+      "y": 0.129032,
+      "w": 0.09375,
+      "h": 0.44665,
+      "zIndex": 32,
+      "visible": true,
+      "interactive": true,
+      "preserveAspect": true,
+      "mountRole": "dustPile",
+      "interactiveRect": {
+        "id": "dustPile",
+        "role": "dust-pile"
+      }
+    },
+    {
+      "id": "hud_top_submeta",
+      "asset": "png/hud/hud_top_submeta.png",
+      "x": 0.414062,
+      "y": 0.0,
+      "w": 0.171875,
+      "h": 0.421836,
+      "zIndex": 40,
+      "visible": true,
+      "interactive": true,
+      "preserveAspect": true,
+      "interactiveRect": {
+        "id": "openSubMeta",
+        "role": "button"
+      }
+    },
+    {
+      "id": "hud_top_haiku_cosmos_info",
+      "asset": "png/hud/hud_top_haiku_cosmos_info.png",
+      "x": 0.223958,
+      "y": 0.014888,
+      "w": 0.1875,
+      "h": 0.347395,
+      "zIndex": 25,
+      "visible": true,
+      "interactive": false,
+      "preserveAspect": true,
+      "mountRole": "info"
+    },
+    {
+      "id": "hud_top_haiku_cosmos_logo",
+      "asset": "png/hud/hud_top_haiku_cosmos_logo.png",
+      "x": 0.020833,
+      "y": 0.0,
+      "w": 0.130208,
+      "h": 0.397022,
+      "zIndex": 42,
+      "visible": true,
+      "interactive": true,
+      "preserveAspect": true,
+      "interactiveRect": {
+        "id": "openSettings",
+        "role": "button"
+      }
+    },
+    {
+      "id": "hud_top_haiku_cosmos_settings",
+      "asset": "png/hud/hud_top_haiku_cosmos_settings.png",
+      "x": 0.155208,
+      "y": 0.024814,
+      "w": 0.067708,
+      "h": 0.322581,
+      "zIndex": 45,
+      "visible": true,
+      "interactive": true,
+      "preserveAspect": true,
+      "interactiveRect": {
+        "id": "openSettings",
+        "role": "button"
+      }
+    }
   ]
 }

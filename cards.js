@@ -2978,16 +2978,19 @@ const CardEngine = (() => {
     const model = getDustPileRenderModel(World);
     World.dustPileEvidence = { ...model, positionX: null, positionY: null, scale: null };
     const hudTopDust = (typeof window !== "undefined" && window.HC?.HudTopLayout?.getLayout)
-      ? window.HC.HudTopLayout.getLayout().dustPileHud
+      ? window.HC.HudTopLayout.getLayout().dustPileMountRect
       : null;
-    const scale = Number(hudTopDust?.scale || layout?.hudAssetScale || 0.5);
-    const w = Math.round(DUST_PILE_NATIVE_W * scale);
-    const h = Math.round(DUST_PILE_NATIVE_H * scale);
+    const w = Number.isFinite(Number(hudTopDust?.width))
+      ? Math.round(Number(hudTopDust.width))
+      : Math.round(DUST_PILE_NATIVE_W * Number(layout?.hudAssetScale || 0.5));
+    const h = Number.isFinite(Number(hudTopDust?.height))
+      ? Math.round(Number(hudTopDust.height))
+      : Math.round(DUST_PILE_NATIVE_H * Number(layout?.hudAssetScale || 0.5));
     const x = Number.isFinite(Number(hudTopDust?.x))
       ? Math.floor(Number(hudTopDust.x))
       : Math.max(12, Math.floor((layout?.counterX || screenW - 22) - w - 36));
     const y = Number.isFinite(Number(hudTopDust?.y)) ? Math.floor(Number(hudTopDust.y)) : Math.floor(layout?.y0 || 84);
-    World.dustPileEvidence = { ...World.dustPileEvidence, positionX: x, positionY: y, scale };
+    World.dustPileEvidence = { ...World.dustPileEvidence, positionX: x, positionY: y, width: w, height: h };
     const emptyEntry = dustPileAssetCache.byName[DUST_PILE_ASSETS.empty];
     const activeEntry = model.activeAsset ? dustPileAssetCache.byName[model.activeAsset] : null;
     const maskEntry = model.maskAsset ? dustPileAssetCache.byName[model.maskAsset] : null;
