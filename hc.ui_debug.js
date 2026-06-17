@@ -1067,6 +1067,7 @@
         startSaveFileInput.addEventListener("change", async () => {
           const file = startSaveFileInput.files?.[0];
           if (!file) { setStartError("Nie wybrano pliku save."); return; }
+          if (!window.HC?.SaveSystem?.importFile) { setStartError("System zapisu nie został załadowany."); startSaveFileInput.value = ""; return; }
           try { await window.HC.SaveSystem.importFile(currentAlias().trim(), file); rememberAliasAndSession("normal", { visual: { rendererMode: "three" } }); if (startOverlay) startOverlay.hidden = true; setStartError(null); }
           catch (error) { setStartError(window.HC?.SaveSystem?.ERROR_MESSAGE || String(error?.message || error)); console.warn("[HC.SaveSystem] import failed", error); }
           finally { startSaveFileInput.value = ""; }
