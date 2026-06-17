@@ -17,7 +17,8 @@
       "visible": true,
       "interactive": false,
       "preserveAspect": false,
-      "kind": "image"
+      "kind": "image",
+      "debugPreview": false
     },
     {
       "id": "hud_top_dust_rp_background",
@@ -30,7 +31,8 @@
       "visible": true,
       "interactive": false,
       "preserveAspect": false,
-      "kind": "image"
+      "kind": "image",
+      "debugPreview": false
     },
     {
       "id": "hud_top_rp_background",
@@ -44,7 +46,8 @@
       "interactive": false,
       "preserveAspect": true,
       "mountRole": "rpBackground",
-      "kind": "image"
+      "kind": "image",
+      "debugPreview": false
     },
     {
       "id": "hud_top_rp_value",
@@ -58,7 +61,8 @@
       "visible": true,
       "interactive": false,
       "preserveAspect": true,
-      "mountRole": "rpText"
+      "mountRole": "rpText",
+      "debugPreview": false
     },
     {
       "id": "hud_top_dust_pile",
@@ -76,7 +80,8 @@
         "id": "dustPile",
         "role": "dust-pile"
       },
-      "kind": "image"
+      "kind": "image",
+      "debugPreview": false
     },
     {
       "id": "hud_top_dust_reservoir",
@@ -90,7 +95,8 @@
       "interactive": false,
       "preserveAspect": true,
       "mountRole": "dustReservoir",
-      "kind": "image"
+      "kind": "image",
+      "debugPreview": false
     },
     {
       "id": "hud_top_submeta",
@@ -103,19 +109,20 @@
       "visible": true,
       "interactive": false,
       "preserveAspect": true,
-      "kind": "image"
+      "kind": "image",
+      "debugPreview": false
     },
     {
       "id": "hud_top_button_submeta",
       "type": "hitbox",
       "asset": null,
       "kind": "hitbox",
-      "x": 0.49,
-      "y": 0.035,
-      "w": 0.075,
-      "h": 0.105,
+      "x": 0.476,
+      "y": 0.076,
+      "w": 0.068,
+      "h": 0.039,
       "zIndex": 140,
-      "visible": true,
+      "visible": false,
       "interactive": true,
       "debugPreview": true,
       "preserveAspect": false,
@@ -136,7 +143,8 @@
       "interactive": false,
       "preserveAspect": false,
       "mountRole": "info",
-      "kind": "image"
+      "kind": "image",
+      "debugPreview": false
     },
     {
       "id": "hud_top_haiku_cosmos_logo",
@@ -149,7 +157,8 @@
       "visible": true,
       "interactive": false,
       "preserveAspect": true,
-      "kind": "image"
+      "kind": "image",
+      "debugPreview": false
     },
     {
       "id": "hud_top_haiku_cosmos_settings",
@@ -162,7 +171,8 @@
       "visible": true,
       "interactive": false,
       "preserveAspect": true,
-      "kind": "image"
+      "kind": "image",
+      "debugPreview": false
     },
     {
       "id": "hud_top_button_settings",
@@ -170,11 +180,11 @@
       "asset": null,
       "kind": "hitbox",
       "x": 0.098,
-      "y": 0.055,
+      "y": 0.091,
       "w": 0.07,
-      "h": 0.1,
+      "h": 0.037,
       "zIndex": 145,
-      "visible": true,
+      "visible": false,
       "interactive": true,
       "debugPreview": true,
       "preserveAspect": false,
