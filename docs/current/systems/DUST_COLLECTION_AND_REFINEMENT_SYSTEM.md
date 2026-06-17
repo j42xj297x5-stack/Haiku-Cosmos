@@ -28,14 +28,17 @@ Dokument jest wyłącznie dokumentacyjny i nie implementuje runtime.
 
 ## B. Zasada nadrzędna
 
-HUD zbiera tylko surowy pył do stosiku.
+HUD zbiera tylko jeden kolor surowego pyłu naraz do jednego stosiku.
 
 Zasady graniczne:
 
 * HUD nie zbiera bezpośrednio do flakonu/naczynia.
 * HUD nie zbiera bezpośrednio do kryształu.
+* HUD nie obsługuje mieszanek kolorów ani wielokolorowych stosików w bazowym modelu.
+* HUD nie zamienia częściowego stosiku w szary stosik po próbie dodania niewłaściwego koloru.
+* Mieszanie kolorów pyłu odbywa się później w SUB-META / Kuźni.
 * Flakon/naczynie i kryształ są produktami Kuźni.
-* Bazowy HUD na początku gry obsługuje zbieranie stosiku pyłu, a nie produkcję stabilizatorów wyższego rzędu.
+* Bazowy HUD na początku gry obsługuje szybkie zbieranie jednokolorowego stosiku pyłu, a nie produkcję stabilizatorów wyższego rzędu.
 
 ---
 
@@ -70,11 +73,15 @@ Ta sekcja nie tworzy layout tokens, masek, assetów ani finalnego HUD.
 
 ## E. Kolor stosiku
 
-* Stosik może być przypisany do koloru pyłu.
-* Na starcie gracz zbiera jeden kolor naraz.
+* HUD zbiera tylko jeden kolor pyłu naraz.
+* Stosik jest przypisany do jednego z bazowych kolorów pyłu: `RED`, `YELLOW`, `GREEN` albo `BLUE`.
 * Aby dokończyć stosik koloru A, gracz musi zebrać pył koloru A.
-* Mieszanie kolorów i szary pył pozostają osobnym balansem/ekonomią, jeśli opisują je inne dokumenty.
-* Tej decyzji nie należy automatycznie rozszerzać na multi-color HUD bez osobnego passu.
+* Bazowy HUD nie obsługuje mieszanek kolorów.
+* Bazowy HUD nie obsługuje wielokolorowych stosików.
+* Bazowy HUD nie tworzy szarego stosiku przez błędne dodanie innego koloru do częściowego stosiku.
+* Próba zebrania innego koloru przy aktywnym stosiku powinna być w przyszłości ostrzeżona, zablokowana albo przekierowana do osobnej decyzji, ale nie miesza zawartości HUD.
+* Mieszanie kolorów pyłu, kombinacje i ewentualny szary pył są tematem SUB-META / Kuźni, czyli spokojniejszej warstwy decyzji i alchemii.
+* Dawne pomysły multi-color collection w HUD należy traktować jako future/legacy idea, nie bazowy model HUD.
 
 ---
 
@@ -121,7 +128,7 @@ Future direction:
 * Późniejsze karty specjalne mogą zwiększać ilość zbieranego pyłu.
 * Jedna karta specjalna może zwiększać procent przyrostu stosiku.
 * Inna karta specjalna może automatycznie zbierać pył, gdy pojawia się chmurka.
-* Kolejne warianty mogą umożliwiać auto-zbieranie jednego, dwóch albo trzech kolorów.
+* Kolejne warianty mogą pomagać w wyborze albo automatycznym zebraniu właściwego pojedynczego koloru; auto-collection wielu kolorów naraz jest future/legacy idea i nie należy do bazowego HUD.
 * Te efekty nie są bazowym HUD, tylko rozszerzeniami z wiedzy/umiejętności.
 
 ---
@@ -135,5 +142,5 @@ Ten dokument:
 * nie definiuje finalnych kosztów Kuźni,
 * nie zmienia runtime,
 * nie zmienia JSON/settings,
-* nie rozstrzyga finalnego multi-color collection,
+* nie rozstrzyga finalnego UI mieszania kolorów w SUB-META / Kuźni,
 * nie rozstrzyga finalnego visual zasobnika.

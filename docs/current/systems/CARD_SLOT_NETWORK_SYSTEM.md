@@ -1150,7 +1150,7 @@ RED    = zderzenie dwóch czerwonych meteorów
 YELLOW = zderzenie dwóch żółtych meteorów
 GREEN  = zderzenie dwóch zielonych meteorów
 BLUE   = zderzenie dwóch niebieskich meteorów
-GREY   = zderzenie meteorów różnych kolorów albo mieszanie pyłu w HUD
+GREY   = zderzenie meteorów różnych kolorów albo future mieszanie pyłu w SUB-META / Kuźni; nie bazowe mieszanie w HUD
 ```
 
 ### 25.2. Chmurka pyłu
@@ -1187,7 +1187,7 @@ Wartości muszą być skalowalne w debug.
 
 Na początku gry gracz może zbierać tylko jeden kolor pyłu naraz.
 
-Jeśli gracz zbiera kolor A, nie może w tym samym czasie zebrać koloru B do tego samego zasobnika bez zmieszania.
+Jeśli gracz zbiera kolor A, bazowy HUD nie przyjmuje koloru B do tego samego stosiku; próba innego koloru wymaga ostrzeżenia, blokady albo osobnej przyszłej decyzji, ale nie miesza stosiku w HUD.
 
 ### 26.2. Zasobnik HUD
 
@@ -1215,9 +1215,9 @@ Wartości deponowania pyłu, jeśli wrócą do runtime, muszą być skalowalne w
 
 ### 26.4. Mieszanie pyłu
 
-Jeśli podczas zbierania koloru A gracz dołoży do zasobnika kolor B, zawartość staje się pyłem szarym.
+DO AKTUALIZACJI / LEGACY IDEA względem `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`: bazowy HUD nie miesza kolorów i nie zamienia częściowego stosiku w szary stosik po dodaniu innego koloru. Mieszanie kolorów pyłu jest przeniesione do SUB-META / Kuźni.
 
-Szary pył służy do:
+Szary pył, jeśli zostanie utrzymany w przyszłym balansie Kuźni, służy do:
 
 * tworzenia naczyń pyłowych,
 * tworzenia kryształów,

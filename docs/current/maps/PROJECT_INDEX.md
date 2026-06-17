@@ -30,7 +30,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/systems/CARDS_SYSTEM.md` (KANON)
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU) - roboczy system sieci slotów kart, wzmocnień, trwałości, pyłu, napięć, blizn i naprawy slotów.
 - `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - lista decyzji i zależności do zamknięcia przed pierwszym runtime pass CARD SLOT NETWORK.
-- `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - pętla zbierania i rafinacji pyłu: HUD zbiera tylko surowy pył do stosiku, Magazyn przechowuje stosiki, Kuźnia tworzy flakon/naczynie i kryształ.
+- `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - pętla zbierania i rafinacji pyłu: HUD zbiera tylko jeden kolor surowego pyłu do stosiku, Magazyn przechowuje stosiki, a mieszanie kolorów oraz rafinacja do flakonu/naczynia i kryształu należą do SUB-META / Kuźni.
 - `docs/current/systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
 - `docs/current/systems/ECONOMY_SYSTEM.md` (KANON)
 - `docs/current/systems/SUB_META_SYSTEM.md` (KANON)
@@ -45,7 +45,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/ui/SUB_META_RUNTIME_SNAPSHOT.md` (AKTYWNY SNAPSHOT RUNTIME / PNG + SETTINGS + PLACEHOLDERS + PANELS + DEBUG)
 - `docs/current/ui/SUB_META_V2_MASTER_SPEC.md` (ROBOCZY / MASTER SPEC UI-LAYOUT)
 - `docs/current/ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` (ROBOCZY / CHECKLISTA UI-VISUAL) - checklista stanów i czytelności visual/UI dla czteroelementowego slotu przed layout tokens.
-- `docs/current/ui/DUST_STACK_HUD_VISUAL_CHECKLIST.md` (ROBOCZY / CHECKLISTA UI-VISUAL) - checklista HUD stosiku pyłu: ikona, kolor, maska `0–100%`, `80%`, `100%`, depozyt i relacje do Magazynu/Kuźni.
+- `docs/current/ui/DUST_STACK_HUD_VISUAL_CHECKLIST.md` (ROBOCZY / CHECKLISTA UI-VISUAL) - checklista HUD stosiku pyłu: jeden aktywny kolor, 4 pełne stosiki kolorowe, wspólne maski `0–90%`, `100%`, depozyt i relacje do Magazynu/Kuźni.
 - `docs/current/ui/CARD_DURABILITY_VISUAL_DECISION.md` (ROBOCZY / DOKUMENT DECYZYJNY UI-VISUAL) - porównanie wariantów A/B/C visual trwałości karty R przed wireframe i runtime.
 - `docs/current/ui/CARD_DURABILITY_WIREFRAME_PASS.md` (ROBOCZY / WIREFRAME UI) - minimalny wireframe wariantu C dla paska, degradacji i debug procentu karty R.
 - `docs/current/ui/CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md` (ROBOCZY / CHECKLISTA GOTOWOŚCI) - minimalne pola, ID, stany i zależności przed przyszłym layout-token pass dla visual trwałości karty R.

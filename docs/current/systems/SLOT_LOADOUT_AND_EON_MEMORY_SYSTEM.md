@@ -82,9 +82,11 @@ Dotychczasowy sens DS jako „Dodatkowego Slotu” jest historycznym/technicznym
 ### E1. Nota synchronizacyjna — stabilizator a HUD collection
 
 - Slot stabilizatora może przyjmować pył, flakon/naczynie albo kryształ.
-- HUD zbiera tylko surowy pył do stosiku.
+- HUD zbiera tylko jeden kolor surowego pyłu naraz do stosiku.
+- Sloty mogą wymagać stabilizatorów o określonych kolorach albo kombinacjach, ale kombinacje te nie powstają w HUD.
+- Gracz najpierw zbiera jednokolorowe stosiki pyłu, a dopiero później miesza albo przetwarza je w SUB-META / Kuźni.
 - Flakon/naczynie i kryształ są rafinowane w Kuźni, nie zbierane bezpośrednio w HUD.
-- Karty specjalne mogą w przyszłości rozszerzać sposób zbierania pyłu.
+- Karty specjalne mogą w przyszłości rozszerzać sposób zbierania pyłu bez zmiany bazowej zasady jednokolorowego HUD collection.
 - Szczegóły pętli opisuje `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
 
 
