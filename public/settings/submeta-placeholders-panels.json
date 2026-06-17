@@ -15,7 +15,7 @@
       "h": 0.235,
       "zIndex": 210,
       "visibleInDebug": true,
-      "visibleInGame": false,
+      "visibleInGame": true,
       "gridColumns": 10,
       "gridRowsVisible": 3,
       "cardRatioW": 9,
@@ -103,7 +103,7 @@
       "h": 0.206,
       "zIndex": 210,
       "visibleInDebug": true,
-      "visibleInGame": false,
+      "visibleInGame": true,
       "gridColumns": 3,
       "gridRowsVisible": 2,
       "cardRatioW": 9,
@@ -152,7 +152,7 @@
       "h": 0.206,
       "zIndex": 210,
       "visibleInDebug": true,
-      "visibleInGame": false,
+      "visibleInGame": true,
       "gridColumns": 3,
       "gridRowsVisible": 2,
       "cardRatioW": 9,
@@ -201,7 +201,7 @@
       "h": 0.288,
       "zIndex": 210,
       "visibleInDebug": true,
-      "visibleInGame": false
+      "visibleInGame": true
     },
     {
       "id": "detail.preview_card",
