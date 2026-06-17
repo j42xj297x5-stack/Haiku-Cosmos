@@ -106,7 +106,24 @@
     }
   }
   function openSubMeta() { const World = (root.HC.getWorld && root.HC.getWorld()) || root.World; if (World && !World.subMetaOpen) { World.subMetaOpen = true; World.paused = true; } }
-  function toggleSettingsPopup(el) { if (!settingsPopup) settingsPopup = document.getElementById("hudTopSettingsPopup"); if (!settingsPopup) return; const r = screenRect(el); settingsPopup.hidden = !settingsPopup.hidden; settingsPopup.style.left = `${Math.max(8, r.x)}px`; settingsPopup.style.top = `${r.y + r.height + 8}px`; }
+  function toggleSettingsPopup(el) { if (!settingsPopup) settingsPopup = document.getElementById("hudTopSettingsPopup"); if (!settingsPopup) return; const r = screenRect(el); settingsPopup.hidden = !settingsPopup.hidden; settingsPopup.style.left = `${Math.max(8, r.x)}px`; settingsPopup.style.top = `${r.y + r.height + 8}px`; updateSettingsPanel(); }
+
+  function updateSettingsPanel() {
+    const alias = root.HC.PlayerAlias || "—";
+    const aliasNode = document.getElementById("hudActiveAlias"); if (aliasNode) aliasNode.textContent = alias;
+    const renderer = document.getElementById("hudRendererMode"); if (renderer) renderer.value = root.HC.RENDER_MODE === "canvas2d" ? "canvas2d" : "three";
+  }
+  async function exportSaveFromHud() {
+    const status = document.getElementById("hudSettingsStatus");
+    try { await root.HC.SaveSystem.exportToDownload(root.HC.PlayerAlias || ""); if (status) status.textContent = "Save pobrany."; }
+    catch (error) { if (status) status.textContent = error?.message || "Nie udało się zapisać gry."; console.warn("[HC.SaveSystem] HUD export failed", error); }
+  }
+  async function importSaveFromHud(file) {
+    const status = document.getElementById("hudSettingsStatus");
+    try { await root.HC.SaveSystem.importFile(root.HC.PlayerAlias || "", file); if (status) status.textContent = "Save wczytany."; }
+    catch (error) { if (status) status.textContent = root.HC.SaveSystem?.ERROR_MESSAGE || String(error?.message || error); console.warn("[HC.SaveSystem] HUD import failed", error); }
+  }
+
   async function loadRuntimeLayout() {
     const logicalPath = SETTINGS_PATH;
     const resolvedUrl = resolveSettingsUrl();
@@ -134,7 +151,7 @@
   function importLayout(raw) { lastAction = "imported JSON"; return setLayout(JSON.parse(String(raw || "{}"))); }
   function getExportJson() { return `${JSON.stringify(layout, null, 2)}\n`; }
   function setRpValue(value) { if (rpText) rpText.textContent = String(Math.max(0, Math.min(9999, Math.floor(Number(value) || 0)))); }
-  function init() { if (initialized) return; stage = document.getElementById("hudTopStage"); layer = document.getElementById("hudTopLayer"); rpText = document.getElementById("scoreLabel"); settingsPopup = document.getElementById("hudTopSettingsPopup"); if (!stage || !layer || !rpText) return; initialized = true; root.addEventListener("resize", applyLayout); document.getElementById("hudTopSettingsClose")?.addEventListener("click", () => { settingsPopup.hidden = true; }); void loadRuntimeLayout(); }
+  function init() { if (initialized) return; stage = document.getElementById("hudTopStage"); layer = document.getElementById("hudTopLayer"); rpText = document.getElementById("scoreLabel"); settingsPopup = document.getElementById("hudTopSettingsPopup"); if (!stage || !layer || !rpText) return; initialized = true; root.addEventListener("resize", applyLayout); document.getElementById("hudTopSettingsClose")?.addEventListener("click", () => { settingsPopup.hidden = true; }); document.getElementById("hudSaveGame")?.addEventListener("click", exportSaveFromHud); document.getElementById("hudLoadGame")?.addEventListener("click", () => document.getElementById("hudSaveFileInput")?.click()); document.getElementById("hudSaveFileInput")?.addEventListener("change", (e) => { const file = e.target.files?.[0]; if (file) void importSaveFromHud(file); e.target.value = ""; }); document.getElementById("hudRendererMode")?.addEventListener("change", (e) => { const mode = e.target.value === "canvas2d" ? "canvas2d" : "three"; root.HC.RENDER_MODE = mode; root.HC.WorldRenderer?.setMode?.(mode); updateSettingsPanel(); }); void loadRuntimeLayout(); }
   function updateField(field, raw) { const el = getElement(selectedHudTopElement); if (!el) return false; if (field === "visible" || field === "preserveAspect") el[field] = !!raw; else el[field] = field === "zIndex" ? Math.round(Number(raw)) : Number(raw); setLayout(layout); return true; }
   function renderDebugHtml(options = {}) {
     const selected = getElement(selectedHudTopElement) || layout.elements[0]; const opts = layout.elements.map((e) => `<option value="${e.id}"${e.id === selected.id ? " selected" : ""}>${e.id}</option>`).join("");
