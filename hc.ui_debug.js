@@ -10,6 +10,12 @@
   let startOverlay = null;
   let btnStartNormal = null;
   let btnStartDebug = null;
+  let btnLoadSave = null;
+  let playerAliasInput = null;
+  let loaderProgressLabel = null;
+  let startStatus = null;
+  let startSaveFileInput = null;
+  let criticalAssetsReady = false;
   let btnStartDebugSession = null;
   let btnDebugBack = null;
   let btnDebugResetDefaults = null;
@@ -597,6 +603,11 @@
       startOverlay = document.getElementById("startOverlay");
       btnStartNormal = document.getElementById("btnStartNormal");
       btnStartDebug = document.getElementById("btnStartDebug");
+      btnLoadSave = document.getElementById("btnLoadSave");
+      playerAliasInput = document.getElementById("playerAliasInput");
+      loaderProgressLabel = document.getElementById("loaderProgressLabel");
+      startStatus = document.getElementById("startStatus");
+      startSaveFileInput = document.getElementById("startSaveFileInput");
       btnStartDebugSession = document.getElementById("btnStartDebugSession");
       btnDebugBack = document.getElementById("btnDebugBack");
       btnDebugResetDefaults = document.getElementById("btnDebugResetDefaults");
@@ -947,6 +958,33 @@
         World.r1HudPulse = null;
       }
 
+
+      const lastAlias = (() => { try { return localStorage.getItem("hc.playerAlias.last") || ""; } catch (_e) { return ""; } })();
+      if (playerAliasInput && lastAlias) playerAliasInput.value = lastAlias;
+      function currentAlias() { return String(playerAliasInput?.value || ""); }
+      function refreshStartButtons() {
+        const hasAlias = currentAlias().trim().length > 0;
+        if (btnStartNormal) btnStartNormal.disabled = !criticalAssetsReady || !hasAlias;
+        if (btnLoadSave) btnLoadSave.disabled = !criticalAssetsReady || !hasAlias;
+        if (btnStartDebug) btnStartDebug.hidden = currentAlias() !== "debug";
+      }
+      playerAliasInput?.addEventListener("input", () => { refreshStartButtons(); });
+      window.HC?.AssetLoader?.onProgress?.((p) => {
+        if (p.phase !== "critical") return;
+        if (loaderProgressLabel) loaderProgressLabel.textContent = `Loader Phase 1: ${p.loaded}/${p.total} loaded, ${p.failed} failed${p.current ? ` — ${p.current}` : ""}`;
+      });
+      window.HC?.AssetLoader?.loadCritical?.().then((p) => {
+        criticalAssetsReady = true;
+        if (loaderProgressLabel) loaderProgressLabel.textContent = `Loader Phase 1 complete: ${p.loaded}/${p.total}, failed: ${p.failed}`;
+        refreshStartButtons();
+      }).catch((error) => {
+        criticalAssetsReady = true;
+        console.warn("[HC.UI] critical loader defensive fallback", error);
+        if (loaderProgressLabel) loaderProgressLabel.textContent = "Loader Phase 1 fallback — check console/debug evidence";
+        refreshStartButtons();
+      });
+      refreshStartButtons();
+
       if (btnRestart && window.resetWorld) {
         btnRestart.addEventListener("click", () => {
           if (window.HC?.Session?.restart) {
@@ -958,10 +996,36 @@
           updateScoreLabel(refreshedWorld, true);
         });
       }
+      function rememberAliasAndSession(mode, config) {
+        const alias = currentAlias();
+        try { localStorage.setItem("hc.playerAlias.last", alias); } catch (_e) {}
+        window.HC.PlayerAlias = alias;
+        window.HC.SubMetaMode = "png-v2";
+        window.HC.RENDER_MODE = config?.visual?.rendererMode === "canvas2d" ? "canvas2d" : "three";
+        if (window.HC?.Session?.start) window.HC.Session.start(mode, config || null);
+        window.HC?.AssetLoader?.loadBackground?.().then((p) => console.info("[HC.AssetLoader] background phase complete", p));
+      }
       if (btnStartNormal) {
         btnStartNormal.addEventListener("click", () => {
-          if (window.HC?.Session?.start) window.HC.Session.start("normal");
+          if (!criticalAssetsReady || !currentAlias().trim()) return;
+          if (currentAlias() === "debug") {
+            if (debugConfigPanel) debugConfigPanel.hidden = false;
+            if (btnStartDebug) btnStartDebug.hidden = false;
+            return;
+          }
+          rememberAliasAndSession("normal", { visual: { rendererMode: "three" } });
           if (startOverlay) startOverlay.hidden = true;
+        });
+      }
+      if (btnLoadSave) {
+        btnLoadSave.addEventListener("click", () => { if (criticalAssetsReady && currentAlias().trim()) startSaveFileInput?.click(); });
+      }
+      if (startSaveFileInput) {
+        startSaveFileInput.addEventListener("change", async () => {
+          const file = startSaveFileInput.files?.[0]; if (!file) return;
+          try { rememberAliasAndSession("normal", { visual: { rendererMode: "three" } }); await window.HC.SaveSystem.importFile(currentAlias(), file); if (startOverlay) startOverlay.hidden = true; }
+          catch (error) { if (startStatus) startStatus.textContent = window.HC?.SaveSystem?.ERROR_MESSAGE || String(error?.message || error); console.warn("[HC.SaveSystem] import failed", error); }
+          finally { startSaveFileInput.value = ""; }
         });
       }
       if (btnStartDebug) {
@@ -980,7 +1044,8 @@
       if (btnStartDebugSession) {
         btnStartDebugSession.addEventListener("click", () => {
           const config = buildDebugConfigFromUi();
-          if (window.HC?.Session?.start) window.HC.Session.start("debug", config);
+          config.visual = Object.assign({}, config.visual, { rendererMode: "three" });
+          rememberAliasAndSession("debug", config);
           if (startOverlay) startOverlay.hidden = true;
         });
       }

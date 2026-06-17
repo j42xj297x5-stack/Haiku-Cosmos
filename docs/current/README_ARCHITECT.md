@@ -233,3 +233,15 @@ Stare canvasowe SUB-META, FrameComposer, Figma oraz wcześniejsze specyfikacje/w
 - FrameComposer i Figma są legacy/reference dla runtime SUB-META; nie planować ich integracji jako aktywnej ścieżki bez nowej decyzji architektonicznej.
 - Snapshot renderer/debug 2026-06-05 utrwala Three + `stage_normalized` + `stage_spot_v1` + compact logging oraz snapshot Three GLB + external meteor textures; nie zmienia mechaniki, kolizji, asteroid mechanics, PRG, SUB-META ani ekonomii.
 - `SUB_META_MEMORY_PACK.md` istnieje jako helper, ale ten plik jest głównym startem rozmowy z architektem.
+
+## Runtime continuity: loader, offline save, renderer defaults (2026-06-17)
+
+- Runtime start uses `HC.AssetLoader` as a central asset registry with two phases. Phase 1 (`critical`) is blocking and preloads HUD TOP, runtime SUB-META PNG/settings/placeholders/panels, R1 SVG/PNG cards, meteor GLB/texture assets, comet assets when present, and the first asteroid GLB set. Missing critical assets are logged as visible console/debug evidence and the game continues with defensive runtime fallbacks where existing systems support them.
+- Phase 2 (`background`) starts after the player enters a session and loads non-blocking assets: remaining/background celestial bodies, planets/moons, R2/R3/R4 card SVG/PNG assets, and extra SUB-META assets. The loader keeps an in-memory `Map` cache keyed by asset id and never starts duplicate loads for the same id.
+- Offline continuity is browser-only. `HC.SaveSystem` exports a downloaded encrypted JSON envelope using Web Crypto PBKDF2 + AES-GCM. The player alias/imię/ksywa is the passphrase; the alias itself and the derived key are not stored in the save file or localStorage. localStorage may remember only the last alias text for convenience.
+- Save encryption is a casual anti-edit layer, not security-grade anti-cheat. A technical user with runtime access can still inspect or alter client state before saving.
+- Import reads a local file via browser file input/FileReader and decrypts with the current alias. Wrong alias or invalid file must show: `Nie udało się odczytać pliku. Sprawdź alias/imię albo plik save.` and must not crash the game.
+- Alias exactly `debug` enters the debug flow without requiring a save file. Debug remains gated by the start overlay alias and may load/test selected asset groups through the loader/debug controls; normal players do not see the debug panel.
+- Default renderer for normal and debug sessions is Three.js. Canvas2D remains a manual/legacy fallback via settings/debug only.
+- Default SUB-META runtime is the new PNG v2 path. Legacy/canvas SUB-META is fallback/debug/reference only and must not become the desktop or mobile GitHub Pages default.
+- Runtime public assets must continue to resolve through `HC.publicPath` / `HC.publicAssetPath`, preserving both Vite local paths and the GitHub Pages `/Haiku-Cosmos/` base.
