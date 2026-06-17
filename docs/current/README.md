@@ -70,6 +70,7 @@ Ten katalog zawiera aktualną dokumentację projektu.
 
 ### 5) technical
 - `technical/README.md` - **ROBOCZY** - mapa dokumentów technicznych.
+- `technical/DEBUG_SETTINGS_STANDARD.md` - **ROBOCZY / STANDARD TECHNICZNY DEBUG SETTINGS** - standard ładowania, importu i exportu ustawień debug/layout przez `public/settings/*.json` oraz mini panele debug.
 - `technical/WORLD_FUNCTION_MAP.md` - **ROBOCZY** - orientacyjna mapa runtime.
 - `technical/WORLD_RENDERING_MODEL.md` - **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** - audyt i etapowy plan migracji renderingu świata pod adapter Three.js/WebGL z fallbackiem Canvas2D; zawiera aktualny snapshot Three GLB + external meteor textures: aktywny `GLTFLoader` dla meteorów/asteroid, GLB cache template/clone, cache PNG `map`/`emissiveMap` dla czerwonych i żółtych meteorów oraz zasadę nienadpisywania imported map GLB.
 - `technical/CARD_VISUAL_ARCHITECTURE.md` - **ROBOCZY** - architektura card visuals i granic runtime.

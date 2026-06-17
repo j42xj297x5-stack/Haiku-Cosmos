@@ -35,6 +35,9 @@
 
   function cloneLayout(source) { return JSON.parse(JSON.stringify(source)); }
   function publicAssetPath(path) { const h = root.HC && (root.HC.publicAssetPath || root.HC.publicPath); return typeof h === "function" ? h(path) : path; }
+  function resolveSettingsUrl() {
+    return publicAssetPath(SETTINGS_PATH);
+  }
   function viewportSize() { return { width: Math.max(1, Number(root.innerWidth) || document.documentElement?.clientWidth || LEGACY_BASE_WIDTH), height: Math.max(1, Number(root.innerHeight) || document.documentElement?.clientHeight || LEGACY_BASE_HEIGHT) }; }
   function clampNumber(value, min, max, fallback) { const x = Number(value); return Number.isFinite(x) ? Math.max(min, Math.min(max, x)) : fallback; }
   function normalize01(value, fallback) { return clampNumber(value, 0, 1, fallback); }
@@ -105,13 +108,29 @@
   function openSubMeta() { const World = (root.HC.getWorld && root.HC.getWorld()) || root.World; if (World && !World.subMetaOpen) { World.subMetaOpen = true; World.paused = true; } }
   function toggleSettingsPopup(el) { if (!settingsPopup) settingsPopup = document.getElementById("hudTopSettingsPopup"); if (!settingsPopup) return; const r = screenRect(el); settingsPopup.hidden = !settingsPopup.hidden; settingsPopup.style.left = `${Math.max(8, r.x)}px`; settingsPopup.style.top = `${r.y + r.height + 8}px`; }
   async function loadRuntimeLayout() {
-    try { const res = await fetch(publicAssetPath(SETTINGS_PATH), { cache: "no-store" }); if (res.ok) { layout = sanitizeLayout(await res.json()); lastAction = "loaded normalized settings/hud-top-layout.json"; } } catch (_e) { lastAction = "settings fallback"; }
-    try { const stored = JSON.parse(root.localStorage.getItem(STORAGE_KEY) || root.localStorage.getItem(LEGACY_STORAGE_KEY) || "null"); if (stored) { layout = sanitizeLayout(stored); lastAction = "loaded localStorage"; } } catch (_e) {}
+    const logicalPath = SETTINGS_PATH;
+    const resolvedUrl = resolveSettingsUrl();
+    let status = null;
+    try {
+      const res = await fetch(resolvedUrl, { cache: "no-store" });
+      status = res.status;
+      if (res.ok) {
+        layout = sanitizeLayout(await res.json());
+        lastAction = `loaded ${logicalPath}`;
+        console.info("[HC.HudTopLayout] settings loaded successfully", { logicalPath, resolvedUrl, status, fallbackUsed: false });
+      } else {
+        lastAction = "settings fallback";
+        console.warn("[HC.HudTopLayout] settings fetch failed; fallback used", { logicalPath, resolvedUrl, status, fallbackUsed: true });
+      }
+    } catch (error) {
+      lastAction = "settings fallback";
+      console.warn("[HC.HudTopLayout] settings load failed; fallback used", { logicalPath, resolvedUrl, status, fallbackUsed: true, error });
+    }
     applyLayout();
   }
-  function setLayout(next, options = {}) { layout = sanitizeLayout(next); applyLayout(); if (options.persist !== false) root.localStorage.setItem(STORAGE_KEY, JSON.stringify(layout)); return getLayout(); }
+  function setLayout(next) { layout = sanitizeLayout(next); applyLayout(); return getLayout(); }
   function getLayout() { const out = cloneLayout(layout); out.rpMountRect = mountFor("rpText"); out.dustPileMountRect = mountFor("dustPile"); return out; }
-  function resetLayout() { root.localStorage.removeItem(STORAGE_KEY); layout = cloneLayout(DEFAULT_LAYOUT); lastAction = "reset defaults"; applyLayout(); return getLayout(); }
+  function resetLayout() { layout = cloneLayout(DEFAULT_LAYOUT); lastAction = "reset fallback defaults"; void loadRuntimeLayout(); applyLayout(); return getLayout(); }
   function importLayout(raw) { lastAction = "imported JSON"; return setLayout(JSON.parse(String(raw || "{}"))); }
   function getExportJson() { return `${JSON.stringify(layout, null, 2)}\n`; }
   function setRpValue(value) { if (rpText) rpText.textContent = String(Math.max(0, Math.min(9999, Math.floor(Number(value) || 0)))); }
@@ -125,9 +144,9 @@
       <div class="overlay-row"><span class="k">coordinateSystem</span><span class="v">${COORDINATE_SYSTEM}</span></div><div class="overlay-row"><span class="k">viewport px</span><span class="v">${Math.round(viewportSize().width)}×${Math.round(viewportSize().height)}</span></div>
       <label class="hud-top-debug-row"><span>element</span><select data-hud-top-action="select">${opts}</select></label>${row("x", "x", 0, 1, 0.001)}${row("y", "y", 0, 1, 0.001)}${row("w", "w", 0, 1, 0.001)}${row("h", "h", 0, 1, 0.001)}${row("zIndex", "zIndex", -1000, 10000, 1)}
       <label class="hud-top-debug-row"><span>visible</span><input type="checkbox" data-hud-top-field="visible"${selected.visible ? " checked" : ""}></label><label class="hud-top-debug-row"><span>preserveAspect</span><input type="checkbox" data-hud-top-field="preserveAspect"${selected.preserveAspect ? " checked" : ""}></label>
-      <div class="overlay-row"><span class="k">selected px</span><code class="v">${Math.round(px.x)}, ${Math.round(px.y)}, ${Math.round(px.width)}×${Math.round(px.height)}</code></div><textarea class="overlay-note hud-top-json" data-hud-top-json>${getExportJson().replaceAll("&","&amp;").replaceAll("<","&lt;")}</textarea><div class="hud-top-debug-actions"><button class="overlay-btn" type="button" data-hud-top-action="copy">Copy JSON</button><button class="overlay-btn" type="button" data-hud-top-action="download">Download JSON</button><button class="overlay-btn" type="button" data-hud-top-action="import">Import JSON</button><button class="overlay-btn" type="button" data-hud-top-action="reset">Reset defaults</button></div><div class="overlay-row"><span class="k">last action</span><code class="v">${lastAction}</code></div></div></details>`;
+      <div class="overlay-row"><span class="k">selected px</span><code class="v">${Math.round(px.x)}, ${Math.round(px.y)}, ${Math.round(px.width)}×${Math.round(px.height)}</code></div><textarea class="overlay-note hud-top-json" data-hud-top-json>${getExportJson().replaceAll("&","&amp;").replaceAll("<","&lt;")}</textarea><div class="hud-top-debug-actions"><button class="overlay-btn" type="button" data-hud-top-action="export">Export JSON</button><button class="overlay-btn" type="button" data-hud-top-action="import">Import JSON</button><button class="overlay-btn" type="button" data-hud-top-action="reset">Reset defaults</button></div><div class="overlay-row"><span class="k">settings source</span><code class="v">${SETTINGS_PATH}</code></div><div class="overlay-row"><span class="k">last action</span><code class="v">${lastAction}</code></div></div></details>`;
   }
-  function handleDebugControl(target) { if (!target) return false; const action = target.dataset?.hudTopAction; const field = target.dataset?.hudTopField; if (action === "select") { selectedHudTopElement = target.value; return true; } if (field) return updateField(field, target.type === "checkbox" ? target.checked : target.value); if (action === "copy") void root.navigator?.clipboard?.writeText?.(getExportJson()); else if (action === "download") { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([getExportJson()], { type: "application/json" })); a.download = "hud-top-layout.json"; a.click(); } else if (action === "import") importLayout(target.closest(".hud-top-debug")?.querySelector("[data-hud-top-json]")?.value || "{}"); else if (action === "reset") resetLayout(); else return false; return true; }
+  function handleDebugControl(target) { if (!target) return false; const action = target.dataset?.hudTopAction; const field = target.dataset?.hudTopField; if (action === "select") { selectedHudTopElement = target.value; return true; } if (field) return updateField(field, target.type === "checkbox" ? target.checked : target.value); if (action === "export") { const textarea = target.closest(".hud-top-debug")?.querySelector("[data-hud-top-json]"); if (textarea) textarea.value = getExportJson(); lastAction = "exported JSON"; } else if (action === "import") importLayout(target.closest(".hud-top-debug")?.querySelector("[data-hud-top-json]")?.value || "{}"); else if (action === "reset") resetLayout(); else return false; return true; }
   function getDebugState() { return { enabled: true, coordinateSystem: COORDINATE_SYSTEM, viewport: viewportSize(), elementsCount: layout.elements.length, selectedHudTopElement, dustPileMountRect: mountFor("dustPile"), rpMountRect: mountFor("rpText") }; }
 
   root.HC.HudTopLayout = { LAYOUT_VERSION, COORDINATE_SYSTEM, STORAGE_KEY, SETTINGS_PATH, REQUIRED_IDS, DEFAULT_LAYOUT: cloneLayout(DEFAULT_LAYOUT), init, getLayout, setLayout, resetLayout, importLayout, getExportJson, setRpValue, renderDebugHtml, handleDebugControl, sanitizeLayout, getDebugState };

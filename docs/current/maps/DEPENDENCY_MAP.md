@@ -78,8 +78,8 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 - Runtime: `hc.submeta_png.js` -> `hc.submeta_placeholders.js` + `hc.submeta_panels.js`; wszystkie trzy korzystają z `hc.submeta_settings.js`, a kontrolki debug integruje `hc.ui_debug.js`.
 - Domena kart/state bridge: `cards.js` (`CardEngine.subMetaView`); bez szerokiego refaktoru w ramach prac layoutowych.
-- Settings source-of-truth: `public/settings/submeta-png-layout-export.json`, `public/settings/submeta-placeholders.json`, `public/settings/submeta-placeholders-panels.json`.
-- Runtime URL: odpowiednio `settings/submeta-png-layout-export.json`, `settings/submeta-placeholders.json`, `settings/submeta-placeholders-panels.json`.
+- Settings source-of-truth: `public/settings/submeta-png-layout.json`, `public/settings/submeta-placeholders.json`, `public/settings/submeta-placeholders-panels.json`; ogólny standard opisuje `docs/current/technical/DEBUG_SETTINGS_STANDARD.md`.
+- Runtime URL: odpowiednio `settings/submeta-png-layout.json`, `settings/submeta-placeholders.json`, `settings/submeta-placeholders-panels.json`.
 - Assety: `public/svg/` dla roboczych kart oraz `public/png/cards/` dla podglądu Opisu; `public/png/submeta/` zawiera obrazy overlayu, nie settings.
 - Legacy/reference: stare canvasowe SUB-META, FrameComposer, Figma i konfliktujące specy/wireframe’y SUB-META v2.
 
@@ -112,6 +112,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/ui/CARD_DURABILITY_WIREFRAME_PASS.md` (ROBOCZY / WIREFRAME UI / WARIANT C / PRZED LAYOUT TOKENS / PRZED RUNTIME) - rozwija `CARD_DURABILITY_VISUAL_DECISION.md` w minimalny wireframe wariantu C i zawiera zatwierdzone roboczo decyzje przed layout-token pass dla visual trwałości karty R; nie jest layout tokenem, mechaniką ani runtime.
 - `docs/current/ui/CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md` (ROBOCZY / CHECKLISTA GOTOWOŚCI / PRZED LAYOUT TOKENS / PRZED RUNTIME) - przygotowuje przyszły layout-token pass dla `CARD_DURABILITY_WIREFRAME_PASS.md`, zawiera zatwierdzone roboczo decyzje readiness przed layout-token pass; nadal nie jest layout tokenem, runtime ani mechaniką.
 - `docs/current/technical/README.md`
+- `docs/current/technical/DEBUG_SETTINGS_STANDARD.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
 - `docs/current/technical/WORLD_RENDERING_MODEL.md`
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (robocza architektura rozdzialu card mechanics vs card visuals / FrameComposer)

@@ -8,6 +8,7 @@ const preset = JSON.parse(fs.readFileSync(path.join(repoRoot, "public/settings/s
 const storage = new Map();
 const document = {
   getElementById: () => null,
+  querySelector: () => null,
   querySelectorAll: () => [],
   head: { appendChild() {} },
   createElement: () => ({
@@ -16,7 +17,7 @@ const document = {
   })
 };
 const window = {
-  HC: { SubMetaSettings: {
+  HC: { SubMetaCardGeometry: { aspect: 9 / 16, ratioW: 9, ratioH: 16 }, SubMetaSettings: {
     paths: { panels: "settings/submeta-placeholders-panels.json" },
     async loadJson(logicalPath) {
       assert.equal(logicalPath, "settings/submeta-placeholders-panels.json");
@@ -35,7 +36,7 @@ vm.runInNewContext(fs.readFileSync(path.join(repoRoot, "hc.submeta_panels.js"), 
 const panels = window.HC.SubMetaPanels;
 const requiredApi = [
   "init", "syncDom", "setVisible", "isVisible", "getSelectedPanelId", "getDebugState",
-  "resetToDefault", "exportLayout", "importLayout", "saveLayout", "loadLayout"
+  "resetToDefault", "exportLayout", "importLayout"
 ];
 for (const method of requiredApi) assert.equal(typeof panels[method], "function", `missing ${method}()`);
 
@@ -62,8 +63,8 @@ const imported = structuredClone(preset);
 imported.panels.find((item) => item.id === "panel.forge").gap = 0.02;
 assert.equal(panels.importLayout(imported), true);
 assert.equal(panels.getPanels().find((item) => item.id === "panel.forge").gapX, 0.02);
-assert.equal(panels.saveLayout(), true);
-assert.ok(storage.has(panels.STORAGE_KEY));
+assert.match(panels.exportLayout(), /"panel\.forge"/);
+assert.equal(storage.size, 0, "panel layout tuning should not use localStorage as source of truth");
 assert.equal(await panels.resetToDefault(), true);
 assert.equal(panels.getPanels().find((item) => item.id === "panel.forge").gapX, byId.get("panel.forge").gapX);
 

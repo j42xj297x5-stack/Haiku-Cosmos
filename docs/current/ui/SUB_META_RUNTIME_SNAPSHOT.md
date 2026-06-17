@@ -36,7 +36,7 @@ FrameComposer może pozostać historycznym kontraktem, eksperymentem lub materia
 
 | Zakres | Plik w repo | Runtime URL |
 | --- | --- | --- |
-| PNG layout | `public/settings/submeta-png-layout-export.json` | `settings/submeta-png-layout-export.json` |
+| PNG layout | `public/settings/submeta-png-layout.json` | `settings/submeta-png-layout.json` |
 | Placeholdery | `public/settings/submeta-placeholders.json` | `settings/submeta-placeholders.json` |
 | Panele | `public/settings/submeta-placeholders-panels.json` | `settings/submeta-placeholders-panels.json` |
 

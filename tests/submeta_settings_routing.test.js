@@ -12,7 +12,7 @@ const panelsSource = fs.readFileSync("hc.submeta_panels.js", "utf8");
 const expectedPaths = [
   "settings/submeta-placeholders.json",
   "settings/submeta-placeholders-panels.json",
-  "settings/submeta-png-layout-export.json"
+  "settings/submeta-png-layout.json"
 ];
 
 for (const logicalPath of expectedPaths) {
