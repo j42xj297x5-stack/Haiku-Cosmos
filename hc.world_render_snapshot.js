@@ -15,6 +15,11 @@
     visualVariant: "planet_01",
     assetId: "planet_01.glb",
   });
+  const ROCKY_PLANET_BASE_VISUAL = Object.freeze({
+    visualKind: "planet",
+    visualVariant: "rocky_planet_01",
+    assetId: "rocky_planet_01.glb",
+  });
 
   function getPlanetKind(body) {
     if (!body || typeof body !== "object") return null;
@@ -61,8 +66,8 @@
       color: body.color || body.fill || body.colorName || body.gradientOuterColor || null,
       colorKey: body.colorKey || body.colorName || body.dominantKey || null,
       visualKind: body.visualKind || (isPlanet ? PLANET_BASE_VISUAL.visualKind : null),
-      visualVariant: body.visualVariant || (isPlanet ? PLANET_BASE_VISUAL.visualVariant : null),
-      assetId: body.assetId || (isPlanet ? PLANET_BASE_VISUAL.assetId : null),
+      visualVariant: body.visualVariant || (isPlanet ? (planetKind === "rocky" ? ROCKY_PLANET_BASE_VISUAL.visualVariant : PLANET_BASE_VISUAL.visualVariant) : null),
+      assetId: body.assetId || (isPlanet ? (planetKind === "rocky" ? ROCKY_PLANET_BASE_VISUAL.assetId : PLANET_BASE_VISUAL.assetId) : null),
       visualRotationSeed: isPlanet ? toNumber(body.visualRotationSeed, undefined) : undefined,
       visualRotationX: isPlanet ? toNumber(body.visualRotationX, undefined) : undefined,
       visualRotationY: isPlanet ? toNumber(body.visualRotationY, undefined) : undefined,
