@@ -959,28 +959,63 @@
       }
 
 
+      const startOverlayEvidence = {
+        aliasPresent: false,
+        isDebugAlias: false,
+        phase1Status: "start",
+        newGameEnabled: false,
+        loadSaveEnabled: false,
+        lastError: null,
+      };
+      function publishStartOverlayEvidence() {
+        startOverlayEvidence.aliasPresent = currentAlias().trim().length > 0;
+        startOverlayEvidence.isDebugAlias = currentAlias().trim() === "debug";
+        window.HC.StartOverlayDebug = Object.assign({}, startOverlayEvidence);
+        window.HC?.logEvent?.("ui", "start_overlay_state", Object.assign({}, startOverlayEvidence), { throttleMs: 1000 });
+      }
+      function setStartError(message) {
+        startOverlayEvidence.lastError = message || null;
+        if (startStatus) startStatus.textContent = message || "";
+        publishStartOverlayEvidence();
+      }
       const lastAlias = (() => { try { return localStorage.getItem("hc.playerAlias.last") || ""; } catch (_e) { return ""; } })();
       if (playerAliasInput && lastAlias) playerAliasInput.value = lastAlias;
       function currentAlias() { return String(playerAliasInput?.value || ""); }
+      function isPhase1Ready() { return startOverlayEvidence.phase1Status === "complete" || startOverlayEvidence.phase1Status === "failed-with-fallback"; }
       function refreshStartButtons() {
         const hasAlias = currentAlias().trim().length > 0;
-        if (btnStartNormal) btnStartNormal.disabled = !criticalAssetsReady || !hasAlias;
-        if (btnLoadSave) btnLoadSave.disabled = !criticalAssetsReady || !hasAlias;
-        if (btnStartDebug) btnStartDebug.hidden = currentAlias() !== "debug";
+        const ready = isPhase1Ready();
+        startOverlayEvidence.newGameEnabled = !!(ready && hasAlias);
+        startOverlayEvidence.loadSaveEnabled = !!(ready && hasAlias);
+        if (btnStartNormal) {
+          btnStartNormal.disabled = !startOverlayEvidence.newGameEnabled;
+          btnStartNormal.title = !hasAlias ? "Wpisz alias." : (!ready ? "Czekam na Loader Phase 1." : "Rozpocznij normalną grę.");
+        }
+        if (btnLoadSave) {
+          btnLoadSave.disabled = !startOverlayEvidence.loadSaveEnabled;
+          btnLoadSave.title = !hasAlias ? "Wpisz alias." : (!ready ? "Czekam na Loader Phase 1." : "Wybierz plik save.");
+        }
+        if (btnStartDebug) btnStartDebug.hidden = currentAlias().trim() !== "debug";
+        publishStartOverlayEvidence();
       }
-      playerAliasInput?.addEventListener("input", () => { refreshStartButtons(); });
+      playerAliasInput?.addEventListener("input", () => { setStartError(null); refreshStartButtons(); });
       window.HC?.AssetLoader?.onProgress?.((p) => {
         if (p.phase !== "critical") return;
-        if (loaderProgressLabel) loaderProgressLabel.textContent = `Loader Phase 1: ${p.loaded}/${p.total} loaded, ${p.failed} failed${p.current ? ` — ${p.current}` : ""}`;
+        startOverlayEvidence.phase1Status = p.status || (p.done ? (p.failed > 0 ? "failed-with-fallback" : "complete") : "loading");
+        if (loaderProgressLabel) loaderProgressLabel.textContent = p.done
+          ? `Loader Phase 1 ${startOverlayEvidence.phase1Status}: ${p.loaded}/${p.total}, failed: ${p.failed}`
+          : `Loader Phase 1: ${p.loaded}/${p.total} loaded, ${p.failed} failed${p.current ? ` — ${p.current}` : ""}`;
+        refreshStartButtons();
       });
       window.HC?.AssetLoader?.loadCritical?.().then((p) => {
-        criticalAssetsReady = true;
-        if (loaderProgressLabel) loaderProgressLabel.textContent = `Loader Phase 1 complete: ${p.loaded}/${p.total}, failed: ${p.failed}`;
+        startOverlayEvidence.phase1Status = p.status || (p.failed > 0 ? "failed-with-fallback" : "complete");
+        if (loaderProgressLabel) loaderProgressLabel.textContent = `Loader Phase 1 ${startOverlayEvidence.phase1Status}: ${p.loaded}/${p.total}, failed: ${p.failed}`;
         refreshStartButtons();
       }).catch((error) => {
-        criticalAssetsReady = true;
-        console.warn("[HC.UI] critical loader defensive fallback", error);
-        if (loaderProgressLabel) loaderProgressLabel.textContent = "Loader Phase 1 fallback — check console/debug evidence";
+        startOverlayEvidence.phase1Status = "error";
+        console.warn("[HC.UI] critical loader failed", error);
+        if (loaderProgressLabel) loaderProgressLabel.textContent = "Loader Phase 1 error — start blocked";
+        setStartError("Nie udało się uruchomić Loader Phase 1. Sprawdź konsolę/debug evidence.");
         refreshStartButtons();
       });
       refreshStartButtons();
@@ -997,18 +1032,20 @@
         });
       }
       function rememberAliasAndSession(mode, config) {
-        const alias = currentAlias();
+        const alias = currentAlias().trim();
         try { localStorage.setItem("hc.playerAlias.last", alias); } catch (_e) {}
         window.HC.PlayerAlias = alias;
         window.HC.SubMetaMode = "png-v2";
+        if (window.HC?.SubMetaPngLayout?.setMode) window.HC.SubMetaPngLayout.setMode("png-v2");
         window.HC.RENDER_MODE = config?.visual?.rendererMode === "canvas2d" ? "canvas2d" : "three";
         if (window.HC?.Session?.start) window.HC.Session.start(mode, config || null);
         window.HC?.AssetLoader?.loadBackground?.().then((p) => console.info("[HC.AssetLoader] background phase complete", p));
       }
       if (btnStartNormal) {
         btnStartNormal.addEventListener("click", () => {
-          if (!criticalAssetsReady || !currentAlias().trim()) return;
-          if (currentAlias() === "debug") {
+          if (!isPhase1Ready()) return setStartError("Loader Phase 1 jeszcze trwa.");
+          if (!currentAlias().trim()) return setStartError("Wpisz alias przed startem.");
+          if (currentAlias().trim() === "debug") {
             if (debugConfigPanel) debugConfigPanel.hidden = false;
             if (btnStartDebug) btnStartDebug.hidden = false;
             return;
@@ -1018,13 +1055,20 @@
         });
       }
       if (btnLoadSave) {
-        btnLoadSave.addEventListener("click", () => { if (criticalAssetsReady && currentAlias().trim()) startSaveFileInput?.click(); });
+        btnLoadSave.addEventListener("click", () => {
+          if (!isPhase1Ready()) return setStartError("Loader Phase 1 jeszcze trwa.");
+          if (!currentAlias().trim()) return setStartError("Wpisz alias przed wczytaniem save.");
+          if (!startSaveFileInput) return setStartError("Brak kontrolki wyboru pliku save.");
+          setStartError("Wybierz plik save z dysku.");
+          startSaveFileInput.click();
+        });
       }
       if (startSaveFileInput) {
         startSaveFileInput.addEventListener("change", async () => {
-          const file = startSaveFileInput.files?.[0]; if (!file) return;
-          try { rememberAliasAndSession("normal", { visual: { rendererMode: "three" } }); await window.HC.SaveSystem.importFile(currentAlias(), file); if (startOverlay) startOverlay.hidden = true; }
-          catch (error) { if (startStatus) startStatus.textContent = window.HC?.SaveSystem?.ERROR_MESSAGE || String(error?.message || error); console.warn("[HC.SaveSystem] import failed", error); }
+          const file = startSaveFileInput.files?.[0];
+          if (!file) { setStartError("Nie wybrano pliku save."); return; }
+          try { await window.HC.SaveSystem.importFile(currentAlias().trim(), file); rememberAliasAndSession("normal", { visual: { rendererMode: "three" } }); if (startOverlay) startOverlay.hidden = true; setStartError(null); }
+          catch (error) { setStartError(window.HC?.SaveSystem?.ERROR_MESSAGE || String(error?.message || error)); console.warn("[HC.SaveSystem] import failed", error); }
           finally { startSaveFileInput.value = ""; }
         });
       }
@@ -1043,6 +1087,7 @@
       }
       if (btnStartDebugSession) {
         btnStartDebugSession.addEventListener("click", () => {
+          if (!isPhase1Ready()) return setStartError("Loader Phase 1 jeszcze trwa.");
           const config = buildDebugConfigFromUi();
           config.visual = Object.assign({}, config.visual, { rendererMode: "three" });
           rememberAliasAndSession("debug", config);

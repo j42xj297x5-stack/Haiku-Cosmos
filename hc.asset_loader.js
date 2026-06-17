@@ -250,8 +250,29 @@
   function getManifest() { return manifest.map(withResolved); }
   function emit(progress) { const p = Object.assign({}, progress); root.HC.AssetLoader.lastProgress = p; listeners.forEach((fn) => { try { fn(p); } catch (e) { console.warn("[HC.AssetLoader] progress listener failed", e); } }); }
   function onProgress(fn) { if (typeof fn === "function") listeners.add(fn); return () => listeners.delete(fn); }
-  function loadImage(asset) { return new Promise((resolve, reject) => { const img = new Image(); img.decoding = "async"; img.onload = () => resolve(img); img.onerror = () => reject(new Error(`Image load failed: ${asset.resolvedUrl}`)); img.src = asset.resolvedUrl; }); }
-  async function loadFetch(asset, mode) { const res = await fetch(asset.resolvedUrl, { cache: "force-cache" }); if (!res.ok) throw new Error(`Fetch failed ${res.status} for ${asset.resolvedUrl}`); if (mode === "json") return res.json(); if (mode === "text") return res.text(); return res.blob(); }
+  const LOAD_TIMEOUT_MS = 12000;
+  function withTimeout(promise, asset) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(`Asset load timeout: ${asset.resolvedUrl}`)), LOAD_TIMEOUT_MS);
+      promise.then((value) => { clearTimeout(timer); resolve(value); }, (error) => { clearTimeout(timer); reject(error); });
+    });
+  }
+  function loadImage(asset) {
+    return withTimeout(new Promise((resolve, reject) => {
+      const img = new Image();
+      img.decoding = "async";
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Image load failed: ${asset.resolvedUrl}`));
+      img.src = asset.resolvedUrl;
+    }), asset);
+  }
+  async function loadFetch(asset, mode) {
+    const res = await withTimeout(fetch(asset.resolvedUrl, { cache: "force-cache" }), asset);
+    if (!res.ok) throw new Error(`Fetch failed ${res.status} for ${asset.resolvedUrl}`);
+    if (mode === "json") return res.json();
+    if (mode === "text") return res.text();
+    return res.blob();
+  }
   async function loadOne(rawAsset) {
     const asset = withResolved(rawAsset); const key = asset.id;
     if (cache.has(key)) return cache.get(key);
@@ -271,15 +292,15 @@
   async function loadPhase(phase, options = {}) {
     const categories = Array.isArray(options.categories) && options.categories.length ? new Set(options.categories) : null;
     const assets = manifest.filter((a) => a.phase === phase && (!categories || categories.has(a.category)));
-    const progress = { phase, total: assets.length, loaded: 0, failed: 0, current: null, done: false, failures: [] };
+    const progress = { phase, total: assets.length, loaded: 0, failed: 0, current: null, done: false, status: "start", failures: [] };
     emit(progress);
     for (const raw of assets) {
-      const asset = withResolved(raw); progress.current = asset.id; progress.currentPath = asset.logicalPath; emit(progress);
+      const asset = withResolved(raw); progress.status = "loading"; progress.current = asset.id; progress.currentPath = asset.logicalPath; emit(progress);
       try { await loadOne(raw); progress.loaded += 1; }
       catch (error) { progress.failed += 1; progress.failures.push({ id: asset.id, path: asset.logicalPath, phase, category: asset.category, message: error?.message || String(error) }); const method = phase === "critical" ? "warn" : "debug"; console[method]?.("[HC.AssetLoader] asset fallback", progress.failures.at(-1)); }
       emit(progress);
     }
-    progress.done = true; progress.current = null; emit(progress);
+    progress.done = true; progress.status = progress.failed > 0 ? "failed-with-fallback" : "complete"; progress.current = null; emit(progress);
     return Object.assign({}, progress);
   }
   function loadCritical(options) { return loadPhase("critical", options); }
