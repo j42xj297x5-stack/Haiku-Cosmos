@@ -112,6 +112,16 @@
       outline-offset: 3px;
     }
 
+    .hud-top-layer--hitbox {
+      background-image: none;
+    }
+
+    .hud-top-layer--hitbox.is-debug-preview {
+      border: 1px dashed rgba(113, 210, 255, 0.72);
+      background: rgba(113, 210, 255, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(255, 244, 176, 0.18);
+    }
+
     #hudTopSettingsPopup {
       position: fixed;
       z-index: 180;
