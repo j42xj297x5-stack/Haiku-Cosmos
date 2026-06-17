@@ -16,7 +16,8 @@
       "zIndex": 10,
       "visible": true,
       "interactive": false,
-      "preserveAspect": false
+      "preserveAspect": false,
+      "kind": "image"
     },
     {
       "id": "hud_top_dust_rp_background",
@@ -28,7 +29,8 @@
       "zIndex": 20,
       "visible": true,
       "interactive": false,
-      "preserveAspect": false
+      "preserveAspect": false,
+      "kind": "image"
     },
     {
       "id": "hud_top_rp_background",
@@ -41,15 +43,16 @@
       "visible": true,
       "interactive": false,
       "preserveAspect": true,
-      "mountRole": "rpBackground"
+      "mountRole": "rpBackground",
+      "kind": "image"
     },
     {
       "id": "hud_top_rp_value",
       "asset": null,
       "kind": "text",
-      "x": 0.865,
-      "y": 0.148,
-      "w": 0.05,
+      "x": 0.902,
+      "y": 0.109,
+      "w": 0.035,
       "h": 0.06,
       "zIndex": 80,
       "visible": true,
@@ -60,32 +63,34 @@
     {
       "id": "hud_top_dust_pile",
       "asset": "png/hud/hud_top_dust_pile.png",
-      "x": 0.74,
-      "y": 0.049,
-      "w": 0.09375,
-      "h": 0.44665,
+      "x": 0.758,
+      "y": 0.052,
+      "w": 0.075,
+      "h": 0.1,
       "zIndex": 32,
       "visible": true,
       "interactive": true,
-      "preserveAspect": true,
+      "preserveAspect": false,
       "mountRole": "dustPile",
       "interactiveRect": {
         "id": "dustPile",
         "role": "dust-pile"
-      }
+      },
+      "kind": "image"
     },
     {
       "id": "hud_top_dust_reservoir",
       "asset": "png/hud/hud_top_dust_pile.png",
-      "x": 0.68,
-      "y": 0.055,
-      "w": 0.045,
+      "x": 0.666,
+      "y": 0.078,
+      "w": 0.063,
       "h": 0.18,
       "zIndex": 31,
       "visible": true,
       "interactive": false,
       "preserveAspect": true,
-      "mountRole": "dustReservoir"
+      "mountRole": "dustReservoir",
+      "kind": "image"
     },
     {
       "id": "hud_top_submeta",
@@ -101,7 +106,8 @@
       "interactiveRect": {
         "id": "openSubMeta",
         "role": "button"
-      }
+      },
+      "kind": "image"
     },
     {
       "id": "hud_top_haiku_cosmos_info",
@@ -114,7 +120,8 @@
       "visible": true,
       "interactive": false,
       "preserveAspect": false,
-      "mountRole": "info"
+      "mountRole": "info",
+      "kind": "image"
     },
     {
       "id": "hud_top_haiku_cosmos_logo",
@@ -130,7 +137,8 @@
       "interactiveRect": {
         "id": "openSettings",
         "role": "button"
-      }
+      },
+      "kind": "image"
     },
     {
       "id": "hud_top_haiku_cosmos_settings",
@@ -146,7 +154,8 @@
       "interactiveRect": {
         "id": "openSettings",
         "role": "button"
-      }
+      },
+      "kind": "image"
     }
   ]
 }
