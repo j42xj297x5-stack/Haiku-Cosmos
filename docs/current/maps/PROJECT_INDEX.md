@@ -29,6 +29,7 @@ Kanon jest mapowany warstwowo przez:
 
 - `docs/current/systems/CARDS_SYSTEM.md` (KANON)
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU) - roboczy system sieci slotów kart, wzmocnień, trwałości, pyłu, napięć, blizn i naprawy slotów.
+- `docs/current/systems/COMETS_SYSTEM.md` (ROBOCZY / SYSTEM ŚWIATA) - projektowy kontrakt typów komet, przemian świata, stanów obiektów, pyłów, konfliktów efektów i relacji z kartami specjalnymi/SUB-META/PRG.
 - `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - lista decyzji i zależności do zamknięcia przed pierwszym runtime pass CARD SLOT NETWORK.
 - `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - pętla zbierania i rafinacji pyłu: HUD zbiera tylko jeden kolor surowego pyłu do stosiku, Magazyn przechowuje stosiki, a mieszanie kolorów oraz rafinacja do flakonu/naczynia i kryształu należą do SUB-META / Kuźni.
 - `docs/current/systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
