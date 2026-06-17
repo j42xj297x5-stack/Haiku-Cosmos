@@ -260,6 +260,33 @@
     return Number.isFinite(n) && String(value).trim() !== "" ? n : String(value);
   }
 
+  function getDustPileDebugStateForUi() {
+    const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
+    const pile = World?.dustPile || {};
+    return {
+      activeType: String(pile.activeType || "NONE").toUpperCase(),
+      percent: Math.max(0, Math.min(100, Math.floor(Number(pile.percent || 0)))),
+    };
+  }
+
+  function setDustPileDebugStateFromUi(partial = {}) {
+    const current = getDustPileDebugStateForUi();
+    const next = Object.assign({}, current, partial);
+    const result = window.HC?.DustPileHud?.setDebugState
+      ? window.HC.DustPileHud.setDebugState(next)
+      : null;
+    const applied = result || next;
+    const typeInput = document.getElementById("dbgDustPileType");
+    const percentInput = document.getElementById("dbgDustPilePercent");
+    if (typeInput) typeInput.value = String(applied.activeType || next.activeType || "NONE");
+    if (percentInput) percentInput.value = String(applied.percent ?? next.percent ?? 0);
+    window.HC?.logEvent?.("debug", "dust_pile_debug_state_changed", {
+      activeType: applied.activeType || next.activeType,
+      percent: applied.percent ?? next.percent,
+    });
+    return applied;
+  }
+
   function getThreeLightsSettingsForUi() {
     if (window.HC?.WorldRenderer?.getThreeLightsSettings) return window.HC.WorldRenderer.getThreeLightsSettings();
     const defaults = { enabled: true, ambientIntensity: 0.13, ambientIsolate: false, debugKeyLightEnabled: false, debugKeyLightIntensity: 2.2, debugRimLightEnabled: false, debugRimLightIntensity: 0.65, forceHeadlightEnabled: false, forceHeadlightIntensity: 4.5, mainStageSpotEnabled: true, mainStageSpotIntensity: 3.9, mainStageSpotAngle: Math.PI / 2.8, mainStageSpotPenumbra: 0.72, mainStageSpotDistance: 0, mainStageSpotDecay: 0, mainStageSpotXOffset: -0.65, mainStageSpotYOffset: -0.55, mainStageSpotZHeight: 1.55, mainStageSpotTargetMode: "center", showLightHelpers: false };
@@ -629,6 +656,15 @@
               return;
             }
           }
+          const dustPilePercentBtn = event.target && event.target.closest
+            ? event.target.closest("[data-debug-dust-pile-percent]")
+            : null;
+          if (dustPilePercentBtn) {
+            setDustPileDebugStateFromUi({ percent: Number(dustPilePercentBtn.dataset.debugDustPilePercent) });
+            const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+            runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            return;
+          }
           const cardsPresetBtn = event.target && event.target.closest
             ? event.target.closest("[data-debug-cards-preset]")
             : null;
@@ -691,7 +727,21 @@
             }
             return;
           }
+          if (target.dataset?.debugDustPilePercent != null) {
+            setDustPileDebugStateFromUi({ percent: Number(target.dataset.debugDustPilePercent) });
+            const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+            runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            return;
+          }
           if (!target.id) return;
+          if (target.id === "dbgDustPileType") {
+            setDustPileDebugStateFromUi({ activeType: target.value });
+            return;
+          }
+          if (target.id === "dbgDustPilePercent") {
+            setDustPileDebugStateFromUi({ percent: Number(target.value) });
+            return;
+          }
           if (target.id === "dbgMeteorGlbScale") {
             setMeteorGlbVisualScaleFromUi(target.value);
             return;
@@ -1180,6 +1230,17 @@
       ["P→S threshold", `${thr.planetToStar?.current ?? 0} (${thr.planetToStar?.source || "-"})`],
     ], "", { open: false }));
 
+    const dustPileDebug = getDustPileDebugStateForUi();
+    const dustPileTypeOptions = ["NONE", "RED", "YELLOW", "GREEN", "BLUE", "GREY"]
+      .map((type) => `<option value="${type}"${dustPileDebug.activeType === type ? " selected" : ""}>${type}</option>`)
+      .join("");
+    const dustPilePercentOptions = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+      .map((percent) => `<option value="${percent}"${dustPileDebug.percent === percent ? " selected" : ""}>${percent}%</option>`)
+      .join("");
+    const dustPileQuickButtons = [0, 10, 50, 80, 90, 100]
+      .map((percent) => `<button class="overlay-btn" type="button" data-debug-dust-pile-percent="${percent}">${percent}%</button>`)
+      .join("");
+
     sections.push(renderSection("cards-sequence-economy", "Cards / Sequence / Economy", [
       ["RP", snap.economy?.rp ?? 0],
       ["active sequence", seq.active ? `${seq.stage || "ACTIVE"} ${seq.track || ""}` : "no"],
@@ -1190,6 +1251,9 @@
       ["last sequence event", summarizeEvent(snap.lastByCategory?.sequence)],
       ["last RP event", summarizeEvent(snap.lastByCategory?.rp)],
     ], `
+      <label class="overlay-select-row" for="dbgDustPileType">Dust pile type <select id="dbgDustPileType">${dustPileTypeOptions}</select></label>
+      <label class="overlay-select-row" for="dbgDustPilePercent">Dust pile percent <select id="dbgDustPilePercent">${dustPilePercentOptions}</select></label>
+      <div class="overlay-actions">${dustPileQuickButtons}</div>
       <div class="overlay-actions">
         <button class="overlay-btn" type="button" data-debug-cards-preset>Preset: karty ×13 + 500 RP</button>
       </div>
