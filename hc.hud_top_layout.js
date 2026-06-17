@@ -12,8 +12,8 @@
   const LEGACY_BASE_WIDTH = 1920;
   const LEGACY_BASE_HEIGHT = 403;
   const REQUIRED_IDS = [
-    "hud_top_right", "hud_top_rp", "hud_top_submeta", "hud_top_haiku_cosmos_settings",
-    "hud_top_haiku_cosmos_logo", "hud_top_haiku_cosmos_info", "hud_top_dust_rp_background", "hud_top_dust_pile"
+    "hud_top_right", "hud_top_rp_background", "hud_top_rp_value", "hud_top_submeta", "hud_top_haiku_cosmos_settings",
+    "hud_top_haiku_cosmos_logo", "hud_top_haiku_cosmos_info", "hud_top_dust_rp_background", "hud_top_dust_pile", "hud_top_dust_reservoir"
   ];
   const DEFAULT_LAYOUT = {
     version: LAYOUT_VERSION,
@@ -22,8 +22,10 @@
     elements: [
       { id: "hud_top_right", asset: "png/hud/hud_top_right.png", x: 0.755208, y: 0, w: 0.244792, h: 1, zIndex: 10, visible: true, interactive: false, preserveAspect: false },
       { id: "hud_top_dust_rp_background", asset: "png/hud/hud_top_dust_rp_background.png", x: 0.692708, y: 0.034739, w: 0.223958, h: 0.471464, zIndex: 20, visible: true, interactive: false, preserveAspect: false },
-      { id: "hud_top_rp", asset: "png/hud/hud_top_rp.png", x: 0.804688, y: 0.203474, w: 0.114583, h: 0.198511, zIndex: 35, visible: true, interactive: false, preserveAspect: true, mountRole: "rpText" },
+      { id: "hud_top_rp_background", asset: "png/hud/hud_top_rp.png", x: 0.804688, y: 0.203474, w: 0.114583, h: 0.198511, zIndex: 35, visible: true, interactive: false, preserveAspect: true, mountRole: "rpBackground" },
+      { id: "hud_top_rp_value", asset: null, kind: "text", x: 0.865, y: 0.148, w: 0.05, h: 0.06, zIndex: 80, visible: true, interactive: false, preserveAspect: true, mountRole: "rpText" },
       { id: "hud_top_dust_pile", asset: "png/hud/hud_top_dust_pile.png", x: 0.723958, y: 0.129032, w: 0.09375, h: 0.44665, zIndex: 32, visible: true, interactive: true, preserveAspect: true, mountRole: "dustPile", interactiveRect: { id: "dustPile", role: "dust-pile" } },
+      { id: "hud_top_dust_reservoir", asset: "png/hud/hud_top_dust_pile.png", x: 0.68, y: 0.055, w: 0.045, h: 0.18, zIndex: 31, visible: true, interactive: false, preserveAspect: true, mountRole: "dustReservoir" },
       { id: "hud_top_submeta", asset: "png/hud/hud_top_submeta.png", x: 0.414062, y: 0, w: 0.171875, h: 0.421836, zIndex: 40, visible: true, interactive: true, preserveAspect: true, interactiveRect: { id: "openSubMeta", role: "button" } },
       { id: "hud_top_haiku_cosmos_info", asset: "png/hud/hud_top_haiku_cosmos_info.png", x: 0.223958, y: 0.014888, w: 0.1875, h: 0.347395, zIndex: 25, visible: true, interactive: false, preserveAspect: true, mountRole: "info" },
       { id: "hud_top_haiku_cosmos_logo", asset: "png/hud/hud_top_haiku_cosmos_logo.png", x: 0.020833, y: 0, w: 0.130208, h: 0.397022, zIndex: 42, visible: true, interactive: true, preserveAspect: true, interactiveRect: { id: "openSettings", role: "button" } },
@@ -57,7 +59,8 @@
       ...fallback,
       ...c,
       id: fallback.id,
-      asset: String(c.asset || fallback.asset).replace(/^\/+/, "").replace(/^public\//, ""),
+      asset: c.asset === null || fallback.asset === null ? null : String(c.asset || fallback.asset).replace(/^\/+/, "").replace(/^public\//, ""),
+      kind: c.kind || fallback.kind || "image",
       x: normalize01(x, fallback.x),
       y: normalize01(y, fallback.y),
       w: normalize01(isLegacyPx ? legacyDimension(c, "x", fallback.w) : c.w, fallback.w),
@@ -71,12 +74,15 @@
   }
   function sanitizeLayout(candidate) {
     const byId = new Map((candidate?.elements || []).map((e) => [e?.id, e]));
+    if (!byId.has("hud_top_rp_background") && byId.has("hud_top_rp")) byId.set("hud_top_rp_background", byId.get("hud_top_rp"));
+    if (!byId.has("hud_top_rp_value") && byId.has("hud_top_rp")) byId.set("hud_top_rp_value", byId.get("hud_top_rp"));
     return { version: LAYOUT_VERSION, coordinateSystem: COORDINATE_SYSTEM, legacyReference: { baseWidth: LEGACY_BASE_WIDTH, baseHeight: LEGACY_BASE_HEIGHT }, elements: DEFAULT_LAYOUT.elements.map((fallback) => normalizeElement(byId.get(fallback.id), fallback)) };
   }
   function getElement(id) { return layout.elements.find((e) => e.id === id) || null; }
   function screenRect(el) { const v = viewportSize(); return { x: el.x * v.width, y: el.y * v.height, width: el.w * v.width, height: el.h * v.height }; }
   function mountFor(role) { const el = layout.elements.find((item) => item.mountRole === role) || null; return el ? screenRect(el) : null; }
   function ensureNode(el) {
+    if (el.kind === "text") return rpText;
     let node = layer.querySelector(`[data-hud-top-element-id="${el.id}"]`);
     if (!node) {
       node = document.createElement(el.interactive ? "button" : "img");
@@ -93,6 +99,7 @@
     const v = viewportSize();
     stage.style.width = `${v.width}px`; stage.style.height = `${v.height}px`; stage.style.transform = "none"; stage.style.pointerEvents = "none";
     for (const el of layout.elements) {
+      if (el.kind === "text") continue;
       const node = ensureNode(el); const r = screenRect(el);
       node.className = `hud-top-layer hud-top-layer--${el.interactive ? "button" : "image"}`;
       if (node.tagName === "IMG") { node.src = publicAssetPath(el.asset); node.style.objectFit = el.preserveAspect ? "contain" : "fill"; }
@@ -101,8 +108,10 @@
       node.style.zIndex = String(el.zIndex); node.hidden = !el.visible; node.setAttribute("aria-label", el.id);
     }
     if (rpText) {
-      const r = mountFor("rpText") || screenRect(getElement("hud_top_rp") || DEFAULT_LAYOUT.elements[2]);
-      rpText.style.left = `${r.x + r.width * 0.54}px`; rpText.style.top = `${r.y + r.height * 0.46}px`; rpText.style.fontSize = `${Math.max(14, Math.min(r.width, r.height) * 0.48)}px`; rpText.style.zIndex = "80";
+      const rpEl = getElement("hud_top_rp_value");
+      const r = mountFor("rpText") || screenRect(rpEl || getElement("hud_top_rp_background") || DEFAULT_LAYOUT.elements[2]);
+      rpText.style.left = `${r.x}px`; rpText.style.top = `${r.y}px`; rpText.style.fontSize = `${Math.max(10, Math.min(r.width, r.height))}px`; rpText.style.zIndex = String(rpEl?.zIndex ?? 80);
+      rpText.hidden = rpEl?.visible === false;
     }
   }
   function openSubMeta() { const World = (root.HC.getWorld && root.HC.getWorld()) || root.World; if (World && !World.subMetaOpen) { World.subMetaOpen = true; World.paused = true; } }
@@ -148,7 +157,7 @@
     applyLayout();
   }
   function setLayout(next) { layout = sanitizeLayout(next); applyLayout(); return getLayout(); }
-  function getLayout() { const out = cloneLayout(layout); out.rpMountRect = mountFor("rpText"); out.dustPileMountRect = mountFor("dustPile"); return out; }
+  function getLayout() { const out = cloneLayout(layout); out.rpMountRect = mountFor("rpText"); out.rpBackgroundMountRect = mountFor("rpBackground"); out.dustPileMountRect = mountFor("dustPile"); out.dustReservoirMountRect = mountFor("dustReservoir"); return out; }
   function resetLayout() { layout = cloneLayout(DEFAULT_LAYOUT); lastAction = "reset fallback defaults"; void loadRuntimeLayout(); applyLayout(); return getLayout(); }
   function importLayout(raw) { lastAction = "imported JSON"; return setLayout(JSON.parse(String(raw || "{}"))); }
   function getExportJson() { return `${JSON.stringify(layout, null, 2)}\n`; }
@@ -166,7 +175,7 @@
       <div class="overlay-row"><span class="k">selected px</span><code class="v">${Math.round(px.x)}, ${Math.round(px.y)}, ${Math.round(px.width)}×${Math.round(px.height)}</code></div><textarea class="overlay-note hud-top-json" data-hud-top-json>${getExportJson().replaceAll("&","&amp;").replaceAll("<","&lt;")}</textarea><div class="hud-top-debug-actions"><button class="overlay-btn" type="button" data-hud-top-action="export">Export JSON</button><button class="overlay-btn" type="button" data-hud-top-action="import">Import JSON</button><button class="overlay-btn" type="button" data-hud-top-action="reset">Reset defaults</button></div><div class="overlay-row"><span class="k">settings source</span><code class="v">${SETTINGS_PATH}</code></div><div class="overlay-row"><span class="k">last action</span><code class="v">${lastAction}</code></div></div></details>`;
   }
   function handleDebugControl(target) { if (!target) return false; const action = target.dataset?.hudTopAction; const field = target.dataset?.hudTopField; if (action === "select") { selectedHudTopElement = target.value; return true; } if (field) return updateField(field, target.type === "checkbox" ? target.checked : target.value); if (action === "export") { const textarea = target.closest(".hud-top-debug")?.querySelector("[data-hud-top-json]"); if (textarea) textarea.value = getExportJson(); lastAction = "exported JSON"; } else if (action === "import") importLayout(target.closest(".hud-top-debug")?.querySelector("[data-hud-top-json]")?.value || "{}"); else if (action === "reset") resetLayout(); else return false; return true; }
-  function getDebugState() { return { enabled: true, coordinateSystem: COORDINATE_SYSTEM, viewport: viewportSize(), elementsCount: layout.elements.length, selectedHudTopElement, dustPileMountRect: mountFor("dustPile"), rpMountRect: mountFor("rpText") }; }
+  function getDebugState() { return { enabled: true, coordinateSystem: COORDINATE_SYSTEM, viewport: viewportSize(), elementsCount: layout.elements.length, selectedHudTopElement, dustPileMountRect: mountFor("dustPile"), dustReservoirMountRect: mountFor("dustReservoir"), rpMountRect: mountFor("rpText"), rpBackgroundMountRect: mountFor("rpBackground") }; }
 
   root.HC.HudTopLayout = { LAYOUT_VERSION, COORDINATE_SYSTEM, STORAGE_KEY, SETTINGS_PATH, REQUIRED_IDS, DEFAULT_LAYOUT: cloneLayout(DEFAULT_LAYOUT), init, getLayout, setLayout, resetLayout, importLayout, getExportJson, setRpValue, renderDebugHtml, handleDebugControl, sanitizeLayout, getDebugState };
 })(window);
