@@ -21,7 +21,8 @@
     const meteorBaseRadius = window.meteorBaseRadius;
     const getMeteorCollisionRadius = window.getMeteorCollisionRadius || ((m) => Number(m && m.r) || meteorBaseRadius());
     const getMeteorRenderScale = window.getMeteorRenderScale || getMeteorCollisionRadius;
-    const massFromR = window.massFromR;
+    const SpaceBodies = window.HC && window.HC.SpaceBodies;
+    const massFromRadius = SpaceBodies?.massFromRadius || window.massFromR || ((r) => r * r);
     const getWorldViewBounds = window.getWorldViewBounds;
     const ctx = window.ctx;
 
@@ -59,6 +60,7 @@
       World.meteors.push({
         x, y, vx, vy,
         r,
+        mass: massFromRadius(r),
         colorName: c.name,
         hue: c.hue,
         age: 0,
@@ -102,6 +104,7 @@
         vx,
         vy,
         r,
+        mass: massFromRadius(r),
         colorName: c.name,
         hue: c.hue,
         age: 0,
@@ -273,7 +276,7 @@
             const collisionR = getMeteorCollisionRadius(m);
             const rr = s.r + collisionR;
             if (dx * dx + dy * dy <= rr * rr) {
-              s.mass = (s.mass || 0) + massFromR(collisionR);
+              s.mass = (s.mass || 0) + (SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(m) : massFromRadius(collisionR));
               window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_DESPAWNED, {
                 objectType: "meteor",
                 reason: "absorbed_by_star",

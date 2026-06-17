@@ -101,7 +101,8 @@
     const rand = window.rand;
     const meteorBaseRadius = window.meteorBaseRadius;
     const getMeteorCollisionRadius = window.getMeteorCollisionRadius || ((m) => Number(m && m.r) || meteorBaseRadius());
-    const massFromR = window.massFromR;
+    const SpaceBodies = window.HC && window.HC.SpaceBodies;
+    const massFromR = SpaceBodies?.massFromRadius || window.massFromR || ((r) => r * r);
     const hueFromName = window.hueFromName;
     const computeGravityFromPlanetRadius = window.computeGravityFromPlanetRadius;
     const computeOmega = window.computeOmega;
@@ -123,6 +124,7 @@
     }
 
     function asteroidMassValue(a) {
+      if (SpaceBodies?.getBodyMass) return SpaceBodies.getBodyMass(a);
       const mass = Number(a && a.mass);
       return Number.isFinite(mass) && mass > 0 ? mass : 1;
     }
@@ -158,29 +160,97 @@
       return target;
     }
 
-    function checkAsteroidPlanetThreshold(a, source) {
-      const target = asteroidGrowthTarget();
+    function isAsteroidToMoonEnabled() {
+      return World.spaceMechanics?.asteroidToMoonEnabled !== false;
+    }
+
+    function asteroidToMoonMassThreshold() {
+      const target = Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 0);
+      return Number.isFinite(target) && target > 0 ? target : Infinity;
+    }
+
+    function checkAsteroidMoonThreshold(a, source) {
+      if (!isAsteroidToMoonEnabled()) return;
+      const target = asteroidToMoonMassThreshold();
       const currentMass = asteroidMassValue(a);
       window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, {
         sourceType: "asteroid",
         sourceId: a._id || a.id || null,
-        thresholdType: "asteroid_to_planet_mass",
+        thresholdType: "asteroid_to_moon_mass",
         current: currentMass,
         target: Number.isFinite(target) ? target : 0,
-        thresholdSource: World.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "debug_override",
+        thresholdSource: World.spaceMechanics?.asteroidToMoonMassThreshold == null ? "legacy_alias" : "spaceMechanics",
       }, { source });
 
       if (currentMass >= target) {
         window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_REACHED, {
           sourceType: "asteroid",
           sourceId: a._id || a.id || null,
-          thresholdType: "asteroid_to_planet_mass",
+          thresholdType: "asteroid_to_moon_mass",
           current: currentMass,
           target: Number.isFinite(target) ? target : 0,
-          thresholdSource: World.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "debug_override",
+          thresholdSource: World.spaceMechanics?.asteroidToMoonMassThreshold == null ? "legacy_alias" : "spaceMechanics",
         }, { source, snapshot: true });
-        startAsteroidCollapse(a);
+        transformAsteroidToMoon(a, source);
       }
+    }
+
+    function cloneColorCounts(source) {
+      const result = { blue: 0, green: 0, red: 0, yellow: 0 };
+      if (!source || typeof source !== "object") return result;
+      for (const [colorName, count] of Object.entries(source)) {
+        result[colorName] = Number(count) || 0;
+      }
+      return result;
+    }
+
+    function createMoonFromAsteroid(a) {
+      const mass = asteroidMassValue(a);
+      const moon = {
+        id: `moon:${a._id || a.id || Date.now()}:${World.moons.length + 1}`,
+        type: "moon",
+        kind: "moon",
+        x: Number(a.x) || 0,
+        y: Number(a.y) || 0,
+        vx: Number(a.vx) || 0,
+        vy: Number(a.vy) || 0,
+        r: Number(a.r) || asteroidRadiusForMass(mass, asteroidBaseRadius(a, a.r), a.minR, a.maxR),
+        mass,
+        colorMix: a.colorMix || null,
+        colorCounts: cloneColorCounts(a.liveColorCounts || a.growthColorCounts || a.captureColorCounts),
+        source: "asteroid_mass_threshold",
+        createdAt: World.nowMs ?? ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()),
+        age: 0,
+        orbitState: null,
+        sourceAsteroidId: a._id || a.id || null,
+        sourceColors: Array.isArray(a.sourceColors) ? a.sourceColors.slice() : [],
+      };
+      return moon;
+    }
+
+    function transformAsteroidToMoon(a, source) {
+      if (!a || a.__transformationInProgress) return null;
+      a.__transformationInProgress = true;
+      const moon = createMoonFromAsteroid(a);
+      World.moons = Array.isArray(World.moons) ? World.moons : [];
+      World.moons.push(moon);
+      a._dead = true;
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_TRANSFORMED, {
+        fromType: "asteroid",
+        toType: "moon",
+        asteroidId: a._id || a.id || null,
+        moonId: moon.id,
+        mass: moon.mass,
+        radius: moon.r,
+      }, { snapshot: true, source: source || "Asteroids.transformAsteroidToMoon" });
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_TRANSFORMATION_COMPLETED, {
+        sourceType: "asteroid",
+        sourceId: a._id || a.id || null,
+        targetType: "moon",
+        targetId: moon.id,
+      }, { source: source || "Asteroids.transformAsteroidToMoon", snapshot: true });
+      Events.emit("MOON_CREATED", { moon, source: "asteroid_mass_threshold" });
+      return moon;
     }
 
     function spawnAsteroidFromCollision(a, b) {
@@ -197,8 +267,8 @@
       const Rm = meteorBaseRadius();
 
       // Drift from conservation of momentum (mass ~ r^2), then scaled by World.asteroidDriftMul
-      const ma = massFromR(a.r);
-      const mb = massFromR(b.r);
+      const ma = SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(a) : massFromR(a.r);
+      const mb = SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(b) : massFromR(b.r);
       const msum = ma + mb;
 
       let vx = (a.vx * ma + b.vx * mb) / (msum || 1);
@@ -372,7 +442,7 @@
             meteors.splice(mi, 1);
             absorbMeteorIntoAsteroid(a, m);
 
-            checkAsteroidPlanetThreshold(a, "Asteroids.resolveMeteorAsteroidContacts");
+            checkAsteroidMoonThreshold(a, "Asteroids.resolveMeteorAsteroidContacts");
             break;
           }
         }
@@ -529,7 +599,7 @@
       primary.captureCooldown = Math.max(primary.captureCooldown || 0, secondary.captureCooldown || 0, 0.045);
       secondary._dead = true;
       Events.emit("ASTEROID_MERGED", { mass: newMass, fromMass: [massA, massB] });
-      checkAsteroidPlanetThreshold(primary, "Asteroids.resolveAsteroidAsteroidContacts");
+      checkAsteroidMoonThreshold(primary, "Asteroids.resolveAsteroidAsteroidContacts");
     }
 
     function resolveAsteroidAsteroidContacts() {
@@ -574,7 +644,17 @@
       }
     }
 
+    function updateMoons(dt) {
+      if (!Array.isArray(World.moons)) return;
+      for (const moon of World.moons) {
+        moon.age = (Number(moon.age) || 0) + dt;
+        moon.x += (Number(moon.vx) || 0) * dt;
+        moon.y += (Number(moon.vy) || 0) * dt;
+      }
+    }
+
     function updateAsteroids(dt) {
+      updateMoons(dt);
       const bounceLoss = 0.90;
       const b = getWorldViewBounds();
 
@@ -624,7 +704,9 @@
       },
       capture(dt, now) {
         captureMeteorsByAsteroids(dt, now);
-      }
+      },
+      createMoonFromAsteroid,
+      transformAsteroidToMoon,
     };
 
     return window.HC.Asteroids;
