@@ -66,47 +66,67 @@
 
     #hudTopStage {
       position: absolute;
-      left: 50%;
+      left: 0;
       top: 0;
-      width: 1536px;
-      height: 234px;
-      transform-origin: top center;
+      width: 1920px;
+      height: 403px;
+      transform-origin: top left;
       pointer-events: none;
       will-change: transform;
     }
 
-    #hudTopImage {
+    #hudTopLayer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .hud-top-layer {
+      position: absolute;
+      transform-origin: top left;
       display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: fill;
+      width: auto;
+      height: auto;
+      max-width: none;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
     }
 
-    #btnSubMeta {
-      position: absolute;
-      left: 768px;
-      top: 96px;
-      width: 120px;
-      height: 120px;
+    .hud-top-layer--button {
+      border: 0;
       padding: 0;
-      border: none;
-      border-radius: 50%;
-      background: transparent;
       color: transparent;
-      transform: translate(-50%, -50%);
+      background-color: transparent;
+      background-repeat: no-repeat;
+      background-position: left top;
+      background-size: contain;
       cursor: pointer;
       pointer-events: auto;
       appearance: none;
       -webkit-appearance: none;
     }
 
-    #btnSubMeta:focus-visible {
+    .hud-top-layer--button:focus-visible {
       outline: 2px solid rgba(255, 214, 122, 0.88);
       outline-offset: 3px;
     }
+
+    #hudTopSettingsPopup {
+      position: fixed;
+      z-index: 180;
+      min-width: 180px;
+      padding: 12px;
+      border: 1px solid rgba(255, 223, 154, 0.36);
+      border-radius: 10px;
+      background: rgba(15, 18, 28, 0.92);
+      color: #f6dfb0;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.38);
+      pointer-events: auto;
+    }
+
+    #hudTopSettingsPopup h2 { margin: 0 0 10px; font: 700 16px/1.2 var(--hc-font-display); }
+    #hudTopSettingsPopup button { border: 0; border-radius: 6px; padding: 6px 10px; background: rgba(246, 200, 106, 0.18); color: #ffe7b8; cursor: pointer; }
 
     #scoreLabel {
       position: absolute;
@@ -119,7 +139,8 @@
       font: 700 28px/1 var(--hc-font-display);
       letter-spacing: 1px;
       white-space: nowrap;
-      transform: translateY(-50%);
+      transform: translate(-50%, -50%);
+      z-index: 80;
     }
 
     #debugHudControls {
@@ -386,10 +407,13 @@
   <div id="uiRoot">
     <div id="topBar">
       <div id="hudTopStage">
-        <img id="hudTopImage" width="1658" height="253" alt="" draggable="false">
-        <button id="btnSubMeta" type="button" aria-label="Otwórz SUB-META"></button>
+        <div id="hudTopLayer" aria-label="HUD TOP"></div>
         <div id="scoreLabel" role="status" aria-live="polite" aria-label="Punkty Rezonansu: 0">0</div>
       </div>
+      <section id="hudTopSettingsPopup" aria-label="Ustawienia" hidden>
+        <h2>Ustawienia</h2>
+        <button id="hudTopSettingsClose" type="button">Zamknij</button>
+      </section>
     </div>
     <div id="debugHudControls">
       <div class="pill debug-badge" id="debugBadge" hidden>DEBUG</div>
