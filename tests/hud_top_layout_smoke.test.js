@@ -55,6 +55,13 @@ for (const field of ['x', 'y', 'w', 'h']) {
 }
 assert(source.includes('preserveAspect'), 'debug/runtime should expose per-element preserveAspect');
 assert(source.includes('publicAssetPath(el.asset)') || source.includes('publicPath(el.asset)'), 'HUD TOP assets should be resolved through publicPath/publicAssetPath');
+assert(source.includes('SETTINGS_PATH = "settings/hud-top-layout.json"'), 'HUD TOP should declare public/settings logical path');
+assert(source.includes('resolveSettingsUrl()'), 'HUD TOP settings URL should be resolved through publicPath/publicAssetPath helper');
+assert(source.includes('data-hud-top-action="export"') && source.includes('Export JSON'), 'HUD TOP debug mini panel should expose Export JSON');
+assert(source.includes('data-hud-top-action="import"') && source.includes('Import JSON'), 'HUD TOP debug mini panel should expose Import JSON beside export');
+assert(!source.includes('data-hud-top-action="download"'), 'HUD TOP should not keep a separate download export mechanism');
+assert(!source.includes('loaded localStorage'), 'HUD TOP public settings should not be overridden by legacy localStorage defaults');
+assert(!source.includes('root.localStorage.setItem(STORAGE_KEY'), 'HUD TOP debug edits should stay runtime-only until exported to public/settings JSON');
 
 assert(cardsSource.includes('dustPileMountRect'), 'dust pile render should consume normalized HUD TOP mount rect');
 assert(!cardsSource.includes('.dustPileHud'), 'dust pile render should not use legacy dustPileHud x/y/scale');

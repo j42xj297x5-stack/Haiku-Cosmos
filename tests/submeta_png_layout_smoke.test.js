@@ -4,7 +4,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const repoRoot = path.resolve(__dirname, "..");
-const sourcePath = path.join(repoRoot, "public/settings/submeta-png-layout-export.json");
+const sourcePath = path.join(repoRoot, "public/settings/submeta-png-layout.json");
 const expectedDefault = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
 
 assert.equal(expectedDefault.version, "submeta-png-layout-v0.1");
@@ -18,9 +18,9 @@ assert.equal(new Set(ids).size, ids.length, "exported layout element ids should 
 const storage = new Map();
 const window = {
   HC: { SubMetaSettings: {
-    paths: { pngLayout: "settings/submeta-png-layout-export.json" },
+    paths: { pngLayout: "settings/submeta-png-layout.json" },
     async loadJson(logicalPath) {
-      assert.equal(logicalPath, "settings/submeta-png-layout-export.json");
+      assert.equal(logicalPath, "settings/submeta-png-layout.json");
       return { ok: true, payload: expectedDefault, resolvedUrl: `/Haiku-Cosmos/${logicalPath}` };
     }
   } },
@@ -30,7 +30,9 @@ const window = {
     removeItem(key) { storage.delete(key); },
   },
 };
-const context = vm.createContext({ window, console, Blob, URL, setTimeout });
+const document = { querySelector: () => null, getElementById: () => null, head: { appendChild() {} }, createElement: () => ({ style: {}, set textContent(value) { this._textContent = value; } }) };
+window.document = document;
+const context = vm.createContext({ window, document, console, Blob, URL, setTimeout });
 const runtimeSource = fs.readFileSync(path.join(repoRoot, "hc.submeta_png.js"), "utf8");
 vm.runInContext(runtimeSource, context, { filename: "hc.submeta_png.js" });
 
@@ -38,7 +40,7 @@ const layout = window.HC.SubMetaPngLayout;
 assert.ok(layout, "HC.SubMetaPngLayout should be registered");
 assert.equal(layout.VERSION, expectedDefault.version);
 assert.deepEqual({ ...layout.DESIGN_SIZE }, expectedDefault.designSize);
-assert.equal(layout.LAYOUT_STORAGE_KEY, "hc.submetaPng.layout.v1");
+assert.equal(layout.LAYOUT_JSON_PATH, "settings/submeta-png-layout.json");
 assert.equal(typeof layout.loadRuntimeSetting, "function");
 
 async function main() {
@@ -49,41 +51,31 @@ async function main() {
     "runtime setting should apply the checked-in layout export",
   );
 
-const savedOverride = {
+const importedOverride = {
   version: expectedDefault.version,
   designSize: expectedDefault.designSize,
-  elements: [
-    { ...expectedDefault.elements[0], x: 0.25, opacity: 0.5 },
-    { id: "unknown-legacy-element", x: 0.1, y: 0.2 },
-  ],
+  elements: expectedDefault.elements.map((item, index) => index === 0 ? { ...item, x: 0.25, opacity: 0.5 } : item),
 };
-storage.set(layout.LAYOUT_STORAGE_KEY, JSON.stringify(savedOverride));
-assert.equal(layout.loadLayout(), true, "a valid saved layout should load");
+assert.equal(layout.importLayout(JSON.stringify(importedOverride)), true, "a valid imported layout should load");
 
 const merged = JSON.parse(JSON.stringify(layout.getExportPayload()));
 assert.equal(merged.elements.length, expectedDefault.elements.length);
-assert.equal(merged.elements[0].x, 0.25, "saved localStorage values should override defaults by id");
-assert.equal(merged.elements[0].opacity, 0.5, "saved localStorage opacity should override the default");
+assert.equal(merged.elements[0].x, 0.25, "imported values should override defaults by id");
+assert.equal(merged.elements[0].opacity, 0.5, "imported opacity should override the default");
 assert.ok(
   merged.elements.some((item) => item.id === expectedDefault.elements.at(-1).id),
-  "elements missing from older localStorage should be restored from the default",
+  "elements missing from older imports should be restored from the default",
 );
-assert.equal(
-  merged.elements.some((item) => item.id === "unknown-legacy-element"),
-  false,
-  "unknown legacy elements should not crash or replace known defaults",
-);
-
-assert.equal(await layout.resetAll(), true);
+assert.equal(await layout.loadRuntimeSetting(), true);
 assert.deepEqual(
   JSON.parse(JSON.stringify(layout.getExportPayload())),
   expectedDefault,
-  "Reset all should restore the checked-in default export",
+  "Loading runtime settings again should restore the checked-in default export",
 );
 assert.equal(
-  storage.has(layout.LAYOUT_STORAGE_KEY),
-  false,
-  "Reset all should clear localStorage so the public runtime setting remains authoritative",
+  storage.size,
+  0,
+  "PNG layout should not use localStorage as a layout source",
 );
 
 const r2World = expectedDefault.elements.find((item) => item.src === "submeta_r2-swiat.png");

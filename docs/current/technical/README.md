@@ -26,6 +26,8 @@ audytów i synchronizacji dokumentacji z runtime.
 
 ## Status dokumentów
 
+- `DEBUG_SETTINGS_STANDARD.md` — **ROBOCZY / STANDARD TECHNICZNY DEBUG SETTINGS** (standard ładowania, importu i exportu ustawień debug/layout przez `public/settings/*.json` oraz mini panele debug)
+
 - `WORLD_FUNCTION_MAP.md` — **ROBOCZY** (aktywna mapa techniczna orientacyjna; nie zastępuje pełnego audytu runtime)
 - `WORLD_RENDERING_MODEL.md` — **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** (Three.js adapter, domyślny renderer Three dla gry/debug, Canvas2D jako legacy/fallback/mechanics verification, `stage_normalized` camera, `stage_spot_v1` lighting, debug overlay, compact evidence logging; obejmuje GLTFLoader jako aktywną ścieżkę GLB dla meteorów/asteroid, GLB template/clone cache, zewnętrzne palety PNG `map`/`emissiveMap` red/yellow przez `TextureLoader`, no-overwrite imported materials oraz fallback visual tylko dla `loading`/`failed`)
 - `SEQUENCE_STATE_CONTRACT.md` — **ROBOCZY / KONTRAKT TECHNICZNY** (single source-of-truth sekwencji + zasady evidence timeline)

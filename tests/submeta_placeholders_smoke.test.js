@@ -43,7 +43,7 @@ vm.runInContext(runtimeSource, context, { filename: "hc.submeta_placeholders.js"
 
 const api = window.HC.SubMetaPlaceholders;
 assert.ok(api, "HC.SubMetaPlaceholders should be registered");
-assert.equal(api.VERSION, "submeta-placeholders-v0.3");
+assert.equal(api.VERSION, expectedDefault.version);
 assert.deepEqual(Array.from(api.GROUPS), ["PRG R1", "PRG R2", "R3", "R4", "Świat", "Świat R2"]);
 
 async function main() {
@@ -52,13 +52,14 @@ const placeholders = api.getPlaceholders();
 assert.deepEqual(
   JSON.parse(api.exportJson()),
   expectedDefault,
-  "fresh runtime default should exactly match the checked-in v0.3 preset",
+  "fresh runtime default should exactly match the checked-in preset",
 );
-assert.equal(placeholders.length, 55, "the complete gameplay preset should contain 55 stable sockets");
+assert.equal(placeholders.length, expectedDefault.placeholders.length, "the complete gameplay preset should match the checked-in stable sockets");
 assert.equal(new Set(placeholders.map((item) => item.id)).size, placeholders.length, "placeholder ids should be unique");
+const expectedGroupCounts = expectedDefault.placeholders.reduce((acc, item) => { acc[item.group] = (acc[item.group] || 0) + 1; return acc; }, {});
 assert.deepEqual(
   Object.fromEntries(Array.from(api.GROUPS, (group) => [group, placeholders.filter((item) => item.group === group).length])),
-  { "PRG R1": 12, "PRG R2": 6, R3: 6, R4: 9, "Świat": 16, "Świat R2": 6 },
+  expectedGroupCounts,
 );
 
 const requiredFields = ["id", "group", "subgroup", "kind", "state", "x", "y", "w", "h", "zIndex", "visibleInGame", "visibleInDebug", "selected", "label"];
@@ -81,24 +82,20 @@ assert.equal(api.getPlaceholders().find((item) => item.id === "prg.forma.r1.1").
 assert.equal(api.getPlaceholders().find((item) => item.id === "prg.forma.r1.1").w, 0.061);
 assert.deepEqual(window.World.cardsPool, cardsPool, "placeholder selection and tuning must not mutate the card pool");
 
-assert.equal(api.savePreset(), true);
-const saved = JSON.parse(storage.get(api.STORAGE_KEY));
-assert.equal(saved.placeholders.find((item) => item.id === "prg.forma.r1.1").x, 0.321);
-assert.equal(api.importJson(JSON.stringify({ ...saved, placeholders: saved.placeholders.map((item) => item.id === "prg.forma.r1.1" ? { ...item, y: 0.222 } : item) })), true);
+const exported = JSON.parse(api.exportJson());
+assert.equal(exported.placeholders.find((item) => item.id === "prg.forma.r1.1").x, 0.321);
+assert.equal(api.importJson(JSON.stringify({ ...exported, placeholders: exported.placeholders.map((item) => item.id === "prg.forma.r1.1" ? { ...item, y: 0.222 } : item) })), true);
 assert.equal(api.getPlaceholders().find((item) => item.id === "prg.forma.r1.1").y, 0.222);
-assert.equal(api.updateSelectedField("y", 0.333), true);
-assert.equal(api.loadPreset(), true, "localStorage preset should take precedence when explicitly loaded");
-assert.equal(api.getPlaceholders().find((item) => item.id === "prg.forma.r1.1").y, 0.222);
-assert.equal(JSON.parse(api.exportJson()).version, "submeta-placeholders-v0.3");
+assert.equal(JSON.parse(api.exportJson()).version, expectedDefault.version);
 assert.match(api.exportJson(), /"world\.r2\.3\.dust"/);
 
-api.resetAll();
+await api.resetAll();
 assert.deepEqual(
   JSON.parse(api.exportJson()),
   expectedDefault,
-  "reset should restore the checked-in v0.3 preset exactly",
+  "reset should restore the checked-in preset exactly",
 );
-assert.equal(storage.has(api.STORAGE_KEY), false, "reset should remove the saved tuning preset");
+assert.equal(storage.size, 0, "placeholder layout tuning should not use localStorage as source of truth");
 assert.deepEqual(window.World.cardsPool, cardsPool, "reset must not mutate the card pool");
 
 console.log("submeta_placeholders_smoke.test.js: OK");

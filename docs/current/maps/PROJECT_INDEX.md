@@ -78,6 +78,7 @@ Kanon jest mapowany warstwowo przez:
 ## Techniczne
 
 - `docs/current/technical/README.md` (ROBOCZY)
+- `docs/current/technical/DEBUG_SETTINGS_STANDARD.md` (ROBOCZY / STANDARD TECHNICZNY DEBUG SETTINGS) - definiuje standard ładowania, importu i exportu ustawień debug/layout przez `public/settings/*.json` i mini panele debug.
 - `docs/current/technical/WORLD_FUNCTION_MAP.md` (ROBOCZY)
 - `docs/current/technical/WORLD_RENDERING_MODEL.md` (ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA; zawiera checkpoint 2026-06-05: Three jako domyślny renderer gry/debug, Canvas2D legacy/fallback, `stage_normalized` camera, `stage_spot_v1` lighting z `mainStageSpot`, debug overlay/global helpers, compact evidence logging, SUB-META logging contract `future_event_based_v1` oraz snapshot Three GLB + external meteor textures: aktywny lokalny `GLTFLoader` dla meteorów/asteroid, cache template/clone GLB, cache PNG `map`/`emissiveMap` red/yellow przez `TextureLoader`, no-overwrite imported GLB materials i runtime asset policy)
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (ROBOCZY / ARCHITEKTURA TECHNICZNA)
@@ -94,7 +95,7 @@ Kanon jest mapowany warstwowo przez:
 
 - Source-of-truth: `docs/current/ui/SUB_META_RUNTIME_SNAPSHOT.md`.
 - Runtime: `hc.submeta_png.js`, `hc.submeta_placeholders.js`, `hc.submeta_panels.js`, `hc.submeta_settings.js`, `hc.ui_debug.js`.
-- Settings: `public/settings/submeta-png-layout-export.json`, `public/settings/submeta-placeholders.json`, `public/settings/submeta-placeholders-panels.json`.
+- Settings: `public/settings/submeta-png-layout.json`, `public/settings/submeta-placeholders.json`, `public/settings/submeta-placeholders-panels.json`.
 - Assets kart: `public/svg/` oraz `public/png/cards/`.
 - Stare canvasowe SUB-META, FrameComposer, Figma oraz konfliktujące specy/wireframe’y są legacy/reference dla bieżącego runtime.
 

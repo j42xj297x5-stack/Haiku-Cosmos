@@ -8,7 +8,7 @@
   const DESIGN_SIZE = Object.freeze({ width: 1536, height: 1024 });
   const ENABLED_STORAGE_KEY = "hc.submetaPng.enabled.v1";
   const ASSET_DIR = "png/submeta/";
-  const LAYOUT_JSON_PATH = "settings/submeta-png-layout-export.json";
+  const LAYOUT_JSON_PATH = "settings/submeta-png-layout.json";
   const SETTING_KEY = "pngLayout";
   const BACKGROUND_FIT_MODE = "contain";
 
