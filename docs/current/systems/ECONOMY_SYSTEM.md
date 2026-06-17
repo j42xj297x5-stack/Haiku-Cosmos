@@ -186,6 +186,19 @@ To jest kierunek roboczy i wymaga osobnego passu runtime/balance.
 
 ## 10. Migracja ekonomii slotów / DO AKTUALIZACJI względem CARD_SLOT_NETWORK_SYSTEM
 
+### 10A. Nota migracyjna — rafinacja pyłu w Kuźni
+
+- Rafinacja pyłu w Kuźni: `3 stosiki pyłu = 1 flakon/naczynie`.
+- Rafinacja wyższego stopnia: `3 flakony/naczynia = 1 kryształ`.
+- Wartości są robocze i wymagają przyszłego debug/balance tuningu.
+- Koszty RP, jeśli występują przy rafinacji, pozostają do synchronizacji i balansu.
+- HUD collection nie tworzy flakonów ani kryształów bezpośrednio.
+- Ekonomia pełnych stosików zaczyna się od jednokolorowych stosików z HUD.
+- HUD nie produkuje wielokolorowych stosików.
+- Mieszanie, rafinacja i kombinacje kolorów pyłu są rozstrzygane w Kuźni albo SUB-META, nie podczas szybkiego HUD collection.
+- Szczegóły opisuje `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
+
+
 - Dotychczasowy stały koszt `10 RP` za włożenie/wyciągnięcie karty pozostaje zapisem dotychczasowego kanonu, ale jest **DO AKTUALIZACJI**.
 - `CARD_SLOT_NETWORK_SYSTEM.md` proponuje koszty zależne od rzędu slotu/karty: R1/R2/R3/R4.
 - Pył, naczynia pyłowe, kryształy, deponowanie, stabilizacja i naprawa slotów wymagają osobnej synchronizacji ekonomii.

@@ -126,6 +126,44 @@ Ten dokument jest roboczym **master specem SUB-META v2**. Jego rolą jest zastą
 - DS jest traktowany jako rozszerzenie/zasób specjalny poza centrum rdzenia.
 - Relacje semantyczne pozostają zgodne z `SUB_META_SYSTEM.md` i `UI_WORLD.md`.
 
+### 6A. Nota synchronizacyjna — DS i czteroelementowy slot
+
+- Master spec musi uwzględnić czteroelementową strukturę slotu: karta R, stabilizator, karta specjalna, artefakt.
+- DS jest interpretowany jako karta naprawcza zdobywana przez AAA.
+- Karty specjalne i artefakty wymagają przyszłych placeholderów lub stref w slotach.
+- Nie zmieniać layout tokens ani JSON na podstawie tej noty.
+- Szczegóły robocze opisuje `../systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`.
+
+
+### 6B. Nota synchronizacyjna — visual/UI czteroelementowego slotu
+
+- Czteroelementowy slot wymaga osobnego visual/UI passu.
+- `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` opisuje stany i czytelność przed layout tokens.
+- Master spec nie powinien jeszcze przyjmować finalnego układu slotu bez decyzji visual.
+
+### 6C. Nota synchronizacyjna — trwałość karty R / wariant C
+
+- Dla trwałości karty R w przyszłych layout-tokenach należy uwzględnić zatwierdzony roboczo model wariantu C opisany w `CARD_DURABILITY_WIREFRAME_PASS.md`.
+- Model oznacza hybrydę: pasek boczny po prawej krawędzi karty R oraz jakościową, progową degradację karty.
+- Ta nota nie oznacza jeszcze finalnego layoutu całego czteroelementowego slotu.
+- Ta nota nie zmienia runtime.
+
+### 6D. Nota synchronizacyjna — scoped ID paska trwałości karty R
+
+- Przyszłe layout tokens dla SUB-META powinny uwzględnić scoped ID `submeta.slot.card_r.durability_bar` jako roboczy identyfikator paska trwałości karty R.
+- ID pochodzi z readiness opisanej w `CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md`.
+- Ta nota nie oznacza zmiany runtime ani finalnego layoutu slotu.
+
+### 6E. Nota synchronizacyjna — pył, Kuźnia i stabilizator slotu
+
+- W SUB-META stabilizator slotu może mieć formy: pył, flakon/naczynie albo kryształ.
+- HUD collection jest ograniczony do jednokolorowego stosiku surowego pyłu.
+- SUB-META / Kuźnia są właściwym miejscem mieszania kolorów pyłu.
+- Flakon/naczynie i kryształ są produktami Kuźni.
+- Przyszłe UI SUB-META może potrzebować osobnego passu dla mieszania stosików pyłu, ale ten dokument go nie rozstrzyga.
+- Nie zmieniać layout tokens, settings ani runtime na podstawie tej noty.
+- Szczegóły opisuje `../systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
+
 ## 7. Resonance core
 
 - Rdzeń jest centralnym punktem konfiguracji SUB-META v2.

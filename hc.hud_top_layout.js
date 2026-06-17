@@ -28,6 +28,11 @@
       letterSpacing: 1,
       align: "center",
     }),
+    dustPileHud: Object.freeze({
+      x: 1378,
+      y: 28,
+      scale: 0.48,
+    }),
   });
 
   let layout = cloneLayout(DEFAULT_LAYOUT);
@@ -43,6 +48,7 @@
       overlay: { ...source.overlay },
       subMetaButton: { ...source.subMetaButton },
       rpText: { ...source.rpText },
+      dustPileHud: { ...source.dustPileHud },
     };
   }
 
@@ -57,6 +63,7 @@
     const overlay = source.overlay && typeof source.overlay === "object" ? source.overlay : {};
     const button = source.subMetaButton && typeof source.subMetaButton === "object" ? source.subMetaButton : {};
     const text = source.rpText && typeof source.rpText === "object" ? source.rpText : {};
+    const dustPileHud = source.dustPileHud && typeof source.dustPileHud === "object" ? source.dustPileHud : {};
     const align = ["left", "center", "right"].includes(text.align) ? text.align : DEFAULT_LAYOUT.rpText.align;
 
     return {
@@ -78,6 +85,11 @@
         fontSize: clampNumber(text.fontSize, 8, 240, DEFAULT_LAYOUT.rpText.fontSize),
         letterSpacing: clampNumber(text.letterSpacing, -10, 40, DEFAULT_LAYOUT.rpText.letterSpacing),
         align,
+      },
+      dustPileHud: {
+        x: clampNumber(dustPileHud.x, -1000, 5000, DEFAULT_LAYOUT.dustPileHud.x),
+        y: clampNumber(dustPileHud.y, -1000, 3000, DEFAULT_LAYOUT.dustPileHud.y),
+        scale: clampNumber(dustPileHud.scale, 0.1, 3, DEFAULT_LAYOUT.dustPileHud.scale),
       },
     };
   }
@@ -252,6 +264,9 @@
           ${numberControl("RP font size", "rpText.fontSize", layout.rpText.fontSize, 8, 240, 1)}
           ${numberControl("RP letter spacing", "rpText.letterSpacing", layout.rpText.letterSpacing, -10, 40, 0.1)}
           <label class="hud-top-debug-row"><span>RP align</span><select data-hud-top-field="rpText.align">${alignOptions}</select></label>
+          ${numberControl("dustPileHud.x", "dustPileHud.x", layout.dustPileHud.x, -1000, 5000, 1)}
+          ${numberControl("dustPileHud.y", "dustPileHud.y", layout.dustPileHud.y, -1000, 3000, 1)}
+          ${numberControl("dustPileHud.scale", "dustPileHud.scale", layout.dustPileHud.scale, 0.1, 3, 0.01)}
           <textarea class="overlay-note hud-top-json" data-hud-top-json aria-label="HUD Top Layout JSON">${escapeHtml(getExportJson())}</textarea>
           <div class="hud-top-debug-actions">
             <button class="overlay-btn" type="button" data-hud-top-action="copy">Copy JSON</button>

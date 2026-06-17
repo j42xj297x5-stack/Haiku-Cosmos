@@ -8,10 +8,15 @@
 ## RUN HUD
 
 - `HUD_SYSTEM.md` — roboczy kierunek RUN HUD v2 (prawy panel rombów sekwencji + dolne sloty kart specjalnych/eventowych).
+- `DUST_STACK_HUD_VISUAL_CHECKLIST.md` — robocza checklista UI-visual dla jednokolorowego HUD stosiku pyłu, 4 pełnych kolorów, wspólnych masek `0–90%`, stanu `80%`, `100%` i depozytu przed assetami i runtime.
 
 ## Dokument nadrzędny SUB-META v2
 
 - `SUB_META_V2_MASTER_SPEC.md` — główny roboczy master spec UI/layout dla SUB-META v2.
+- `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` — robocza checklista stanów i czytelności visual/UI dla czteroelementowego slotu przed layout tokens i runtime.
+- `CARD_DURABILITY_VISUAL_DECISION.md` — roboczy dokument decyzyjny UI-visual porównujący warianty A/B/C trwałości karty R przed wireframe i runtime.
+- `CARD_DURABILITY_WIREFRAME_PASS.md` — roboczy wireframe UI wariantu C opisujący pasek trwałości, degradację i debug procentu karty R przed layout tokens i runtime.
+- `CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md` — robocza checklista gotowości opisująca minimalne pola, ID, stany i zależności przed przyszłym layout-token pass dla visual trwałości karty R.
 
 ## Wejściowy stack SUB-META v2 (spec-history / input)
 

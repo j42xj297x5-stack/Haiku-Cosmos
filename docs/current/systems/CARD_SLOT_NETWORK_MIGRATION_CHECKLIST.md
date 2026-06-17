@@ -24,10 +24,18 @@ Jej celem jest przygotowanie przyszłych promptów implementacyjnych przez zebra
 
 ### 3.1. Finalna rola DS
 
-- [ ] Czy DS z pętli AAA zostaje osobną kartą specjalną?
-- [ ] Czy DS zostaje przemianowany w kartę naprawczą?
-- [ ] Czy DS pozostaje legacy aliasem technicznym dla karty naprawczej?
-- [ ] Jaką nazwę widzi gracz w UI?
+Decyzja DS została częściowo zamknięta:
+
+- [x] DS = karta naprawcza zdobywana przez AAA.
+- [x] Nie tworzymy osobnej nowej karty naprawczej obok DS bez osobnej decyzji.
+
+Pozostają otwarte:
+
+- [ ] finalna nazwa UI,
+- [ ] dokładny model craftingu kart specjalnych,
+- [ ] finalny model artefaktów,
+- [ ] finalny model przenoszenia wiedzy między eonami,
+- [ ] finalna wizualizacja trwałości/uszkodzeń.
 
 ### 3.2. Karta naprawcza
 
@@ -76,6 +84,19 @@ Jej celem jest przygotowanie przyszłych promptów implementacyjnych przez zebra
 - [ ] Czy endgame może kiedyś naprawiać utrwalone blizny?
 
 ### 3.8. HUD pyłu
+
+Model HUD pyłu częściowo zamknięty:
+
+- [x] HUD zbiera tylko surowy pył do stosiku.
+- [x] Flakon/naczynie i kryształ powstają w Kuźni, nie w bazowym HUD collection.
+
+Nadal otwarte:
+
+- [ ] finalny visual maski stosiku co 10%,
+- [ ] finalny multi-color collection,
+- [ ] auto-collection z kart specjalnych,
+- [ ] finalne koszty i balans Kuźni.
+
 
 - [ ] Jak pokazać chmurkę pyłu po kolizji?
 - [ ] Jak działa zbieranie jednego koloru naraz na początku?
@@ -137,7 +158,7 @@ Rekomendowana kolejność po zamknięciu minimalnych decyzji:
 
 Runtime pass nie powinien ruszyć, dopóki nie ma decyzji przynajmniej w sprawach:
 
-- finalna rola DS/karty naprawczej,
+- finalna nazwa UI dla DS/karty naprawczej oraz szczegóły użycia w UI,
 - minimalny model kosztów slotowych,
 - minimalny model trwałości,
 - minimalny model stabilizatorów,

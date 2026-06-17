@@ -4,7 +4,7 @@
 > Obszar: sieć slotów kart / aktywacja slotów / wzmocnienia / trwałość / pył / napięcie / blizny / naprawa slotów
 > Źródło prawdy: NIE, dopóki dokument nie zostanie zatwierdzony i zsynchronizowany z dokumentami kanonicznymi
 > Proponowana lokalizacja: `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md`
-> Powiązane dokumenty: `CARDS_SYSTEM.md`, `SUB_META_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `PRG_SYSTEM.md`, `UI_WORLD.md`, `SUB_META_V2_MASTER_SPEC.md`
+> Powiązane dokumenty: `CARDS_SYSTEM.md`, `SUB_META_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `PRG_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `UI_WORLD.md`, `SUB_META_V2_MASTER_SPEC.md`
 
 ---
 
@@ -32,6 +32,25 @@ Dokument nie definiuje finalnych wartości balansu.
 Wszystkie liczby startowe są wartościami roboczymi i muszą być skalowalne w debug.
 
 ---
+
+## 1A. Nota synchronizacyjna — DS i struktura slotu
+
+- DS jest interpretowana jako karta naprawcza zdobywana przez AAA.
+- Karta naprawcza nie jest osobnym nowym typem obok DS bez osobnej decyzji projektowej.
+- Szczegóły struktury slotu, kart specjalnych, artefaktów i pamięci eonów opisuje `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`.
+
+---
+
+## 1B. Nota synchronizacyjna — HUD zbiera tylko stosik pyłu
+
+- HUD zbiera tylko surowy pył do stosiku.
+- HUD nie zbiera bezpośrednio do flakonu/naczynia ani do kryształu.
+- Flakon/naczynie i kryształ powstają w Kuźni.
+- Stabilizatory slotów nadal mają formy: pył, flakon/naczynie i kryształ.
+- Szczegóły pętli zbierania i rafinacji opisuje `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
+
+---
+
 
 ## 2. Zasada nadrzędna
 
@@ -1131,7 +1150,7 @@ RED    = zderzenie dwóch czerwonych meteorów
 YELLOW = zderzenie dwóch żółtych meteorów
 GREEN  = zderzenie dwóch zielonych meteorów
 BLUE   = zderzenie dwóch niebieskich meteorów
-GREY   = zderzenie meteorów różnych kolorów albo mieszanie pyłu w HUD
+GREY   = zderzenie meteorów różnych kolorów albo future mieszanie pyłu w SUB-META / Kuźni; nie bazowe mieszanie w HUD
 ```
 
 ### 25.2. Chmurka pyłu
@@ -1168,7 +1187,7 @@ Wartości muszą być skalowalne w debug.
 
 Na początku gry gracz może zbierać tylko jeden kolor pyłu naraz.
 
-Jeśli gracz zbiera kolor A, nie może w tym samym czasie zebrać koloru B do tego samego zasobnika bez zmieszania.
+Jeśli gracz zbiera kolor A, bazowy HUD nie przyjmuje koloru B do tego samego stosiku; próba innego koloru wymaga ostrzeżenia, blokady albo osobnej przyszłej decyzji, ale nie miesza stosiku w HUD.
 
 ### 26.2. Zasobnik HUD
 
@@ -1186,24 +1205,19 @@ Gdy zasobnik jest pełen, pojawia się przycisk:
 Zdeponuj
 ```
 
-### 26.3. Koszt deponowania
+### 26.3. Koszt deponowania / DO AKTUALIZACJI
 
-Startowe koszty deponowania:
+DO AKTUALIZACJI względem `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`: bazowy HUD deponuje pełny stosik surowego pyłu, a nie naczynie ani kryształ.
 
-```text
-pył       = 2 RP
-naczynie  = 5 RP
-kryształ  = 10 RP
-szary pył = 1 RP
-```
+Dawne startowe koszty deponowania naczynia/kryształu pozostają historycznym zapisem roboczym i wymagają synchronizacji z Kuźnią oraz ekonomią RP.
 
-Wartości muszą być skalowalne w debug.
+Wartości deponowania pyłu, jeśli wrócą do runtime, muszą być skalowalne w debug.
 
 ### 26.4. Mieszanie pyłu
 
-Jeśli podczas zbierania koloru A gracz dołoży do zasobnika kolor B, zawartość staje się pyłem szarym.
+DO AKTUALIZACJI / LEGACY IDEA względem `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`: bazowy HUD nie miesza kolorów i nie zamienia częściowego stosiku w szary stosik po dodaniu innego koloru. Mieszanie kolorów pyłu jest przeniesione do SUB-META / Kuźni.
 
-Szary pył służy do:
+Szary pył, jeśli zostanie utrzymany w przyszłym balansie Kuźni, służy do:
 
 * tworzenia naczyń pyłowych,
 * tworzenia kryształów,
@@ -1218,8 +1232,7 @@ W późniejszej grze gracz może tworzyć lepsze stabilizatory z szarego pyłu.
 Startowe koszty:
 
 ```text
-naczynie pyłowe = 3 zasobniki szarego pyłu + 5 RP
-kryształ        = 10 zasobników szarego pyłu + 10 RP
+DO AKTUALIZACJI: `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` przyjmuje roboczo 3 stosiki pyłu = 1 flakon/naczynie oraz 3 flakony/naczynia = 1 kryształ. Koszty RP i wariant szarego pyłu wymagają osobnego balansu.
 ```
 
 Wartości muszą być skalowalne w debug.
@@ -1239,15 +1252,9 @@ Poziomy:
 4 kolory
 ```
 
-W HUD gracz wybiera:
+DO AKTUALIZACJI względem `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`: bazowy HUD nie wybiera typu zasobnika flakon/naczynie/kryształ. HUD zbiera wyłącznie surowy pył do stosiku; ewentualny multi-color HUD i automatyczne zbieranie wymagają osobnego passu.
 
-1. typ zasobnika:
-
-   * pył,
-   * naczynie,
-   * kryształ,
-
-2. liczbę kolorów:
+W przyszłym, niebazowym modelu gracz może wybierać liczbę kolorów:
 
    * 1,
    * 2,

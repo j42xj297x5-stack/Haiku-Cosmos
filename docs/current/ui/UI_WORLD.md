@@ -335,6 +335,14 @@ Zasady kosztów są w `ECONOMY_SYSTEM.md`.
 
 ---
 
+### 3.4. Nota synchronizacyjna — UI struktury slotu i degradacji
+
+- Przyszłe UI musi pokazać strukturę slotu: karta R, stabilizator, karta specjalna, artefakt.
+- Karta R może pokazywać trwałość paskiem bocznym albo warstwami degradacji.
+- Elementy specjalne i artefakty pozostają widoczne, ale mogą być przyciemnione lub nieaktywne, gdy karta R zniknie.
+- Finalny kierunek visual wymaga osobnego passu.
+- Szczegóły robocze opisuje `../systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`.
+
 ## 4. META Overlay (koniec cyklu / EON)
 
 META:
@@ -387,6 +395,26 @@ bez wchodzenia w implementację techniczną.
 
 
 ## 7. Migracja HUD/SUB-META / DO AKTUALIZACJI względem CARD_SLOT_NETWORK_SYSTEM
+
+### 7A. Nota UI — HUD stosiku pyłu
+
+- HUD pokazuje aktualny stosik pyłu `0–100%`.
+- HUD pyłu jest modelem jednokolorowego zbierania: gracz zbiera jeden kolor pyłu naraz.
+- HUD nie pokazuje kombinacji kolorów jako bazowego modelu.
+- Mieszanie kolorów pyłu zostało przeniesione do SUB-META / Kuźni.
+- Jedna ukończona sekwencja daje `80%` stosiku.
+- Do `100%` potrzebne jest dodatkowe zebranie pyłu tego samego koloru.
+- Postęp może być pokazany maską albo warstwą visual co `10%`.
+- HUD nie pokazuje zbierania do flakonu/naczynia ani kryształu w bazowym modelu.
+- Flakon/naczynie i kryształ są wynikiem Kuźni.
+- Szczegóły opisuje `../systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
+
+Nota synchronizacyjna visual/UI:
+
+- Szczegóły visual HUD stosiku pyłu i maski `0–100%` są rozwinięte w `DUST_STACK_HUD_VISUAL_CHECKLIST.md`.
+- `UI_WORLD.md` pozostaje dokumentem wyższego poziomu.
+- Flakon/naczynie i kryształ nie są bazowymi celami HUD collection.
+
 
 - System aktywowania koloru w HUD ma zostać wycofany zgodnie z kierunkiem `CARD_SLOT_NETWORK_SYSTEM.md`; karta staje się aktywna po włożeniu do slotu.
 - Stare fragmenty opisujące aktywację koloru przez HUD/sekwencję są **DO AKTUALIZACJI**, ale nie są usuwane przed pełną migracją runtime.

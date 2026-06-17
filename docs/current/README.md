@@ -19,6 +19,8 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `systems/CARDS_SYSTEM.md` - **KANON** - system kart, sekwencji i DS.
 - `systems/CARD_SLOT_NETWORK_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU** - sieć slotów kart: aktywacja R1→R4, lokalne R2, globalne R3/R4, trwałość, pył, napięcie, blizny i karta naprawcza; wymaga synchronizacji z CARDS/SUB_META/ECONOMY/PRG/UI.
 - `systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` - **ROBOCZY / CHECKLISTA MIGRACYJNA** - lista decyzji i zależności do zamknięcia przed pierwszym runtime pass `CARD_SLOT_NETWORK_SYSTEM.md`.
+- `systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME** - pętla meteor → pył → HUD stosik → depozyt → Magazyn → Kuźnia → flakon/naczynie → kryształ → stabilizator slotu; doprecyzowuje, że HUD zbiera tylko jeden kolor surowego pyłu do stosiku, a mieszanie kolorów jest przeniesione do SUB-META / Kuźni.
+- `systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME** - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
 - `systems/ECONOMY_SYSTEM.md` - **KANON** - ekonomia RP i koszty działań.
 - `systems/SUB_META_SYSTEM.md` - **KANON** - logika SUB-META i konfiguracja gałęzi.
 - `systems/PRG_SYSTEM.md` - **KANON STRUKTURALNY** - struktura PRG (wymaga dalszego strojenia balansu).
@@ -30,6 +32,11 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `ui/HUD_SYSTEM.md` - **ROBOCZY / KIERUNEK HUD v2** - roboczy kierunek prawego panelu sekwencji, aktywacji i mikrodecyzji RUN.
 - `ui/SUB_META_RUNTIME_SNAPSHOT.md` - **AKTYWNY SNAPSHOT RUNTIME** - bieżąca ścieżka PNG/settings/placeholders/panels/debug; ma pierwszeństwo dla implementacji runtime SUB-META.
 - `ui/SUB_META_V2_MASTER_SPEC.md` - **ROBOCZY / MASTER SPEC UI-LAYOUT** - aktywny master spec UI/layout dla SUB-META v2; nie nadpisuje aktywnego snapshotu runtime.
+- `ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` - **ROBOCZY / CHECKLISTA UI-VISUAL / PRZED LAYOUT TOKENS** - checklista czytelności i stanów visual/UI dla czteroelementowego slotu przed layout-token i runtime pass.
+- `ui/DUST_STACK_HUD_VISUAL_CHECKLIST.md` - **ROBOCZY / CHECKLISTA UI-VISUAL / HUD PYŁU** - checklista ikony jednokolorowego stosiku pyłu, wspólnych masek `0–90%`, 4 pełnych kolorów, stanu `80%`, `100%` i depozytu przed assetami i runtime.
+- `ui/CARD_DURABILITY_VISUAL_DECISION.md` - **ROBOCZY / DOKUMENT DECYZYJNY UI-VISUAL** - porównanie wariantów A/B/C pokazywania trwałości karty R przed wireframe i runtime.
+- `ui/CARD_DURABILITY_WIREFRAME_PASS.md` - **ROBOCZY / WIREFRAME UI / WARIANT C** - minimalny układ paska trwałości, degradacji i debug procentu dla karty R przed layout tokens i runtime.
+- `ui/CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md` - **ROBOCZY / CHECKLISTA GOTOWOŚCI / PRZED LAYOUT TOKENS** - minimalne pola, ID, stany i zależności potrzebne przed przyszłym layout-token pass dla visual trwałości karty R.
 - `ui/SUB_META_V2_LAYOUT_TOKENS.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_V2_FRAMECOMPOSER_CONTRACT.md` - **ROBOCZY / SPEC-HISTORY INPUT** - źródło wejściowe do master spec.
 - `ui/SUB_META_MEMORY_PACK.md` - **HANDOFF / ROBOCZY / SPEC-HISTORY INPUT** - pomocniczy handoff, nie główny master spec layoutu.

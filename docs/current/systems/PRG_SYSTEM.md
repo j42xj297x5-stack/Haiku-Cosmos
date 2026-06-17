@@ -212,6 +212,13 @@ To oznacza, że:
 - dalsze strojenie wymaga osobnych kroków runtime/balans.
 
 
+## 13A. Nota synchronizacyjna — loadout slotu PRG
+
+- PRG również może korzystać ze struktury slotu z kartą R, stabilizatorem i kartą specjalną.
+- Artefakty są zasadniczo projektowane głównie dla ŚWIATA, chyba że przyszła decyzja rozszerzy ich rolę na PRG.
+- Karty specjalne PRG reprezentują wiedzę lub umiejętności wpływające na pole reakcji gracza.
+- Szczegóły roboczego modelu slotu opisuje `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`.
+
 ## 14. Migracja PRG / DO SYNCHRONIZACJI Z CARD_SLOT_NETWORK_SYSTEM
 
 - R2 PRG działa lokalnie w obrębie gałęzi PRG.
