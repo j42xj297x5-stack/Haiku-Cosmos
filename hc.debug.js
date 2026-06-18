@@ -791,6 +791,8 @@
           harmonicDustCount: Array.isArray(World?.harmonicDust) ? World.harmonicDust.length : 0,
         },
         rp: Math.max(0, Math.floor(Number(World?.score || 0))),
+        harmonicDustSequence: World?.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
+        harmonicDustReservoir: World?.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
         activeSequence: sequence ? {
           active: Boolean(sequence.active),
           stage: sequence.stage || null,
@@ -844,6 +846,15 @@
           temp: Array.isArray(World.cardsTemp) ? World.cardsTemp.length : 0,
           breakdown: cardBreakdown,
         },
+        harmonicDustSequence: World.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
+        harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
+        harmonicDust: Array.isArray(World.harmonicDust) ? World.harmonicDust.filter((dust) => dust && !dust._dead).map((dust) => ({
+          id: dust.id || null,
+          colorName: dust.colorName || null,
+          dustSequenceStep: Number(dust.dustSequenceStep || 0),
+          reservoirPercentValue: Number(dust.reservoirPercentValue || 0),
+          collectRequiredMs: Number(dust.collectRequiredMs || 0),
+        })) : [],
         thresholdOverrides: World.__debugThresholdOverrides || null,
         visual: buildVisualEvidenceSnapshot(this.config?.visual || window.HC?.Session?.debugConfig?.visual || null),
         logging: {
