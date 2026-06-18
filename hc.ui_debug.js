@@ -1338,6 +1338,8 @@
       ["planets", `${wc.rockyPlanets ?? 0} rocky / ${wc.gasPlanets ?? 0} gas`],
       ["stars", wc.stars ?? 0],
       ["harmonic dust", wc.harmonicDustCount ?? 0],
+      ["dust sequence", `${window.World?.harmonicDustSequence?.colorName || "-"} #${window.World?.harmonicDustSequence?.step || 0}`],
+      ["Dust Reservoir", `${window.World?.harmonicDustReservoir?.isMixedGray ? "GRAY" : (window.World?.harmonicDustReservoir?.activeColorName || "EMPTY")} ${Math.floor(Number(window.World?.harmonicDustReservoir?.fillPercent || 0))}%`],
       ["harmonic collected", JSON.stringify(window.World?.harmonicDustCollected || {})],
       ["A→P mass threshold", `${thr.asteroidToPlanet?.current ?? 0} (${thr.asteroidToPlanet?.source || "-"})`],
       ["P→S threshold", `${thr.planetToStar?.current ?? 0} (${thr.planetToStar?.source || "-"})`],

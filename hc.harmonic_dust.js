@@ -27,6 +27,11 @@
     World.spaceMechanics = Object.assign({
       harmonicDustMergeRadiusMul: 2.0,
       harmonicDustBaseCollectMs: 2400,
+      harmonicDustStepPercents: [10, 20, 50],
+      harmonicDustSequenceMaxStep: 3,
+      harmonicDustPercentCollectMsMul: 55,
+      harmonicDustMaxReservoirPercentValue: 100,
+      harmonicDustMixedIncomingPercent: 10,
       harmonicDustMassCollectMsMul: 850,
       harmonicDustCollectDecayMul: 0.35,
       harmonicDustPrgCollectRateMul: 1.0,
@@ -37,15 +42,48 @@
     } else {
       for (const key of COLOR_KEYS) if (!Number.isFinite(Number(World.harmonicDustCollected[key]))) World.harmonicDustCollected[key] = 0;
     }
+    if (!World.harmonicDustSequence || typeof World.harmonicDustSequence !== "object") {
+      World.harmonicDustSequence = { colorName: null, step: 0, lastCollisionAt: 0 };
+    }
+    if (!World.harmonicDustReservoir || typeof World.harmonicDustReservoir !== "object") {
+      World.harmonicDustReservoir = { activeColorName: null, isMixedGray: false, fillPercent: 0, pureFillPercent: 0, grayFillPercent: 0, lastCollectedColorName: null, samplesCollected: 0 };
+    }
     return World;
   }
 
-  function collectMsForMass(World, mass) {
+  function stepPercents(World) {
+    const raw = ensureWorldState(World)?.spaceMechanics?.harmonicDustStepPercents;
+    const values = Array.isArray(raw) ? raw.map((v) => positive(v, 0)).filter((v) => v > 0) : [];
+    return values.length >= 3 ? values.slice(0, 3) : [10, 20, 50];
+  }
+
+  function percentForStep(World, step) {
+    const values = stepPercents(World);
+    const maxStep = Math.max(1, Math.floor(positive(World.spaceMechanics.harmonicDustSequenceMaxStep, 3)));
+    const idx = clamp(Math.floor(positive(step, 1)), 1, Math.min(maxStep, values.length)) - 1;
+    return values[idx] || values[values.length - 1] || 10;
+  }
+
+  function advanceDustSequence(World, colorName, nowMs) {
+    ensureWorldState(World);
+    const seq = World.harmonicDustSequence;
+    const maxStep = Math.max(1, Math.floor(positive(World.spaceMechanics.harmonicDustSequenceMaxStep, 3)));
+    seq.step = seq.colorName === colorName ? Math.min(maxStep, Math.floor(finite(seq.step, 0)) + 1) : 1;
+    seq.colorName = colorName;
+    seq.lastCollisionAt = finite(nowMs, World.nowMs || Date.now());
+    return { step: seq.step, percent: percentForStep(World, seq.step) };
+  }
+
+  function collectMsForPercent(World, reservoirPercentValue) {
     const sm = ensureWorldState(World)?.spaceMechanics || {};
     const base = positive(sm.harmonicDustBaseCollectMs, 2400);
-    const mul = positive(sm.harmonicDustMassCollectMsMul, 850);
+    const mul = positive(sm.harmonicDustPercentCollectMsMul, 55);
     const max = positive(sm.harmonicDustMaxCollectMs, 8000);
-    return clamp(base + Math.sqrt(positive(mass, 1)) * mul, base, max);
+    return clamp(base + positive(reservoirPercentValue, 10) * mul, base, max);
+  }
+
+  function collectMsForMass(World, mass) {
+    return collectMsForPercent(World, Math.sqrt(positive(mass, 1)) * 10);
   }
 
   function radiusForMass(World, mass, fallback) {
@@ -65,6 +103,8 @@
     const massA = positive(a.mass, Math.max(1, positive(a.r, 1) * positive(a.r, 1)));
     const massB = positive(b.mass, Math.max(1, positive(b.r, 1) * positive(b.r, 1)));
     const incomingMass = Math.max(1, (massA + massB) * 0.5);
+    const sequence = advanceDustSequence(World, colorName, nowMs);
+    const incomingPercent = sequence.percent;
     const incomingR = radiusForMass(World, incomingMass, (positive(a.r, 1) + positive(b.r, 1)) * 0.55);
     const mergeRadiusMul = positive(World.spaceMechanics.harmonicDustMergeRadiusMul, 2.0);
     let target = null;
@@ -82,7 +122,11 @@
       target.z = ((finite(target.z, z) * positive(target.mass, 1)) + z * incomingMass) / totalMass;
       target.mass = totalMass;
       target.r = radiusForMass(World, totalMass, target.r);
-      target.collectRequiredMs = collectMsForMass(World, totalMass);
+      target.dustSequenceStep = sequence.step;
+      target.reservoirPercentValue = clamp(finite(target.reservoirPercentValue, 0) + incomingPercent, 0, positive(World.spaceMechanics.harmonicDustMaxReservoirPercentValue, 100));
+      target.reservoirColorName = colorName;
+      target.collectRequiredMs = collectMsForPercent(World, target.reservoirPercentValue);
+      target.collectDecayMs = target.collectRequiredMs * positive(World.spaceMechanics.harmonicDustCollectDecayMul, 0.35);
       target.lastMergedAt = nowMs || World.nowMs || Date.now();
       target.sourceMeteorIds = Array.from(new Set([...(target.sourceMeteorIds || []), a.id || a._id, b.id || b._id].filter(Boolean)));
       return target;
@@ -99,8 +143,11 @@
       mass: incomingMass,
       density: 0.42,
       collectProgressMs: 0,
-      collectRequiredMs: collectMsForMass(World, incomingMass),
-      collectDecayMs: collectMsForMass(World, incomingMass) * positive(World.spaceMechanics.harmonicDustCollectDecayMul, 0.35),
+      dustSequenceStep: sequence.step,
+      reservoirPercentValue: incomingPercent,
+      reservoirColorName: colorName,
+      collectRequiredMs: collectMsForPercent(World, incomingPercent),
+      collectDecayMs: collectMsForPercent(World, incomingPercent) * positive(World.spaceMechanics.harmonicDustCollectDecayMul, 0.35),
       source: "same_color_meteor_collision",
       createdAt: nowMs || World.nowMs || Date.now(),
       age: 0,
@@ -125,16 +172,40 @@
   }
 
   function addCollectedDust(World, dust) {
-    const amount = positive(dust.mass, 1);
+    ensureWorldState(World);
+    const sampleColor = canonicalColorName(dust.reservoirColorName || dust.colorName);
+    if (!sampleColor) return;
+    const samplePercent = clamp(positive(dust.reservoirPercentValue, percentForStep(World, dust.dustSequenceStep || 1)), 0, 100);
+    const reservoir = World.harmonicDustReservoir;
+    let addedPercent = samplePercent;
+    let mixedTransition = false;
+    const previousColorName = reservoir.activeColorName;
+    if (!reservoir.activeColorName && !reservoir.isMixedGray) {
+      reservoir.activeColorName = sampleColor;
+      reservoir.pureFillPercent = clamp(finite(reservoir.pureFillPercent, 0) + samplePercent, 0, 100);
+    } else if (!reservoir.isMixedGray && reservoir.activeColorName === sampleColor) {
+      reservoir.pureFillPercent = clamp(finite(reservoir.pureFillPercent, 0) + samplePercent, 0, 100);
+    } else {
+      addedPercent = positive(World.spaceMechanics.harmonicDustMixedIncomingPercent, 10);
+      reservoir.isMixedGray = true;
+      reservoir.activeColorName = "GRAY";
+      reservoir.grayFillPercent = clamp(finite(reservoir.grayFillPercent, 0) + addedPercent, 0, 100);
+      mixedTransition = !previousColorName || previousColorName !== "GRAY";
+    }
+    reservoir.fillPercent = clamp(finite(reservoir.fillPercent, 0) + addedPercent, 0, 100);
+    reservoir.lastCollectedColorName = sampleColor;
+    reservoir.samplesCollected = Math.max(0, Math.floor(finite(reservoir.samplesCollected, 0))) + 1;
+    World.harmonicDustCollected[sampleColor] = clamp(finite(World.harmonicDustCollected[sampleColor], 0) + addedPercent, 0, 100);
     const adapter = World.hudDustReservoir || window.HC?.HudDustReservoir || window.HC?.DustReservoir;
     if (adapter && typeof adapter.addCollectedDust === "function") {
-      adapter.addCollectedDust(dust.colorName, amount, { source: "harmonic_dust", dust });
-    } else {
-      ensureWorldState(World).harmonicDustCollected[dust.colorName] += amount;
+      adapter.addCollectedDust(reservoir.activeColorName || sampleColor, addedPercent, { source: "harmonic_dust", dust, reservoir });
+    }
+    if (mixedTransition && window.Events?.emit) {
+      window.Events.emit("HARMONIC_DUST_RESERVOIR_MIXED", { previousColorName, incomingColorName: sampleColor, addedPercent, fillPercent: reservoir.fillPercent, isMixedGray: true });
     }
     const pile = window.HC?.DustPileHud;
     if (pile && typeof pile.setDebugState === "function") {
-      pile.setDebugState({ activeType: dust.colorName, percent: 100 });
+      pile.setDebugState({ activeType: reservoir.isMixedGray ? "GREY" : sampleColor, percent: reservoir.fillPercent });
     }
   }
 
@@ -177,8 +248,9 @@
       if (!dust || dust._dead) continue;
       const hue = hueFor(dust.colorName);
       const pulse = 0.9 + Math.sin(finite(dust.visualPulse, 0)) * 0.08;
-      const r = positive(dust.r, 1) * pulse;
-      const alpha = clamp(finite(dust.visualAlpha, 0.58), 0.15, 0.75);
+      const valueScale = 1 + clamp(finite(dust.reservoirPercentValue, 10), 10, 100) / 220;
+      const r = positive(dust.r, 1) * pulse * valueScale;
+      const alpha = clamp(finite(dust.visualAlpha, 0.58) + clamp(finite(dust.reservoirPercentValue, 10), 10, 100) / 500, 0.15, 0.82);
       const grad = ctx.createRadialGradient(dust.x, dust.y, r * 0.1, dust.x, dust.y, r * 1.35);
       grad.addColorStop(0, `hsla(${hue} 95% 72% / ${alpha})`);
       grad.addColorStop(1, `hsla(${hue} 95% 55% / 0)`);
@@ -186,6 +258,13 @@
       ctx.beginPath();
       ctx.arc(dust.x, dust.y, r * 1.35, 0, Math.PI * 2);
       ctx.fill();
+      if (finite(dust.reservoirPercentValue, 0) >= 50) {
+        ctx.strokeStyle = `hsla(${hue} 100% 82% / 0.28)`;
+        ctx.lineWidth = Math.max(1, r * 0.045);
+        ctx.beginPath();
+        ctx.arc(dust.x, dust.y, r * 1.42, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       if (dust.collectProgressMs > 0) {
         const t = clamp(dust.collectProgressMs / positive(dust.collectRequiredMs, 1), 0, 1);
         ctx.strokeStyle = `hsla(${hue} 100% 80% / 0.85)`;
@@ -201,7 +280,7 @@
   window.HC.initHarmonicDust = () => {
     const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
     ensureWorldState(World);
-    window.HC.HarmonicDust = { ensureWorldState, createOrMergeFromMeteorCollision, update, draw, collectMsForMass, canonicalColorName };
+    window.HC.HarmonicDust = { ensureWorldState, createOrMergeFromMeteorCollision, update, draw, collectMsForMass, collectMsForPercent, canonicalColorName, percentForStep };
     return window.HC.HarmonicDust;
   };
 })();

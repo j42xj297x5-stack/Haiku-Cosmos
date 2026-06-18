@@ -137,6 +137,8 @@ console.log("[HC] game.boot.js loaded");
     impactFragments: [],
     harmonicDust: [],
     harmonicDustCollected: { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0 },
+    harmonicDustSequence: { colorName: null, step: 0, lastCollisionAt: 0 },
+    harmonicDustReservoir: { activeColorName: null, isMixedGray: false, fillPercent: 0, pureFillPercent: 0, grayFillPercent: 0, lastCollectedColorName: null, samplesCollected: 0 },
 
     // Future mechanics contract only. These values are intentionally not wired
     // into gameplay until the space progression/dust/orbit rebuild patches.
@@ -154,7 +156,12 @@ console.log("[HC] game.boot.js loaded");
       orbitMinSafeDistanceMul: 1.2,
       gasPlanetRotationXSpeed: 0.12,
       harmonicDustMergeRadiusMul: 2.0,
+      harmonicDustStepPercents: [10, 20, 50],
+      harmonicDustSequenceMaxStep: 3,
       harmonicDustBaseCollectMs: 2400,
+      harmonicDustPercentCollectMsMul: 55,
+      harmonicDustMaxReservoirPercentValue: 100,
+      harmonicDustMixedIncomingPercent: 10,
       harmonicDustMassCollectMsMul: 850,
       harmonicDustCollectDecayMul: 0.35,
       harmonicDustPrgCollectRateMul: 1.0,
@@ -596,7 +603,12 @@ meteorBaseScale: METEOR_BASE_SCALE,
       moonToRockyPlanetMassThreshold: Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold) || 34,
       moonToRockyPlanetEnabled: World.spaceMechanics?.moonToRockyPlanetEnabled !== false,
       harmonicDustMergeRadiusMul: Number(World.spaceMechanics?.harmonicDustMergeRadiusMul) || 2.0,
+      harmonicDustStepPercents: Array.isArray(World.spaceMechanics?.harmonicDustStepPercents) ? World.spaceMechanics.harmonicDustStepPercents.slice(0, 3) : [10, 20, 50],
+      harmonicDustSequenceMaxStep: Number(World.spaceMechanics?.harmonicDustSequenceMaxStep) || 3,
       harmonicDustBaseCollectMs: Number(World.spaceMechanics?.harmonicDustBaseCollectMs) || 2400,
+      harmonicDustPercentCollectMsMul: Number(World.spaceMechanics?.harmonicDustPercentCollectMsMul) || 55,
+      harmonicDustMaxReservoirPercentValue: Number(World.spaceMechanics?.harmonicDustMaxReservoirPercentValue) || 100,
+      harmonicDustMixedIncomingPercent: Number(World.spaceMechanics?.harmonicDustMixedIncomingPercent) || 10,
       harmonicDustMassCollectMsMul: Number(World.spaceMechanics?.harmonicDustMassCollectMsMul) || 850,
       harmonicDustCollectDecayMul: Number(World.spaceMechanics?.harmonicDustCollectDecayMul) || 0.35,
       harmonicDustPrgCollectRateMul: Number(World.spaceMechanics?.harmonicDustPrgCollectRateMul) || 1.0,
@@ -607,6 +619,8 @@ meteorBaseScale: METEOR_BASE_SCALE,
     World.impactFragments = [];
     World.harmonicDust = [];
     World.harmonicDustCollected = { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0 };
+    World.harmonicDustSequence = { colorName: null, step: 0, lastCollisionAt: 0 };
+    World.harmonicDustReservoir = { activeColorName: null, isMixedGray: false, fillPercent: 0, pureFillPercent: 0, grayFillPercent: 0, lastCollectedColorName: null, samplesCollected: 0 };
     World.stars = [];
     World.spawnTimer = 0;
     World.meteorBaseScale = METEOR_BASE_SCALE;

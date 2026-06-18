@@ -101,6 +101,9 @@
       collectProgressMs: toNumber(body.collectProgressMs, undefined),
       collectRequiredMs: toNumber(body.collectRequiredMs, undefined),
       collectDecayMs: toNumber(body.collectDecayMs, undefined),
+      dustSequenceStep: toNumber(body.dustSequenceStep, undefined),
+      reservoirPercentValue: toNumber(body.reservoirPercentValue, undefined),
+      reservoirColorName: body.reservoirColorName || null,
       lastMergedAt: toNumber(body.lastMergedAt, undefined),
       age: toNumber(body.age, undefined),
       baseR: toNumber(body.baseR, toNumber(body.massOneRadius, undefined)),
@@ -188,6 +191,8 @@
         dustParticles: mapCollection(World.dustParticles, "dustParticle"),
         impactFragments: mapCollection(World.impactFragments, "impactFragment"),
         harmonicDust: mapCollection(World.harmonicDust, "harmonic_dust"),
+        harmonicDustSequence: World.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
+        harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
         stars: mapCollection(World.stars, "star"),
         prg: World.prg || null,
         background: World.background || null,
@@ -222,6 +227,14 @@
           acc[key] = (acc[key] || 0) + (Number.isFinite(Number(dust.mass)) ? Number(dust.mass) : 0);
           return acc;
         }, {}),
+        harmonicDustPercentByColor: pickArray(World.harmonicDust).reduce((acc, dust) => {
+          if (!dust || dust._dead) return acc;
+          const key = String(dust.reservoirColorName || dust.colorName || "UNKNOWN").toUpperCase();
+          acc[key] = (acc[key] || 0) + (Number.isFinite(Number(dust.reservoirPercentValue)) ? Number(dust.reservoirPercentValue) : 0);
+          return acc;
+        }, {}),
+        harmonicDustSequence: World.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
+        harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
         harmonicDustCollected: Object.assign({}, World.harmonicDustCollected || {}),
         cameraAvailability: {
           hasCamera: !!opts.Camera,
