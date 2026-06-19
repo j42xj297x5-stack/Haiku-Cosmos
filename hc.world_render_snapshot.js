@@ -193,6 +193,8 @@
         harmonicDust: mapCollection(World.harmonicDust, "harmonic_dust"),
         harmonicDustSequence: World.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
         harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
+        harmonicDustDeposits: Object.assign({}, World.harmonicDustDeposits || {}),
+        harmonicDustReservoirVisual: World.harmonicDustReservoirVisual ? Object.assign({}, World.harmonicDustReservoirVisual) : (window.HC?.HarmonicDust?.getReservoirVisualState ? window.HC.HarmonicDust.getReservoirVisualState(World) : null),
         stars: mapCollection(World.stars, "star"),
         prg: World.prg || null,
         background: World.background || null,
@@ -235,6 +237,8 @@
         }, {}),
         harmonicDustSequence: World.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
         harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
+        harmonicDustDeposits: Object.assign({}, World.harmonicDustDeposits || {}),
+        harmonicDustReservoirVisual: World.harmonicDustReservoirVisual ? Object.assign({}, World.harmonicDustReservoirVisual) : (window.HC?.HarmonicDust?.getReservoirVisualState ? window.HC.HarmonicDust.getReservoirVisualState(World) : null),
         harmonicDustCollected: Object.assign({}, World.harmonicDustCollected || {}),
         cameraAvailability: {
           hasCamera: !!opts.Camera,

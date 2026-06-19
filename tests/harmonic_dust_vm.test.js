@@ -73,7 +73,9 @@ assert.equal(context.World.harmonicDustReservoir.activeColorName, 'RED');
 assert.equal(context.World.harmonicDustReservoir.isMixedGray, false);
 collide(context, 'red', 400, 600, 0);
 collectAll(context);
-assert.equal(context.World.harmonicDustReservoir.fillPercent, 100, 'fourth clean 50% sample clamps and closes reservoir to 100%');
+assert.equal(context.World.harmonicDustReservoir.fillPercent, 0, 'fourth clean 50% sample auto-deposits and resets reservoir');
+assert.equal(context.World.harmonicDustDeposits.RED, 1, 'full clean RED reservoir creates one RED deposit');
+assert.equal(context.Events.emitted.some((e) => e.type === 'HARMONIC_DUST_RESERVOIR_DEPOSITED' && e.payload.colorName === 'RED'), true, 'RED deposit emits event evidence');
 
 context = buildContext();
 collide(context, 'red', 100, 0, 0);
@@ -84,6 +86,10 @@ assert.equal(context.World.harmonicDustReservoir.fillPercent, 20, 'foreign color
 assert.equal(context.World.harmonicDustReservoir.isMixedGray, true, 'foreign color flips reservoir to mixed gray');
 assert.equal(context.World.harmonicDustReservoir.activeColorName, 'GRAY');
 assert.equal(context.Events.emitted.some((e) => e.type === 'HARMONIC_DUST_RESERVOIR_MIXED' && e.payload.addedPercent === 10), true, 'mixed transition emits event evidence');
+for (let i = 0; i < 8; i += 1) collide(context, 'blue', 300 + i * 100, 400 + i * 200, 0);
+collectAll(context);
+assert.equal(context.World.harmonicDustReservoir.fillPercent, 0, 'full mixed/GRAY reservoir resets after deposit');
+assert.equal(context.World.harmonicDustDeposits.GRAY, 1, 'mixed reservoir deposits to GRAY');
 
 context = buildContext();
 d1 = collide(context, 'green', 100, 0, 0);
@@ -110,6 +116,8 @@ assert(Array.isArray(snapshot.world.harmonicDust), 'snapshot exposes harmonicDus
 assert.equal(snapshot.world.harmonicDust[0].reservoirPercentValue, 30, 'snapshot exposes dust reservoir percent value');
 assert.equal(snapshot.world.harmonicDustSequence.step, 2, 'snapshot exposes harmonic dust sequence');
 assert.equal(snapshot.world.harmonicDustReservoir.fillPercent, 0, 'snapshot exposes reservoir placeholder');
+assert.equal(JSON.stringify(snapshot.world.harmonicDustDeposits), JSON.stringify({ RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0, GRAY: 0 }), 'snapshot exposes harmonic dust deposits');
+assert.equal(snapshot.world.harmonicDustReservoirVisual.displayColorName, 'EMPTY', 'snapshot exposes visual reservoir state');
 assert.equal(snapshot.diagnostics.harmonicDustCount, 1, 'diagnostics expose harmonicDustCount');
 assert.equal(snapshot.diagnostics.collectibleDustCount, 1, 'diagnostics expose collectibleDustCount');
 console.log('harmonic_dust_vm.test.js: OK');
