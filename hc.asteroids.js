@@ -460,7 +460,11 @@
             }
 
             meteors.splice(mi, 1);
-            absorbMeteorIntoAsteroid(a, m);
+            if (window.HC?.CosmicDust?.applySplitPolicy) {
+              window.HC.CosmicDust.applySplitPolicy(World, { kind: "meteor_asteroid", meteor: m, asteroid: a, source: "Asteroids.resolveMeteorAsteroidContacts" });
+            } else {
+              absorbMeteorIntoAsteroid(a, m);
+            }
 
             checkAsteroidMoonThreshold(a, "Asteroids.resolveMeteorAsteroidContacts");
             break;
@@ -576,7 +580,9 @@
     function mergeAsteroidPair(primary, secondary) {
       const massA = asteroidMassValue(primary);
       const massB = asteroidMassValue(secondary);
-      const newMass = massA + massB;
+      const smallerMass = Math.min(massA, massB);
+      const absorbedMass = window.HC?.CosmicDust ? smallerMass * (Number(World.spaceMechanics?.cosmicDustSplitAsteroidAsteroidAbsorbPct) || 0.50) : (primary === secondary ? 0 : (primary === arguments[0] ? massB : massA));
+      const newMass = massA + absorbedMass;
       const totalMass = newMass || 1;
       const baseA = asteroidBaseRadius(primary, primary.r);
       const baseB = asteroidBaseRadius(secondary, secondary.r);
@@ -612,7 +618,8 @@
       primary.cometHits = (primary.cometHits || 0) + (secondary.cometHits || 0);
       primary.captureCooldown = Math.max(primary.captureCooldown || 0, secondary.captureCooldown || 0, 0.045);
       secondary._dead = true;
-      Events.emit("ASTEROID_MERGED", { mass: newMass, fromMass: [massA, massB] });
+      if (window.HC?.CosmicDust?.createFromCollision) window.HC.CosmicDust.createFromCollision(World, { primary, secondary, source: "asteroid_asteroid", mass: smallerMass * (Number(World.spaceMechanics?.cosmicDustSplitAsteroidAsteroidDustPct) || 0.50) });
+      Events.emit("ASTEROID_MERGED", { mass: primary.mass || newMass, fromMass: [massA, massB] });
       checkAsteroidMoonThreshold(primary, "Asteroids.resolveAsteroidAsteroidContacts");
     }
 
@@ -777,16 +784,17 @@
     }
 
     function absorbBodyIntoMoon(moon, body, source) {
-      const impact = window.HC?.Impact?.resolveMoonImpact
-        ? window.HC.Impact.resolveMoonImpact({ moon, incoming: body, mechanics: World.spaceMechanics })
+      const bodyKind = body?.kind || body?.type || source;
+      const cosmicKind = bodyKind === "asteroid" ? "moon_asteroid" : "moon_meteor";
+      const split = window.HC?.CosmicDust?.applySplitPolicy
+        ? window.HC.CosmicDust.applySplitPolicy(World, { kind: cosmicKind, moon, [bodyKind === "asteroid" ? "asteroid" : "meteor"]: body, source: "Asteroids.absorbBodyIntoMoon" })
         : null;
+      const impact = split ? { kind: cosmicKind, createsDust: true, createsOrbiter: false, masses: { absorbed: split.absorbedMass || 0, ejecta: split.fragmentMass || 0, dust: split.cosmicDustMass || 0 }, dust: { kind: "cosmic_dust", color: "GRAY" } }
+        : (window.HC?.Impact?.resolveMoonImpact ? window.HC.Impact.resolveMoonImpact({ moon, incoming: body, mechanics: World.spaceMechanics }) : null);
       const absorbedMass = impact?.masses?.absorbed ?? (SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(body) : (Number(body.mass) || massFromR(Number(body.r) || 1)));
-      moon.mass = moonMassValue(moon) + absorbedMass;
       moon.lastImpact = impact || null;
-      updateMoonRadius(moon);
-      if (impact && window.HC?.Impact?.spawnEjecta) window.HC.Impact.spawnEjecta(World, impact, moon);
+      if (!split) { moon.mass = moonMassValue(moon) + absorbedMass; updateMoonRadius(moon); if (impact && window.HC?.Impact?.spawnEjecta) window.HC.Impact.spawnEjecta(World, impact, moon); body._dead = true; }
       if (impact && window.HC?.Impact?.logImpactEvidence) window.HC.Impact.logImpactEvidence(World, impact, "Asteroids.absorbBodyIntoMoon");
-      body._dead = true;
       window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, {
         sourceType: "moon",
         sourceId: moon.id || moon._id || null,

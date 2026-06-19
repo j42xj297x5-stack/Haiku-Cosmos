@@ -69,6 +69,7 @@
               break;
             } else {
               spawnAsteroidFromCollision(a, b);
+              if (window.HC?.CosmicDust?.applySplitPolicy) window.HC.CosmicDust.applySplitPolicy(World, { kind: "meteor_meteor", primary: a, secondary: b, source: "meteor_diff_color_collision" });
               Events.emit("METEOR_DIFF_COLOR_COLLISION", {
                 a: { color: a.colorName },
                 b: { color: b.colorName }

@@ -272,6 +272,32 @@
     };
   }
 
+
+  function mapCosmicDust(dust) {
+    if (!dust || dust._dead) return null;
+    const mass = toNumber(dust.mass, 0);
+    const density = toNumber(dust.density, 1);
+    const radius = toNumber(dust.r, 6);
+    const alpha = Math.max(0.10, Math.min(0.42, 0.14 + Math.sqrt(Math.max(0, mass)) * 0.025 + density * 0.03));
+    return {
+      id: dust.id || dust._id || null,
+      type: "cosmic_dust",
+      dustKind: "cosmic",
+      collectible: false,
+      x: toNumber(dust.x, 0),
+      y: toNumber(dust.y, 0),
+      z: toNumber(dust.z, 0),
+      r: radius,
+      mass,
+      density,
+      state: dust.state || "cold",
+      source: dust.source || null,
+      sourceBodyIds: Array.isArray(dust.sourceBodyIds) ? dust.sourceBodyIds.slice() : [],
+      ageMs: toNumber(dust.ageMs, 0),
+      visual: { model: "cosmic_dust_cloud", colorName: "GRAY", alpha, radius, density },
+    };
+  }
+
   function mapCollection(items, kind) {
     const result = [];
     const src = pickArray(items);
@@ -335,6 +361,7 @@
         dustClouds: mapCollection(World.dustClouds, "dustCloud"),
         dustParticles: mapCollection(World.dustParticles, "dustParticle"),
         impactFragments: mapCollection(World.impactFragments, "impactFragment"),
+        cosmicDust: pickArray(World.cosmicDust).map(mapCosmicDust).filter(Boolean),
         harmonicDust: pickArray(World.harmonicDust).map(mapHarmonicDust).filter(Boolean),
         harmonicDustSequence: World.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
         harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
@@ -367,12 +394,20 @@
           dustParticles: pickArray(World.dustParticles).length,
           impactFragments: pickArray(World.impactFragments).length,
           activeImpactFragments: pickArray(World.impactFragments).filter((fragment) => fragment && !fragment._dead).length,
+          cosmicDust: pickArray(World.cosmicDust).length,
           harmonicDust: pickArray(World.harmonicDust).length,
           harmonicDustGrayShifting: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead && dust.transformState === "gray_shifting").length,
           harmonicDustRecovering: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead && dust.transformState === "recovering").length,
           harmonicDustGrayLocked: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead && dust.transformState === "gray_locked").length,
           stars: pickArray(World.stars).length,
         },
+        cosmicDustEnabled: World.spaceMechanics?.cosmicDustEnabled !== false,
+        cosmicDustVisualEnabled: World.spaceMechanics?.cosmicDustVisualEnabled !== false,
+        cosmicDustAffectsBodiesEnabled: World.spaceMechanics?.cosmicDustAffectsBodiesEnabled === true,
+        cosmicDustCount: pickArray(World.cosmicDust).filter((dust) => dust && !dust._dead).length,
+        cosmicDustTotalMass: pickArray(World.cosmicDust).reduce((sum, dust) => sum + (dust && !dust._dead ? toNumber(dust.mass, 0) : 0), 0),
+        cosmicDustMaxDensity: pickArray(World.cosmicDust).reduce((max, dust) => Math.max(max, dust && !dust._dead ? toNumber(dust.density, 0) : 0), 0),
+        lastCosmicDustEvent: World.lastCosmicDustEvent ? Object.assign({}, World.lastCosmicDustEvent) : null,
         harmonicDustManualCollectionEnabled: World.spaceMechanics?.harmonicDustManualCollectionEnabled !== false,
         harmonicDustAutoTestCollectionEnabled: World.spaceMechanics?.harmonicDustAutoTestCollectionEnabled === true,
         harmonicDustElasticGrayEnabled: World.spaceMechanics?.harmonicDustElasticGrayEnabled !== false,

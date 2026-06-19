@@ -214,7 +214,7 @@ assert.equal(snapshot.world.harmonicDust[0].visual.grayMixRatio, 1, 'snapshot vi
 assert.equal(snapshot.world.moons[0].dustRings[0].colorName, 'BLUE', 'snapshot exposes moon dustRings');
 assert.equal(snapshot.world.moons[0].dustRingCount, 1, 'snapshot exposes moon dust ring count');
 assert.equal(snapshot.world.harmonicDust.some((dust) => dust.dustKind === 'ordinary_colored'), false, 'snapshot never emits ordinary_colored dust');
-assert.equal(snapshot.world.cosmicDust, undefined, 'snapshot does not add cosmic dust');
+assert.equal(Array.isArray(snapshot.world.cosmicDust) && snapshot.world.cosmicDust.length, 0, 'snapshot exposes empty cosmic dust foundation without mixing it into harmonic dust');
 
 
 context = buildContext();
@@ -283,6 +283,6 @@ assert.equal(snapshot.world.harmonicDust[0].grayRecoveryMs, 500, 'elastic snapsh
 assert.equal(snapshot.world.harmonicDust[0].transformState, 'recovering', 'elastic snapshot exposes transformState');
 assert.equal(snapshot.world.harmonicDust[0].visual.originalColorName, 'RED', 'elastic snapshot visual exposes originalColorName');
 assert.equal(snapshot.world.harmonicDust.some((dust) => dust.dustKind === 'cosmic'), false, 'snapshot never emits cosmic dust kind');
-assert.equal(snapshot.world.cosmicDust, undefined, 'snapshot contract has no World.cosmicDust');
+assert.equal(Array.isArray(snapshot.world.cosmicDust) && snapshot.world.cosmicDust.length, 0, 'snapshot contract exposes empty World.cosmicDust foundation');
 
 console.log('harmonic_dust_vm.test.js: OK');

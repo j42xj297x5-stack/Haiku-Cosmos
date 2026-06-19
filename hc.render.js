@@ -530,6 +530,36 @@
       ctx.restore();
     }
 
+
+    function drawCosmicDust() {
+      if (!world.spaceMechanics || world.spaceMechanics.cosmicDustVisualEnabled === false) return;
+      const clouds = Array.isArray(world.cosmicDust) ? world.cosmicDust : [];
+      for (const dust of clouds) {
+        if (!dust || dust._dead) continue;
+        const radius = Math.max(1, Number(dust.r) || 6);
+        const density = Math.max(0.001, Number(dust.density) || 1);
+        const mass = Math.max(0, Number(dust.mass) || 0);
+        const alpha = Math.max(0.08, Math.min(0.36, 0.12 + Math.sqrt(mass) * 0.025 + density * 0.025));
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        const g = ctx.createRadialGradient(dust.x, dust.y, 0, dust.x, dust.y, radius);
+        g.addColorStop(0, "rgba(168,170,172,0.42)");
+        g.addColorStop(0.55, "rgba(118,122,126,0.20)");
+        g.addColorStop(1, "rgba(80,84,88,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(dust.x, dust.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = alpha * 0.65;
+        ctx.strokeStyle = "rgba(150,150,150,0.20)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(dust.x, dust.y, radius * 0.72, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
     function drawMeteor(m) {
       if (!window.HC || !window.HC.Meteors || !window.HC.Meteors.drawMeteor) return;
       window.HC.Meteors.drawMeteor(m);
@@ -556,6 +586,7 @@
         for (const moon of world.moons) drawMoon(moon);
       }
       for (const p of world.planets) drawPlanet(p);
+      drawCosmicDust();
       if (window.HC?.HarmonicDust?.draw) window.HC.HarmonicDust.draw(ctx);
       if (world.stars && world.stars.length) {
         const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();

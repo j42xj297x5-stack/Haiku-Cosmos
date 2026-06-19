@@ -136,6 +136,7 @@ console.log("[HC] game.boot.js loaded");
     dustParticles: [],
     impactFragments: [],
     harmonicDust: [],
+    cosmicDust: [],
     harmonicDustCollected: { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0 },
     harmonicDustDeposits: { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0, GRAY: 0 },
     harmonicDustSequence: { colorName: null, step: 0, lastCollisionAt: 0 },
@@ -204,7 +205,43 @@ console.log("[HC] game.boot.js loaded");
       moonCanCreateOrbiters: false,
       impactEjectaMinMass: 0.08,
       impactEjectaMaxPieces: 5,
-      impactFragmentTtlMs: 6000
+      impactFragmentTtlMs: 6000,
+      cosmicDustEnabled: true,
+      cosmicDustVisualEnabled: true,
+      cosmicDustMergeEnabled: true,
+      cosmicDustMergeDistanceMul: 1.25,
+      cosmicDustMaxClouds: 80,
+      cosmicDustDensityBase: 1.0,
+      cosmicDustRadiusMassMul: 1.0,
+      cosmicDustMinMass: 0.1,
+      cosmicDustMinVisualRadius: 6,
+      cosmicDustMaxVisualRadius: 120,
+      cosmicDustAffectsBodiesEnabled: false,
+      cosmicDustDragStrength: 0,
+      cosmicDustStopSpeedThreshold: 0,
+      cosmicDustCondensationEnabled: false,
+      cosmicDustCloudToGasPlanetMassThreshold: 999999,
+      cosmicDustSplitMeteorMeteorDustPct: 0.25,
+      cosmicDustSplitMeteorAsteroidDustPct: 0.80,
+      cosmicDustSplitMeteorAsteroidAbsorbPct: 0.20,
+      cosmicDustSplitAsteroidAsteroidDustPct: 0.50,
+      cosmicDustSplitAsteroidAsteroidAbsorbPct: 0.50,
+      cosmicDustSplitMoonMeteorDustPct: 0.30,
+      cosmicDustSplitMoonMeteorAbsorbPct: 0.70,
+      cosmicDustSplitMoonAsteroidDustPct: 0.30,
+      cosmicDustSplitMoonAsteroidAbsorbPct: 0.30,
+      cosmicDustSplitMoonAsteroidFragmentsPct: 0.40,
+      cosmicDustSplitPlanetMeteorDustPct: 0.25,
+      cosmicDustSplitPlanetMeteorAbsorbPct: 0.50,
+      cosmicDustSplitPlanetMeteorFragmentsPct: 0.25,
+      cosmicDustSplitPlanetAsteroidDustPct: 0.35,
+      cosmicDustSplitPlanetAsteroidFragmentsPct: 0.35,
+      cosmicDustSplitPlanetAsteroidOrbiterPct: 0.30,
+      cosmicDustSplitPlanetMoonDustPct: 0.35,
+      cosmicDustSplitPlanetMoonFragmentsPct: 0.35,
+      cosmicDustSplitPlanetMoonOrbiterPct: 0.30,
+      cosmicDustSplitPlanetPlanetDustPct: 0.50,
+      cosmicDustSplitPlanetPlanetFragmentsPct: 0.50,
     },
 
     flags: { firstPlanetZoomed: false, firstStarZoomed: false },
@@ -551,6 +588,7 @@ meteorBaseScale: METEOR_BASE_SCALE,
     if (HC.Comets) HC.Comets.update(dt, nowMs);
     if (HC.Collisions) HC.Collisions.resolve(dt, nowMs);
     if (HC.HarmonicDust) HC.HarmonicDust.update(dt, nowMs);
+    if (HC.CosmicDust) HC.CosmicDust.update(World, dt, nowMs);
     if (HC.Impact?.updateFragments) HC.Impact.updateFragments(World, nowMs, dt);
     if (HC.Asteroids) HC.Asteroids.capture(dt, nowMs);
     if (HC.Planets) HC.Planets.capture(dt, nowMs);
@@ -693,10 +731,13 @@ meteorBaseScale: METEOR_BASE_SCALE,
       impactEjectaMaxPieces: Number(World.spaceMechanics?.impactEjectaMaxPieces) || 5,
       impactFragmentTtlMs: Number(World.spaceMechanics?.impactFragmentTtlMs) || 6000,
     });
+    if (window.HC?.CosmicDust?.ensureWorldState) window.HC.CosmicDust.ensureWorldState(World);
     World.dustClouds = [];
     World.dustParticles = [];
     World.impactFragments = [];
     World.harmonicDust = [];
+    World.cosmicDust = [];
+    World.lastCosmicDustEvent = null;
     World.harmonicDustCollected = { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0 };
     World.harmonicDustDeposits = { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0, GRAY: 0 };
     World.harmonicDustSequence = { colorName: null, step: 0, lastCollisionAt: 0 };

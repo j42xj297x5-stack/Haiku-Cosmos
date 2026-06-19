@@ -27,6 +27,7 @@ export const legacyRuntimeFiles = [
   "hc.meteors.js",
   "hc.render.js",
   "hc.harmonic_dust.js",
+  "hc.cosmic_dust.js",
   "hc.collisions.js",
   "hc.asteroids.js",
   "hc.planets.js",
