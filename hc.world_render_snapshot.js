@@ -51,7 +51,25 @@
     // - visualKind/assetId/model routing fields are render-only;
     // - orbitPx/orbitCurrentRadius/orbiters/parentKind are compatibility evidence
     //   and must not reactivate legacy planet capture.
-    const radius = toNumber(body.r, toNumber(body.radius, toNumber(body.collisionRadius, undefined)));
+    const SpaceBodies = window.HC?.SpaceBodies;
+    const kindForRadius = body.kind || body.type || fallbackKind;
+    const massForRadius = toNumber(Number(body.mass), undefined);
+    const radiusOptions = {
+      baseRadius: body.massOneRadius ?? body.baseR ?? body.radiusBase ?? body.r ?? body.radius,
+      minRadius: body.minR ?? body.minRadius,
+      maxRadius: body.maxR ?? body.maxRadius,
+      density: body.density,
+    };
+    const contractRadius = Number.isFinite(massForRadius) && SpaceBodies?.radiusFromMass
+      ? SpaceBodies.radiusFromMass(kindForRadius, massForRadius, radiusOptions)
+      : undefined;
+    const radius = toNumber(contractRadius, toNumber(body.r, toNumber(body.radius, toNumber(body.collisionRadius, undefined))));
+    const collisionRadius = Number.isFinite(massForRadius) && SpaceBodies?.collisionRadiusFromMass
+      ? SpaceBodies.collisionRadiusFromMass(kindForRadius, massForRadius, radiusOptions)
+      : toNumber(body.collisionRadius, toNumber(body.physicalRadius, radius));
+    const viewRadius = Number.isFinite(massForRadius) && SpaceBodies?.viewRadiusFromMass
+      ? SpaceBodies.viewRadiusFromMass(kindForRadius, massForRadius, radiusOptions)
+      : toNumber(body.viewRadius, radius);
     const scale = toNumber(body.scale, undefined);
     const stableRenderKey = getStableRenderBodyId(body, fallbackKind) || `${fallbackKind}:snapshot:${index}`;
     const isPlanet = fallbackKind === "planet";
@@ -69,7 +87,8 @@
       z: toNumber(body.z, undefined),
       radius,
       r: radius,
-      collisionRadius: toNumber(body.collisionRadius, toNumber(body.physicalRadius, radius)),
+      collisionRadius,
+      viewRadius,
       scale,
       color: body.color || body.fill || body.colorName || body.gradientOuterColor || null,
       colorName: body.colorName || body.colorKey || null,
@@ -139,6 +158,8 @@
       dustRings: mapDustRings(body),
       dustRingCount: mapDustRings(body).length,
       visual: {
+        radius: viewRadius,
+        glbScale: toNumber(body.visual?.glbScale ?? body.glbScale, undefined),
         dustRings: mapDustRings(body),
         dustRingCount: mapDustRings(body).length,
         isCollapsing: !!body.isCollapsing,
@@ -416,8 +437,11 @@
         lastMassSplitEvent: World.lastMassSplitEvent ? Object.assign({}, World.lastMassSplitEvent) : null,
         progressionBlockedSameFrameCount: toNumber(World.progressionBlockedSameFrameCount, 0),
         planetToStarEnabled: World.spaceMechanics?.planetToStarEnabled === true,
+        massRadiusContractVersion: window.HC?.SpaceBodies?.massRadiusContract?.version || null,
         bodyRadiusClampEnabled: World.spaceMechanics?.bodyRadiusClampEnabled !== false,
         lastBodyRadiusClampEvent: World.lastBodyRadiusClampEvent ? Object.assign({}, World.lastBodyRadiusClampEvent) : null,
+        radiusClampCount: toNumber(World.radiusClampCount, 0),
+        radiusMismatchWarnings: Array.isArray(World.radiusMismatchWarnings) ? World.radiusMismatchWarnings.slice(-8) : [],
         harmonicDustManualCollectionEnabled: World.spaceMechanics?.harmonicDustManualCollectionEnabled !== false,
         harmonicDustAutoTestCollectionEnabled: World.spaceMechanics?.harmonicDustAutoTestCollectionEnabled === true,
         harmonicDustElasticGrayEnabled: World.spaceMechanics?.harmonicDustElasticGrayEnabled !== false,

@@ -94,6 +94,15 @@
 
   function getBodyRadius(body) {
     if (!body || typeof body !== "object") return DEFAULT_RADIUS;
+    const mass = Number(body.mass);
+    if (Number.isFinite(mass) && mass > 0) {
+      return radiusFromMass(getBodyKind(body), mass, {
+        baseRadius: body.massOneRadius ?? body.baseR ?? body.radiusBase ?? body.r ?? body.radius ?? DEFAULT_RADIUS,
+        minRadius: body.minR ?? body.minRadius,
+        maxRadius: body.maxR ?? body.maxRadius,
+        density: body.density,
+      });
+    }
     return finitePositive(
       body.radius ?? body.r ?? body.visualRadius ?? body.physicalRadius ?? body.size,
       DEFAULT_RADIUS
@@ -103,7 +112,7 @@
   function getCollisionRadius(body) {
     if (!body || typeof body !== "object") return DEFAULT_RADIUS;
     return finitePositive(
-      body.collisionRadius ?? body.physicalRadius ?? body.r ?? body.radius ?? body.visualRadius ?? body.size,
+      body.collisionRadius ?? body.physicalRadius ?? getBodyRadius(body),
       getBodyRadius(body)
     );
   }
@@ -149,11 +158,22 @@
       if (Number.isFinite(configured) && configured > 0) clampMax = Math.min(clampMax, configured);
     }
     const clamped = Math.max(minRadius, Math.min(clampMax, radius));
-    if (clamped < radius && world) {
-      world.lastBodyRadiusClampEvent = { kind: bodyKind, mass: safeMass, rawRadius: radius, clampedRadius: clamped, maxRadius: clampMax, atFrame: Number(world.frame) || 0 };
+    if (clamped !== radius && world) {
+      world.lastBodyRadiusClampEvent = { kind: bodyKind, mass: safeMass, rawRadius: radius, clampedRadius: clamped, minRadius, maxRadius: clampMax, atFrame: Number(world.frame) || 0 };
+      world.radiusClampCount = (Number(world.radiusClampCount) || 0) + 1;
     }
     return clamped;
   }
+
+  const massRadiusContract = Object.freeze({
+    version: 1,
+    baseMeteorMass: 1,
+    meteorMassMin: 0.5,
+    meteorMassMax: 1.0,
+    radiusFromMass,
+    collisionRadiusFromMass(kind, mass, options) { return radiusFromMass(kind, mass, options); },
+    viewRadiusFromMass(kind, mass, options) { return radiusFromMass(kind, mass, options); },
+  });
 
   function isDirectImpact(a, b) {
     if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
@@ -251,6 +271,9 @@
     getBodyRadius,
     getCollisionRadius,
     radiusFromMass,
+    collisionRadiusFromMass: massRadiusContract.collisionRadiusFromMass,
+    viewRadiusFromMass: massRadiusContract.viewRadiusFromMass,
+    massRadiusContract,
     massFromRadius,
     isDirectImpact,
     createOrbitState,

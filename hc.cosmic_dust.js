@@ -30,7 +30,8 @@
     cosmicDustAffectsPlanets: false,
     cosmicDustCondensationEnabled: false,
     cosmicDustCloudToGasPlanetMassThreshold: 999999,
-    cosmicDustSplitMeteorMeteorDustPct: 0.25,
+    cosmicDustSplitMeteorMeteorDustPct: 0.80,
+    cosmicDustSplitMeteorMeteorAbsorbPct: 0.20,
     cosmicDustSplitMeteorAsteroidDustPct: 0.80,
     cosmicDustSplitMeteorAsteroidAbsorbPct: 0.20,
     cosmicDustSplitAsteroidAsteroidDustPct: 0.50,
@@ -98,7 +99,16 @@
     return createCloud(World, Object.assign({}, collisionSpec, { x: finite(collisionSpec?.x, c.x), y: finite(collisionSpec?.y, c.y), z: finite(collisionSpec?.z, c.z), sourceBodyIds: collisionSpec?.sourceBodyIds || bodies.map(bodyId).filter(Boolean) }));
   }
   function addMass(body, amount) { if (body && amount > 0) body.mass = bodyMass(body) + amount; }
-  function recordMassSplit(world, evidence, inputMass) { const total = (evidence.cosmicDustMass || 0) + (evidence.absorbedMass || 0) + (evidence.fragmentMass || 0) + (evidence.orbiterCandidate?.mass || 0); world.lastMassSplitEvent = Object.assign({ type: "mass_split", inputMass: Math.max(0, inputMass || 0), outputMass: total, delta: total - Math.max(0, inputMass || 0), at: nowMs(world) }, evidence); }
+  function recordMassSplit(world, evidence, inputMass, outputOverride) {
+    const output = Number.isFinite(Number(outputOverride)) ? Number(outputOverride) : ((evidence.cosmicDustMass || 0) + (evidence.absorbedMass || 0) + (evidence.fragmentMass || 0) + (evidence.orbiterCandidate?.mass || 0));
+    const input = Math.max(0, inputMass || 0);
+    world.lastMassSplitEvent = Object.assign({
+      type: "mass_split", ruleId: evidence.ruleId || evidence.kind,
+      inputMass: input, outputMass: output, delta: output - input,
+      conservationInputMass: input, conservationOutputMass: output, conservationDelta: output - input,
+      at: nowMs(world)
+    }, evidence);
+  }
   function resizeAsteroid(World, a) { if (window.HC?.SpaceBodies?.radiusFromMass && a) a.r = window.HC.SpaceBodies.radiusFromMass("asteroid", a.mass, { baseRadius: a.massOneRadius || a.baseR || a.r || 1, minRadius: a.minR || 1, maxRadius: a.maxR || Infinity }); }
   function resizeMoon(World, m) { if (window.HC?.SpaceBodies?.radiusFromMass && m) { m.r = window.HC.SpaceBodies.radiusFromMass("moon", m.mass, { baseRadius: m.massOneRadius || m.baseR || m.r || 1, minRadius: m.minR || 0.1, maxRadius: m.maxR || Infinity }); m.radius = m.r; } }
   function spawnFragments(World, mass, origin, kind) { const result = { kind: kind || "cosmicDustImpact", masses: { ejecta: Math.max(0, mass) } }; return window.HC?.Impact?.spawnEjecta ? window.HC.Impact.spawnEjecta(World, result, origin) : []; }
@@ -108,7 +118,20 @@
     const a = s.primary || s.a || s.target; const b = s.secondary || s.b || s.incoming; const source = kind || "collision";
     const evidence = { kind, source, cosmicDustMass: 0, absorbedMass: 0, fragmentMass: 0, orbiterCandidate: null, cloud: null, descriptorOnly: false };
     function dust(m, primary, secondary) { evidence.cosmicDustMass = Math.max(0, m); evidence.cloud = createFromCollision(world, { primary, secondary, source, mass: evidence.cosmicDustMass }); return evidence.cloud; }
-    if (kind === "meteor_meteor") { if (a?.colorName === b?.colorName) return null; dust((bodyMass(a) + bodyMass(b)) * pct(world, "cosmicDustSplitMeteorMeteorDustPct"), a, b); }
+    if (kind === "meteor_meteor") {
+      if (a?.colorName === b?.colorName) return null;
+      const massA = bodyMass(a); const massB = bodyMass(b);
+      const heavier = massA >= massB ? a : b; const lighter = heavier === a ? b : a;
+      const heavierMass = bodyMass(heavier); const sourceMass = bodyMass(lighter);
+      evidence.ruleId = "meteor_meteor_different";
+      evidence.heavierBodyId = bodyId(heavier); evidence.lighterBodyId = bodyId(lighter);
+      evidence.heavierMass = heavierMass; evidence.sourceMass = sourceMass;
+      evidence.cosmicDustMass = evidence.dustMass = sourceMass * pct(world, "cosmicDustSplitMeteorMeteorDustPct");
+      evidence.absorbedMass = evidence.absorbMass = sourceMass * pct(world, "cosmicDustSplitMeteorMeteorAbsorbPct");
+      evidence.fragmentsMass = 0; evidence.orbiterMass = 0;
+      evidence.resultMass = heavierMass + evidence.absorbedMass;
+      evidence.cloud = createFromCollision(world, { primary: heavier, secondary: lighter, source, mass: evidence.cosmicDustMass });
+    }
     else if (kind === "meteor_asteroid") { const meteor = s.meteor || (a?.type === "meteor" ? a : b); const asteroid = s.asteroid || (a?.type === "asteroid" ? a : b); const m = bodyMass(meteor); dust(m * pct(world, "cosmicDustSplitMeteorAsteroidDustPct"), asteroid, meteor); evidence.absorbedMass = m * pct(world, "cosmicDustSplitMeteorAsteroidAbsorbPct"); addMass(asteroid, evidence.absorbedMass); resizeAsteroid(world, asteroid); if (meteor) meteor._dead = true; }
     else if (kind === "asteroid_asteroid") { const primary = s.primary || (bodyMass(a) >= bodyMass(b) ? a : b); const secondary = s.secondary || (primary === a ? b : a); const m = bodyMass(secondary); dust(m * pct(world, "cosmicDustSplitAsteroidAsteroidDustPct"), primary, secondary); evidence.absorbedMass = m * pct(world, "cosmicDustSplitAsteroidAsteroidAbsorbPct"); addMass(primary, evidence.absorbedMass); resizeAsteroid(world, primary); if (secondary) secondary._dead = true; }
     else if (kind === "moon_meteor") { const moon = s.moon || a; const meteor = s.meteor || b; const m = bodyMass(meteor); dust(m * pct(world, "cosmicDustSplitMoonMeteorDustPct"), moon, meteor); evidence.absorbedMass = m * pct(world, "cosmicDustSplitMoonMeteorAbsorbPct"); addMass(moon, evidence.absorbedMass); resizeMoon(world, moon); if (meteor) meteor._dead = true; }
@@ -117,7 +140,7 @@
     else if (kind === "planet_asteroid") { const planet = s.planet || a; const asteroid = s.asteroid || b; const m = bodyMass(asteroid); dust(m * pct(world, "cosmicDustSplitPlanetAsteroidDustPct"), planet, asteroid); evidence.fragmentMass = m * pct(world, "cosmicDustSplitPlanetAsteroidFragmentsPct"); evidence.orbiterCandidate = descriptor("orbital_asteroid_candidate", m * pct(world, "cosmicDustSplitPlanetAsteroidOrbiterPct"), planet, asteroid); evidence.fragments = spawnFragments(world, evidence.fragmentMass, planet, "planetAsteroidImpact"); if (asteroid) asteroid._dead = true; }
     else if (kind === "planet_moon") { const planet = s.planet || a; const moon = s.moon || b; const m = bodyMass(moon); dust(m * pct(world, "cosmicDustSplitPlanetMoonDustPct"), planet, moon); evidence.fragmentMass = m * pct(world, "cosmicDustSplitPlanetMoonFragmentsPct"); evidence.orbiterCandidate = descriptor("orbital_moon_candidate", m * pct(world, "cosmicDustSplitPlanetMoonOrbiterPct"), planet, moon); evidence.fragments = spawnFragments(world, evidence.fragmentMass, planet, "planetMoonImpact"); if (moon) moon._dead = true; }
     else if (kind === "planet_planet") { const m = bodyMass(a) + bodyMass(b); dust(m * pct(world, "cosmicDustSplitPlanetPlanetDustPct"), a, b); evidence.fragmentMass = m * pct(world, "cosmicDustSplitPlanetPlanetFragmentsPct"); evidence.fragments = spawnFragments(world, evidence.fragmentMass, a, "planetPlanetImpact"); if (a) a._dead = true; if (b) b._dead = true; evidence.descriptorOnly = true; }
-    recordMassSplit(world, evidence, (kind === "meteor_meteor" || kind === "planet_planet") ? bodyMass(a) + bodyMass(b) : bodyMass(s.meteor || s.asteroid || s.moon || s.secondary || s.b || s.incoming));
+    recordMassSplit(world, evidence, (kind === "meteor_meteor" || kind === "planet_planet") ? bodyMass(a) + bodyMass(b) : bodyMass(s.meteor || s.asteroid || s.moon || s.secondary || s.b || s.incoming), kind === "meteor_meteor" ? ((evidence.resultMass || 0) + (evidence.cosmicDustMass || 0)) : undefined);
     world.lastCosmicDustEvent = Object.assign({ type: "cosmic_dust_split", at: nowMs(world) }, evidence, { cloudId: evidence.cloud?.id || null });
     return evidence;
   }

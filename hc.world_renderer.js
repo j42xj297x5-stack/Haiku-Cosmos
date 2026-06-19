@@ -25,7 +25,7 @@
   const ROCKY_PLANET_GLB_DEFAULT_VARIANT = "rocky_planet_01";
   const MOON_GLB_ASSETS = Object.freeze({ moon_01: "glb/moon_01.glb" });
   const MOON_GLB_DEFAULT_VARIANT = "moon_01";
-  const ASTEROID_GLB_RADIUS_SCALE = 0.82;
+  const ASTEROID_GLB_RADIUS_SCALE = 1.0; // visual-only GLB scale must match snapshot view radius by default
   const ASTEROID_GLB_DEPTH_SCALE = 1.0;
   const THREE_DEBUG_MARKER_ENABLED = true;
   const THREE_DEBUG_MARKER_SIZE = 12;
@@ -4542,6 +4542,8 @@
           x: Number(m.x) || 0,
           y: Number(m.y) || 0,
           radius: sourceRadius,
+          collisionRadius: Number(m.collisionRadius ?? sourceRadius) || sourceRadius,
+          viewRadius: Number(m.viewRadius ?? sourceRadius) || sourceRadius,
           color: m.color || m.colorKey || null,
           alpha: Number.isFinite(m.alpha) ? m.alpha : null,
           renderedPosition: { x: visual.root.position.x, y: visual.root.position.y, z: visual.root.position.z },
@@ -4630,7 +4632,7 @@
         visual.root.userData.visualVariant = desiredVariant;
         visual.glbStatus = "assigned";
       }
-      const sourceRadius = Number(a.radius ?? a.r ?? a.scale) || THREE_ASTEROID_MIN_RADIUS;
+      const sourceRadius = Number(a.viewRadius ?? a.radius ?? a.r ?? a.scale) || THREE_ASTEROID_MIN_RADIUS;
       const radius = Math.max(THREE_ASTEROID_MIN_RADIUS, sourceRadius);
       const asteroidVisualScale = Number.isFinite(a.collapseVisualScale) ? a.collapseVisualScale : 1;
       const renderRadius = applyRenderSpaceToRadius(radius * asteroidVisualScale);
@@ -4681,6 +4683,9 @@
           x: Number(a.x) || 0,
           y: Number(a.y) || 0,
           radius: sourceRadius,
+          collisionRadius: Number(a.collisionRadius ?? sourceRadius) || sourceRadius,
+          viewRadius: Number(a.viewRadius ?? sourceRadius) || sourceRadius,
+          glbScale: ASTEROID_GLB_RADIUS_SCALE,
           visualVariant: a.visualVariant || visual.visualVariant || null,
           assetId: a.assetId || null,
           alpha: Number.isFinite(a.alpha) ? a.alpha : null,
@@ -5471,6 +5476,15 @@
       firstAsteroidMesh: threeState.firstAsteroidMeshSample,
       firstAsteroidScreenEstimate: threeState.firstAsteroidScreenEstimate,
       firstAsteroidInCameraBounds: threeState.firstAsteroidInCameraBounds,
+      firstMeteorCollisionRadius: threeState.firstMeteorSample?.collisionRadius ?? null,
+      firstMeteorViewRadius: threeState.firstMeteorSample?.viewRadius ?? null,
+      firstAsteroidCollisionRadius: threeState.firstAsteroidSample?.collisionRadius ?? null,
+      firstAsteroidViewRadius: threeState.firstAsteroidSample?.viewRadius ?? null,
+      firstAsteroidGlbScale: ASTEROID_GLB_RADIUS_SCALE,
+      radiusMismatchWarnings: [
+        ...(getMeteorGlbVisualScale() !== 1 ? ["meteor_glb_visual_scale_is_visual_only"] : []),
+        ...(ASTEROID_GLB_RADIUS_SCALE !== 1 ? ["asteroid_glb_radius_scale_mismatch"] : []),
+      ],
       firstAsteroidGlbVisible: !!threeState.firstAsteroidMeshSample?.glbVisible,
       firstAsteroidFallbackVisible: threeState.firstAsteroidMeshSample ? !!Array.from(threeState.asteroidMeshes.values())[0]?.fallback?.visible : null,
       firstAsteroidWorldBoundingBox: threeState.firstAsteroidMeshSample?.worldBoundingBox || null,

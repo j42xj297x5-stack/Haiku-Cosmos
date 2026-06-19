@@ -39,6 +39,16 @@ assert.equal(c.World.asteroids.length, 1, 'different-color meteor collision stil
 assert.equal(c.World.cosmicDust.length, 1, 'different-color meteor collision also creates cosmic dust');
 assert.equal(c.World.harmonicDust.length, 0, 'different-color meteor collision does not create harmonicDust');
 assert.equal(c.World.cosmicDust[0].collectible, false);
+assert.equal(c.World.asteroids[0].mass, 12, 'asteroid mass is heavier meteor plus 20% lighter meteor');
+assert.equal(c.World.cosmicDust[0].mass, 8, 'meteor+meteor dust uses 80% of lighter meteor, not sum');
+assert.equal(c.World.lastMassSplitEvent.ruleId, 'meteor_meteor_different');
+assert.ok(Math.abs(c.World.lastMassSplitEvent.conservationDelta) < 1e-9, 'meteor+meteor split evidence conserves mass');
+
+c = buildContext();
+c.World.meteors = [meteor('m1', 'red', 5), meteor('m2', 'blue', 10)];
+c.HC.Collisions.resolve(0.016, 1000);
+assert.equal(c.World.asteroids[0].mass, 11, 'reverse order still bases asteroid on heavier meteor plus 20% lighter meteor');
+assert.equal(c.World.cosmicDust[0].mass, 4, 'reverse order still dusts 80% of lighter meteor');
 
 c = buildContext();
 c.World.meteors = [meteor('m1', 'red', 10), meteor('m2', 'red', 10)];
