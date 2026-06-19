@@ -215,6 +215,7 @@
     asteroidGroup: null,
     planetGroup: null,
     moonGroup: null,
+    harmonicDustGroup: null,
     lightsGroup: null,
     ambientLight: null,
     debugKeyLight: null,
@@ -251,9 +252,14 @@
     planetGlbCache: new Map(),
     planetMeshes: new Map(),
     moonMeshes: new Map(),
+    harmonicDustMeshes: new Map(),
+    harmonicDustMaterials: new Map(),
+    harmonicDustGeometry: null,
     planetGeometry: null,
     planetGroupChildrenCount: 0,
     moonGroupChildrenCount: 0,
+    harmonicDustGroupChildrenCount: 0,
+    threeHarmonicDustCount: 0,
     threeMoonCount: 0,
     planetGlbInstanceCreates: 0,
     threePlanetCount: 0,
@@ -275,7 +281,7 @@
     threeAsteroidCount: 0,
     threeMeteorLastError: null,
     threeAsteroidLastError: null,
-    threeObjectRenderPasses: ["meteors", "asteroids", "planets"],
+    threeObjectRenderPasses: ["meteors", "asteroids", "planets", "harmonicDust"],
     debugMarker: null,
     debugMarkerEnabled: THREE_DEBUG_MARKER_ENABLED,
     threeMeteorRadiusScale: THREE_METEOR_RADIUS_SCALE,
@@ -4217,17 +4223,19 @@
       const asteroidGroup = new THREE.Group();
       const planetGroup = new THREE.Group();
       const moonGroup = new THREE.Group();
+      const harmonicDustGroup = new THREE.Group();
       const lightsGroup = createThreeLights(THREE);
       scene.add(lightsGroup);
       if (threeState.mainStageSpotTarget) scene.add(threeState.mainStageSpotTarget);
       scene.add(planetGroup);
       scene.add(moonGroup);
       scene.add(asteroidGroup);
+      scene.add(harmonicDustGroup);
       scene.add(meteorGroup);
       scene.background = new THREE.Color(0x05070a);
       canvas.style.display = "block";
       canvas.style.visibility = "visible";
-      Object.assign(threeState, { canvas, renderer, scene, camera, orthographicCamera, perspectiveCamera, meteorGroup, asteroidGroup, planetGroup, moonGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16), planetGeometry: new THREE.CircleGeometry(1, 32) });
+      Object.assign(threeState, { canvas, renderer, scene, camera, orthographicCamera, perspectiveCamera, meteorGroup, asteroidGroup, planetGroup, moonGroup, harmonicDustGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16), planetGeometry: new THREE.CircleGeometry(1, 32), harmonicDustGeometry: new THREE.CircleGeometry(1, 24) });
       applyRendererPbrSettings();
       syncThreeLights();
       createDebugMarker(THREE);
@@ -4240,6 +4248,83 @@
       resize();
       return true;
     } catch (err) { threeState.lastError = err?.message || String(err); return false; }
+  }
+
+
+  function getHarmonicDustMaterial(THREE, colorKey) {
+    const key = normalizeMeteorColorKey(colorKey);
+    const existing = threeState.harmonicDustMaterials.get(key);
+    if (existing) return existing;
+    const colorMap = { red: 0xff6b6b, yellow: 0xffd166, green: 0x6ee7a8, blue: 0x7dbdff, neutral: 0xb6bfd2 };
+    const mat = new THREE.MeshBasicMaterial({
+      color: colorMap[key] || colorMap.neutral,
+      transparent: true,
+      opacity: 0.42,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+    });
+    threeState.harmonicDustMaterials.set(key, mat);
+    return mat;
+  }
+
+  function getStableHarmonicDustSnapshotKey(dust, index) {
+    const key = dust?.renderKey || dust?.id || dust?._id || null;
+    if (key != null && key !== "") return `harmonic_dust:${key}`;
+    return `harmonic_dust:${index}:${Math.round(Number(dust?.x) || 0)}:${Math.round(Number(dust?.y) || 0)}`;
+  }
+
+  function createHarmonicDustVisual(THREE, dust, key) {
+    const root = new THREE.Group();
+    root.userData.hcObjectType = "harmonic_dust";
+    root.userData.harmonicDustKey = key;
+    root.frustumCulled = false;
+    const mesh = new THREE.Mesh(threeState.harmonicDustGeometry, getHarmonicDustMaterial(THREE, dust.colorName));
+    mesh.frustumCulled = false;
+    mesh.renderOrder = 950;
+    root.add(mesh);
+    return { root, mesh, key, dust };
+  }
+
+  function removeHarmonicDustVisual(entry) {
+    threeState.harmonicDustGroup?.remove(entry?.root || entry);
+  }
+
+  function syncHarmonicDustPass(renderSnapshot, nowMs) {
+    const THREE = window.HC_THREE || window.THREE;
+    const samples = Array.isArray(renderSnapshot?.world?.harmonicDust) ? renderSnapshot.world.harmonicDust : [];
+    threeState.threeHarmonicDustCount = samples.length;
+    const seen = new Set();
+    for (let i = 0; i < samples.length; i += 1) {
+      const dust = samples[i] || {};
+      const key = getStableHarmonicDustSnapshotKey(dust, i);
+      seen.add(key);
+      let visual = threeState.harmonicDustMeshes.get(key);
+      if (!visual) {
+        visual = createHarmonicDustVisual(THREE, dust, key);
+        threeState.harmonicDustGroup.add(visual.root);
+        threeState.harmonicDustMeshes.set(key, visual);
+      }
+      const colorKey = normalizeMeteorColorKey(dust.colorName || dust.visual?.colorName);
+      visual.mesh.material = getHarmonicDustMaterial(THREE, colorKey);
+      const radius = Math.max(1, Number(dust.visual?.radius ?? dust.r) || 1);
+      const collectRatio = Math.max(0, Math.min(1, Number(dust.collectRatio) || 0));
+      const renderRadius = applyRenderSpaceToRadius(radius * (1 + collectRatio * 0.08));
+      const renderPosition = applyRenderSpaceToVector(Number(dust.x) || 0, Number(dust.y) || 0, Number(dust.z) || 0.05);
+      visual.root.position.set(renderPosition.x, renderPosition.y, renderPosition.z);
+      visual.root.renderOrder = 950;
+      visual.root.visible = dust.flags?.dead !== true;
+      visual.mesh.scale.set(renderRadius, renderRadius, 1);
+      visual.mesh.material.opacity = Math.max(0.12, Math.min(0.62, Number(dust.visual?.alpha) || 0.34)) * (dust.isBeingCollected ? 1.08 : 1);
+      visual.mesh.rotation.z = ((Number(nowMs) || 0) / 9000) + i * 0.37;
+    }
+    for (const [key, visual] of threeState.harmonicDustMeshes.entries()) {
+      if (seen.has(key)) continue;
+      removeHarmonicDustVisual(visual);
+      threeState.harmonicDustMeshes.delete(key);
+    }
+    threeState.harmonicDustGroupChildrenCount = threeState.harmonicDustGroup?.children?.length || 0;
   }
 
   function syncMeteorPass(renderSnapshot, nowMs) {
@@ -4774,14 +4859,19 @@
     threeState.planetMeshes.clear();
     threeState.moonMeshes.forEach((entry) => { removeMoonVisual(entry); });
     threeState.moonMeshes.clear();
+    threeState.harmonicDustMeshes.forEach((entry) => { removeHarmonicDustVisual(entry); });
+    threeState.harmonicDustMeshes.clear();
     threeState.meteorMaterials.forEach((mat) => mat?.dispose?.());
     threeState.meteorMaterials.clear();
     threeState.asteroidMaterials.forEach((mat) => mat?.dispose?.());
     threeState.asteroidMaterials.clear();
+    threeState.harmonicDustMaterials.forEach((mat) => mat?.dispose?.());
+    threeState.harmonicDustMaterials.clear();
     threeState.asteroidGeometries.forEach((geometry) => geometry?.dispose?.());
     threeState.asteroidGeometries.clear();
     threeState.meteorGeometry?.dispose?.();
     threeState.planetGeometry?.dispose?.();
+    threeState.harmonicDustGeometry?.dispose?.();
     threeState.environment?.dispose?.();
     threeState.environment = null;
     threeState.environmentCanvas = null;
@@ -4794,7 +4884,7 @@
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
     if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], meteorGeometry: null, planetGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, harmonicDustGroup: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], meteorGeometry: null, planetGeometry: null, harmonicDustGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -4825,6 +4915,7 @@
         try {
           syncMoonPass(renderSnapshot || {}, nowMs);
           syncPlanetPass(renderSnapshot || {}, nowMs);
+          syncHarmonicDustPass(renderSnapshot || {}, nowMs);
           threeState.threePlanetLastError = null;
         } catch (err) {
           threeState.threePlanetLastError = err?.message || String(err);
@@ -5292,6 +5383,8 @@
       asteroidGroupChildrenCount: threeState.asteroidGroupChildrenCount,
       planetGroupChildrenCount: threeState.planetGroupChildrenCount,
       moonGroupChildrenCount: threeState.moonGroupChildrenCount,
+      harmonicDustGroupChildrenCount: threeState.harmonicDustGroupChildrenCount,
+      threeHarmonicDustCount: threeState.threeHarmonicDustCount,
       threeMoonCount: threeState.threeMoonCount,
       moonGlbAssets: MOON_GLB_ASSETS,
       cameraSnapshotCenter: threeState.cameraSnapshotCenter,

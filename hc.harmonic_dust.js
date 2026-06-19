@@ -37,6 +37,8 @@
       harmonicDustCollectDecayMul: 0.35,
       harmonicDustPrgCollectRateMul: 1.0,
       harmonicDustMaxCollectMs: 8000,
+      harmonicDustManualCollectionEnabled: true,
+      harmonicDustAutoTestCollectionEnabled: false,
     }, World.spaceMechanics || {});
     if (!World.harmonicDustCollected || typeof World.harmonicDustCollected !== "object") {
       World.harmonicDustCollected = { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0 };
@@ -284,7 +286,9 @@
     const World = ensureWorldState((window.HC.getWorld && window.HC.getWorld()) || window.World);
     if (!World) return;
     const dtMs = Math.max(0, finite(dt, 0) * 1000);
-    const prg = getPrg(World);
+    const manualCollectionEnabled = World.spaceMechanics.harmonicDustManualCollectionEnabled !== false;
+    const autoTestCollectionEnabled = World.spaceMechanics.harmonicDustAutoTestCollectionEnabled === true;
+    const prg = manualCollectionEnabled ? getPrg(World) : null;
     const rateMul = positive(World.spaceMechanics.harmonicDustPrgCollectRateMul, 1.0);
     for (const dust of World.harmonicDust) {
       if (!dust || dust._dead) continue;
@@ -297,7 +301,9 @@
         const contact = prg.r + positive(dust.r, 1);
         overlapping = dx * dx + dy * dy <= contact * contact;
       }
+      dust.isBeingCollected = overlapping && manualCollectionEnabled;
       if (overlapping) dust.collectProgressMs = Math.min(dust.collectRequiredMs, finite(dust.collectProgressMs, 0) + dtMs * rateMul);
+      else if (autoTestCollectionEnabled) dust.collectProgressMs = Math.min(dust.collectRequiredMs, finite(dust.collectProgressMs, 0) + dtMs * rateMul);
       else {
         const decayMs = positive(dust.collectDecayMs, dust.collectRequiredMs * 0.35);
         const decayPerMs = dust.collectRequiredMs / decayMs;
@@ -306,6 +312,7 @@
       if (dust.collectProgressMs >= dust.collectRequiredMs) {
         dust._dead = true;
         addCollectedDust(World, dust);
+        World.lastHarmonicDustCollectedEvent = { id: dust.id || null, colorName: dust.colorName || null, reservoirPercentValue: finite(dust.reservoirPercentValue, 0), atMs: nowMs || World.nowMs || Date.now(), via: dust.isBeingCollected ? "manual_prg" : "auto_test_flag" };
       }
     }
     World.harmonicDust = World.harmonicDust.filter((dust) => dust && !dust._dead);
@@ -318,10 +325,14 @@
     for (const dust of World.harmonicDust) {
       if (!dust || dust._dead) continue;
       const hue = hueFor(dust.colorName);
+      const visual = dust.visual || {};
+      const collectRatio = Number.isFinite(Number(dust.collectRatio)) ? clamp(Number(dust.collectRatio), 0, 1) : clamp(finite(dust.collectProgressMs, 0) / positive(dust.collectRequiredMs, 1), 0, 1);
       const pulse = 0.9 + Math.sin(finite(dust.visualPulse, 0)) * 0.08;
       const valueScale = 1 + clamp(finite(dust.reservoirPercentValue, 10), 10, 100) / 220;
-      const r = positive(dust.r, 1) * pulse * valueScale;
-      const alpha = clamp(finite(dust.visualAlpha, 0.58) + clamp(finite(dust.reservoirPercentValue, 10), 10, 100) / 500, 0.15, 0.82);
+      const r = positive(visual.radius, positive(dust.r, 1)) * pulse * valueScale;
+      const densityAlpha = positive(dust.density, 0.42) * 0.45;
+      const massAlpha = Math.min(0.18, Math.sqrt(positive(dust.mass, 1)) / 90);
+      const alpha = clamp(finite(visual.alpha, finite(dust.visualAlpha, densityAlpha + massAlpha + 0.24)) + clamp(finite(dust.reservoirPercentValue, 10), 10, 100) / 650, 0.15, 0.72);
       const grad = ctx.createRadialGradient(dust.x, dust.y, r * 0.1, dust.x, dust.y, r * 1.35);
       grad.addColorStop(0, `hsla(${hue} 95% 72% / ${alpha})`);
       grad.addColorStop(1, `hsla(${hue} 95% 55% / 0)`);
@@ -336,9 +347,9 @@
         ctx.arc(dust.x, dust.y, r * 1.42, 0, Math.PI * 2);
         ctx.stroke();
       }
-      if (dust.collectProgressMs > 0) {
-        const t = clamp(dust.collectProgressMs / positive(dust.collectRequiredMs, 1), 0, 1);
-        ctx.strokeStyle = `hsla(${hue} 100% 80% / 0.85)`;
+      if (collectRatio > 0) {
+        const t = collectRatio;
+        ctx.strokeStyle = `hsla(${hue} 80% 78% / ${dust.isBeingCollected ? 0.72 : 0.38})`;
         ctx.lineWidth = Math.max(1.5, r * 0.08);
         ctx.beginPath();
         ctx.arc(dust.x, dust.y, r * 1.55, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * t);
