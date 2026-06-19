@@ -14,7 +14,7 @@ function buildContext() {
   context.HC = { logEvent() {} };
   context.World = { cosmicDust: [], spaceMechanics: {}, nowMs: 1000 };
   vm.createContext(context);
-  for (const file of ['hc.space_bodies.js','hc.collision_rules.js','hc.impact.js','hc.cosmic_dust.js']) {
+  for (const file of ['hc.space_bodies.js','hc.collision_rules.js','hc.impact.js','hc.cosmic_dust.js','hc.ui_debug.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
   return context;
@@ -60,7 +60,47 @@ c.HC.CollisionRules.setDraftRuleValue('planet_asteroid', 'orbiterPct', 0.22);
 let panelExport = JSON.parse(c.HC.CollisionRules.exportRules(c.World));
 assert.equal(panelExport.rules.find((r) => r.id === 'planet_asteroid').orbiterPct, 0.22);
 
+// Collision Rules UI export handler reads current form controls, not stale World.collisionRules.
+c = buildContext();
+c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, json);
+c.HC.CollisionRules.setDraftRuleset(c.World.collisionRules);
+const formElements = new Map();
+const section = { open: false, dataset: { runtimeDebugSection: 'collision-rules' } };
+const textarea = {
+  hidden: true,
+  style: { display: 'none' },
+  value: '',
+  closest(selector) {
+    return selector === '[data-runtime-debug-section]' ? section : null;
+  },
+};
+formElements.set('dbgCollisionRulesJson', textarea);
+for (const rule of c.HC.CollisionRules.getDraftRuleset(c.World).rules) {
+  const prefix = `collision-rule-${rule.id}`;
+  formElements.set(`${prefix}-enabled`, { checked: rule.id === 'planet_asteroid' ? false : rule.enabled });
+  formElements.set(`${prefix}-policy`, { value: rule.sourceMassPolicy });
+  formElements.set(`${prefix}-dustPct`, { value: String(rule.id === 'planet_asteroid' ? 0.17 : rule.dustPct) });
+  formElements.set(`${prefix}-absorbPct`, { value: String(rule.absorbPct) });
+  formElements.set(`${prefix}-fragmentsPct`, { value: String(rule.fragmentsPct) });
+  formElements.set(`${prefix}-orbiterPct`, { value: String(rule.orbiterPct) });
+}
+const fakeDocument = { getElementById(id) { return formElements.get(id) || null; } };
+const exportedFromHandler = c.HC.DebugCollisionRules.exportPanel(c.HC.CollisionRules, c.World, fakeDocument);
+assert.equal(textarea.value, exportedFromHandler);
+assert.equal(textarea.hidden, false);
+assert.equal(textarea.style.display, '');
+assert.equal(section.open, true);
+panelExport = JSON.parse(textarea.value);
+assert.equal(panelExport.profile, 'baseline_safe_v1');
+assert.equal(panelExport.rules.find((r) => r.id === 'planet_asteroid').dustPct, 0.17);
+assert.equal(panelExport.rules.find((r) => r.id === 'planet_asteroid').enabled, false);
+assert.equal(c.World.collisionRules.rules.find((r) => r.id === 'planet_asteroid').dustPct, 0.35);
+
 // edit -> apply changes World.spaceMechanics.
+c = buildContext();
+c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, json);
+c.HC.CollisionRules.setDraftRuleset(c.World.collisionRules);
+c.HC.CollisionRules.setDraftRuleValue('planet_asteroid', 'orbiterPct', 0.22);
 c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, c.HC.CollisionRules.getDraftRuleset(c.World));
 assert.equal(c.World.spaceMechanics.cosmicDustSplitPlanetAsteroidOrbiterPct, 0.22);
 assert.ok(c.World.collisionRulesDiagnostics.collisionRulesLastAppliedAt);
