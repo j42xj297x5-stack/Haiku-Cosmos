@@ -788,6 +788,7 @@
           dustCloudsCount: Array.isArray(World?.dustClouds) ? World.dustClouds.length : 0,
           dustParticlesCount: Array.isArray(World?.dustParticles) ? World.dustParticles.length : 0,
           impactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.length : 0,
+          activeImpactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.filter((fragment) => fragment && !fragment._dead).length : 0,
           harmonicDustCount: Array.isArray(World?.harmonicDust) ? World.harmonicDust.length : 0,
         },
         rp: Math.max(0, Math.floor(Number(World?.score || 0))),
@@ -830,6 +831,7 @@
           dustCloudsCount: Array.isArray(World.dustClouds) ? World.dustClouds.length : 0,
           dustParticlesCount: Array.isArray(World.dustParticles) ? World.dustParticles.length : 0,
           impactFragmentsCount: Array.isArray(World.impactFragments) ? World.impactFragments.length : 0,
+          activeImpactFragmentsCount: Array.isArray(World.impactFragments) ? World.impactFragments.filter((fragment) => fragment && !fragment._dead).length : 0,
           harmonicDustCount: Array.isArray(World.harmonicDust) ? World.harmonicDust.length : 0,
         },
         sequence: sequence ? {
@@ -848,6 +850,13 @@
           temp: Array.isArray(World.cardsTemp) ? World.cardsTemp.length : 0,
           breakdown: cardBreakdown,
         },
+        moonProgression: Array.isArray(World.moons) ? World.moons.filter((moon) => moon && !moon._dead).map((moon) => ({
+          id: moon.id || moon._id || null,
+          progressionMode: moon.progressionMode || null,
+          isOrbitalBody: moon.isOrbitalBody === true,
+          canBecomePlanet: moon.canBecomePlanet === false ? false : (moon.canBecomePlanet === true ? true : null),
+          parentPlanetId: moon.parentPlanetId || null,
+        })) : [],
         harmonicDustSequence: World.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
         harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
         harmonicDustDeposits: Object.assign({}, World.harmonicDustDeposits || {}),
@@ -1822,6 +1831,7 @@
           dustCloudsCount: Array.isArray(World?.dustClouds) ? World.dustClouds.length : 0,
           dustParticlesCount: Array.isArray(World?.dustParticles) ? World.dustParticles.length : 0,
           impactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.length : 0,
+          activeImpactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.filter((fragment) => fragment && !fragment._dead).length : 0,
         },
         thresholds: {
           asteroidToPlanet: {

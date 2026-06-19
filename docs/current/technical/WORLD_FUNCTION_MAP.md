@@ -47,7 +47,7 @@
 **Źródła:** `index.html`, `game.boot.js`
 
 1) Ładowanie skryptów (kolejność w `index.html`):
-- `hc.public_path.js` → `hc.card_assets.js` → `hc.asset_loader.js` → `hc.save_system.js` → `hc.submeta_settings.js` → `hc.debug.js` → `hc.visual_assets.js` → `hc.frame_composer.js` → `hc.card_visuals.js` → `hc.submeta_layout.js` → `hc.submeta_png.js` → `hc.submeta_placeholders.js` → `hc.submeta_panels.js` → `hc.prg_frame_probe.js` → `cards.js` → `hc.hud_v2.js` → `hc.hud_top_layout.js` → `hc.core.js` → `hc.util.js` → `hc.world.js` → `hc.view_input.js` → `hc.camera.js` → `hc.comets.js` → `hc.meteors.js` → `hc.render.js` → `hc.collisions.js` → `hc.asteroids.js` → `hc.planets.js` → `hc.stars_epoch.js` → `hc.world_render_snapshot.js` → `hc.three_module_bridge.js` → `hc.world_renderer.js` → `hc.ui_debug.js` → `game.boot.js`.
+- `hc.public_path.js` → `hc.card_assets.js` → `hc.asset_loader.js` → `hc.save_system.js` → `hc.submeta_settings.js` → `hc.debug.js` → `hc.visual_assets.js` → `hc.frame_composer.js` → `hc.card_visuals.js` → `hc.submeta_layout.js` → `hc.submeta_png.js` → `hc.submeta_placeholders.js` → `hc.submeta_panels.js` → `hc.prg_frame_probe.js` → `cards.js` → `hc.hud_v2.js` → `hc.hud_top_layout.js` → `hc.core.js` → `hc.util.js` → `hc.world.js` → `hc.space_bodies.js` → `hc.impact.js` → `hc.view_input.js` → `hc.camera.js` → `hc.comets.js` → `hc.meteors.js` → `hc.render.js` → `hc.harmonic_dust.js` → `hc.collisions.js` → `hc.asteroids.js` → `hc.planets.js` → `hc.stars_epoch.js` → `hc.world_render_snapshot.js` → `hc.three_module_bridge.js` → `hc.world_renderer.js` → `hc.ui_debug.js` → `game.boot.js`.
 
 2) Boot (IIFE w `game.boot.js`):
 - Tworzy `canvas/ctx`, `View`, `Input`, `Camera` oraz helpery globalne (`rand`, `clamp`, `screenToWorld`, `getWorldViewBounds`, itp.).
@@ -108,7 +108,8 @@
 
 ### 2.1 World (globalny stan runtime)
 **Listy obiektów:**
-- `World.meteors[]`, `World.asteroids[]`, `World.planets[]`, `World.stars[]`, `World.comets[]`.
+- `World.meteors[]`, `World.asteroids[]`, `World.moons[]`, `World.planets[]`, `World.stars[]`, `World.comets[]`.
+- Patch A/A2 space state: `World.harmonicDust[]`, `World.harmonicDustReservoir`, `World.harmonicDustDeposits`, `World.impactFragments[]`.
 
 **Flagi/stan runu:**
 - `World.flags.firstPlanetZoomed`, `World.flags.firstStarZoomed`.
@@ -230,6 +231,25 @@
 
 ---
 
+
+### 3.3A `hc.space_bodies.js` / `hc.impact.js` / `hc.harmonic_dust.js` — Space foundation po Patch A2
+
+**STATE / helpers:**
+- `HC.SpaceBodies` dostarcza wspólny kontrakt masy, promienia, rodzaju ciała, direct impact i future `orbitState`.
+- `HC.Impact` jest foundation helperem: `splitMass`, `resolvePlanetImpact`, `resolveMoonImpact`, `spawnEjecta`, `updateFragments`.
+- `resolvePlanetImpact` istnieje, ale **nie jest jeszcze podpięty** do live `captureMeteorsByPlanets` ani `captureAsteroidsByPlanets`. Planet impact pozostaje przyszłym Patchem B.
+- `resolveMoonImpact` jest częściowo live dla direct moon absorption w `hc.asteroids.js`; moon dostaje tylko masę wchłoniętą z impact split, a `moonImpactDust` pozostaje deskryptorem/evidence, nie fizycznym `harmonicDust`.
+- `World.impactFragments[]` przechowuje lekkie descriptor fragments z TTL; `HC.Impact.updateFragments(World, nowMs, dt)` usuwa wygasłe wpisy.
+- `hc.harmonic_dust.js` obsługuje same-color meteor collision dust, PRG collection, reservoir `10/20/50`, mixed `GRAY` i `World.harmonicDustDeposits`.
+- `cosmicGrayDust` i fizyczny `dustCloud` dla impactu księżyca **nie istnieją jeszcze jako runtime**.
+
+**Free progression:**
+- Aktywny wolny łańcuch progresji to `meteor → asteroid → moon → rocky_planet`.
+- Moon z wolnej asteroidy dostaje pola `progressionMode: "free"`, `isOrbitalBody: false`, `canBecomePlanet: true`, `parentPlanetId: null`, `orbitState: null`.
+- Guard moon → rocky planet blokuje przyszłe orbital moon przez `canBecomePlanet === false`, `progressionMode === "orbital"`, `isOrbitalBody === true`, `parentPlanetId`, `parentKind` lub `parentRef`.
+- Orbital moon STOP jest zabezpieczonym kontraktem runtime, ale orbital moon creation nadal nie istnieje.
+
+---
 ### 3.4 `hc.asteroids.js` — Asteroidy
 **STATE:**
 - `World.asteroids[]` + per-asteroid material body fields: `r`, `baseR` / `massOneRadius`, liniowe `mass`, `absorbedMeteorCount`, `growthLevel`, `growth*`, `sourceColors`, `isCollapsing`.
@@ -248,7 +268,8 @@
 - `absorbMeteorIntoAsteroid(a, m)` zwiększa `absorbedMeteorCount`, liniową masę o `+1` i realny promień bryły asteroidy.
 - `resolveAsteroidAsteroidContacts()` rozwiązuje bezpośrednie kolizje bryła–bryła między asteroidami; scalona asteroida ma `newMass = massA + massB`, pozycję środka masy i prędkość ważoną masą.
 - Skala/promień wizualny asteroidy wynika z masy łagodnie (`baseR * sqrt(mass)`), więc masa logiczna pozostaje addytywna, ale wzrost obrazu nie jest agresywny.
-- `startAsteroidCollapse` → `finishCollapseToPlanet` (emituje `ASTEROID_COLLAPSE_START`, `PLANET_CREATED`), a trigger to `asteroid.mass >= targetMass` zamiast liczby orbiterów.
+- `startAsteroidCollapse` → `finishCollapseToPlanet` (legacy gas/rocky path), a wolna progresja Patch A używa także `asteroid.mass >= World.spaceMechanics.asteroidToMoonMassThreshold` do `transformAsteroidToMoon`.
+- `resolveMoonDirectAbsorptions()` obsługuje direct meteor/asteroid → moon przez `HC.Impact.resolveMoonImpact` jeśli moduł istnieje, aktualizuje `moon.lastImpact`, promień i próg moon → rocky planet.
 
 **Zasada orbitalna:**
 - Aktywny promień orbitalny/grawitacyjny pozostaje tylko dla planet i gwiazd.
@@ -267,8 +288,10 @@
 **Funkcje kluczowe:**
 - `captureMeteorsByPlanets` i `captureAsteroidsByPlanets`:
   - blokada koloru `pack01ReleaseBlockColor`,
-  - odbicie meteorów wg `fxIntentBouncePlanetPct` gdy aktywne sloty.
+  - odbicie meteorów wg `fxIntentBouncePlanetPct` gdy aktywne sloty,
+  - legacy capture z dystansu przez `orbitPx` / `gravityR` / `capR` pozostaje aktywny.
 - `transformGasPlanetIntoStar` (przejście do gwiazdy).
+- `resolvePlanetImpact` z `HC.Impact` nie jest jeszcze używany w tym module; nie przepięto planet capture na impact-only.
 - `Events.on("PLANET_CREATED")` → otwarcie SUB-META (`World.subMetaOpen`, `World.paused`).
 
 ---
@@ -321,7 +344,7 @@
 - Meteor GLB visual state jest per wrapper: stabilny wariant GLB, rotacja XYZ, prędkość rotacji oraz losowy przydział zewnętrznej tekstury/emissiveMap są przypisywane raz na visual lifetime.
 
 **Funkcje kluczowe:**
-- `HC.WorldRenderSnapshot.build({ World, Camera, View, ... })` mapuje kolekcje świata do `renderSnapshot.world.*`, w tym `meteors[]` i `asteroids[]` z minimalnymi polami renderowymi.
+- `HC.WorldRenderSnapshot.build({ World, Camera, View, ... })` mapuje kolekcje świata do `renderSnapshot.world.*`, w tym `meteors[]`, `asteroids[]`, `moons[]`, `impactFragments[]`, `harmonicDust[]`, `harmonicDustReservoir` i `harmonicDustDeposits` z minimalnymi polami renderowymi/evidence.
 - `HC.WorldRenderer.render(renderSnapshot, now, dt)` wybiera `canvas2d` fallback albo `three`.
 - W trybie `three` adapter renderuje meteory i asteroidy wyłącznie ze snapshotu; planety/gwiazdy/PRG pozostają poza Three. Meteory pobierają efektywny rozmiar przez `getMeteorRenderScale(...)`, który jest sprzężony z `getMeteorCollisionRadius(...)` i bazowym `meteorBaseScale = 2`.
 - GLB pass ładuje aktywne pule `public/glb/` przez `publicAssetPath` / `publicPath`, pokazuje fallback visual podczas `loading`/`failed` i zachowuje Canvas2D jako fallback renderer/overlay. GLB meteory i asteroidy ładują się przez lokalny `GLTFLoader`; custom parser nie jest aktywną ścieżką runtime.

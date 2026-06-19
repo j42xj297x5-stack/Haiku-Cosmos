@@ -233,6 +233,10 @@
         source: "asteroid_mass_threshold",
         createdAt: World.nowMs ?? ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()),
         age: 0,
+        progressionMode: "free",
+        isOrbitalBody: false,
+        canBecomePlanet: true,
+        parentPlanetId: null,
         orbitState: null,
         sourceAsteroidId: a._id || a.id || null,
         asset: MOON_ASSET_ID,
@@ -759,8 +763,20 @@
       return planet;
     }
 
+    function canMoonBecomeRockyPlanet(moon) {
+      if (!moon || moon._dead) return false;
+      if (moon.canBecomePlanet === false) return false;
+      if (moon.progressionMode === "orbital") return false;
+      if (moon.isOrbitalBody === true) return false;
+      if (moon.parentPlanetId) return false;
+      if (moon.parentKind) return false;
+      if (moon.parentRef) return false;
+      return true;
+    }
+
     function checkMoonRockyPlanetThreshold(moon, source) {
       if (!isMoonToRockyPlanetEnabled() || moon?._dead) return null;
+      if (!canMoonBecomeRockyPlanet(moon)) return null;
       const target = moonToRockyPlanetMassThreshold();
       if (moonMassValue(moon) >= target) return transformMoonToRockyPlanet(moon, source || "moon_mass_threshold");
       return null;
@@ -885,6 +901,7 @@
       transformAsteroidToMoon,
       transformMoonToRockyPlanet,
       resolveMoonDirectAbsorptions,
+      canMoonBecomeRockyPlanet,
     };
 
     return window.HC.Asteroids;

@@ -58,6 +58,10 @@ assert.equal(context.World.moons.length, 1);
 assert.equal(moon.type, 'moon');
 assert.equal(moon.mass, 2);
 assert.equal(moon.r, 5);
+assert.equal(moon.progressionMode, 'free');
+assert.equal(moon.isOrbitalBody, false);
+assert.equal(moon.canBecomePlanet, true);
+assert.equal(moon.parentPlanetId, null);
 assert.equal(asteroid._dead, true);
 context.HC.Asteroids.update(0.016, 1016);
 assert.equal(context.World.asteroids.length, 0);
@@ -66,6 +70,10 @@ const snapshot = context.HC.WorldRenderSnapshot.build({ World: context.World, Ca
 assert.equal(snapshot.world.moons.length, 1);
 assert.equal(snapshot.world.moons[0].type, 'moon');
 assert.equal(snapshot.world.moons[0].mass, 2);
+assert.equal(snapshot.world.moons[0].progressionMode, 'free');
+assert.equal(snapshot.world.moons[0].isOrbitalBody, false);
+assert.equal(snapshot.world.moons[0].canBecomePlanet, true);
+assert.equal(snapshot.world.moons[0].parentPlanetId, null);
 assert.equal(snapshot.diagnostics.objectCounts.moons, 1);
 
 console.log('space patch 2 vm checks passed');

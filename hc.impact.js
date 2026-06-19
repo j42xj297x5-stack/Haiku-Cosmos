@@ -18,6 +18,7 @@
     moonCanCreateOrbiters: false,
     impactEjectaMinMass: 0.08,
     impactEjectaMaxPieces: 5,
+    impactFragmentTtlMs: 6000,
   });
 
   function finiteNumber(value, fallback) {
@@ -135,6 +136,8 @@
     const safeWorld = world || window.World || {};
     const safeOptions = options || {};
     const mechanics = mechanicsFromWorld(safeWorld);
+    const nowMs = finiteNumber(safeOptions.nowMs, safeWorld.nowMs ?? ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()));
+    const ttlMs = Math.max(1, finiteNumber(safeOptions.ttlMs, mechanics.impactFragmentTtlMs ?? 6000));
     const total = Math.max(0, finiteNumber(impactResult?.masses?.ejecta, 0));
     const minMass = Math.max(0.001, finiteNumber(safeOptions.minMass, mechanics.impactEjectaMinMass));
     const maxPieces = Math.max(0, Math.floor(finiteNumber(safeOptions.maxPieces, mechanics.impactEjectaMaxPieces)));
@@ -151,6 +154,9 @@
         vx: Math.cos(angle) * 8,
         vy: Math.sin(angle) * 8,
         mass: total / Math.max(1, count),
+        createdAt: nowMs,
+        age: 0,
+        ttlMs,
         visualReady: false,
       });
     }
@@ -159,6 +165,25 @@
       safeWorld.impactFragments.push(...pieces);
     }
     return pieces;
+  }
+
+  function updateFragments(world, nowMs, dt) {
+    const safeWorld = world || window.World || {};
+    if (!Array.isArray(safeWorld.impactFragments) || !safeWorld.impactFragments.length) return [];
+    const mechanics = mechanicsFromWorld(safeWorld);
+    const fallbackTtlMs = Math.max(1, finiteNumber(mechanics.impactFragmentTtlMs, 6000));
+    const now = finiteNumber(nowMs, safeWorld.nowMs ?? ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()));
+    const dtMs = Math.max(0, finiteNumber(dt, 0) * 1000);
+    for (const fragment of safeWorld.impactFragments) {
+      if (!fragment || fragment._dead) continue;
+      const ttlMs = Math.max(1, finiteNumber(fragment.ttlMs, fallbackTtlMs));
+      if (!Number.isFinite(Number(fragment.createdAt))) fragment.createdAt = now;
+      fragment.age = Math.max(0, finiteNumber(fragment.age, 0) + dtMs);
+      const elapsedMs = Math.max(fragment.age, now - finiteNumber(fragment.createdAt, now));
+      if (elapsedMs >= ttlMs) fragment._dead = true;
+    }
+    safeWorld.impactFragments = safeWorld.impactFragments.filter((fragment) => fragment && !fragment._dead);
+    return safeWorld.impactFragments;
   }
 
   function logImpactEvidence(world, result, source) {
@@ -182,6 +207,7 @@
     resolvePlanetImpact,
     resolveMoonImpact,
     spawnEjecta,
+    updateFragments,
     logImpactEvidence,
   });
 })();
