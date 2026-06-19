@@ -43,6 +43,15 @@
       harmonicDustAsteroidGrayEnabled: true,
       harmonicDustAsteroidGrayRate: 0.35,
       harmonicDustAsteroidMinOverlapRatio: 0.15,
+      harmonicDustElasticGrayEnabled: true,
+      harmonicDustGrayConversionThreshold: 1.0,
+      harmonicDustGrayRecoveryTimeMul: 2.0,
+      harmonicDustGrayMinRecoverableRatio: 0.0,
+      harmonicDustGrayLockAtThreshold: true,
+      harmonicDustGrayBaseRate: 0.25,
+      harmonicDustGrayDensityMul: 1.0,
+      harmonicDustGraySpeedMul: 1.0,
+      harmonicDustGrayOverlapMul: 1.0,
       harmonicDustMoonRingAbsorbEnabled: true,
       harmonicDustMoonRingAbsorbRate: 0.30,
       harmonicDustMoonRingMinOverlapRatio: 0.15,
@@ -220,7 +229,14 @@
       dustKind: "harmonic",
       collectible: true,
       isCosmicGrayDust: false,
+      originalColorName: colorName,
       colorName,
+      grayMixRatio: 0,
+      grayExposureMs: 0,
+      grayRecoveryMs: 0,
+      lastGrayExposureAt: null,
+      transformState: "harmonic",
+      futureCosmicCandidate: false,
       x, y, z,
       r: incomingR,
       mass: incomingMass,
@@ -256,7 +272,7 @@
 
   function addCollectedDust(World, dust) {
     ensureWorldState(World);
-    const rawSampleColor = String(dust.reservoirColorName || dust.colorName || '').trim().toUpperCase();
+    const rawSampleColor = String((dust.transformState === "gray_locked" || dust.colorName === "GRAY") ? "GRAY" : (dust.originalColorName || dust.reservoirColorName || dust.colorName || '')).trim().toUpperCase();
     const sampleColor = rawSampleColor === "GRAY" ? "GRAY" : canonicalColorName(rawSampleColor);
     if (!sampleColor) return;
     const samplePercent = clamp(positive(dust.reservoirPercentValue, percentForStep(World, dust.dustSequenceStep || 1)), 0, 100);
@@ -310,30 +326,99 @@
     return { ratio: clamp(overlapDepth / Math.max(1, Math.min(dustR, bodyR)), 0, 1), distance, contactRadius };
   }
 
+  function normalizeHarmonicDustTransformFields(dust) {
+    if (!dust || typeof dust !== "object") return dust;
+    const baseColor = canonicalColorName(dust.originalColorName) || canonicalColorName(dust.reservoirColorName) || canonicalColorName(dust.colorName);
+    if (!dust.originalColorName && baseColor) dust.originalColorName = baseColor;
+    dust.grayMixRatio = clamp(finite(dust.grayMixRatio, dust.colorName === "GRAY" ? 1 : 0), 0, 1);
+    dust.grayExposureMs = Math.max(0, finite(dust.grayExposureMs, 0));
+    dust.grayRecoveryMs = Math.max(0, finite(dust.grayRecoveryMs, 0));
+    if (!dust.transformState) dust.transformState = dust.grayMixRatio > 0 ? (dust.colorName === "GRAY" ? "gray_locked" : "recovering") : "harmonic";
+    dust.dustKind = "harmonic";
+    dust.type = "harmonic_dust";
+    dust.collectible = true;
+    return dust;
+  }
+
   function isColoredHarmonicDust(dust) {
-    return !!dust && !dust._dead && dust.type === "harmonic_dust" && dust.dustKind === "harmonic" && canonicalColorName(dust.colorName);
+    normalizeHarmonicDustTransformFields(dust);
+    return !!dust && !dust._dead && dust.type === "harmonic_dust" && dust.dustKind === "harmonic" && canonicalColorName(dust.originalColorName || dust.colorName);
+  }
+
+  function lockGrayDust(dust, nowMs) {
+    dust.grayMixRatio = 1;
+    dust.colorName = "GRAY";
+    dust.reservoirColorName = "GRAY";
+    dust.transformState = "gray_locked";
+    dust.futureCosmicCandidate = true;
+    dust.lastTransformedAt = nowMs;
+  }
+
+  function recoverElasticGrayDust(World, dust, dt, nowMs) {
+    const sm = World.spaceMechanics || {};
+    if (!dust || dust._dead || dust.transformState === "gray_locked") return;
+    const threshold = positive(sm.harmonicDustGrayConversionThreshold, 1.0);
+    if (dust.grayMixRatio >= threshold && sm.harmonicDustGrayLockAtThreshold !== false) return lockGrayDust(dust, nowMs || World.nowMs || Date.now());
+    if (!(dust.grayMixRatio > 0)) {
+      dust.grayMixRatio = 0;
+      dust.transformState = "harmonic";
+      dust.colorName = dust.originalColorName || dust.colorName;
+      dust.reservoirColorName = dust.originalColorName || dust.reservoirColorName || dust.colorName;
+      dust.futureCosmicCandidate = false;
+      return;
+    }
+    const exposureMs = Math.max(1, finite(dust.grayExposureMs, 0));
+    const recoveryTotalMs = Math.max(1, exposureMs * positive(sm.harmonicDustGrayRecoveryTimeMul, 2.0));
+    const dtMs = Math.max(0, finite(dt, 0) * 1000);
+    dust.grayRecoveryMs = Math.min(recoveryTotalMs, finite(dust.grayRecoveryMs, 0) + dtMs);
+    const decay = dtMs / recoveryTotalMs;
+    dust.grayMixRatio = clamp(finite(dust.grayMixRatio, 0) - decay, 0, 1);
+    dust.transformState = dust.grayMixRatio > positive(sm.harmonicDustGrayMinRecoverableRatio, 0) ? "recovering" : "harmonic";
+    if (dust.transformState === "harmonic") {
+      dust.grayMixRatio = 0;
+      dust.grayExposureMs = 0;
+      dust.grayRecoveryMs = 0;
+      dust.colorName = dust.originalColorName || dust.colorName;
+      dust.reservoirColorName = dust.originalColorName || dust.reservoirColorName || dust.colorName;
+      dust.futureCosmicCandidate = false;
+    }
   }
 
   function transformDustByAsteroids(World, dt, nowMs) {
     const sm = ensureWorldState(World)?.spaceMechanics || {};
     if (sm.harmonicDustBodyTransformEnabled === false || sm.harmonicDustAsteroidGrayEnabled === false) return;
-    const rate = positive(sm.harmonicDustAsteroidGrayRate, 0.35);
+    const threshold = positive(sm.harmonicDustGrayConversionThreshold, 1.0);
+    const baseRate = positive(sm.harmonicDustGrayBaseRate, positive(sm.harmonicDustAsteroidGrayRate, 0.25));
     const minOverlap = positive(sm.harmonicDustAsteroidMinOverlapRatio, 0.15);
+    const activeDust = new Set();
     for (const dust of World.harmonicDust) {
       if (!isColoredHarmonicDust(dust)) continue;
+      if (dust.transformState === "gray_locked" || dust.futureCosmicCandidate === true) continue;
       for (const asteroid of (Array.isArray(World.asteroids) ? World.asteroids : [])) {
         const overlap = getDustBodyOverlap(dust, asteroid);
         if (overlap.ratio < minOverlap) continue;
-        dust.grayMixRatio = clamp(finite(dust.grayMixRatio, 0) + Math.max(0, finite(dt, 0)) * rate * overlap.ratio, 0, 1);
-        dust.transformState = "gray_mixed_by_asteroid";
+        const densityFactor = Math.max(0.05, positive(dust.density, 0.42) * positive(sm.harmonicDustGrayDensityMul, 1.0));
+        const speed = Math.sqrt(finite(asteroid.vx, 0) * finite(asteroid.vx, 0) + finite(asteroid.vy, 0) * finite(asteroid.vy, 0));
+        const speedFactor = Math.max(0.25, (1 + speed * 0.1) * positive(sm.harmonicDustGraySpeedMul, 1.0));
+        const overlapFactor = Math.max(0, overlap.ratio * positive(sm.harmonicDustGrayOverlapMul, 1.0));
+        const grayDelta = Math.max(0, finite(dt, 0)) * baseRate * densityFactor * speedFactor * overlapFactor;
+        dust.grayMixRatio = clamp(finite(dust.grayMixRatio, 0) + grayDelta, 0, threshold);
+        dust.grayExposureMs = Math.max(0, finite(dust.grayExposureMs, 0)) + Math.max(0, finite(dt, 0) * 1000);
+        dust.grayRecoveryMs = 0;
+        dust.lastGrayExposureAt = nowMs || World.nowMs || Date.now();
+        dust.transformState = "gray_shifting";
         dust.dustKind = "harmonic";
         dust.type = "harmonic_dust";
         dust.collectible = true;
-        dust.lastTransformedAt = nowMs || World.nowMs || Date.now();
-        if (dust.grayMixRatio >= 1) { dust.colorName = "GRAY"; dust.reservoirColorName = "GRAY"; }
-        World.lastDustTransformEvent = { kind: "asteroid_gray", dustId: dust.id || null, asteroidId: asteroid.id || asteroid._id || null, colorName: dust.colorName, grayMixRatio: dust.grayMixRatio, atMs: dust.lastTransformedAt };
+        activeDust.add(dust);
+        if (dust.grayMixRatio >= threshold && sm.harmonicDustGrayLockAtThreshold !== false) lockGrayDust(dust, dust.lastGrayExposureAt);
+        World.lastGrayShiftEvent = World.lastDustTransformEvent = { kind: "asteroid_elastic_gray", dustId: dust.id || null, asteroidId: asteroid.id || asteroid._id || null, originalColorName: dust.originalColorName || null, colorName: dust.colorName, grayMixRatio: dust.grayMixRatio, grayExposureMs: dust.grayExposureMs, overlapRatio: overlap.ratio, speed, atMs: dust.lastGrayExposureAt };
         break;
       }
+    }
+    for (const dust of World.harmonicDust) {
+      normalizeHarmonicDustTransformFields(dust);
+      if (!activeDust.has(dust)) recoverElasticGrayDust(World, dust, dt, nowMs);
     }
   }
 
@@ -432,7 +517,7 @@
     for (const dust of World.harmonicDust) {
       if (!dust || dust._dead) continue;
       const grayMix = clamp(finite(dust.grayMixRatio, dust.colorName === "GRAY" ? 1 : 0), 0, 1);
-      const hue = hueFor(dust.colorName);
+      const hue = hueFor(dust.originalColorName || dust.colorName);
       const sat = dust.colorName === "GRAY" ? 8 : Math.max(8, 95 - grayMix * 82);
       const light = dust.colorName === "GRAY" ? 68 : Math.max(58, 72 - grayMix * 12);
       const visual = dust.visual || {};
