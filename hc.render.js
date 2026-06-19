@@ -450,7 +450,9 @@
       const nativeR = (typeof p.orbitNativeRadius === "number") ? p.orbitNativeRadius : orbitR;
       const isRocky = Boolean(p.isRocky || p.planetKind === "rocky");
       const orbitColor = isRocky ? "rgba(80, 200, 120, 0.7)" : "rgba(235, 90, 90, 0.7)";
-      drawOrbitRing(p.x, p.y, orbitR, nativeR, orbitColor);
+      const hasOrbitDescriptor = Array.isArray(p.orbiters) && p.orbiters.some((o) => o && (o.descriptorOnly || o.orbitR || o.bodyId || o.sourceBodyId));
+      const hasImpactDescriptor = !!(p.lastImpact && p.lastImpact.orbiterCandidate && p.lastImpact.orbiterCandidate.descriptorOnly);
+      if (hasOrbitDescriptor || hasImpactDescriptor) drawOrbitRing(p.x, p.y, orbitR, nativeR, orbitColor);
 
       drawPlanetRings(p, nowMs);
     ctx.beginPath();

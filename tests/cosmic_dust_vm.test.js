@@ -58,9 +58,16 @@ assert.equal(c.World.cosmicDust.length, 0, 'same-color meteor collision does not
 
 c = buildContext();
 let m = meteor('m', 'yellow', 10), a = asteroid('a', 30);
+c.World.asteroids = [a];
 c.HC.CosmicDust.applySplitPolicy(c.World, { kind: 'meteor_asteroid', meteor: m, asteroid: a });
 assert.equal(totalCosmic(c.World), 8, 'meteor+asteroid sends 80% meteor mass to cosmic dust');
 assert.equal(a.mass, 32, 'meteor+asteroid absorbs 20% meteor mass into asteroid');
+assert.ok(a.r > 8, 'meteor+asteroid recomputes asteroid radius immediately');
+assert.equal(a.collisionRadius, a.r, 'meteor+asteroid recomputes collision radius immediately');
+assert.equal(a.viewRadius, a.r, 'meteor+asteroid recomputes view radius immediately');
+const meteorAsteroidSnap = c.HC.WorldRenderSnapshot.build({ World: c.World });
+assert.equal(meteorAsteroidSnap.world.asteroids[0].radius, a.r, 'snapshot exposes recomputed asteroid radius');
+assert.equal(meteorAsteroidSnap.world.asteroids[0].visual.radius, a.viewRadius, 'snapshot exposes recomputed renderer view radius');
 assert.equal(m._dead, true, 'meteor+asteroid kills meteor');
 
 c = buildContext();
@@ -102,6 +109,9 @@ const pa = c.HC.CosmicDust.applySplitPolicy(c.World, { kind: 'planet_asteroid', 
 assert.equal(pa.cosmicDustMass, 7, 'planet+asteroid creates 35% cosmic dust');
 assert.equal(pa.fragmentMass, 7, 'planet+asteroid creates 35% fragments');
 assert.equal(pa.orbiterCandidate.mass, 6, 'planet+asteroid records 30% orbiterCandidate descriptor');
+assert.equal(pa.orbiterCandidate.sourcePath, 'orbital_asteroid_candidate', 'orbiter descriptor stores source path evidence');
+assert.equal(pa.orbiterCandidate.sourceFunction, 'HC.CosmicDust.applySplitPolicy', 'orbiter descriptor stores source function evidence');
+assert.equal(JSON.stringify(pa.orbiterCandidate.sourceBodyIds), JSON.stringify(['p', 'ast']), 'orbiter descriptor stores source body ids evidence');
 assert.equal(a._dead, true, 'planet+asteroid kills asteroid');
 assert.equal(p.orbiters.length, 0, 'planet+asteroid does not restore legacy capture/orbiters');
 
