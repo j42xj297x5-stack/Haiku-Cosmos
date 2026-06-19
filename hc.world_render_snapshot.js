@@ -152,6 +152,58 @@
     };
   }
 
+
+  function normalizeDustColorName(value) {
+    const upper = String(value || "").trim().toUpperCase();
+    return ["RED", "YELLOW", "GREEN", "BLUE"].includes(upper) ? upper : null;
+  }
+
+  function clamp01(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(1, n));
+  }
+
+  function mapHarmonicDust(dust, index) {
+    if (!dust || typeof dust !== "object" || dust._dead) return null;
+    const colorName = normalizeDustColorName(dust.colorName || dust.reservoirColorName) || String(dust.colorName || dust.reservoirColorName || "UNKNOWN").toUpperCase();
+    const collectRequiredMs = Math.max(1, toNumber(Number(dust.collectRequiredMs), 1));
+    const collectProgressMs = Math.max(0, toNumber(Number(dust.collectProgressMs), 0));
+    const collectRatio = clamp01(collectProgressMs / collectRequiredMs);
+    const mass = toNumber(Number(dust.mass), undefined);
+    const density = toNumber(Number(dust.density), undefined);
+    const radius = toNumber(Number(dust.r ?? dust.radius), Math.max(1, Math.sqrt(Math.max(1, Number(mass) || 1))));
+    const densityAlpha = Number.isFinite(Number(density)) ? Number(density) * 0.55 : 0.24;
+    const massAlpha = Number.isFinite(Number(mass)) ? Math.min(0.22, Math.sqrt(Math.max(0, Number(mass))) / 70) : 0.12;
+    const alpha = Math.max(0.18, Math.min(0.72, toNumber(Number(dust.visualAlpha), densityAlpha + massAlpha + 0.22)));
+    return {
+      id: dust.id || dust._id || `harmonic_dust:${index}`,
+      type: "harmonic_dust",
+      dustKind: "harmonic",
+      colorName,
+      x: toNumber(Number(dust.x), 0),
+      y: toNumber(Number(dust.y), 0),
+      z: toNumber(Number(dust.z), undefined),
+      r: radius,
+      mass,
+      density,
+      collectible: true,
+      collectProgressMs,
+      collectRequiredMs,
+      collectRatio,
+      reservoirPercentValue: toNumber(Number(dust.reservoirPercentValue), 10),
+      dustSequenceStep: toNumber(Number(dust.dustSequenceStep), 1),
+      isBeingCollected: dust.isBeingCollected === true,
+      visual: {
+        model: "dust_cloud",
+        alpha,
+        particleCountHint: Math.max(8, Math.min(36, Math.round(radius * 1.4))),
+        radius,
+        colorName,
+      },
+    };
+  }
+
   function mapCollection(items, kind) {
     const result = [];
     const src = pickArray(items);
@@ -213,7 +265,7 @@
         dustClouds: mapCollection(World.dustClouds, "dustCloud"),
         dustParticles: mapCollection(World.dustParticles, "dustParticle"),
         impactFragments: mapCollection(World.impactFragments, "impactFragment"),
-        harmonicDust: mapCollection(World.harmonicDust, "harmonic_dust"),
+        harmonicDust: pickArray(World.harmonicDust).map(mapHarmonicDust).filter(Boolean),
         harmonicDustSequence: World.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
         harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
         harmonicDustDeposits: Object.assign({}, World.harmonicDustDeposits || {}),
@@ -247,7 +299,10 @@
           harmonicDust: pickArray(World.harmonicDust).length,
           stars: pickArray(World.stars).length,
         },
+        harmonicDustManualCollectionEnabled: World.spaceMechanics?.harmonicDustManualCollectionEnabled !== false,
+        harmonicDustAutoTestCollectionEnabled: World.spaceMechanics?.harmonicDustAutoTestCollectionEnabled === true,
         harmonicDustCount: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead).length,
+        harmonicDustBeingCollectedCount: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead && dust.isBeingCollected === true).length,
         collectibleDustCount: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead && dust.collectible === true).length,
         harmonicDustMassByColor: pickArray(World.harmonicDust).reduce((acc, dust) => {
           if (!dust || dust._dead) return acc;
