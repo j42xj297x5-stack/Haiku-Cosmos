@@ -1,7 +1,7 @@
 > Status: ROBOCZY / SYSTEM ŚWIATA
 > Obszar: komety / przemiany świata / stany obiektów
 > Źródło prawdy: TAK ROBOCZO, dla projektowego kontraktu systemu komet; NIE dla finalnych wartości balansu; NIE dla gotowej implementacji runtime
-> Ostatnia aktualizacja: 2026-06-17
+> Ostatnia aktualizacja: 2026-06-19
 > Powiązane dokumenty: ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md, CARDS_SYSTEM.md, SUB_META_SYSTEM.md, PRG_SYSTEM.md, ROADMAP.md, ../technical/WORLD_FUNCTION_MAP.md, ../visual/ART_DIRECTION.md, ../visual/KOSMOLOGIA_WIZUALNA.md, ../visual/BIBLIOTEKA_MATERIALOW.md
 
 # Haiku Cosmos — COMETS SYSTEM
@@ -36,32 +36,28 @@ Każda kometa ma:
 - trajektorię,
 - zestaw efektów zależnych od obiektu, w który uderzy lub przez który przejdzie.
 
-Kometa powinna być traktowana jak kosmiczny event zmieniający stan świata, a nie jak kolejny wariant meteoru do rutynowego zbierania.
+Kometa powinna być traktowana jak kosmiczny event zmieniający stan świata, a nie jak kolejny wariant meteoru do rutynowego zbierania. Komety nie powinny być implementowane przed uporządkowaniem foundation pyłu, stanów obiektów i orbit.
 
 ## 3. Typy komet, kolory i sensy
 
 | Typ komety | Kolor / oś | Sens projektowy |
 | --- | --- | --- |
-| Kometa podstawowa | neutralna / fizyczna / bez dominującego żywiołu | neutralne uderzenie kosmiczne, masa, impakt, przemiana fizyczna |
 | Kometa lodowa | BLUE | chłód, cisza, skala, zamrożenie, kondensacja |
 | Kometa ognista | RED | żar, zapłon, spalanie, wysoka energia |
 | Kometa życia | GREEN | przepływ, wzrost, leczenie, oddech |
 | Kometa transformująca | YELLOW + ETER | alchemia, spoiwo, relacja, mutacja, przepisanie stanu |
 
-Kolory komet muszą pozostać spójne z czterema kolorami bazowymi i piątym stanem eterycznym opisanym w dokumentach visual. Kometa transformująca nie jest czystym chaosem; jest alchemicznym wydarzeniem relacji, przepisania i zmiany formy.
+Docelowy model ma tylko 4 typy komet: BLUE/lodową, RED/ognistą, GREEN/życia oraz YELLOW+ETER/transformującą. Kolory komet muszą pozostać spójne z czterema kolorami bazowymi i piątym stanem eterycznym opisanym w dokumentach visual. Kometa transformująca nie jest czystym chaosem; jest alchemicznym wydarzeniem relacji, przepisania i zmiany formy.
 
-## 4. Kometa podstawowa
+## 4. Kometa podstawowa / neutralna — deprecated
 
-Kometa podstawowa zachowuje obecną lub bazową rolę komety w świecie gry.
+Kometa podstawowa / neutralna jest **deprecated** jako target model, jest **legacy idea** i **not target runtime**.
 
-Robocze efekty:
-- może uczestniczyć w przemianie asteroidy w planetę skalistą,
-- może rozbijać meteor na cząstki,
-- działa jako neutralne uderzenie kosmiczne,
-- nie nakłada żywiołowego stanu,
-- nie zmienia koloru meteoru na kolor bazowy wynikający z żywiołu.
+Zasady:
 
-Jej rola to fizyczny impakt, masa i neutralna dynamika kosmiczna.
+- Nie zostaje jako piąty aktywny typ w docelowym modelu.
+- Dawna rola neutralnego fizycznego impaktu powinna być pokrywana przez zwykłe systemy impact/orbit, nie przez osobny aktywny typ komety.
+- Dokumenty i future runtime nie powinny przywracać Komety podstawowej jako target model bez nowej decyzji architektonicznej.
 
 ## 5. Kometa lodowa — BLUE
 
@@ -281,15 +277,17 @@ Te priorytety muszą być testowalne i widoczne w debug state przed pełnym bala
 
 ## 11. Pyły, chmury pyłu i HUD
 
-Zasady pyłów:
-- kometa lodowa tworzy niebieski pył,
-- kometa ognista tworzy czerwony pył,
-- kometa życia raczej wygasza i oczyszcza chmury, opcjonalnie zostawia zielony ślad,
-- kometa transformująca może tworzyć żółty, szary, mieszany albo losowy pył,
-- HUD nadal powinien zbierać tylko jeden kolor bazowy naraz,
-- mieszanie pyłów i szary lub alchemiczny pył powinny pozostać po stronie SUB-META / Kuźni albo stanów świata, a nie zwykłego zasobnika HUD.
+Zasady pyłów dla komet:
 
-To utrzymuje rozdział między szybkim odczytem RUN HUD a głębszym przetwarzaniem pyłów w SUB-META.
+- Jedyny zbieralny kolorowy pył to `harmonicDust` / chmura pyłu po harmonicznym zderzeniu meteorów tego samego koloru.
+- Docelowo `harmonicDust` jest zbierany ręcznie przez PRG do HUD reservoir; obecny auto/test collection nie jest target modelem.
+- Komety wobec kolorowego pyłu harmonicznego przede wszystkim kolorują/przepisują pył, zamiast reagować z nim tak jak z `cosmic dust`.
+- `GRAY/mixed reservoir` powstaje przez pomieszanie kolorów w HUD reservoir i nie jest `cosmic dust`.
+- `cosmic dust` jest osobnym, przyszłym, niezbieralnym systemem świata; reakcje komet z `cosmic dust` są osobnym przyszłym tematem.
+- Nie istnieje osobny drugi typ zbieralnych „ordinary colored dust clouds” obok `harmonicDust`.
+- Mieszanie pyłów w Kuźni/SUB-META i fizyczne stany świata wymagają osobnych tabel przed runtime.
+
+To utrzymuje rozdział między szybkim odczytem RUN HUD, ręcznym PRG collection oraz głębszym przetwarzaniem pyłów w SUB-META albo przyszłych stanach świata.
 
 ## 12. Powiązanie z kartami i SUB-META
 
@@ -346,8 +344,8 @@ Nazwy są robocze. Nie są jeszcze API runtime.
 
 1. Etap 1: dokument i model stanów.
 2. Etap 2: audyt obecnego `hc.comets.js`.
-3. Etap 3: typy komet bez pełnych efektów.
-4. Etap 4: interakcje meteorów i chmur pyłu.
+3. Etap 3: cztery typy komet bez pełnych efektów; Kometa podstawowa pozostaje deprecated / legacy idea / not target runtime.
+4. Etap 4: interakcje meteorów i `harmonicDust` po uporządkowaniu pyłu, stanów obiektów i orbit.
 5. Etap 5: asteroidy i księżyce.
 6. Etap 6: planety skaliste, woda, życie, planety gazowe i gwiazdy.
 7. Etap 7: karta sterowania kometą życia.

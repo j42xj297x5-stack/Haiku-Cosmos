@@ -199,6 +199,13 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `hc.ui_debug.js` buduje DOM HUD i przycisk SUB-META.
 - Aktywny manifest `assets/visual/submeta/submeta_svg_manifest.json` może być pusty; runtime musi zachować funkcjonalny fallback.
 
+
+### Dust / comet / orbit-axis sync — 2026-06-19
+
+- `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` opisuje jeden zbieralny kolorowy pył: `harmonicDust` / pył po harmonicznym zderzeniu meteorów tego samego koloru.
+- `COSMIC_IMPACT_ORBIT_SYSTEM.md` rozdziela `harmonicDust`, `GRAY/mixed reservoir` i future niezbieralny `cosmic dust`.
+- `COMETS_SYSTEM.md` zależy od future dust/orbit/state foundations i ma tylko 4 docelowe typy komet; Kometa podstawowa jest `deprecated`, `legacy idea`, `not target runtime`.
+
 ## 8. Ostrzeżenia
 
 - Dokumenty visual nie zmieniają mechaniki kart, sekwencji, kosztów RP ani PRG behavior.

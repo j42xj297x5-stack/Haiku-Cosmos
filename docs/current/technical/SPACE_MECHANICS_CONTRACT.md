@@ -175,6 +175,21 @@ Zasady Patch D1:
 
 Patch D1 zamyka pierwszy runtime follow-up po D0: kontrakt pól jest teraz obecny zarówno w dokumencie, jak i w czystym helperze VM-testable. Nie wolno używać tego helpera do przywrócenia `legacy_capture`, `planetCaptureMode` ani żywego `planet.orbiters`.
 
+## 11A. Pył, orbit axes i snapshot renderingu
+
+Zasady kontraktu dla pyłu i orbit:
+
+- Kolorowy pył zbieralny to jeden system: `harmonicDust` / chmura pyłu po harmonicznym zderzeniu meteorów tego samego koloru.
+- Ten pył jest docelowo zbierany ręcznie przez PRG; auto/test collection jest stanem tymczasowym, nie target runtime.
+- Renderer Canvas2D i Three.js mają konsumować ten sam snapshot/view-model pyłu.
+- Mechanika pyłu nie może wynikać z assetu, materiału, GLB, Canvas2D ani Three.js renderera.
+- `GRAY/mixed reservoir` jest stanem HUD reservoir po pomieszaniu kolorów i nie jest `cosmic dust`.
+- `cosmic dust` jest osobnym niezbieralnym systemem świata, future pass, bez zapisu do HUD reservoir.
+- Planety po utworzeniu są positionally stationary, ale mogą rotować.
+- Oś obrotu planety powinna być spójna z osią/płaszczyzną orbiterów.
+- Debug powinien w przyszłości dostać kontrolki zakresu kąta orbiterów względem osi planety, np. `orbitPlaneAngleRange`.
+- Front/back orbit i elipsy są future pass, nie obecny runtime.
+
 ## 12. Checklist dla kolejnych patchy runtime
 
 1. D1: DONE — `HC.SpaceBodies` ma side-effect-free helper klasyfikacji pól body jako `canonical`, `renderOnly`, `compatibility`, `deprecated`, `unknown` + test VM.
