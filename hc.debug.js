@@ -790,12 +790,15 @@
           impactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.length : 0,
           activeImpactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.filter((fragment) => fragment && !fragment._dead).length : 0,
           harmonicDustCount: Array.isArray(World?.harmonicDust) ? World.harmonicDust.length : 0,
+          planetImpactCount: Number(World?.planetImpactCount || 0),
         },
         rp: Math.max(0, Math.floor(Number(World?.score || 0))),
         harmonicDustSequence: World?.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
         harmonicDustReservoir: World?.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
         harmonicDustDeposits: Object.assign({}, World?.harmonicDustDeposits || {}),
         harmonicDustReservoirVisual: World?.harmonicDustReservoirVisual ? Object.assign({}, World.harmonicDustReservoirVisual) : (window.HC?.HarmonicDust?.getReservoirVisualState && World ? window.HC.HarmonicDust.getReservoirVisualState(World) : null),
+        planetImpactCount: Number(World?.planetImpactCount || 0),
+        lastPlanetImpact: World?.lastPlanetImpact ? Object.assign({}, World.lastPlanetImpact) : null,
         activeSequence: sequence ? {
           active: Boolean(sequence.active),
           stage: sequence.stage || null,
@@ -833,6 +836,7 @@
           impactFragmentsCount: Array.isArray(World.impactFragments) ? World.impactFragments.length : 0,
           activeImpactFragmentsCount: Array.isArray(World.impactFragments) ? World.impactFragments.filter((fragment) => fragment && !fragment._dead).length : 0,
           harmonicDustCount: Array.isArray(World.harmonicDust) ? World.harmonicDust.length : 0,
+          planetImpactCount: Number(World.planetImpactCount || 0),
         },
         sequence: sequence ? {
           active: Boolean(sequence.active),
@@ -861,6 +865,8 @@
         harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
         harmonicDustDeposits: Object.assign({}, World.harmonicDustDeposits || {}),
         harmonicDustReservoirVisual: World.harmonicDustReservoirVisual ? Object.assign({}, World.harmonicDustReservoirVisual) : (window.HC?.HarmonicDust?.getReservoirVisualState ? window.HC.HarmonicDust.getReservoirVisualState(World) : null),
+        planetImpactCount: Number(World.planetImpactCount || 0),
+        lastPlanetImpact: World.lastPlanetImpact ? Object.assign({}, World.lastPlanetImpact) : null,
         harmonicDust: Array.isArray(World.harmonicDust) ? World.harmonicDust.filter((dust) => dust && !dust._dead).map((dust) => ({
           id: dust.id || null,
           colorName: dust.colorName || null,

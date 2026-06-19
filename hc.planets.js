@@ -540,6 +540,68 @@
       });
     }
 
+
+    function compactPlanetImpact(impact, fragments, source) {
+      const masses = impact?.masses || {};
+      return {
+        kind: impact?.kind || "planetImpact",
+        mode: "direct",
+        source: source || null,
+        createsDust: impact?.createsDust === true,
+        createsOrbiter: impact?.createsOrbiter === true,
+        absorbedMass: Number(masses.absorbed) || 0,
+        splitMass: {
+          absorbed: Number(masses.absorbed) || 0,
+          explosion: Number(masses.explosion) || 0,
+          ejecta: Number(masses.ejecta) || 0,
+          orbiter: Number(masses.orbiter) || 0,
+        },
+        orbiterMass: Number(masses.orbiter) || 0,
+        createdFragments: Array.isArray(fragments) ? fragments.length : 0,
+        reason: "direct_contact",
+      };
+    }
+
+    function applyPlanetImpactToPlanet(p, body, impact, nowMs, source) {
+      const absorbedMass = Number(impact?.masses?.absorbed) || 0;
+      if (absorbedMass > 0) p.mass = (Number(p.mass) || massFromR(Number(p.r) || 1)) + absorbedMass;
+      const fragments = window.HC?.Impact?.spawnEjecta
+        ? window.HC.Impact.spawnEjecta(World, impact, p, { nowMs })
+        : [];
+      p.lastImpact = compactPlanetImpact(impact, fragments, source);
+      World.planetImpactCount = (World.planetImpactCount || 0) + 1;
+      World.lastPlanetImpact = p.lastImpact;
+      if (window.HC?.Impact?.logImpactEvidence) window.HC.Impact.logImpactEvidence(World, impact, "Planets.directPlanetImpact");
+      const baseGravity = computeGravityFromPlanetRadius(p.r);
+      p.gravityR = Math.max((p.gravityR || 0), baseGravity, p.orbitCurrentRadius || p.orbitPx || 0);
+      body._dead = true;
+      body.absorbed = true;
+      body.absorbedBy = "planet";
+      body.absorbedById = p.id || p._id || null;
+      return p.lastImpact;
+    }
+
+    function resolveDirectPlanetImpact(p, body, nowMs, source) {
+      if (!p || !body || body._dead) return false;
+      if (!window.HC?.Impact?.resolvePlanetImpact) return false;
+      const isImpact = window.HC?.SpaceBodies?.isDirectImpact || ((a, b) => {
+        const dx = (Number(b.x) || 0) - (Number(a.x) || 0);
+        const dy = (Number(b.y) || 0) - (Number(a.y) || 0);
+        const r = (Number(a.r) || 1) + (Number(b.r) || 1);
+        return dx * dx + dy * dy <= r * r;
+      });
+      if (!isImpact(p, body)) return false;
+      const impact = window.HC.Impact.resolvePlanetImpact({
+        planet: p,
+        incoming: body,
+        mechanics: World.spaceMechanics,
+        existingOrbiters: Array.isArray(p.orbiters) ? p.orbiters.length : 0,
+      });
+      applyPlanetImpactToPlanet(p, body, impact, nowMs, source);
+      p.captureCooldown = Math.max(p.captureCooldown || 0, source === "asteroid" ? 0.06 : 0.04);
+      return true;
+    }
+
     function bounceMeteorFromBody(meteor, body, radius) {
       const dx = meteor.x - body.x;
       const dy = meteor.y - body.y;
@@ -592,6 +654,11 @@
           const d2 = dx * dx + dy * dy;
           const meteorCollisionR = getMeteorCollisionRadius(m);
           const collideR = p.r + meteorCollisionR;
+
+          if (d2 <= collideR * collideR && resolveDirectPlanetImpact(p, m, nowMs, "meteor")) {
+            meteors.splice(mi, 1);
+            break;
+          }
 
           if (p.isRocky) {
             const currentCount = countSystemOrbitersForRocky(p);
@@ -673,6 +740,11 @@
           const dy = a.y - p.y;
           const d2 = dx*dx + dy*dy;
           const collideR = p.r + a.r;
+
+          if (d2 <= collideR * collideR && resolveDirectPlanetImpact(p, a, nowMs, "asteroid")) {
+            World.asteroids.splice(ai, 1);
+            break;
+          }
 
           const capR = (p.orbitPx || (p.r * 2.6)) + a.r;
           if (d2 <= capR * capR) {

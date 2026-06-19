@@ -237,7 +237,7 @@
 **STATE / helpers:**
 - `HC.SpaceBodies` dostarcza wspólny kontrakt masy, promienia, rodzaju ciała, direct impact i future `orbitState`.
 - `HC.Impact` jest foundation helperem: `splitMass`, `resolvePlanetImpact`, `resolveMoonImpact`, `spawnEjecta`, `updateFragments`.
-- `resolvePlanetImpact` istnieje, ale **nie jest jeszcze podpięty** do live `captureMeteorsByPlanets` ani `captureAsteroidsByPlanets`. Planet impact pozostaje przyszłym Patchem B.
+- Patch B1: `resolvePlanetImpact` jest podpięty jako live resolver wyłącznie dla bezpośredniego kontaktu w `captureMeteorsByPlanets` i `captureAsteroidsByPlanets`; legacy capture przez `orbitPx` / `gravityR` / `capR` pozostaje aktywny dla obiektów niedotykających fizycznie planety.
 - `resolveMoonImpact` jest częściowo live dla direct moon absorption w `hc.asteroids.js`; moon dostaje tylko masę wchłoniętą z impact split, a `moonImpactDust` pozostaje deskryptorem/evidence, nie fizycznym `harmonicDust`.
 - `World.impactFragments[]` przechowuje lekkie descriptor fragments z TTL; `HC.Impact.updateFragments(World, nowMs, dt)` usuwa wygasłe wpisy.
 - `hc.harmonic_dust.js` obsługuje same-color meteor collision dust, PRG collection, reservoir `10/20/50`, mixed `GRAY` i `World.harmonicDustDeposits`.
@@ -291,7 +291,7 @@
   - odbicie meteorów wg `fxIntentBouncePlanetPct` gdy aktywne sloty,
   - legacy capture z dystansu przez `orbitPx` / `gravityR` / `capR` pozostaje aktywny.
 - `transformGasPlanetIntoStar` (przejście do gwiazdy).
-- `resolvePlanetImpact` z `HC.Impact` nie jest jeszcze używany w tym module; nie przepięto planet capture na impact-only.
+- `resolvePlanetImpact` z `HC.Impact` jest używany tylko przed legacy capture, gdy obiekt dotyka fizycznego promienia planety; po takim direct impact obiekt jest zużywany i usuwany, więc nie może stać się legacy orbiterem w tym samym przebiegu.
 - `Events.on("PLANET_CREATED")` → otwarcie SUB-META (`World.subMetaOpen`, `World.paused`).
 
 ---
