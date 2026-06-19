@@ -141,10 +141,8 @@ console.log("[HC] game.boot.js loaded");
     harmonicDustSequence: { colorName: null, step: 0, lastCollisionAt: 0 },
     harmonicDustReservoir: { activeColorName: null, isMixedGray: false, fillPercent: 0, pureFillPercent: 0, grayFillPercent: 0, lastCollectedColorName: null, samplesCollected: 0 },
 
-    // Space mechanics runtime contract. planetCaptureMode defaults to impact_only:
-    // direct HC.Impact contact is live; legacy orbitPx/gravityR/capR capture is deprecated.
+    // Space mechanics runtime contract: direct HC.Impact contact is the live planet impact path.
     spaceMechanics: {
-      planetCaptureMode: "impact_only",
       asteroidToMoonMassThreshold: 13,
       asteroidToMoonEnabled: true,
       moonToRockyPlanetMassThreshold: 34,
@@ -617,7 +615,6 @@ meteorBaseScale: METEOR_BASE_SCALE,
     World.planets = [];
     World.moons = [];
     World.spaceMechanics = Object.assign({}, World.spaceMechanics, {
-      planetCaptureMode: ["impact_only", "legacy_capture", "hybrid_debug"].includes(World.spaceMechanics?.planetCaptureMode) ? World.spaceMechanics.planetCaptureMode : "impact_only",
       asteroidToMoonMassThreshold: Number(World.spaceMechanics?.asteroidToMoonMassThreshold) || 13,
       asteroidToMoonEnabled: World.spaceMechanics?.asteroidToMoonEnabled !== false,
       moonToRockyPlanetMassThreshold: Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold) || 34,

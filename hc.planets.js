@@ -623,18 +623,6 @@
     }
 
 
-    function getPlanetCaptureMode() {
-      World.spaceMechanics = World.spaceMechanics || {};
-      const mode = World.spaceMechanics.planetCaptureMode;
-      if (mode === "legacy_capture" || mode === "hybrid_debug" || mode === "impact_only") return mode;
-      World.spaceMechanics.planetCaptureMode = "impact_only";
-      return "impact_only";
-    }
-
-    function isLegacyPlanetCaptureEnabled() {
-      return getPlanetCaptureMode() === "legacy_capture";
-    }
-
     function captureMeteorsByPlanets(dt, nowMs) {
       if (!World.planets.length || !World.meteors.length) return;
 
@@ -643,8 +631,6 @@
       }
 
       const meteors = World.meteors;
-      const legacyCaptureEnabled = isLegacyPlanetCaptureEnabled();
-
       for (let mi = meteors.length - 1; mi >= 0; mi--) {
         const m = meteors[mi];
         if (m.age < 0.15) continue;
@@ -674,71 +660,6 @@
             break;
           }
 
-          // LEGACY_PLANET_CAPTURE_START
-          // Deprecated planet capture/orbiter path. This capR/orbitPx/orbiters flow is not
-          // the target HC.Impact mechanic, is disconnected from the default live runtime,
-          // and must not receive new features. Keep it only as explicit legacy_capture
-          // debug fallback until it is removed or moved to a legacy fixture/module.
-          if (!legacyCaptureEnabled) continue;
-
-          if (p.isRocky) {
-            const currentCount = countSystemOrbitersForRocky(p);
-            if (p.rockyLocked || currentCount >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
-              p.rockyLocked = true;
-              if (d2 <= collideR * collideR) {
-                meteors.splice(mi, 1);
-                absorbBodiesIntoRocky(p, [m]);
-                p.captureCooldown = 0.04;
-                break;
-              }
-              continue;
-            }
-            if (currentCount + 1 > World.ROCKY_MAX_SYSTEM_ORBITERS) {
-              p.rockyLocked = true;
-              if (d2 <= collideR * collideR) {
-                meteors.splice(mi, 1);
-                absorbBodiesIntoRocky(p, [m]);
-                p.captureCooldown = 0.04;
-                break;
-              }
-              continue;
-            }
-          }
-
-          const capR = (p.orbitPx || (p.r * 2.4)) + meteorCollisionR;
-          if (d2 <= capR * capR) {
-            const runTimers = window.HC && window.HC.RunTimers;
-            const worldActive = runTimers && typeof runTimers.isWorldSlotsActive === "function"
-              && runTimers.isWorldSlotsActive(World, nowMs);
-            const bouncePct = Number(World.fxIntentBouncePlanetPct || 0);
-            if (worldActive && Number.isFinite(bouncePct) && bouncePct > 0 && Math.random() < bouncePct) {
-              bounceMeteorFromBody(m, p, capR);
-              continue;
-            }
-            meteors.splice(mi, 1);
-
-            const rEff = (typeof m.orbitContributionR === "number") ? m.orbitContributionR : (getMeteorCollisionRadius(m) * 0.5);
-            p.captureCount = (p.captureCount || 0) + 1;
-            p.captureSumR = (p.captureSumR || 0) + rEff;
-            p.captureSumMass = (p.captureSumMass || 0) + massFromR(getMeteorCollisionRadius(m));
-            if (!p.captureColorCounts) p.captureColorCounts = Object.create(null);
-            p.captureColorCounts[m.colorName] = (p.captureColorCounts[m.colorName] || 0) + 1;
-
-            const baseOrbit = Math.max(p.orbitPx || (p.r * 2.4), p.r * 2.4);
-            const nextOrbit = clamp(baseOrbit + rEff * 0.9, baseOrbit, meteorBaseRadius() * 420);
-            setPlanetOrbitRadius(p, nextOrbit);
-            const baseGravity = computeGravityFromPlanetRadius(p.r);
-            p.gravityR = Math.max((p.gravityR || 0), baseGravity, nextOrbit);
-
-            addOrbiterToPlanet(p, m);
-
-            if (p.isRocky && countSystemOrbitersForRocky(p) >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
-              p.rockyLocked = true;
-            }
-            p.captureCooldown = 0.035;
-            break;
-          }
-          // LEGACY_PLANET_CAPTURE_END
         }
       }
     }
@@ -747,8 +668,6 @@
       if (!World.planets.length || !World.asteroids.length) return;
 
       const asteroids = World.asteroids;
-      const legacyCaptureEnabled = isLegacyPlanetCaptureEnabled();
-
       for (let ai = asteroids.length - 1; ai >= 0; ai--) {
         const a = asteroids[ai];
         // don't immediately re-capture just-spawned bodies
@@ -769,78 +688,6 @@
             break;
           }
 
-          // LEGACY_PLANET_CAPTURE_START
-          // Deprecated planet capture/orbiter path. This capR/orbitPx/orbiters flow is not
-          // the target HC.Impact mechanic, is disconnected from the default live runtime,
-          // and must not receive new features. Keep it only as explicit legacy_capture
-          // debug fallback until it is removed or moved to a legacy fixture/module.
-          if (!legacyCaptureEnabled) continue;
-
-          const capR = (p.orbitPx || (p.r * 2.6)) + a.r;
-          if (d2 <= capR * capR) {
-            if (p.isRocky) {
-              const currentCount = countSystemOrbitersForRocky(p);
-              const incomingCount = countOrbitersInBodySystem(a);
-              if (p.rockyLocked || currentCount >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
-                p.rockyLocked = true;
-                if (d2 <= collideR * collideR) {
-                  const absorbed = getDirectOrbitersOfBody(a);
-                  absorbBodiesIntoRocky(p, absorbed);
-                  removeOrbitersConsumed(absorbed);
-                  absorbBodiesIntoRocky(p, [a]);
-                  World.asteroids.splice(ai, 1);
-                  p.captureCooldown = 0.06;
-                  break;
-                }
-                continue;
-              }
-              if (currentCount + 1 > World.ROCKY_MAX_SYSTEM_ORBITERS) {
-                p.rockyLocked = true;
-                if (d2 <= collideR * collideR) {
-                  const absorbed = getDirectOrbitersOfBody(a);
-                  absorbBodiesIntoRocky(p, absorbed);
-                  removeOrbitersConsumed(absorbed);
-                  absorbBodiesIntoRocky(p, [a]);
-                  World.asteroids.splice(ai, 1);
-                  p.captureCooldown = 0.06;
-                  break;
-                }
-                continue;
-              }
-              if (currentCount + incomingCount > World.ROCKY_MAX_SYSTEM_ORBITERS) {
-                const absorbed = getDirectOrbitersOfBody(a);
-                absorbBodiesIntoRocky(p, absorbed);
-                removeOrbitersConsumed(absorbed);
-                a.orbiters = [];
-                p.rockyLocked = true;
-              }
-            }
-            const Rm = meteorBaseRadius();
-            const baseOrbit = Math.max(p.orbitPx || (p.r * 2.4), p.r * 2.4);
-            const orbitR = baseOrbit + a.r;
-            const theta = Math.atan2(dy, dx);
-            const baseOmega = rand(0.35, 0.95);
-            const direction = Math.random() < 0.5 ? -1 : 1;
-            const omega = direction * computeOmega(baseOmega, orbitR, Rm);
-
-            a.parentKind = "planet";
-            a.parentRef = p;
-            a.orbitR = orbitR;
-            a.theta = theta;
-            a.omega = omega;
-
-            const nextOrbit = clamp(baseOrbit + a.r, baseOrbit, meteorBaseRadius() * 420);
-            setPlanetOrbitRadius(p, nextOrbit);
-            const baseGravity = computeGravityFromPlanetRadius(p.r);
-            p.gravityR = Math.max((p.gravityR || 0), baseGravity, nextOrbit);
-
-            if (p.isRocky && countSystemOrbitersForRocky(p) >= World.ROCKY_MAX_SYSTEM_ORBITERS) {
-              p.rockyLocked = true;
-            }
-            p.captureCooldown = 0.06;
-            break;
-          }
-          // LEGACY_PLANET_CAPTURE_END
         }
       }
     }
