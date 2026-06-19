@@ -62,10 +62,51 @@
     return { version: Number(source.version) || 1, profile: String(source.profile || DEFAULT_RULES.profile || "baseline_safe_v1"), rules, validCount: rules.length - invalidCount, invalidCount };
   }
   function diagnosticsFor(World) { if (!World) return null; World.collisionRulesDiagnostics = World.collisionRulesDiagnostics || {}; return World.collisionRulesDiagnostics; }
+  function setDraftRuleset(ruleset) {
+    root.HC.CollisionRules = root.HC.CollisionRules || {};
+    const source = ruleset && typeof ruleset === "object" ? ruleset : DEFAULT_RULES;
+    const defaults = new Map(DEFAULT_RULES.rules.map((r) => [r.id, r]));
+    const incoming = new Map(Array.isArray(source.rules) ? source.rules.map((r) => [r && r.id, r]) : []);
+    const rules = [];
+    let invalidCount = 0;
+    for (const id of defaults.keys()) {
+      const validated = validateRule(Object.assign({}, defaults.get(id), incoming.get(id) || {}));
+      if (!validated.valid) invalidCount += 1;
+      rules.push(validated);
+    }
+    root.HC.CollisionRules._draft = clone({
+      version: Number(source.version) || 1,
+      profile: String(source.profile || DEFAULT_RULES.profile || "baseline_safe_v1"),
+      rules,
+      validCount: rules.length - invalidCount,
+      invalidCount,
+    });
+    return root.HC.CollisionRules._draft;
+  }
+  function getDraftRuleset(World) {
+    return clone(root.HC.CollisionRules?._draft || (World || root.World)?.collisionRules || root.HC.CollisionRules?._active || normalizeRules(DEFAULT_RULES));
+  }
+  function resetDraftToDefaults() { return setDraftRuleset(DEFAULT_RULES); }
+  function setDraftRuleValue(ruleId, key, value) {
+    const draft = root.HC.CollisionRules?._draft || setDraftRuleset((root.World && root.World.collisionRules) || DEFAULT_RULES);
+    const rule = (draft.rules || []).find((r) => r.id === ruleId);
+    if (!rule) return null;
+    if (key === "enabled") rule.enabled = value === true || value === "true" || value === "1";
+    else if (key === "sourceMassPolicy") rule.sourceMassPolicy = String(value || rule.sourceMassPolicy || "incoming_body");
+    else if (PCTS.includes(key)) rule[key] = clamp01(value);
+    setDraftRuleset(draft);
+    return (root.HC.CollisionRules._draft.rules || []).find((r) => r.id === ruleId) || null;
+  }
   function applyRulesToWorldMechanics(World, ruleset) {
     if (!World) return null; World.spaceMechanics = World.spaceMechanics || {};
     const normalized = normalizeRules(ruleset || DEFAULT_RULES, World.collisionRules);
+    if (normalized.invalidCount > 0) {
+      const d = diagnosticsFor(World);
+      if (d) Object.assign(d, { collisionRulesStatus: "invalid_rejected", activeCollisionRulesProfile: normalized.profile, collisionRulesProfile: normalized.profile, collisionRulesVersion: normalized.version, collisionRulesValidCount: normalized.validCount, collisionRulesInvalidCount: normalized.invalidCount, collisionRulesLastAppliedAt: Date.now(), collisionRulesLastError: "one or more rules invalid; changes not applied" });
+      return normalized;
+    }
     World.collisionRules = normalized;
+    root.HC.CollisionRules._draft = clone({ version: normalized.version, profile: normalized.profile, rules: normalized.rules });
     for (const rule of normalized.rules) if (rule.enabled && rule.valid !== false) {
       const keys = MECHANIC_KEYS[rule.id] || [];
       [rule.dustPct, rule.absorbPct, rule.fragmentsPct, rule.orbiterPct].forEach((value, i) => { if (keys[i]) World.spaceMechanics[keys[i]] = value; });
@@ -74,8 +115,8 @@
     return normalized;
   }
   function getRule(id, World) { const rules = ((World || root.World)?.collisionRules?.rules || root.HC.CollisionRules?._active?.rules || []); return rules.find((r) => r.id === id && r.enabled && r.valid !== false) || validateRule((DEFAULT_RULES.rules.find((r) => r.id === id) || {})); }
-  function exportRules(World) { return JSON.stringify((World?.collisionRules || root.World?.collisionRules || normalizeRules(DEFAULT_RULES)), null, 2); }
-  function importRules(World, rawJson) { const parsed = typeof rawJson === "string" ? JSON.parse(rawJson) : rawJson; return applyRulesToWorldMechanics(World || root.World, parsed); }
+  function exportRules(World, ruleset) { return JSON.stringify((ruleset || root.HC.CollisionRules?._draft || World?.collisionRules || root.World?.collisionRules || normalizeRules(DEFAULT_RULES)), null, 2); }
+  function importRules(World, rawJson) { const parsed = typeof rawJson === "string" ? JSON.parse(rawJson) : rawJson; return setDraftRuleset(parsed); }
   async function loadDefaultRules(World) {
     const target = World || root.World; let raw = null; let source = "fallback_defaults"; let err = null;
     try {
@@ -88,5 +129,5 @@
     return normalized;
   }
   function activeCollisionRulesSummary(World) { return ((World || root.World)?.collisionRules?.rules || []).map((r) => ({ id: r.id, enabled: r.enabled, sourceMassPolicy: r.sourceMassPolicy, dustPct: r.dustPct, absorbPct: r.absorbPct, fragmentsPct: r.fragmentsPct, orbiterPct: r.orbiterPct, sumPct: r.sumPct, valid: r.valid !== false })); }
-  root.HC.CollisionRules = { SETTINGS_PATH, DEFAULT_RULES, MECHANIC_KEYS, loadDefaultRules, normalizeRules, validateRule, getRule, applyRulesToWorldMechanics, exportRules, importRules, activeCollisionRulesSummary, _active: normalizeRules(DEFAULT_RULES) };
+  root.HC.CollisionRules = { SETTINGS_PATH, DEFAULT_RULES, MECHANIC_KEYS, loadDefaultRules, normalizeRules, validateRule, getRule, applyRulesToWorldMechanics, exportRules, importRules, setDraftRuleset, getDraftRuleset, resetDraftToDefaults, setDraftRuleValue, activeCollisionRulesSummary, _active: normalizeRules(DEFAULT_RULES), _draft: normalizeRules(DEFAULT_RULES) };
 })(window);
