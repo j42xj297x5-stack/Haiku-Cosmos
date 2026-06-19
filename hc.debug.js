@@ -822,6 +822,7 @@
           impactFragment: Array.isArray(World?.impactFragments) ? World.impactFragments.filter((body) => body && !body._dead).length : 0,
         },
         lastMassSplitEvent: World?.lastMassSplitEvent ? Object.assign({}, World.lastMassSplitEvent) : null,
+        lastLiveCollisionProbe: World?.lastLiveCollisionProbe ? Object.assign({}, World.lastLiveCollisionProbe) : null,
         collisionRulesStatus: World?.collisionRulesDiagnostics?.collisionRulesStatus || null,
         collisionRulesSource: World?.collisionRulesDiagnostics?.collisionRulesSource || null,
         collisionRulesVersion: World?.collisionRulesDiagnostics?.collisionRulesVersion ?? World?.collisionRules?.version ?? null,
