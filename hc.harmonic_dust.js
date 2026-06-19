@@ -39,6 +39,14 @@
       harmonicDustMaxCollectMs: 8000,
       harmonicDustManualCollectionEnabled: true,
       harmonicDustAutoTestCollectionEnabled: false,
+      harmonicDustBodyTransformEnabled: true,
+      harmonicDustAsteroidGrayEnabled: true,
+      harmonicDustAsteroidGrayRate: 0.35,
+      harmonicDustAsteroidMinOverlapRatio: 0.15,
+      harmonicDustMoonRingAbsorbEnabled: true,
+      harmonicDustMoonRingAbsorbRate: 0.30,
+      harmonicDustMoonRingMinOverlapRatio: 0.15,
+      harmonicDustMoonRingMaxCount: 4,
     }, World.spaceMechanics || {});
     if (!World.harmonicDustCollected || typeof World.harmonicDustCollected !== "object") {
       World.harmonicDustCollected = { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0 };
@@ -248,14 +256,21 @@
 
   function addCollectedDust(World, dust) {
     ensureWorldState(World);
-    const sampleColor = canonicalColorName(dust.reservoirColorName || dust.colorName);
+    const rawSampleColor = String(dust.reservoirColorName || dust.colorName || '').trim().toUpperCase();
+    const sampleColor = rawSampleColor === "GRAY" ? "GRAY" : canonicalColorName(rawSampleColor);
     if (!sampleColor) return;
     const samplePercent = clamp(positive(dust.reservoirPercentValue, percentForStep(World, dust.dustSequenceStep || 1)), 0, 100);
     const reservoir = World.harmonicDustReservoir;
     let addedPercent = samplePercent;
     let mixedTransition = false;
     const previousColorName = reservoir.activeColorName;
-    if (!reservoir.activeColorName && !reservoir.isMixedGray) {
+    if (sampleColor === "GRAY") {
+      addedPercent = positive(World.spaceMechanics.harmonicDustMixedIncomingPercent, 10);
+      reservoir.isMixedGray = true;
+      reservoir.activeColorName = "GRAY";
+      reservoir.grayFillPercent = clamp(finite(reservoir.grayFillPercent, 0) + addedPercent, 0, 100);
+      mixedTransition = previousColorName !== "GRAY";
+    } else if (!reservoir.activeColorName && !reservoir.isMixedGray) {
       reservoir.activeColorName = sampleColor;
       reservoir.pureFillPercent = clamp(finite(reservoir.pureFillPercent, 0) + samplePercent, 0, 100);
     } else if (!reservoir.isMixedGray && reservoir.activeColorName === sampleColor) {
@@ -282,12 +297,104 @@
     depositFullReservoir(World, "auto_full");
   }
 
+  function getDustBodyOverlap(dust, body) {
+    if (!dust || !body || dust._dead || body._dead) return { ratio: 0, distance: Infinity, contactRadius: 0 };
+    const dx = finite(body.x, 0) - finite(dust.x, 0);
+    const dy = finite(body.y, 0) - finite(dust.y, 0);
+    const dustR = positive(dust.r ?? dust.radius, 1);
+    const bodyR = positive(body.collisionRadius ?? body.r ?? body.radius, 1);
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const contactRadius = dustR + bodyR;
+    if (distance >= contactRadius) return { ratio: 0, distance, contactRadius };
+    const overlapDepth = Math.max(0, contactRadius - distance);
+    return { ratio: clamp(overlapDepth / Math.max(1, Math.min(dustR, bodyR)), 0, 1), distance, contactRadius };
+  }
+
+  function isColoredHarmonicDust(dust) {
+    return !!dust && !dust._dead && dust.type === "harmonic_dust" && dust.dustKind === "harmonic" && canonicalColorName(dust.colorName);
+  }
+
+  function transformDustByAsteroids(World, dt, nowMs) {
+    const sm = ensureWorldState(World)?.spaceMechanics || {};
+    if (sm.harmonicDustBodyTransformEnabled === false || sm.harmonicDustAsteroidGrayEnabled === false) return;
+    const rate = positive(sm.harmonicDustAsteroidGrayRate, 0.35);
+    const minOverlap = positive(sm.harmonicDustAsteroidMinOverlapRatio, 0.15);
+    for (const dust of World.harmonicDust) {
+      if (!isColoredHarmonicDust(dust)) continue;
+      for (const asteroid of (Array.isArray(World.asteroids) ? World.asteroids : [])) {
+        const overlap = getDustBodyOverlap(dust, asteroid);
+        if (overlap.ratio < minOverlap) continue;
+        dust.grayMixRatio = clamp(finite(dust.grayMixRatio, 0) + Math.max(0, finite(dt, 0)) * rate * overlap.ratio, 0, 1);
+        dust.transformState = "gray_mixed_by_asteroid";
+        dust.dustKind = "harmonic";
+        dust.type = "harmonic_dust";
+        dust.collectible = true;
+        dust.lastTransformedAt = nowMs || World.nowMs || Date.now();
+        if (dust.grayMixRatio >= 1) { dust.colorName = "GRAY"; dust.reservoirColorName = "GRAY"; }
+        World.lastDustTransformEvent = { kind: "asteroid_gray", dustId: dust.id || null, asteroidId: asteroid.id || asteroid._id || null, colorName: dust.colorName, grayMixRatio: dust.grayMixRatio, atMs: dust.lastTransformedAt };
+        break;
+      }
+    }
+  }
+
+  function upsertMoonDustRing(World, moon, colorName, mass, density, nowMs) {
+    if (!Array.isArray(moon.dustRings)) moon.dustRings = [];
+    let ring = moon.dustRings.find((r) => r && r.colorName === colorName && r.source === "harmonic_dust_absorption");
+    if (!ring) {
+      const maxCount = Math.max(1, Math.floor(positive(World.spaceMechanics.harmonicDustMoonRingMaxCount, 4)));
+      if (moon.dustRings.length >= maxCount) moon.dustRings.shift();
+      ring = { id: `moon_dust_ring_${moon.id || moon._id || 'moon'}_${colorName}_${moon.dustRings.length + 1}`, colorName, mass: 0, density: 0, radius: positive(moon.r ?? moon.radius, 1) * 1.25, source: "harmonic_dust_absorption", createdAt: nowMs || World.nowMs || Date.now(), updatedAt: nowMs || World.nowMs || Date.now() };
+      moon.dustRings.push(ring);
+    }
+    ring.mass = positive(ring.mass, 0) + Math.max(0, finite(mass, 0));
+    ring.density = positive(ring.density, 0) + Math.max(0, finite(density, 0));
+    ring.radius = Math.max(positive(ring.radius, 0), positive(moon.r ?? moon.radius, 1) * 1.25);
+    ring.updatedAt = nowMs || World.nowMs || Date.now();
+    return ring;
+  }
+
+  function absorbDustByMoons(World, dt, nowMs) {
+    const sm = ensureWorldState(World)?.spaceMechanics || {};
+    if (sm.harmonicDustBodyTransformEnabled === false || sm.harmonicDustMoonRingAbsorbEnabled === false) return;
+    const rate = positive(sm.harmonicDustMoonRingAbsorbRate, 0.30);
+    const minOverlap = positive(sm.harmonicDustMoonRingMinOverlapRatio, 0.15);
+    for (const dust of World.harmonicDust) {
+      if (!isColoredHarmonicDust(dust)) continue;
+      for (const moon of (Array.isArray(World.moons) ? World.moons : [])) {
+        const overlap = getDustBodyOverlap(dust, moon);
+        if (overlap.ratio < minOverlap) continue;
+        const colorName = canonicalColorName(dust.colorName);
+        const fraction = clamp(Math.max(0, finite(dt, 0)) * rate * overlap.ratio, 0, 0.95);
+        const oldMass = positive(dust.mass, 1);
+        const oldDensity = positive(dust.density, 0.42);
+        const absorbedMass = Math.max(0.001, oldMass * fraction);
+        const absorbedDensity = Math.max(0.001, oldDensity * fraction);
+        dust.mass = Math.max(0, oldMass - absorbedMass);
+        dust.density = Math.max(0, oldDensity - absorbedDensity);
+        dust.r = radiusForMass(World, Math.max(0.01, dust.mass), dust.r);
+        const ring = upsertMoonDustRing(World, moon, colorName, absorbedMass, absorbedDensity, nowMs);
+        World.lastDustTransformEvent = { kind: "moon_ring_absorb", dustId: dust.id || null, moonId: moon.id || moon._id || null, ringId: ring.id, colorName, absorbedMass, atMs: nowMs || World.nowMs || Date.now() };
+        if (dust.mass <= 0.02 || dust.density <= 0.002) { dust._dead = true; dust.absorbedByMoonId = moon.id || moon._id || null; }
+        break;
+      }
+    }
+  }
+
+  function updateBodyTransformations(World, dt, nowMs) {
+    ensureWorldState(World);
+    if (World.spaceMechanics.harmonicDustBodyTransformEnabled === false) return;
+    transformDustByAsteroids(World, dt, nowMs);
+    absorbDustByMoons(World, dt, nowMs);
+    World.harmonicDust = World.harmonicDust.filter((dust) => dust && !dust._dead);
+  }
+
   function update(dt, nowMs) {
     const World = ensureWorldState((window.HC.getWorld && window.HC.getWorld()) || window.World);
     if (!World) return;
     const dtMs = Math.max(0, finite(dt, 0) * 1000);
     const manualCollectionEnabled = World.spaceMechanics.harmonicDustManualCollectionEnabled !== false;
     const autoTestCollectionEnabled = World.spaceMechanics.harmonicDustAutoTestCollectionEnabled === true;
+    updateBodyTransformations(World, dt, nowMs);
     const prg = manualCollectionEnabled ? getPrg(World) : null;
     const rateMul = positive(World.spaceMechanics.harmonicDustPrgCollectRateMul, 1.0);
     for (const dust of World.harmonicDust) {
@@ -324,7 +431,10 @@
     ctx.save();
     for (const dust of World.harmonicDust) {
       if (!dust || dust._dead) continue;
+      const grayMix = clamp(finite(dust.grayMixRatio, dust.colorName === "GRAY" ? 1 : 0), 0, 1);
       const hue = hueFor(dust.colorName);
+      const sat = dust.colorName === "GRAY" ? 8 : Math.max(8, 95 - grayMix * 82);
+      const light = dust.colorName === "GRAY" ? 68 : Math.max(58, 72 - grayMix * 12);
       const visual = dust.visual || {};
       const collectRatio = Number.isFinite(Number(dust.collectRatio)) ? clamp(Number(dust.collectRatio), 0, 1) : clamp(finite(dust.collectProgressMs, 0) / positive(dust.collectRequiredMs, 1), 0, 1);
       const pulse = 0.9 + Math.sin(finite(dust.visualPulse, 0)) * 0.08;
@@ -334,14 +444,14 @@
       const massAlpha = Math.min(0.18, Math.sqrt(positive(dust.mass, 1)) / 90);
       const alpha = clamp(finite(visual.alpha, finite(dust.visualAlpha, densityAlpha + massAlpha + 0.24)) + clamp(finite(dust.reservoirPercentValue, 10), 10, 100) / 650, 0.15, 0.72);
       const grad = ctx.createRadialGradient(dust.x, dust.y, r * 0.1, dust.x, dust.y, r * 1.35);
-      grad.addColorStop(0, `hsla(${hue} 95% 72% / ${alpha})`);
-      grad.addColorStop(1, `hsla(${hue} 95% 55% / 0)`);
+      grad.addColorStop(0, `hsla(${hue} ${sat}% ${light}% / ${alpha})`);
+      grad.addColorStop(1, `hsla(${hue} ${sat}% ${Math.max(44, light - 16)}% / 0)`);
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(dust.x, dust.y, r * 1.35, 0, Math.PI * 2);
       ctx.fill();
       if (finite(dust.reservoirPercentValue, 0) >= 50) {
-        ctx.strokeStyle = `hsla(${hue} 100% 82% / 0.28)`;
+        ctx.strokeStyle = `hsla(${hue} ${Math.max(8, 100 - grayMix * 86)}% 82% / 0.28)`;
         ctx.lineWidth = Math.max(1, r * 0.045);
         ctx.beginPath();
         ctx.arc(dust.x, dust.y, r * 1.42, 0, Math.PI * 2);
@@ -349,7 +459,7 @@
       }
       if (collectRatio > 0) {
         const t = collectRatio;
-        ctx.strokeStyle = `hsla(${hue} 80% 78% / ${dust.isBeingCollected ? 0.72 : 0.38})`;
+        ctx.strokeStyle = `hsla(${hue} ${Math.max(8, 80 - grayMix * 68)}% 78% / ${dust.isBeingCollected ? 0.72 : 0.38})`;
         ctx.lineWidth = Math.max(1.5, r * 0.08);
         ctx.beginPath();
         ctx.arc(dust.x, dust.y, r * 1.55, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * t);
@@ -362,7 +472,7 @@
   window.HC.initHarmonicDust = () => {
     const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
     ensureWorldState(World);
-    window.HC.HarmonicDust = { ensureWorldState, createOrMergeFromMeteorCollision, update, draw, collectMsForMass, collectMsForPercent, canonicalColorName, percentForStep, resetHarmonicDustReservoir, ensureDepositState, depositFullReservoir, getReservoirVisualState, syncDustPileHudState, getPrgActionField: getPrg };
+    window.HC.HarmonicDust = { ensureWorldState, createOrMergeFromMeteorCollision, update, draw, collectMsForMass, collectMsForPercent, canonicalColorName, percentForStep, resetHarmonicDustReservoir, ensureDepositState, depositFullReservoir, getReservoirVisualState, syncDustPileHudState, getPrgActionField: getPrg, updateBodyTransformations, transformDustByAsteroids, absorbDustByMoons, getDustBodyOverlap, addCollectedDust };
     return window.HC.HarmonicDust;
   };
 })();

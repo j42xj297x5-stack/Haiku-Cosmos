@@ -1294,7 +1294,7 @@
     const key = colorKey || "neutral";
     const existing = threeState.meteorMaterials.get(key);
     if (existing) return existing;
-    const colorMap = { red: 0xff6b6b, yellow: 0xffd166, green: 0x6ee7a8, blue: 0x7dbdff, neutral: 0xb6bfd2 };
+    const colorMap = { red: 0xff6b6b, yellow: 0xffd166, green: 0x6ee7a8, blue: 0x7dbdff, gray: 0xaeb4bd, neutral: 0xb6bfd2 };
     const mat = new THREE.MeshStandardMaterial({
       color: colorMap[key] || colorMap.neutral,
       roughness: 0.72,
@@ -4265,7 +4265,7 @@
     const key = normalizeMeteorColorKey(colorKey);
     const existing = threeState.harmonicDustMaterials.get(key);
     if (existing) return existing;
-    const colorMap = { red: 0xff6b6b, yellow: 0xffd166, green: 0x6ee7a8, blue: 0x7dbdff, neutral: 0xb6bfd2 };
+    const colorMap = { red: 0xff6b6b, yellow: 0xffd166, green: 0x6ee7a8, blue: 0x7dbdff, gray: 0xaeb4bd, neutral: 0xb6bfd2 };
     const mat = new THREE.MeshBasicMaterial({
       color: colorMap[key] || colorMap.neutral,
       transparent: true,
@@ -4373,7 +4373,7 @@
         threeState.harmonicDustGroup.add(visual.root);
         threeState.harmonicDustMeshes.set(key, visual);
       }
-      const colorKey = normalizeMeteorColorKey(dust.colorName || dust.visual?.colorName);
+      const colorKey = String(dust.colorName || dust.visual?.colorName || '').toLowerCase() === 'gray' ? 'gray' : normalizeMeteorColorKey(dust.colorName || dust.visual?.colorName);
       visual.mesh.material = getHarmonicDustMaterial(THREE, colorKey);
       const radius = Math.max(1, Number(dust.visual?.radius ?? dust.r) || 1);
       const collectRatio = Math.max(0, Math.min(1, Number(dust.collectRatio) || 0));
@@ -4383,7 +4383,8 @@
       visual.root.renderOrder = 950;
       visual.root.visible = dust.flags?.dead !== true;
       visual.mesh.scale.set(renderRadius, renderRadius, 1);
-      visual.mesh.material.opacity = Math.max(0.12, Math.min(0.62, Number(dust.visual?.alpha) || 0.34)) * (dust.isBeingCollected ? 1.08 : 1);
+      const grayMixRatio = Math.max(0, Math.min(1, Number(dust.grayMixRatio ?? dust.visual?.grayMixRatio) || (colorKey === 'gray' ? 1 : 0)));
+      visual.mesh.material.opacity = Math.max(0.12, Math.min(0.62, Number(dust.visual?.alpha) || 0.34)) * (dust.isBeingCollected ? 1.08 : 1) * (1 - grayMixRatio * 0.08);
       visual.mesh.rotation.z = ((Number(nowMs) || 0) / 9000) + i * 0.37;
     }
     for (const [key, visual] of threeState.harmonicDustMeshes.entries()) {
@@ -4451,6 +4452,7 @@
       visual.root.visible = !m.flags?.dead;
       visual.fallback.scale.set(renderRadius, renderRadius, 1);
       visual.fallback.material.opacity = Number.isFinite(m.alpha) ? Math.max(0.9, m.alpha) : 1;
+      syncMoonDustRings(THREE, visual, moon, renderRadius);
       if (visual.glb) {
         const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
         const glbScale = ((renderRadius * METEOR_GLB_RADIUS_SCALE) / unitRadius) * meteorGlbVisualScale;
@@ -4569,6 +4571,7 @@
       visual.fallback.scale.set(renderRadius, renderRadius, 1);
       visual.fallback.rotation.z = Number.isFinite(a.angle) ? a.angle : 0;
       visual.fallback.material.opacity = opacity;
+      syncMoonDustRings(THREE, visual, moon, renderRadius);
       if (visual.glb) {
         const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
         const glbScale = ((renderRadius * ASTEROID_GLB_RADIUS_SCALE) / unitRadius);
@@ -4809,6 +4812,47 @@
     return true;
   }
 
+  function colorForDustRing(THREE, colorName) {
+    const key = normalizeMeteorColorKey(colorName);
+    const colors = { red: 0xff8b86, yellow: 0xffd98a, green: 0x88e6b2, blue: 0x95c8ff, neutral: 0xb8bec8 };
+    return new THREE.Color(colors[key] || colors.neutral);
+  }
+
+  function syncMoonDustRings(THREE, visual, moon, renderRadius) {
+    const rings = Array.isArray(moon?.dustRings) ? moon.dustRings : [];
+    if (!visual.dustRingGroup) {
+      visual.dustRingGroup = new THREE.Group();
+      visual.dustRingGroup.name = 'hc_moon_dust_rings';
+      visual.root.add(visual.dustRingGroup);
+    }
+    while (visual.dustRingGroup.children.length > rings.length) {
+      const child = visual.dustRingGroup.children.pop();
+      child.geometry?.dispose?.();
+      child.material?.dispose?.();
+    }
+    for (let i = 0; i < rings.length; i += 1) {
+      const ring = rings[i] || {};
+      let line = visual.dustRingGroup.children[i];
+      if (!line) {
+        const curve = new THREE.EllipseCurve(0, 0, 1, 0.34, 0, Math.PI * 2, false, 0);
+        const points = curve.getPoints(72).map((p) => new THREE.Vector3(p.x, p.y, 0));
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.38, depthWrite: false, depthTest: false });
+        line = new THREE.LineLoop(geometry, material);
+        line.renderOrder = 852;
+        visual.dustRingGroup.add(line);
+      }
+      line.material.color = colorForDustRing(THREE, ring.colorName);
+      line.material.opacity = 0.30;
+      const ringRadiusWorld = Math.max(Number(ring.radius) || 0, (Number(moon.radius ?? moon.r) || 1) * 1.2);
+      const ringRadius = Math.max(renderRadius * 1.12, applyRenderSpaceToRadius(ringRadiusWorld));
+      line.scale.set(ringRadius, ringRadius, 1);
+      line.rotation.z = -0.28 + i * 0.07;
+      line.visible = true;
+    }
+    visual.dustRingGroup.visible = rings.length > 0;
+  }
+
   function syncMoonPass(renderSnapshot, nowMs) {
     const THREE = window.HC_THREE || window.THREE;
     const moons = Array.isArray(renderSnapshot?.world?.moons) ? renderSnapshot.world.moons : [];
@@ -4842,6 +4886,7 @@
       visual.root.renderOrder = 850;
       visual.root.visible = !moon.flags?.dead;
       visual.fallback.scale.set(renderRadius, renderRadius, 1);
+      syncMoonDustRings(THREE, visual, moon, renderRadius);
       if (visual.glb) {
         const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
         const glbScale = renderRadius / unitRadius;
@@ -4899,6 +4944,7 @@
       visual.root.visible = !planet.flags?.dead && !planet.visual?.absorbingIntoStarId;
       visual.fallback.scale.set(renderRadius, renderRadius, 1);
       visual.fallback.material.opacity = Number.isFinite(planet.alpha) ? Math.max(0.25, Math.min(1, planet.alpha)) : 1;
+      syncMoonDustRings(THREE, visual, moon, renderRadius);
       if (visual.glb) {
         const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
         const glbScale = renderRadius / unitRadius;
