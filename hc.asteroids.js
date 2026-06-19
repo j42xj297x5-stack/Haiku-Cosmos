@@ -285,16 +285,21 @@
 
       const sides = sidesFromColors(a.colorName, b.colorName);
       const baseR = (a.r + b.r) * 1.35;
-      const initialMass = 1;
-      const r = asteroidRadiusForMass(initialMass, baseR, 0.9 * meteorBaseRadius(), 80.0 * meteorBaseRadius());
+      const maForSplit = SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(a) : massFromR(a.r);
+      const mbForSplit = SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(b) : massFromR(b.r);
+      const heavierMass = Math.max(maForSplit, mbForSplit);
+      const lighterMass = Math.min(maForSplit, mbForSplit);
+      const absorbPct = Number.isFinite(Number(World.spaceMechanics?.cosmicDustSplitMeteorMeteorAbsorbPct)) ? Number(World.spaceMechanics.cosmicDustSplitMeteorMeteorAbsorbPct) : 0.20;
+      const initialMass = heavierMass + Math.max(0, Math.min(1, absorbPct)) * lighterMass;
+      const r = SpaceBodies?.radiusFromMass ? SpaceBodies.radiusFromMass("asteroid", initialMass, { baseRadius: baseR, minRadius: 0.9 * meteorBaseRadius(), maxRadius: 80.0 * meteorBaseRadius() }) : asteroidRadiusForMass(initialMass, baseR, 0.9 * meteorBaseRadius(), 80.0 * meteorBaseRadius());
       const spin = rand(0.08, 0.25) * (Math.random() < 0.5 ? -1 : 1);
       const light = rand(42, 62);
 
       const Rm = meteorBaseRadius();
 
       // Drift from conservation of momentum (mass ~ r^2), then scaled by World.asteroidDriftMul
-      const ma = SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(a) : massFromR(a.r);
-      const mb = SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(b) : massFromR(b.r);
+      const ma = maForSplit;
+      const mb = mbForSplit;
       const msum = ma + mb;
 
       let vx = (a.vx * ma + b.vx * mb) / (msum || 1);

@@ -23,6 +23,15 @@
     const getMeteorRenderScale = window.getMeteorRenderScale || getMeteorCollisionRadius;
     const SpaceBodies = window.HC && window.HC.SpaceBodies;
     const massFromRadius = SpaceBodies?.massFromRadius || window.massFromR || ((r) => r * r);
+    const MassRadius = SpaceBodies?.massRadiusContract;
+    function spawnMeteorMass(minFallback, maxFallback) {
+      const min = Number(MassRadius?.meteorMassMin) || minFallback;
+      const max = Number(MassRadius?.meteorMassMax) || maxFallback;
+      return rand(min, max);
+    }
+    function meteorRadiusFromMass(mass, radiusScale) {
+      return (MassRadius?.radiusFromMass || SpaceBodies?.radiusFromMass)?.("meteor", mass, { baseRadius: radiusScale || meteorBaseRadius(), minRadius: 0.7 * meteorBaseRadius(), maxRadius: 1.35 * meteorBaseRadius() }) || Math.sqrt(Math.max(0.001, mass)) * (radiusScale || meteorBaseRadius());
+    }
     const getWorldViewBounds = window.getWorldViewBounds;
     const ctx = window.ctx;
 
@@ -35,7 +44,8 @@
       const c = pickColor();
       if (!c) return;
       const Rm = meteorBaseRadius();
-      const r = rand(0.75, 1.35) * Rm;
+      const mass = spawnMeteorMass(0.5, 1.0);
+      const r = meteorRadiusFromMass(mass, Rm);
 
       const b = getWorldViewBounds();
       const side = (Math.random() * 4) | 0;
@@ -60,7 +70,9 @@
       World.meteors.push({
         x, y, vx, vy,
         r,
-        mass: massFromRadius(r),
+        radius: r,
+        mass,
+        massOneRadius: Rm,
         colorName: c.name,
         hue: c.hue,
         age: 0,
@@ -82,7 +94,8 @@
       const c = pickColor();
       if (!c) return;
       const Rm = meteorBaseRadius();
-      const r = rand(0.7, 1.2) * Rm;
+      const mass = spawnMeteorMass(0.5, 1.0);
+      const r = meteorRadiusFromMass(mass, Rm);
 
       const cx = View.w / 2;
       const cy = View.h / 2;
@@ -104,7 +117,8 @@
         vx,
         vy,
         r,
-        mass: massFromRadius(r),
+        radius: r,
+        mass,
         colorName: c.name,
         hue: c.hue,
         age: 0,

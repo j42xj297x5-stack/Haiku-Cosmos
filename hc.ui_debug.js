@@ -1249,6 +1249,10 @@
       ["stage status", rendererDiag?.stageModelEnabled ? JSON.stringify(rendererDiag.stageSettings || {}) : "absolute/canvas"],
       ["Three dependency", rendererDiag?.hasThreeDependency ? "yes" : "no"],
       ["Three initialized", rendererDiag?.threeInitialized ? "yes" : "no"],
+      ["MassRadiusContract", snap?.massRadiusContractVersion || window.HC?.SpaceBodies?.massRadiusContract?.version || "n/a"],
+      ["lastMassSplitEvent", snap?.lastMassSplitEvent ? JSON.stringify(snap.lastMassSplitEvent) : "none"],
+      ["radiusClampCount", snap?.radiusClampCount ?? 0],
+      ["radiusMismatchWarnings", (rendererDiag?.radiusMismatchWarnings || snap?.radiusMismatchWarnings || []).join(" | ") || "none"],
     ], `
       <label class="overlay-select-row" for="dbgRendererMode">Renderer <select id="dbgRendererMode">${modeOptions}</select></label>
       <label class="overlay-select-row" for="dbgThreeCameraModel">Camera model
