@@ -563,6 +563,51 @@
     runtimeDebugSectionState = { ...runtimeDebugSectionState, [sectionId]: open === true };
   }
 
+  function readCollisionRulesPanelDraft(api, world, doc = document) {
+    const current = api?.getDraftRuleset?.(world) || api?.normalizeRules?.(world?.collisionRules || api.DEFAULT_RULES) || { version: 1, profile: "baseline_safe_v1", rules: [] };
+    const rules = (current.rules || []).map((rule) => ({ ...rule }));
+    for (const rule of rules) {
+      const prefix = `collision-rule-${rule.id}`;
+      const enabled = doc.getElementById?.(`${prefix}-enabled`);
+      const policy = doc.getElementById?.(`${prefix}-policy`);
+      if (enabled) rule.enabled = enabled.checked;
+      if (policy) rule.sourceMassPolicy = policy.value;
+      for (const key of ["dustPct", "absorbPct", "fragmentsPct", "orbiterPct"]) {
+        const input = doc.getElementById?.(`${prefix}-${key}`);
+        if (input) rule[key] = Number(input.value);
+      }
+    }
+    return api?.setDraftRuleset ? api.setDraftRuleset({ version: current.version || 1, profile: current.profile || "baseline_safe_v1", rules }) : { version: current.version || 1, profile: current.profile || "baseline_safe_v1", rules };
+  }
+
+  function showCollisionRulesImportExport(textarea) {
+    if (!textarea) return;
+    textarea.hidden = false;
+    if (textarea.style) textarea.style.display = "";
+    const section = textarea.closest?.("[data-runtime-debug-section]");
+    if (section) {
+      section.open = true;
+      saveRuntimeDebugSectionState(section.dataset?.runtimeDebugSection || "collision-rules", true);
+    } else {
+      saveRuntimeDebugSectionState("collision-rules", true);
+    }
+  }
+
+  function exportCollisionRulesPanel(api, world, doc = document) {
+    const textarea = doc.getElementById?.("dbgCollisionRulesJson");
+    if (!api || !textarea) return "";
+    showCollisionRulesImportExport(textarea);
+    const draft = readCollisionRulesPanelDraft(api, world, doc);
+    const json = api.exportRules ? api.exportRules(world, draft) : JSON.stringify(draft, null, 2);
+    textarea.value = json;
+    return json;
+  }
+
+  window.HC.DebugCollisionRules = {
+    readPanelDraft: readCollisionRulesPanelDraft,
+    exportPanel: exportCollisionRulesPanel,
+  };
+
   function updateRuntimeOverlayCollapseUi() {
     if (!runtimeDebugOverlay) return;
     runtimeDebugOverlay.classList.toggle("collapsed", runtimeOverlayCollapsed);
@@ -673,27 +718,11 @@
             const textarea = document.getElementById("dbgCollisionRulesJson");
             const world = (window.HC?.getWorld && window.HC.getWorld()) || window.World;
             const api = window.HC?.CollisionRules;
-            const readPanelDraft = () => {
-              const current = api?.getDraftRuleset?.(world) || api?.normalizeRules?.(world?.collisionRules || api.DEFAULT_RULES) || { version: 1, profile: "baseline_safe_v1", rules: [] };
-              const rules = (current.rules || []).map((rule) => ({ ...rule }));
-              for (const rule of rules) {
-                const prefix = `collision-rule-${rule.id}`;
-                const enabled = document.getElementById(`${prefix}-enabled`);
-                const policy = document.getElementById(`${prefix}-policy`);
-                if (enabled) rule.enabled = enabled.checked;
-                if (policy) rule.sourceMassPolicy = policy.value;
-                for (const key of ["dustPct", "absorbPct", "fragmentsPct", "orbiterPct"]) {
-                  const input = document.getElementById(`${prefix}-${key}`);
-                  if (input) rule[key] = Number(input.value);
-                }
-              }
-              return api?.setDraftRuleset ? api.setDraftRuleset({ version: current.version || 1, profile: current.profile, rules }) : { version: current.version || 1, profile: current.profile, rules };
-            };
             try {
-              if (action === "export" && textarea) textarea.value = api?.exportRules ? api.exportRules(world, readPanelDraft()) : "";
+              if (action === "export") exportCollisionRulesPanel(api, world);
               if (action === "reset") api?.resetDraftToDefaults?.();
               if (action === "import" && textarea) api?.importRules?.(world, textarea.value);
-              if (action === "apply") api?.applyRulesToWorldMechanics?.(world, readPanelDraft());
+              if (action === "apply") api?.applyRulesToWorldMechanics?.(world, readCollisionRulesPanelDraft(api, world));
             } catch (error) {
               if (world) world.collisionRulesDiagnostics = Object.assign({}, world.collisionRulesDiagnostics, { collisionRulesLastError: String(error?.message || error) });
             }
