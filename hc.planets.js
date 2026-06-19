@@ -506,13 +506,35 @@
         return dx * dx + dy * dy <= r * r;
       });
       if (!isImpact(p, body)) return false;
-      const impact = window.HC.Impact.resolvePlanetImpact({
-        planet: p,
-        incoming: body,
-        mechanics: World.spaceMechanics,
-        existingOrbiters: Array.isArray(p.orbiters) ? p.orbiters.length : 0,
-      });
-      applyPlanetImpactToPlanet(p, body, impact, nowMs, source);
+      if (window.HC?.CosmicDust?.applySplitPolicy) {
+        const bodyKind = body.kind || body.type || source;
+        const cosmicKind = bodyKind === "asteroid" ? "planet_asteroid" : (bodyKind === "moon" ? "planet_moon" : "planet_meteor");
+        const split = window.HC.CosmicDust.applySplitPolicy(World, { kind: cosmicKind, planet: p, [bodyKind === "asteroid" ? "asteroid" : (bodyKind === "moon" ? "moon" : "meteor")]: body, source: "Planets.directPlanetImpact" });
+        const fragments = split?.fragments || [];
+        p.lastImpact = {
+          kind: cosmicKind,
+          mode: "direct",
+          source: source || null,
+          createsDust: true,
+          createsOrbiter: false,
+          absorbedMass: Number(split?.absorbedMass) || 0,
+          splitMass: { absorbed: Number(split?.absorbedMass) || 0, explosion: 0, ejecta: Number(split?.fragmentMass) || 0, orbiter: Number(split?.orbiterCandidate?.mass) || 0, cosmicDust: Number(split?.cosmicDustMass) || 0 },
+          orbiterMass: Number(split?.orbiterCandidate?.mass) || 0,
+          orbiterCandidate: split?.orbiterCandidate || null,
+          createdFragments: Array.isArray(fragments) ? fragments.length : 0,
+          reason: "direct_contact",
+        };
+        World.planetImpactCount = (World.planetImpactCount || 0) + 1;
+        World.lastPlanetImpact = p.lastImpact;
+      } else {
+        const impact = window.HC.Impact.resolvePlanetImpact({
+          planet: p,
+          incoming: body,
+          mechanics: World.spaceMechanics,
+          existingOrbiters: Array.isArray(p.orbiters) ? p.orbiters.length : 0,
+        });
+        applyPlanetImpactToPlanet(p, body, impact, nowMs, source);
+      }
       p.captureCooldown = Math.max(p.captureCooldown || 0, source === "asteroid" ? 0.06 : 0.04);
       return true;
     }
