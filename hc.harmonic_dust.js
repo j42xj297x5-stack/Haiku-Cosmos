@@ -243,7 +243,7 @@
     const CE = window.CardEngine;
     const mul = CE?.state?.engineStats?.pointer_radius_mul || 1;
     const radius = positive(View.worldScale, 1) * positive(World.pointerRadius, 0.2) * positive(mul, 1);
-    return { x: Number(Input.wx), y: Number(Input.wy), r: radius };
+    return { x: Number(Input.wx), y: Number(Input.wy), z: 0, r: radius, radius };
   }
 
   function addCollectedDust(World, dust) {
@@ -362,7 +362,7 @@
   window.HC.initHarmonicDust = () => {
     const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
     ensureWorldState(World);
-    window.HC.HarmonicDust = { ensureWorldState, createOrMergeFromMeteorCollision, update, draw, collectMsForMass, collectMsForPercent, canonicalColorName, percentForStep, resetHarmonicDustReservoir, ensureDepositState, depositFullReservoir, getReservoirVisualState, syncDustPileHudState };
+    window.HC.HarmonicDust = { ensureWorldState, createOrMergeFromMeteorCollision, update, draw, collectMsForMass, collectMsForPercent, canonicalColorName, percentForStep, resetHarmonicDustReservoir, ensureDepositState, depositFullReservoir, getReservoirVisualState, syncDustPileHudState, getPrgActionField: getPrg };
     return window.HC.HarmonicDust;
   };
 })();

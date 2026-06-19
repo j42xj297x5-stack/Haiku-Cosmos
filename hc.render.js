@@ -499,17 +499,22 @@
     }
 
     function drawPointerRing() {
-      if (!Input.pointerDown) return;
+      const indicator = window.HC?.WorldRenderSnapshot?.build
+        ? window.HC.WorldRenderSnapshot.build({ World: world, Camera: cam, View: view }).world?.prgIndicator
+        : null;
+      if (!indicator?.active) return;
 
-      const pointerRadiusMul = CardEngine.state.engineStats.pointer_radius_mul || 1.0;
-      const r = view.worldScale * world.pointerRadius * pointerRadiusMul;
+      const style = indicator.style || {};
+      const dashCount = Math.max(1, Math.floor(Number(style.dashCount) || 48));
+      const dashLength = Math.max(2, (Math.PI * 2 * indicator.radius) / (dashCount * 2.4));
 
       ctx.save();
       ctx.beginPath();
-      ctx.arc(Input.wx, Input.wy, r, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255,255,255,0.45)";
-      ctx.lineWidth = Math.max(1.5, view.worldScale * 0.0015);
-      ctx.setLineDash([6, 8]);
+      ctx.arc(indicator.x, indicator.y, indicator.radius, 0, Math.PI * 2);
+      ctx.globalAlpha = Math.max(0.01, Math.min(1, Number(style.opacity) || 0.45));
+      ctx.strokeStyle = style.color || "rgba(255,245,210,0.72)";
+      ctx.lineWidth = Math.max(Number(style.lineWidth) || 1, view.worldScale * 0.0015);
+      ctx.setLineDash([dashLength, dashLength * 1.25]);
       ctx.stroke();
       ctx.restore();
     }
