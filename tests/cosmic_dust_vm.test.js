@@ -18,7 +18,7 @@ function buildContext() {
   context.World = { meteors: [], asteroids: [], moons: [], planets: [], impactFragments: [], harmonicDust: [], cosmicDust: [], meteorCollisionFudge: 1, asteroidDriftMul: 1, nowMs: 1000, spaceMechanics: {} };
   vm.createContext(context);
   const root = path.resolve(__dirname, '..');
-  for (const file of ['hc.space_bodies.js', 'hc.impact.js', 'hc.harmonic_dust.js', 'hc.cosmic_dust.js', 'hc.collisions.js', 'hc.asteroids.js', 'hc.world_render_snapshot.js']) {
+  for (const file of ['hc.space_bodies.js', 'hc.collision_rules.js', 'hc.impact.js', 'hc.harmonic_dust.js', 'hc.cosmic_dust.js', 'hc.collisions.js', 'hc.asteroids.js', 'hc.world_render_snapshot.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
   context.HC.initHarmonicDust();
@@ -39,6 +39,16 @@ assert.equal(c.World.asteroids.length, 1, 'different-color meteor collision stil
 assert.equal(c.World.cosmicDust.length, 1, 'different-color meteor collision also creates cosmic dust');
 assert.equal(c.World.harmonicDust.length, 0, 'different-color meteor collision does not create harmonicDust');
 assert.equal(c.World.cosmicDust[0].collectible, false);
+assert.equal(c.World.asteroids[0].mass, 12, 'asteroid mass is heavier meteor plus 20% lighter meteor');
+assert.equal(c.World.cosmicDust[0].mass, 8, 'meteor+meteor dust uses 80% of lighter meteor, not sum');
+assert.equal(c.World.lastMassSplitEvent.ruleId, 'meteor_meteor_different');
+assert.ok(Math.abs(c.World.lastMassSplitEvent.conservationDelta) < 1e-9, 'meteor+meteor split evidence conserves mass');
+
+c = buildContext();
+c.World.meteors = [meteor('m1', 'red', 5), meteor('m2', 'blue', 10)];
+c.HC.Collisions.resolve(0.016, 1000);
+assert.equal(c.World.asteroids[0].mass, 11, 'reverse order still bases asteroid on heavier meteor plus 20% lighter meteor');
+assert.equal(c.World.cosmicDust[0].mass, 4, 'reverse order still dusts 80% of lighter meteor');
 
 c = buildContext();
 c.World.meteors = [meteor('m1', 'red', 10), meteor('m2', 'red', 10)];
@@ -97,6 +107,7 @@ assert.equal(p.orbiters.length, 0, 'planet+asteroid does not restore legacy capt
 
 const snap = c.HC.WorldRenderSnapshot.build({ World: c.World });
 assert.ok(Array.isArray(snap.world.cosmicDust), 'snapshot exposes world.cosmicDust');
+assert.equal(snap.diagnostics.activeCollisionRulesProfile, 'baseline_safe_v1', 'snapshot diagnostics exposes active collision rules profile');
 assert.equal(snap.world.cosmicDust[0].dustKind, 'cosmic');
 assert.equal(snap.world.cosmicDust[0].collectible, false);
 assert.equal(snap.world.cosmicDust[0].visual.model, 'cosmic_dust_cloud');
@@ -104,6 +115,11 @@ assert.equal(c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled, false, 'phys
 assert.ok(c.World.lastMassSplitEvent, 'mass split evidence is recorded');
 assert.ok(Math.abs((pm.absorbedMass + pm.cosmicDustMass + pm.fragmentMass) - 20) < 1e-9, 'planet+meteor split conserves incoming meteor mass');
 
+c = buildContext();
+c.World.meteors = [{ id: 'mismatch-meteor', type: 'meteor', kind: 'meteor', x: 0, y: 0, r: 10, collisionRadius: 10, viewRadius: 13 }];
+const mismatchSnap = c.HC.WorldRenderSnapshot.build({ World: c.World, nowMs: 3000 });
+assert.equal(mismatchSnap.diagnostics.radiusMismatchWarningsCount, 1, 'radius mismatch warning count exposes artificial mismatch');
+assert.equal(mismatchSnap.diagnostics.radiusMismatchWarnings[0].type, 'collision_view_radius_mismatch', 'radius mismatch warning type is stable');
 
 function cloud(id, x = 0, y = 0, r = 30, density = 1) { return { id, type: 'cosmic_dust', dustKind: 'cosmic', x, y, r, mass: 10, density, collectible: false }; }
 function speed(body) { return Math.sqrt(body.vx * body.vx + body.vy * body.vy); }

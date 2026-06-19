@@ -48,7 +48,8 @@ assert.equal(context.World.meteors.length, 1);
 const meteor = context.World.meteors[0];
 assert.equal(typeof meteor.mass, 'number');
 assert.equal(context.HC.SpaceBodies.getBodyMass(meteor), meteor.mass);
-assert.equal(meteor.mass, meteor.r * meteor.r);
+assert.ok(meteor.mass >= 0.5 && meteor.mass <= 1.0, "new meteors spawn with canonical unit mass");
+assert.equal(meteor.r, context.HC.SpaceBodies.massRadiusContract.radiusFromMass("meteor", meteor.mass, { baseRadius: context.meteorBaseRadius(), minRadius: 0.7 * context.meteorBaseRadius(), maxRadius: 1.35 * context.meteorBaseRadius() }));
 
 context.HC.initAsteroids();
 const asteroid = { _id: 1, type: 'asteroid', x: 10, y: 10, vx: 1, vy: 2, r: 5, mass: 2, liveColorCounts: { blue: 2 }, sourceColors: ['blue'] };

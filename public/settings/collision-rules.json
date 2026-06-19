@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "meteor_meteor_different",
+      "enabled": true,
+      "sourceMassPolicy": "lighter_body",
+      "dustPct": 0.8,
+      "absorbPct": 0.2,
+      "fragmentsPct": 0,
+      "orbiterPct": 0,
+      "createsBaseProgressionObject": true,
+      "notes": "Different-color meteors still create asteroid; split lighter meteor only."
+    },
+    {
+      "id": "meteor_asteroid",
+      "enabled": true,
+      "sourceMassPolicy": "incoming_body",
+      "dustPct": 0.8,
+      "absorbPct": 0.2,
+      "fragmentsPct": 0,
+      "orbiterPct": 0,
+      "createsBaseProgressionObject": false,
+      "notes": "Incoming meteor split."
+    },
+    {
+      "id": "asteroid_asteroid",
+      "enabled": true,
+      "sourceMassPolicy": "lighter_body",
+      "dustPct": 0.5,
+      "absorbPct": 0.5,
+      "fragmentsPct": 0,
+      "orbiterPct": 0,
+      "createsBaseProgressionObject": false,
+      "notes": "Heavier asteroid survives."
+    },
+    {
+      "id": "moon_meteor",
+      "enabled": true,
+      "sourceMassPolicy": "incoming_body",
+      "dustPct": 0.3,
+      "absorbPct": 0.7,
+      "fragmentsPct": 0,
+      "orbiterPct": 0,
+      "createsBaseProgressionObject": false,
+      "notes": "Moon absorbs part of meteor."
+    },
+    {
+      "id": "moon_asteroid",
+      "enabled": true,
+      "sourceMassPolicy": "incoming_body",
+      "dustPct": 0.3,
+      "absorbPct": 0.3,
+      "fragmentsPct": 0.4,
+      "orbiterPct": 0,
+      "createsBaseProgressionObject": false,
+      "notes": "Moon impact with surface ejecta."
+    },
+    {
+      "id": "planet_meteor",
+      "enabled": true,
+      "sourceMassPolicy": "incoming_body",
+      "dustPct": 0.25,
+      "absorbPct": 0.5,
+      "fragmentsPct": 0.25,
+      "orbiterPct": 0,
+      "createsBaseProgressionObject": false,
+      "notes": "Planet absorbs part of meteor."
+    },
+    {
+      "id": "planet_asteroid",
+      "enabled": true,
+      "sourceMassPolicy": "incoming_body",
+      "dustPct": 0.35,
+      "absorbPct": 0,
+      "fragmentsPct": 0.35,
+      "orbiterPct": 0.3,
+      "createsBaseProgressionObject": false,
+      "notes": "Orbiter is descriptor-only until orbital runtime patch."
+    },
+    {
+      "id": "planet_moon",
+      "enabled": true,
+      "sourceMassPolicy": "incoming_body",
+      "dustPct": 0.35,
+      "absorbPct": 0,
+      "fragmentsPct": 0.35,
+      "orbiterPct": 0.3,
+      "createsBaseProgressionObject": false,
+      "notes": "Orbiter candidate descriptor-only."
+    },
+    {
+      "id": "planet_planet",
+      "enabled": false,
+      "sourceMassPolicy": "descriptor_only",
+      "dustPct": 0.5,
+      "absorbPct": 0,
+      "fragmentsPct": 0.5,
+      "orbiterPct": 0,
+      "createsBaseProgressionObject": false,
+      "notes": "Foundation only; disabled until explicit planet+planet runtime decision."
+    }
+  ],
+  "profile": "baseline_safe_v1"
+}
