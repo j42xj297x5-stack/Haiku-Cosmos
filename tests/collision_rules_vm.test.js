@@ -1,0 +1,52 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const root = path.resolve(__dirname, '..');
+const requiredIds = ['meteor_meteor_different','meteor_asteroid','asteroid_asteroid','moon_meteor','moon_asteroid','planet_meteor','planet_asteroid','planet_moon','planet_planet'];
+const json = JSON.parse(fs.readFileSync(path.join(root, 'public/settings/collision-rules.json'), 'utf8'));
+assert.equal(json.version, 1);
+for (const id of requiredIds) assert(json.rules.some((r) => r.id === id), `missing ${id}`);
+function buildContext() {
+  const context = { console, performance: { now: () => 1000 }, window: {} };
+  context.window = context;
+  context.HC = { logEvent() {} };
+  context.World = { cosmicDust: [], spaceMechanics: {}, nowMs: 1000 };
+  vm.createContext(context);
+  for (const file of ['hc.space_bodies.js','hc.collision_rules.js','hc.impact.js','hc.cosmic_dust.js']) {
+    vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
+  }
+  return context;
+}
+let c = buildContext();
+let normalized = c.HC.CollisionRules.normalizeRules(json);
+let mm = normalized.rules.find((r) => r.id === 'meteor_meteor_different');
+let pp = normalized.rules.find((r) => r.id === 'planet_planet');
+assert.equal(mm.valid, true);
+assert.equal(mm.sumPct, 1);
+assert.equal(pp.enabled, false);
+assert.equal(pp.valid, true);
+normalized = c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, { version: 1, rules: [{ ...json.rules[0], dustPct: 0.9, absorbPct: 0.9 }] });
+mm = normalized.rules.find((r) => r.id === 'meteor_meteor_different');
+assert.equal(mm.replacedInvalidRule, true);
+assert.equal(c.World.spaceMechanics.cosmicDustSplitMeteorMeteorDustPct, 0.8);
+assert.match(c.World.collisionRulesDiagnostics.collisionRulesLastError, /fallback/);
+c = buildContext();
+c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, json);
+const a = { id: 'heavy', type: 'meteor', kind: 'meteor', colorName: 'red', x: 0, y: 0, r: 1, mass: 1.0 };
+const b = { id: 'light', type: 'meteor', kind: 'meteor', colorName: 'blue', x: 0, y: 0, r: 1, mass: 0.5 };
+const split = c.HC.CosmicDust.applySplitPolicy(c.World, { kind: 'meteor_meteor', primary: a, secondary: b });
+assert.equal(split.resultMass, 1.1);
+assert.equal(split.cosmicDustMass, 0.4);
+assert.equal(c.World.lastMassSplitEvent.sourceMassPolicy, 'lighter_body');
+assert.equal(c.World.lastMassSplitEvent.rulePct.dustPct, 0.8);
+const exported = c.HC.CollisionRules.exportRules(c.World);
+const before = JSON.parse(exported).rules.find((r) => r.id === 'planet_asteroid').orbiterPct;
+c.HC.CollisionRules.importRules(c.World, exported);
+const after = c.World.collisionRules.rules.find((r) => r.id === 'planet_asteroid').orbiterPct;
+assert.equal(after, before);
+assert.equal(c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled, false, 'collision rules do not enable cosmic dust physical effects');
+const sources = ['hc.cosmic_dust.js', 'hc.collision_rules.js'].map((f) => fs.readFileSync(path.join(root, f), 'utf8')).join('\n');
+assert.doesNotMatch(sources, /gas planet condensation/i);
+assert.equal(fs.readFileSync(path.join(root, 'hc.comets.js'), 'utf8').length > 0, true, 'comet runtime exists but collision rules test does not load or change it');
+console.log('collision rules vm ok');

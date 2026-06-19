@@ -667,6 +667,41 @@
               return;
             }
           }
+          const collisionRulesControl = event.target && event.target.closest ? event.target.closest("[data-collision-rules-action]") : null;
+          if (collisionRulesControl) {
+            const action = collisionRulesControl.dataset.collisionRulesAction;
+            const textarea = document.getElementById("dbgCollisionRulesJson");
+            const world = (window.HC?.getWorld && window.HC.getWorld()) || window.World;
+            try {
+              if (action === "export" && textarea) textarea.value = window.HC?.CollisionRules?.exportRules ? window.HC.CollisionRules.exportRules(world) : "";
+              if (action === "reset") window.HC?.CollisionRules?.applyRulesToWorldMechanics?.(world, window.HC.CollisionRules.DEFAULT_RULES);
+              if (action === "import" && textarea) window.HC?.CollisionRules?.importRules?.(world, textarea.value);
+              if (action === "apply") {
+                const current = window.HC?.CollisionRules?.normalizeRules?.(world?.collisionRules || window.HC.CollisionRules.DEFAULT_RULES) || { version: 1, rules: [] };
+                const rules = current.rules.map((rule) => ({ ...rule }));
+                for (const rule of rules) {
+                  const prefix = `collision-rule-${rule.id}`;
+                  const enabled = document.getElementById(`${prefix}-enabled`);
+                  const policy = document.getElementById(`${prefix}-policy`);
+                  if (enabled) rule.enabled = enabled.checked;
+                  if (policy) rule.sourceMassPolicy = policy.value;
+                  for (const key of ["dustPct", "absorbPct", "fragmentsPct", "orbiterPct"]) {
+                    const input = document.getElementById(`${prefix}-${key}`);
+                    if (input) rule[key] = Number(input.value);
+                  }
+                }
+                window.HC?.CollisionRules?.applyRulesToWorldMechanics?.(world, { version: current.version || 1, rules });
+              }
+            } catch (error) {
+              if (world) world.collisionRulesDiagnostics = Object.assign({}, world.collisionRulesDiagnostics, { collisionRulesLastError: String(error?.message || error) });
+            }
+            const json = textarea?.value || "";
+            const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+            runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            const nextTextarea = document.getElementById("dbgCollisionRulesJson");
+            if (nextTextarea) nextTextarea.value = json;
+            return;
+          }
           const dustPilePercentBtn = event.target && event.target.closest
             ? event.target.closest("[data-debug-dust-pile-percent]")
             : null;
@@ -1369,6 +1404,38 @@
       ["A→P mass threshold", `${thr.asteroidToPlanet?.current ?? 0} (${thr.asteroidToPlanet?.source || "-"})`],
       ["P→S threshold", `${thr.planetToStar?.current ?? 0} (${thr.planetToStar?.source || "-"})`],
     ], "", { open: false }));
+
+    const collisionRulesApi = window.HC?.CollisionRules;
+    const collisionRules = collisionRulesApi?.normalizeRules ? collisionRulesApi.normalizeRules(window.World?.collisionRules || collisionRulesApi.DEFAULT_RULES) : { rules: [] };
+    const policyOptions = ["lighter_body", "incoming_body", "descriptor_only"].map((policy) => policy);
+    const collisionRulesRows = (collisionRules.rules || []).map((rule) => [rule.id, `${rule.enabled ? "on" : "off"} / ${rule.sourceMassPolicy} / sum ${Number(rule.sumPct || 0).toFixed(2)} / ${rule.valid === false ? "invalid" : "valid"}`]);
+    const collisionRulesControls = (collisionRules.rules || []).map((rule) => {
+      const prefix = `collision-rule-${rule.id}`;
+      const select = policyOptions.map((policy) => `<option value="${policy}"${rule.sourceMassPolicy === policy ? " selected" : ""}>${policy}</option>`).join("");
+      const pctInput = (key) => `<label>${key}<input id="${prefix}-${key}" type="number" min="0" max="1" step="0.01" value="${Number(rule[key] || 0).toFixed(2)}"></label>`;
+      return `<div class="overlay-fieldset"><strong>${rule.id}</strong>
+        <label>enabled <input id="${prefix}-enabled" type="checkbox"${rule.enabled ? " checked" : ""}></label>
+        <label>source <select id="${prefix}-policy">${select}</select></label>
+        ${pctInput("dustPct")} ${pctInput("absorbPct")} ${pctInput("fragmentsPct")} ${pctInput("orbiterPct")}
+        <span>sum ${Number(rule.sumPct || 0).toFixed(2)} / ${rule.valid === false ? "invalid" : "valid"}</span>
+      </div>`;
+    }).join("");
+    sections.push(renderSection("collision-rules", "Collision Rules", [
+      ["status", window.World?.collisionRulesDiagnostics?.collisionRulesStatus || "fallback_defaults"],
+      ["source", window.World?.collisionRulesDiagnostics?.collisionRulesSource || "runtime_defaults"],
+      ["version", window.World?.collisionRulesDiagnostics?.collisionRulesVersion ?? collisionRules.version ?? 1],
+      ["valid/invalid", `${window.World?.collisionRulesDiagnostics?.collisionRulesValidCount ?? collisionRules.validCount ?? 0}/${window.World?.collisionRulesDiagnostics?.collisionRulesInvalidCount ?? collisionRules.invalidCount ?? 0}`],
+      ["last error", window.World?.collisionRulesDiagnostics?.collisionRulesLastError || window.World?.collisionRulesDiagnostics?.collisionRulesError || "none"],
+      ...collisionRulesRows,
+    ], `${collisionRulesControls}
+      <div class="overlay-actions">
+        <button class="overlay-btn" type="button" data-collision-rules-action="apply">Apply</button>
+        <button class="overlay-btn" type="button" data-collision-rules-action="reset">Reset defaults</button>
+        <button class="overlay-btn" type="button" data-collision-rules-action="export">Export</button>
+        <button class="overlay-btn" type="button" data-collision-rules-action="import">Import</button>
+      </div>
+      <textarea id="dbgCollisionRulesJson" rows="8" spellcheck="false" style="width:100%;font-family:monospace;font-size:11px;"></textarea>
+    `, { open: false }));
 
     const dustPileDebug = getDustPileDebugStateForUi();
     const dustPileTypeOptions = ["NONE", "RED", "YELLOW", "GREEN", "BLUE", "GREY"]
