@@ -422,3 +422,10 @@ Nota synchronizacyjna visual/UI:
 - HUD będzie musiał obsłużyć pył, chmurki pyłu, zasobnik i deponowanie w osobnym kroku projektowym.
 - SUB-META będzie musiała pokazywać aktywność slotów, trwałość kart, stabilizatory, napięcia, blizny i naprawę slotów.
 - To jest kierunek dokumentacyjny i nie oznacza implementacji ani zmiany działania gry w tym patchu.
+
+## 9. Nota synchronizacyjna: HUD reservoir, `harmonicDust` i future `cosmic dust`
+
+- HUD/PRG zbiera tylko `harmonicDust`, czyli jedyny zbieralny kolorowy pył.
+- `cosmic dust` nie jest zasobem HUD, nie trafia do reservoir, stosiku ani depozytu.
+- `GRAY/mixed reservoir` to stan zasobnika po pomieszaniu kolorów, nie fizyczny `cosmic dust`.
+- `gray_locked harmonicDust` w świecie wymaga osobnej decyzji przy zbieraniu albo przyszłej konwersji; nie wolno go automatycznie mieszać z HUD reservoir ani udawać, że jest już `cosmic dust`.

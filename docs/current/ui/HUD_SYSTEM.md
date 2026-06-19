@@ -126,3 +126,10 @@ Pozycje runtime dla tego snapshotu:
 - RP: prawy górny narożnik HUD, natywny rozmiar `279x130`.
 
 Debug UI (`DEBUG`, FPS i `Restart`) zostało przeniesione z lewego górnego rogu na lewy dół ekranu, żeby nie kolidować z logo. Tymczasowe prostokąty stanu sekwencji po prawej stronie zaczynają się poniżej wysokości nowego HUD-u (`130px`) z bezpiecznym marginesem, żeby nie nachodziły na panel RP. Ten snapshot nie zmienia mechaniki RP, SUB-META, PRG ani sekwencji.
+
+## 11. Nota synchronizacyjna: pył HUD/PRG vs future `cosmic dust`
+
+- HUD/PRG zbiera tylko `harmonicDust`, czyli jedyny zbieralny kolorowy pył świata.
+- `cosmic dust` nie jest zasobem HUD, nie trafia do reservoir i nie powinien pojawić się jako stosik/depozyt.
+- `GRAY/mixed reservoir` to stan zasobnika po pomieszaniu kolorów, nie fizyczny `cosmic dust`.
+- `gray_locked harmonicDust` w świecie wymaga osobnej decyzji: albo reguły collection dla zablokowanej chmury, albo przyszłej konwersji do niezbieralnego `cosmic dust`.

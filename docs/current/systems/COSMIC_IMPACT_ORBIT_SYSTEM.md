@@ -175,55 +175,58 @@ moonImpactAbsorbMassMax = 0.30
 moonCanCreateOrbiters = false
 ```
 
-## 7. Kontrakt pyłu: `harmonicDust`, `GRAY/mixed reservoir`, `cosmic dust`
+## 7. Kontrakt pyłu: `harmonicDust`, `GRAY/mixed reservoir`, gray-shifted harmonicDust, `cosmic dust`
 
-### 7.1. Jeden zbieralny kolorowy pył
+### 7.1. A) `harmonicDust`
 
-Kolorowy pył zbieralny = `harmonicDust` / pył po harmonicznym zderzeniu meteorów tego samego koloru.
-
-Zasady:
-
-- `harmonicDust` powstaje z kolizji dwóch meteorów tego samego koloru.
-- Pojawia się w świecie jako chmura/obiekt kolorowego pyłu.
-- Docelowo jest zbierany ręcznie przez PRG; obecny auto/test collection jest tymczasowy i nie jest target modelem.
-- HUD reservoir przyjmuje ten pył jako stosik koloru.
+- `harmonicDust` jest jedynym zbieralnym kolorowym pyłem: powstaje po harmonicznej kolizji dwóch meteorów tego samego koloru.
+- Jest wysokoenergetyczny, zbieralny ręcznie przez PRG i trafia do HUD reservoir / stosiku.
 - Reservoir działa przez model `10/20/50` opisany w `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`.
-- Nie istnieje osobny drugi zbieralny typ „ordinary colored dust clouds” obok `harmonicDust`.
+- `harmonicDust` nie spowalnia, nie zatrzymuje i nie wywołuje drag na obiektach świata.
+- Chmura `harmonicDust` może czasowo szarzeć (`grayMixRatio`) pod wpływem przechodzących obiektów i odzyskiwać kolor, jeśli ekspozycja była zbyt krótka.
 
-### 7.2. `GRAY/mixed reservoir`
+### 7.2. B) `GRAY/mixed reservoir`
 
-- Pomieszanie kolorów w reservoir tworzy `GRAY/mixed reservoir`.
-- `GRAY/mixed reservoir` może być błędem gracza albo celową decyzją przy zbieraniu kolorowego pyłu.
-- `GRAY/mixed reservoir` jest stanem zasobnika HUD, nie fizyczną chmurą świata.
-- `GRAY/mixed reservoir` nie jest `cosmic dust`.
+- `GRAY/mixed reservoir` jest stanem HUD reservoir po pomieszaniu kolorów w zasobniku.
+- Może być błędem gracza albo celową decyzją przy zbieraniu kolorowego pyłu.
+- Nie jest fizyczną chmurą świata, nie ma drag/stop i nie jest `cosmic dust`.
 
-### 7.3. `cosmic dust`
+### 7.3. C) `gray_shifting` / `gray_locked harmonicDust`
 
-- `cosmic dust` jest osobnym przyszłym systemem fizycznym świata kosmosu.
-- `cosmic dust` jest niezbieralny w bazowym modelu.
-- `cosmic dust` wpływa tylko na świat kosmosu i obiekty świata.
-- Przykładowe przyszłe efekty to spowolnienie, kondensacja albo inne efekty środowiskowe.
-- `cosmic dust` nie trafia do HUD reservoir.
-- `cosmic dust` nie jest materiałem zbieranym PRG w bazowym modelu.
-- `cosmic dust` nie jest `GRAY/mixed reservoir` i nie jest kolorowym `harmonicDust`.
+- `gray_shifting` i `gray_locked` opisują stan chmury `harmonicDust` w świecie, a nie stan HUD.
+- Mogą powstać przez przechodzące obiekty; zakłócenie zależy od `dust.density`, `body.speed`, `overlapRatio` i `exposureTime`.
+- `grayMixRatio` opisuje utratę harmoniczności; przed progiem pełnej przemiany chmura może przejść w `recovering`.
+- Recovery trwa około `2× exposureTime`.
+- `gray_locked` jest `futureCosmicCandidate`, ale w obecnym runtime nadal nie jest `cosmic dust` i nadal nie trafia do HUD jako cosmic resource.
 
-### 7.4. Pył z impactu księżycowego
+### 7.4. D) `cosmic dust`
 
-Uderzenie w księżyc może pozostać przyszłym źródłem pyłowych efektów świata, ale nie tworzy drugiego zbieralnego typu kolorowego pyłu bez osobnej decyzji projektowej. Jeśli późniejszy patch utrzyma pył impactowy, musi jawnie zdecydować, czy jest to wariant `harmonicDust`, niezbieralny efekt świata, czy inny nie-HUD descriptor.
+- `cosmic dust` jest przyszłym, osobnym i niezbieralnym systemem świata.
+- Wpływa fizycznie na świat: może spowalniać albo zatrzymywać lekkie/wolne obiekty.
+- Może prowadzić do kondensacji / future gas planet.
+- Później może mieć reakcje z kometami, ale dopiero po osobnym comet system foundation.
+- Nie trafia do HUD reservoir, nie jest zbierany PRG i nie jest `GRAY/mixed reservoir`.
 
-## 8. Planowane transformacje kolorowego pyłu przez obiekty
+### 7.5. Pył z impactu księżycowego
 
-Te reguły są future contract i nie opisują istniejącej implementacji runtime:
+Uderzenie w księżyc może pozostać przyszłym źródłem pyłowych efektów świata, ale nie tworzy drugiego zbieralnego typu kolorowego pyłu bez osobnej decyzji projektowej. Kolorowy `moonImpactDust` i szary `moonImpactDust` pozostają osobną decyzją i nie mogą być automatycznie mieszane z `harmonicDust` ani `cosmic dust`.
 
-- Komety nie reagują z kolorowym pyłem tak jak z `cosmic dust`.
-- Komety docelowo kolorują/przepisują kolor pyłu harmonicznego / chmury kolorowego pyłu.
-- Asteroidy przechodzące przez kolorowy pył mogą przekształcać go w `GRAY/mixed reservoir` albo w przyszły szary stan według osobnej decyzji.
-- Księżyce przejmują kolorowy pył i formują z niego kolorowe mini-pierścienie.
-- Integracja tych transformacji wymaga osobnych przyszłych patchy runtime.
+## 8. Plan przyszłego wdrożenia `cosmic dust`
+
+1. Patch 1 — dokumentacja elastic gray / future cosmic dust sync.
+2. Patch 2 — elastic gray runtime, jeśli jeszcze nie zostało wdrożone.
+3. Patch 3 — cosmic dust data foundation: `World.cosmicDust` albo `World.dustClouds`, `dustKind:"cosmic"`, `collectible:false`, `mass`, `density`, `r`, `state:"cold"`, `source`, `createdAt`.
+4. Patch 4 — cosmic dust visual Canvas2D + Three.js: jeden snapshot/view-model, proceduralny visual, brak assetów na start.
+5. Patch 5 — cosmic dust physical influence: drag/spowolnienie, stop threshold dla lekkich/wolnych obiektów, bez wpływu na HUD.
+6. Patch 6 — merge/kondensacja: `dustMergeDistanceMul`, `dustCloudToGasPlanetMassThreshold`, `state:"condensing"`, future gas planet.
+7. Patch 7 — konwersja `gray_locked harmonicDust` → `cosmic dust`: tylko po osiągnięciu progu, bez mieszania z HUD reservoir.
+8. Patch 8 — `moonImpactDust` integration decision: kolorowy `moonImpactDust` i szary `moonImpactDust` nadal osobna decyzja.
+9. Patch 9 — comet interactions with cosmic dust: dopiero po osobnym comet system foundation.
 
 ## 8A. NIE MYLIĆ
 
 - `GRAY/mixed reservoir` po zmieszaniu kolorów w HUD ≠ `cosmic dust`.
+- `gray_locked harmonicDust` / `futureCosmicCandidate` ≠ `cosmic dust` do czasu jawnej konwersji.
 - `harmonicDust` z `10/20/50` = jedyny zbieralny kolorowy pył.
 - `cosmic dust` = przyszły niezbieralny pył świata.
 - księżyc wolny ≠ księżyc orbitalny.
@@ -252,26 +255,4 @@ Ten kontrakt jest powiązany z:
 
 ## 10. Proponowana kolejność przyszłych patchy
 
-1. Patch 1 — documentation sync dust/comets/orbit axes.
-2. Patch 2 — harmonicDust manual collection foundation:
-   - usunąć docelowo automat/test collection,
-   - zostawić ręczne zbieranie PRG,
-   - utrzymać `10/20/50` i HUD reservoir.
-3. Patch 3 — Canvas2D + Three.js visual model dla kolorowego pyłu:
-   - jeden snapshot/view-model,
-   - Canvas2D fallback,
-   - Three.js visual,
-   - brak zmiany mechaniki.
-4. Patch 4 — colored dust transformations by passing bodies:
-   - comet colors/recolors dust,
-   - asteroid can gray/mix dust,
-   - moon absorbs colored dust into mini-rings.
-5. Patch 5 — planet rotation axis + orbit plane debug controls.
-6. Patch 6 — orbital asteroid / orbital moon STOP if not already complete.
-7. Patch 7 — elliptical front/back orbit.
-8. Patch 8 — cosmic dust foundation:
-   - niezbieralny,
-   - wpływa na świat,
-   - nie trafia do HUD reservoir.
-9. Patch 9 — gas planet from cosmic dust condensation.
-10. Patch 10 — four-type comet system.
+Kolejność patchy dla `cosmic dust` jest kanonicznie opisana w sekcji 8. Rotacje planet, orbity i komety pozostają osobnymi torami, poza pierwszymi patchami `cosmic dust`.

@@ -103,10 +103,10 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 - `docs/current/systems/ROADMAP.md`
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU)
-- `docs/current/systems/COMETS_SYSTEM.md` (ROBOCZY / SYSTEM ŚWIATA) - projektowy kontrakt typów komet, kolorów, przemian świata, jawnych stanów obiektów, konfliktów efektów i debug/balansu; powiązany z kartami specjalnymi, SUB-META, PRG, roadmapą i mapą funkcji świata.
-- `docs/current/systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` (ROBOCZY / KONTRAKT PROJEKTOWY / PRZED RUNTIME) - zależy od `WORLD_FUNCTION_MAP.md`, `SPACE_MECHANICS_CONTRACT.md`, fundamentu `HC.SpaceBodies` i progresji moon/planet; powiązany z harmonic dust, przyszłym cosmic gray dust oraz `COMETS_SYSTEM.md`; nie zastępuje `COMETS_SYSTEM.md` ani `CARDS_SYSTEM.md`.
+- `docs/current/systems/COMETS_SYSTEM.md` (ROBOCZY / SYSTEM ŚWIATA) - osobny future system czterech typów komet; nie jest wymagany do pierwszych patchy `cosmic dust`, a reakcje komet z `harmonicDust`/`cosmic dust` są późniejszym etapem po fundamencie cosmic dust.
+- `docs/current/systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` (ROBOCZY / KONTRAKT PROJEKTOWY / PRZED RUNTIME) - zależy od `WORLD_FUNCTION_MAP.md`, `SPACE_MECHANICS_CONTRACT.md`, fundamentu `HC.SpaceBodies` i progresji moon/planet; jest kontraktem rozróżnienia `harmonicDust` / `GRAY/mixed reservoir` / gray-shifted `harmonicDust` / future `cosmic dust`; nie zastępuje `COMETS_SYSTEM.md` ani `CARDS_SYSTEM.md`.
 - `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - nie jest kanonem mechaniki, tylko listą decyzji przed runtime dla `CARD_SLOT_NETWORK_SYSTEM.md`.
-- `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - doprecyzowuje przepływ pyłu: HUD zbiera jednokolorowy stosik pyłu, Magazyn przechowuje stosiki, mieszanie kolorów pyłu jest przeniesione do SUB-META / Kuźni, a Kuźnia rafinuje 3 stosiki w flakon/naczynie i 3 flakony/naczynia w kryształ. Dokument synchronizuje `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md` i `UI_WORLD.md`.
+- `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - jest source dla `harmonicDust` / HUD / PRG / reservoir: ręczne PRG collection, model `10/20/50`, `GRAY/mixed reservoir` jako stan zasobnika oraz elastic gray shift chmury świata; dokument synchronizuje `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md` i `UI_WORLD.md`.
 - `docs/current/systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
 - `docs/current/ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` (ROBOCZY / CHECKLISTA UI-VISUAL / PRZED LAYOUT TOKENS) - checklista UI/visual dla czteroelementowego slotu; nie jest kanonem mechaniki ani layout tokens.
 - `docs/current/ui/DUST_STACK_HUD_VISUAL_CHECKLIST.md` (ROBOCZY / CHECKLISTA UI-VISUAL / HUD PYŁU / PRZED ASSETAMI / PRZED RUNTIME) - rozwija visual/UI dla HUD stosiku pyłu opisanego w `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`; nie jest assetem, layout tokenem ani runtime.
@@ -155,7 +155,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `CARD_DURABILITY_WIREFRAME_PASS.md` rozwija `CARD_DURABILITY_VISUAL_DECISION.md` w minimalny wireframe wariantu C i zawiera zatwierdzone roboczo decyzje przed layout-token pass dla visual trwałości karty R. Nie jest layout tokenem, mechaniką ani runtime.
 - `CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md` przygotowuje przyszły layout-token pass dla `CARD_DURABILITY_WIREFRAME_PASS.md` i zawiera zatwierdzone roboczo decyzje readiness przed layout-token pass. Nadal nie jest layout tokenem, runtime ani mechaniką.
 - `CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` nie jest kanonem mechaniki, tylko listą decyzji i zależności, które trzeba zamknąć przed pierwszym runtime pass `CARD_SLOT_NETWORK_SYSTEM.md`.
-- `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` doprecyzowuje przepływ pyłu: HUD zbiera jednokolorowy stosik pyłu, Magazyn przechowuje stosiki, mieszanie kolorów pyłu jest przeniesione do SUB-META / Kuźni, a Kuźnia rafinuje 3 stosiki w flakon/naczynie i 3 flakony/naczynia w kryształ. Dokument synchronizuje `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md` i `UI_WORLD.md`.
+- `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` jest source dla `harmonicDust` / HUD / PRG / reservoir: ręczne PRG collection, model `10/20/50`, `GRAY/mixed reservoir` jako stan zasobnika oraz elastic gray shift chmury świata; dokument synchronizuje `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md` i `UI_WORLD.md`.
 - `DUST_STACK_HUD_VISUAL_CHECKLIST.md` rozwija visual/UI dla HUD stosiku pyłu opisanego w `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`. Nie jest assetem, layout tokenem ani runtime.
 - `SUB_META_SYSTEM.md` definiuje sens konfiguracji SUB-META oraz gałęzie ŚWIAT/PRG.
 - `ECONOMY_SYSTEM.md` definiuje RP i koszty, które muszą zostać dostosowane do kosztów slotowych R1/R2/R3/R4 oraz kosztów pyłu/stabilizacji.
@@ -223,3 +223,11 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - Warstwa visual execution wspiera **raster reference -> Inkscape layered master -> optional Figma fitting**.
 - `SVG_ASSET_STANDARDS.md` pozostaje wymaganym standardem dla obu sciezek, gdy assety trafiaja do repo/production-candidate flow.
 - Runtime integration pozostaje osobnym passsem po walidacji i aktualizacji manifestu.
+
+
+## 9A. Dust/cosmic dust dependency sync — 2026-06-19
+
+- `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` jest source dla `harmonicDust` / HUD / PRG / reservoir.
+- `COSMIC_IMPACT_ORBIT_SYSTEM.md` jest kontraktem rozróżnienia `harmonicDust` / gray-shifted `harmonicDust` / future `cosmic dust`.
+- `SPACE_MECHANICS_CONTRACT.md` jest technicznym kontraktem przyszłej implementacji `cosmic dust`, w tym pól i parametrów planowanych.
+- `COMETS_SYSTEM.md` pozostaje osobnym future systemem i nie jest wymagany do pierwszych patchy `cosmic dust`.

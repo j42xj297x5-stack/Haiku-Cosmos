@@ -34,7 +34,9 @@ Zasady graniczne:
 
 * Kolorowy pył / `harmonicDust` powstaje po harmonicznym zderzeniu meteorów tego samego koloru.
 * Kolorowy pył pojawia się w świecie jako chmura/obiekt pyłu.
-* Docelowo gracz zbiera ten pył ręcznie przez PRG; obecny automat/test collection jest tymczasowy i nie jest docelowym modelem.
+* `harmonicDust` jest wysokoenergetyczny: jest materiałem zbieralnym i rezonansowym, ale nie jest fizycznym hamulcem świata.
+* Docelowo gracz zbiera ten pył ręcznie przez PRG; auto/test collection jest domyślnie wyłączone i nie jest docelowym modelem.
+* `harmonicDust` nie spowalnia, nie zatrzymuje i nie wywołuje drag na obiektach świata.
 * HUD reservoir / stosik przyjmuje zebrany kolorowy pył i pokazuje postęp `0–100%`.
 * HUD nie zbiera bezpośrednio do flakonu/naczynia ani kryształu.
 * Jeśli gracz zbiera pył innego koloru niż aktywny kolor zasobnika, zasobnik przechodzi w `GRAY/mixed reservoir`.
@@ -125,7 +127,34 @@ Ta sekcja nie tworzy layout tokens, masek, assetów ani finalnego HUD.
 
 ---
 
-## J. Cosmic dust — rozdział pojęć
+## J. Elastic gray shift — odwracalne szarzenie `harmonicDust`
+
+Szarzenie `harmonicDust` przed wejściem w `cosmic dust` jest procesem elastycznym, a nie natychmiastową konwersją zasobu HUD w fizyczny pył świata.
+
+* Przechodzące obiekty mogą zakłócać harmoniczną formę chmury `harmonicDust`.
+* Zakłócenie zależy od `dust.density`, `body.speed`, `overlapRatio` i `exposureTime`.
+* `grayMixRatio` w zakresie `0..1` opisuje stopień utraty harmoniczności chmury.
+* Jeśli obiekt wyjdzie z chmury przed progiem pełnej przemiany, pył powinien wrócić do pierwotnej harmonicznej formy.
+* Recovery trwa około `2× exposureTime`, czyli krótka ekspozycja daje krótki powrót, a długa ekspozycja wymaga dłuższego uspokojenia formy.
+* Jeśli `grayMixRatio` osiągnie próg pełnej przemiany, chmura może zostać oznaczona jako `gray_locked` / `futureCosmicCandidate`.
+* `gray_locked` nadal ma `type:"harmonic_dust"` / `dustKind:"harmonic"` i nadal nie jest `cosmic dust`, dopóki przyszły patch jawnie go nie przekonwertuje.
+* `harmonicDust`, także podczas `gray_shifting`, `recovering` albo `gray_locked`, nie spowalnia i nie zatrzymuje obiektów.
+
+Bezpieczny słownik stanów chmury `harmonicDust`:
+
+* `harmonic` — bazowy kolorowy, wysokoenergetyczny, zbieralny stan pyłu.
+* `gray_shifting` — aktywne zakłócanie chmury przez przechodzące ciało.
+* `recovering` — odwracalny powrót do pierwotnej formy po zbyt krótkiej ekspozycji.
+* `gray_locked` — zablokowany szary stan chmury harmonicznej po osiągnięciu progu.
+* `futureCosmicCandidate` — znacznik przyszłej kwalifikacji do konwersji; nie jest osobnym typem pyłu runtime.
+
+Nie mieszać pojęć:
+
+* `GRAY/mixed reservoir` to stan zasobnika HUD po pomieszaniu kolorów.
+* `gray_shifting` / `gray_locked harmonicDust` to stan chmury pyłu w świecie.
+* `cosmic dust` to przyszły niezbieralny pył fizyczny świata.
+
+## K. Cosmic dust — rozdział pojęć
 
 * `cosmic dust` jest drugim, osobnym typem pyłu świata kosmosu.
 * `cosmic dust` jest niezbieralny i nie trafia do HUD reservoir.
@@ -134,7 +163,7 @@ Ta sekcja nie tworzy layout tokens, masek, assetów ani finalnego HUD.
 * `cosmic dust` nie jest kolorowym pyłem / `harmonicDust` zbieranym ręcznie przez PRG.
 * Fundament `cosmic dust` wymaga osobnego przyszłego patcha runtime.
 
-## K. Karty specjalne a zbieranie pyłu
+## L. Karty specjalne a zbieranie pyłu
 
 Future direction:
 
@@ -146,7 +175,7 @@ Future direction:
 
 ---
 
-## L. Granice dokumentu
+## M. Granice dokumentu
 
 Ten dokument:
 

@@ -362,3 +362,11 @@ Do późniejszego audytu wymagane są:
 - rozdział efektów świata od HUD zbierającego jeden kolor bazowy naraz,
 - relacja sterowania kometą życia z PRG i kartą specjalną,
 - czytelność visual dla stanów `frozen`, `ignited`, `scorched`, `water_seeded`, `life_seeded` i `transformed`.
+
+## 14. Nota synchronizacyjna przed `cosmic dust`
+
+- Komety pozostają future systemem; obecny patch dokumentacyjny nie dopisuje runtime akcji komet do pyłu.
+- Docelowy model komet nadal zakłada cztery typy; Kometa podstawowa pozostaje deprecated / legacy idea.
+- Komety nie są warunkiem wejścia w `cosmic dust` data foundation.
+- Reakcje komet z `harmonicDust` i `cosmic dust` będą osobnym etapem po wdrożeniu podstawowego `cosmic dust`.
+- Nie należy teraz rozszerzać runtime pyłu o akcje komet ani traktować komet jako blokera patchy `cosmic dust` 1–8.

@@ -553,3 +553,13 @@ Dla meteorów, asteroid, księżyców, planet, gwiazd, `impactFragment` oraz prz
 - `GLTFLoader.resourcePath` wskazuje katalog rozwiązanego URL-u modelu. Manager URL modifier zachowuje URI osadzone/cross-origin, usuwa błędny segment `public/` i dopina Vite/GitHub Pages base do rootowych ścieżek publicznych zależności.
 - LoadingManager dostarcza evidence request/complete/error zależności do `HC.WorldRenderer.getDiagnostics()` i zdarzeń `world.glb_dependency_*`; nie zmienia snapshotu, mechaniki ani routingu wariantów asteroid/planet.
 - Aktualne `public/glb/*.glb` są self-contained względem obrazów i buforów. Zewnętrzne czerwone/żółte PNG meteorów są nadal ładowane niezależnie przez istniejący cache `TextureLoader`.
+
+## 9. Dust sync — current paths and future `cosmic dust`
+
+- Obecny target path dla zbierania pyłu: `harmonicDust` → manual PRG collection → HUD reservoir / stosik / depozyt.
+- PRG action range indicator jest visual/evidence path dla manualnego zbierania; nie zmienia typu pyłu.
+- Asteroid gray shift jest current/foundation path dla zakłócenia chmury `harmonicDust` przez `grayMixRatio`; elastic gray pozostaje nowym kontraktem projektowym, jeśli runtime nie ma jeszcze pełnego recovery `2× exposureTime`.
+- Moon `dustRings` jest current/foundation path dla absorpcji kolorowego `harmonicDust` przez księżyc; nie jest `moonImpactDust` ani `cosmic dust`.
+- `cosmic dust` jest future, nie runtime: `World.cosmicDust` / `World.dustClouds` nie może być zakładane jako istniejąca kolekcja w obecnym kodzie.
+- `cosmic dust` nie może trafić do HUD reservoir i nie jest `GRAY/mixed reservoir`.
+- `GRAY/mixed reservoir` jest stanem HUD, a `gray_shifting` / `gray_locked harmonicDust` jest stanem chmury świata; oba są różne od przyszłego `cosmic dust`.
