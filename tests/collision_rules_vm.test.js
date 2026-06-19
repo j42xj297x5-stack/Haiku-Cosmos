@@ -27,11 +27,13 @@ assert.equal(mm.valid, true);
 assert.equal(mm.sumPct, 1);
 assert.equal(pp.enabled, false);
 assert.equal(pp.valid, true);
-normalized = c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, { version: 1, rules: [{ ...json.rules[0], dustPct: 0.9, absorbPct: 0.9 }] });
+c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, json);
+normalized = c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, { version: 1, profile: 'invalid_test', rules: [{ ...json.rules[0], dustPct: 0.9, absorbPct: 0.9 }] });
 mm = normalized.rules.find((r) => r.id === 'meteor_meteor_different');
 assert.equal(mm.replacedInvalidRule, true);
 assert.equal(c.World.spaceMechanics.cosmicDustSplitMeteorMeteorDustPct, 0.8);
-assert.match(c.World.collisionRulesDiagnostics.collisionRulesLastError, /fallback/);
+assert.match(c.World.collisionRulesDiagnostics.collisionRulesLastError, /not applied/);
+assert.equal(c.World.collisionRulesDiagnostics.collisionRulesInvalidCount, 1);
 c = buildContext();
 c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, json);
 assert.equal(c.World.collisionRulesDiagnostics.activeCollisionRulesProfile, 'baseline_safe_v1');
@@ -49,6 +51,46 @@ c.HC.CollisionRules.importRules(c.World, exported);
 const after = c.World.collisionRules.rules.find((r) => r.id === 'planet_asteroid').orbiterPct;
 assert.equal(after, before);
 assert.equal(c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled, false, 'collision rules do not enable cosmic dust physical effects');
+
+// Collision Rules panel draft behavior: edit -> export uses draft state.
+c = buildContext();
+c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, json);
+c.HC.CollisionRules.setDraftRuleset(c.World.collisionRules);
+c.HC.CollisionRules.setDraftRuleValue('planet_asteroid', 'orbiterPct', 0.22);
+let panelExport = JSON.parse(c.HC.CollisionRules.exportRules(c.World));
+assert.equal(panelExport.rules.find((r) => r.id === 'planet_asteroid').orbiterPct, 0.22);
+
+// edit -> apply changes World.spaceMechanics.
+c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, c.HC.CollisionRules.getDraftRuleset(c.World));
+assert.equal(c.World.spaceMechanics.cosmicDustSplitPlanetAsteroidOrbiterPct, 0.22);
+assert.ok(c.World.collisionRulesDiagnostics.collisionRulesLastAppliedAt);
+assert.equal(c.World.collisionRulesDiagnostics.activeCollisionRulesProfile, 'baseline_safe_v1');
+assert.equal(c.World.collisionRulesDiagnostics.collisionRulesInvalidCount, 0);
+
+// import JSON -> apply changes active rule only through the draft/form state.
+const importedRules = JSON.parse(JSON.stringify(json));
+importedRules.profile = 'imported_panel_test';
+importedRules.rules.find((r) => r.id === 'moon_meteor').dustPct = 0.40;
+importedRules.rules.find((r) => r.id === 'moon_meteor').absorbPct = 0.60;
+c.HC.CollisionRules.importRules(c.World, JSON.stringify(importedRules));
+assert.notEqual(c.World.spaceMechanics.cosmicDustSplitMoonMeteorDustPct, 0.40);
+c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, c.HC.CollisionRules.getDraftRuleset(c.World));
+assert.equal(c.World.spaceMechanics.cosmicDustSplitMoonMeteorDustPct, 0.40);
+assert.equal(c.World.collisionRulesDiagnostics.activeCollisionRulesProfile, 'imported_panel_test');
+
+// invalid sum > 1 is rejected and stores an error.
+const beforeInvalid = c.World.spaceMechanics.cosmicDustSplitMeteorAsteroidDustPct;
+c.HC.CollisionRules.setDraftRuleset({ version: 1, profile: 'bad_panel_test', rules: [{ ...json.rules.find((r) => r.id === 'meteor_asteroid'), dustPct: 0.8, absorbPct: 0.8 }] });
+c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, c.HC.CollisionRules.getDraftRuleset(c.World));
+assert.equal(c.World.spaceMechanics.cosmicDustSplitMeteorAsteroidDustPct, beforeInvalid);
+assert.equal(c.World.collisionRulesDiagnostics.collisionRulesStatus, 'invalid_rejected');
+assert.match(c.World.collisionRulesDiagnostics.collisionRulesLastError, /not applied/);
+assert.equal(c.World.collisionRulesDiagnostics.collisionRulesInvalidCount, 1);
+
+// reset defaults restores baseline_safe_v1 in panel draft.
+c.HC.CollisionRules.resetDraftToDefaults();
+assert.equal(c.HC.CollisionRules.getDraftRuleset(c.World).profile, 'baseline_safe_v1');
+
 const sources = ['hc.cosmic_dust.js', 'hc.collision_rules.js'].map((f) => fs.readFileSync(path.join(root, f), 'utf8')).join('\n');
 assert.doesNotMatch(sources, /gas planet condensation/i);
 assert.equal(fs.readFileSync(path.join(root, 'hc.comets.js'), 'utf8').length > 0, true, 'comet runtime exists but collision rules test does not load or change it');

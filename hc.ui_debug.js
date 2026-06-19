@@ -672,30 +672,32 @@
             const action = collisionRulesControl.dataset.collisionRulesAction;
             const textarea = document.getElementById("dbgCollisionRulesJson");
             const world = (window.HC?.getWorld && window.HC.getWorld()) || window.World;
-            try {
-              if (action === "export" && textarea) textarea.value = window.HC?.CollisionRules?.exportRules ? window.HC.CollisionRules.exportRules(world) : "";
-              if (action === "reset") window.HC?.CollisionRules?.applyRulesToWorldMechanics?.(world, window.HC.CollisionRules.DEFAULT_RULES);
-              if (action === "import" && textarea) window.HC?.CollisionRules?.importRules?.(world, textarea.value);
-              if (action === "apply") {
-                const current = window.HC?.CollisionRules?.normalizeRules?.(world?.collisionRules || window.HC.CollisionRules.DEFAULT_RULES) || { version: 1, rules: [] };
-                const rules = current.rules.map((rule) => ({ ...rule }));
-                for (const rule of rules) {
-                  const prefix = `collision-rule-${rule.id}`;
-                  const enabled = document.getElementById(`${prefix}-enabled`);
-                  const policy = document.getElementById(`${prefix}-policy`);
-                  if (enabled) rule.enabled = enabled.checked;
-                  if (policy) rule.sourceMassPolicy = policy.value;
-                  for (const key of ["dustPct", "absorbPct", "fragmentsPct", "orbiterPct"]) {
-                    const input = document.getElementById(`${prefix}-${key}`);
-                    if (input) rule[key] = Number(input.value);
-                  }
+            const api = window.HC?.CollisionRules;
+            const readPanelDraft = () => {
+              const current = api?.getDraftRuleset?.(world) || api?.normalizeRules?.(world?.collisionRules || api.DEFAULT_RULES) || { version: 1, profile: "baseline_safe_v1", rules: [] };
+              const rules = (current.rules || []).map((rule) => ({ ...rule }));
+              for (const rule of rules) {
+                const prefix = `collision-rule-${rule.id}`;
+                const enabled = document.getElementById(`${prefix}-enabled`);
+                const policy = document.getElementById(`${prefix}-policy`);
+                if (enabled) rule.enabled = enabled.checked;
+                if (policy) rule.sourceMassPolicy = policy.value;
+                for (const key of ["dustPct", "absorbPct", "fragmentsPct", "orbiterPct"]) {
+                  const input = document.getElementById(`${prefix}-${key}`);
+                  if (input) rule[key] = Number(input.value);
                 }
-                window.HC?.CollisionRules?.applyRulesToWorldMechanics?.(world, { version: current.version || 1, rules });
               }
+              return api?.setDraftRuleset ? api.setDraftRuleset({ version: current.version || 1, profile: current.profile, rules }) : { version: current.version || 1, profile: current.profile, rules };
+            };
+            try {
+              if (action === "export" && textarea) textarea.value = api?.exportRules ? api.exportRules(world, readPanelDraft()) : "";
+              if (action === "reset") api?.resetDraftToDefaults?.();
+              if (action === "import" && textarea) api?.importRules?.(world, textarea.value);
+              if (action === "apply") api?.applyRulesToWorldMechanics?.(world, readPanelDraft());
             } catch (error) {
               if (world) world.collisionRulesDiagnostics = Object.assign({}, world.collisionRulesDiagnostics, { collisionRulesLastError: String(error?.message || error) });
             }
-            const json = textarea?.value || "";
+            const json = action === "import" || action === "reset" ? "" : (textarea?.value || "");
             const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
             runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
             const nextTextarea = document.getElementById("dbgCollisionRulesJson");
@@ -780,6 +782,12 @@
             return;
           }
           if (!target.id) return;
+          const collisionRuleMatch = target.id.match(/^collision-rule-(.+)-(enabled|policy|dustPct|absorbPct|fragmentsPct|orbiterPct)$/);
+          if (collisionRuleMatch) {
+            const key = collisionRuleMatch[2] === "policy" ? "sourceMassPolicy" : collisionRuleMatch[2];
+            window.HC?.CollisionRules?.setDraftRuleValue?.(collisionRuleMatch[1], key, target.type === "checkbox" ? target.checked : target.value);
+            return;
+          }
           if (target.id === "dbgDustPileType") {
             setDustPileDebugStateFromUi({ activeType: target.value });
             return;
@@ -1408,7 +1416,7 @@
     ], "", { open: false }));
 
     const collisionRulesApi = window.HC?.CollisionRules;
-    const collisionRules = collisionRulesApi?.normalizeRules ? collisionRulesApi.normalizeRules(window.World?.collisionRules || collisionRulesApi.DEFAULT_RULES) : { rules: [] };
+    const collisionRules = collisionRulesApi?.getDraftRuleset ? collisionRulesApi.getDraftRuleset(window.World) : (collisionRulesApi?.normalizeRules ? collisionRulesApi.normalizeRules(window.World?.collisionRules || collisionRulesApi.DEFAULT_RULES) : { rules: [] });
     const policyOptions = ["lighter_body", "incoming_body", "descriptor_only"].map((policy) => policy);
     const collisionRulesRows = (collisionRules.rules || []).map((rule) => [rule.id, `${rule.enabled ? "on" : "off"} / ${rule.sourceMassPolicy} / sum ${Number(rule.sumPct || 0).toFixed(2)} / ${rule.valid === false ? "invalid" : "valid"}`]);
     const collisionRulesControls = (collisionRules.rules || []).map((rule) => {
