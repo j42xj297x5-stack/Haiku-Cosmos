@@ -249,8 +249,11 @@ Dla meteorów, asteroid, księżyców, planet, gwiazd, `impactFragment` oraz prz
 - Patch C1: `resolvePlanetImpact` jest jedyną aktualną live ścieżką dla bezpośredniego kontaktu meteor/asteroida → planeta w `captureMeteorsByPlanets` i `captureAsteroidsByPlanets`. Legacy planet capture przez `orbitPx` / `gravityR` / `capR` / `orbiters` został fizycznie usunięty z live path.
 - `resolveMoonImpact` jest częściowo live dla direct moon absorption w `hc.asteroids.js`; moon dostaje tylko masę wchłoniętą z impact split, a `moonImpactDust` pozostaje deskryptorem/evidence, nie fizycznym `harmonicDust`.
 - `World.impactFragments[]` przechowuje lekkie descriptor fragments z TTL; `HC.Impact.updateFragments(World, nowMs, dt)` usuwa wygasłe wpisy.
-- `hc.harmonic_dust.js` obsługuje same-color meteor collision dust, PRG collection, reservoir `10/20/50`, mixed `GRAY` i `World.harmonicDustDeposits`.
-- `cosmicGrayDust` i fizyczny `dustCloud` dla impactu księżyca **nie istnieją jeszcze jako runtime**.
+- `hc.harmonic_dust.js` obsługuje same-color meteor collision dust jako jedyny zbieralny kolorowy pył: `harmonicDust` / chmura po harmonicznym zderzeniu meteorów tego samego koloru.
+- Docelowy model collection to ręcznie przez PRG; obecny auto/test collection jest tymczasowy i nie jest target runtime.
+- HUD reservoir / `GRAY/mixed reservoir` jest stanem zasobnika po pomieszaniu kolorów, nie `cosmic dust`.
+- `hc.harmonic_dust.js` utrzymuje reservoir `10/20/50`, mixed `GRAY` i `World.harmonicDustDeposits`.
+- `cosmic dust` / future fizyczny `dustCloud` jest niezbieralnym systemem świata i **nie istnieje jeszcze jako runtime**.
 
 **Free progression:**
 - Aktywny wolny łańcuch progresji to `meteor → asteroid → moon → rocky_planet`.
@@ -259,6 +262,9 @@ Dla meteorów, asteroid, księżyców, planet, gwiazd, `impactFragment` oraz prz
 - Orbital moon STOP jest zabezpieczonym kontraktem runtime, ale orbital moon creation nadal nie istnieje.
 
 ---
+
+**Comets sync:** basic/neutral comet / Kometa podstawowa is deprecated, legacy idea and not target runtime; target model has only four comet types and should wait for dust/orbit/state foundations.
+
 ### 3.4 `hc.asteroids.js` — Asteroidy
 **STATE:**
 - `World.asteroids[]` + per-asteroid material body fields: `r`, `baseR` / `massOneRadius`, liniowe `mass`, `absorbedMeteorCount`, `growthLevel`, `growth*`, `sourceColors`, `isCollapsing`.
@@ -301,6 +307,7 @@ Dla meteorów, asteroid, księżyców, planet, gwiazd, `impactFragment` oraz prz
 - Blokada koloru `pack01ReleaseBlockColor` nadal poprzedza meteor impact.
 - `transformGasPlanetIntoStar` (przejście do gwiazdy).
 - `resolvePlanetImpact` z `HC.Impact` jest jedyną aktualną mechaniką planet impact/capture. Po direct impact obiekt jest zużywany i usuwany, więc nie może stać się legacy orbiterem w tym samym przebiegu.
+- Planet rotation/orbit axis consistency jest future contract: planety po utworzeniu są positionally stationary, mogą rotować, a future debug powinien dostać `orbitPlaneAngleRange`; elliptical front/back orbit pozostaje future pass.
 
 **Audit C2 — cleanup compatibility/deprecated po legacy planet capture:**
 - Bloki `LEGACY_PLANET_CAPTURE_START/END`, helper `addOrbiterToPlanet`, planetarny `bounceMeteorFromBody` oraz nieużywane helpery systemu orbitowego planet zostały usunięte z `hc.planets.js`; legacy capture nie istnieje jako importowana/wykonywalna ścieżka gry.

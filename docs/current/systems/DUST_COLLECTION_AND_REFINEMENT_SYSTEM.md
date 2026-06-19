@@ -2,7 +2,7 @@
 
 > Status: ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME
 > Obszar: pył / HUD collection / Magazyn / Kuźnia / stabilizatory slotów
-> Źródło prawdy: NIE, dopóki dokument nie zostanie zatwierdzony i zsynchronizowany z runtime
+> Źródło prawdy: TAK ROBOCZO, dla kontraktu jednego zbieralnego kolorowego pyłu; NIE dla kompletności runtime
 > Powiązane dokumenty: `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `SUB_META_SYSTEM.md`, `../ui/UI_WORLD.md`, `../ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md`, `../ui/SUB_META_V2_MASTER_SPEC.md`, `../maps/PROJECT_INDEX.md`, `../maps/DEPENDENCY_MAP.md`
 
 ---
@@ -12,7 +12,7 @@
 Ten dokument doprecyzowuje pętlę zbierania i rafinacji pyłu:
 
 ```text
-meteor → pył → HUD stosik → depozyt → Magazyn → Kuźnia → flakon/naczynie → kryształ → stabilizator slotu
+meteor same-color harmonic collision → harmonicDust / kolorowy pył → ręczne zebranie PRG → HUD reservoir / stosik → depozyt → Magazyn → Kuźnia → flakon/naczynie → kryształ → stabilizator slotu
 ```
 
 Dokument oddziela cztery obszary, które wcześniej mogły mieszać się w opisach:
@@ -28,24 +28,27 @@ Dokument jest wyłącznie dokumentacyjny i nie implementuje runtime.
 
 ## B. Zasada nadrzędna
 
-HUD zbiera tylko jeden kolor surowego pyłu naraz do jednego stosiku.
+Istnieje tylko jeden typ zbieralnego kolorowego pyłu: **kolorowy pył / `harmonicDust`**. Nie istnieje osobny drugi zbieralny typ „ordinary colored dust clouds” obok `harmonicDust`.
 
 Zasady graniczne:
 
-* HUD nie zbiera bezpośrednio do flakonu/naczynia.
-* HUD nie zbiera bezpośrednio do kryształu.
-* HUD nie obsługuje mieszanek kolorów ani wielokolorowych stosików w bazowym modelu.
-* HUD nie zamienia częściowego stosiku w szary stosik po próbie dodania niewłaściwego koloru.
-* Mieszanie kolorów pyłu odbywa się później w SUB-META / Kuźni.
+* Kolorowy pył / `harmonicDust` powstaje po harmonicznym zderzeniu meteorów tego samego koloru.
+* Kolorowy pył pojawia się w świecie jako chmura/obiekt pyłu.
+* Docelowo gracz zbiera ten pył ręcznie przez PRG; obecny automat/test collection jest tymczasowy i nie jest docelowym modelem.
+* HUD reservoir / stosik przyjmuje zebrany kolorowy pył i pokazuje postęp `0–100%`.
+* HUD nie zbiera bezpośrednio do flakonu/naczynia ani kryształu.
+* Jeśli gracz zbiera pył innego koloru niż aktywny kolor zasobnika, zasobnik przechodzi w `GRAY/mixed reservoir`.
+* `GRAY/mixed reservoir` może być błędem gracza albo celową decyzją przy zbieraniu kolorowego pyłu.
+* `GRAY/mixed reservoir` jest stanem zasobnika HUD; nie jest `cosmic dust` i nie jest fizyczną chmurą kosmicznego pyłu.
 * Flakon/naczynie i kryształ są produktami Kuźni.
-* Bazowy HUD na początku gry obsługuje szybkie zbieranie jednokolorowego stosiku pyłu, a nie produkcję stabilizatorów wyższego rzędu.
+* Bazowy HUD obsługuje surowy kolorowy pył / `harmonicDust`, a nie produkcję stabilizatorów wyższego rzędu.
 
 ---
 
 ## C. Pętla pyłu
 
-1. Kolizja meteorów generuje chmurkę albo ślad pyłu.
-2. Gracz zbiera pył z chmurki.
+1. Harmoniczne zderzenie meteorów tego samego koloru generuje chmurę/obiekt kolorowego pyłu / `harmonicDust`.
+2. Docelowo gracz zbiera kolorowy pył ręcznie przez PRG; aktualne automatyczne/testowe zbieranie jest tylko tymczasowym modelem runtime.
 3. Pył trafia do aktualnego HUD stosiku.
 4. HUD stosik ma postęp `0–100%`.
 5. Po osiągnięciu `100%` gracz może zdeponować stosik.
@@ -71,17 +74,18 @@ Ta sekcja nie tworzy layout tokens, masek, assetów ani finalnego HUD.
 
 ---
 
-## E. Kolor stosiku
+## E. Kolor stosiku i `GRAY/mixed reservoir`
 
-* HUD zbiera tylko jeden kolor pyłu naraz.
-* Stosik jest przypisany do jednego z bazowych kolorów pyłu: `RED`, `YELLOW`, `GREEN` albo `BLUE`.
+* HUD reservoir / stosik ma aktywny kolor: `RED`, `YELLOW`, `GREEN` albo `BLUE`.
 * Aby dokończyć stosik koloru A, gracz musi zebrać pył koloru A.
-* Bazowy HUD nie obsługuje mieszanek kolorów.
-* Bazowy HUD nie obsługuje wielokolorowych stosików.
-* Bazowy HUD nie tworzy szarego stosiku przez błędne dodanie innego koloru do częściowego stosiku.
-* Próba zebrania innego koloru przy aktywnym stosiku powinna być w przyszłości ostrzeżona, zablokowana albo przekierowana do osobnej decyzji, ale nie miesza zawartości HUD.
-* Mieszanie kolorów pyłu, kombinacje i ewentualny szary pył są tematem SUB-META / Kuźni, czyli spokojniejszej warstwy decyzji i alchemii.
-* Dawne pomysły multi-color collection w HUD należy traktować jako future/legacy idea, nie bazowy model HUD.
+* Model przyrostu `10/20/50` pozostaje aktualnym modelem reservoir: pierwsze zgodne zebranie daje `10%`, drugie `20%`, trzecie i kolejne `50%`.
+* Jedna pełna sekwencja daje `80%` stosiku; dalsze zebranie tego samego koloru może dokończyć stosik do `100%`.
+* Po `100%` możliwy jest depozyt pełnego stosiku.
+* Jeśli gracz zbiera kolorowy pył innego koloru niż aktywny kolor zasobnika, zasobnik przechodzi w `GRAY/mixed reservoir`.
+* `GRAY/mixed reservoir` jest skutkiem błędu albo celowej decyzji gracza przy zbieraniu kolorowego pyłu.
+* `GRAY/mixed reservoir` pozostaje stanem HUD reservoir / stosiku, nie osobną chmurą świata.
+* `GRAY/mixed reservoir` nie jest `cosmic dust`, nie jest fizyczną chmurą kosmicznego pyłu i nie może być mylony z przyszłym niezbieralnym pyłem świata.
+* Nie wolno rozdzielać `harmonicDust` i „zwykłego” kolorowego pyłu na dwa różne zbieralne zasoby.
 
 ---
 
@@ -121,7 +125,16 @@ Ta sekcja nie tworzy layout tokens, masek, assetów ani finalnego HUD.
 
 ---
 
-## J. Karty specjalne a zbieranie pyłu
+## J. Cosmic dust — rozdział pojęć
+
+* `cosmic dust` jest drugim, osobnym typem pyłu świata kosmosu.
+* `cosmic dust` jest niezbieralny i nie trafia do HUD reservoir.
+* `cosmic dust` wpływa tylko na obiekty świata, np. przez spowolnienie, kondensację albo inne przyszłe efekty fizyczne.
+* `cosmic dust` nie jest `GRAY/mixed reservoir`.
+* `cosmic dust` nie jest kolorowym pyłem / `harmonicDust` zbieranym ręcznie przez PRG.
+* Fundament `cosmic dust` wymaga osobnego przyszłego patcha runtime.
+
+## K. Karty specjalne a zbieranie pyłu
 
 Future direction:
 
@@ -133,7 +146,7 @@ Future direction:
 
 ---
 
-## K. Granice dokumentu
+## L. Granice dokumentu
 
 Ten dokument:
 
