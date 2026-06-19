@@ -25,6 +25,7 @@ context.World = {
     moonImpactDustPercent: 0.2,
     impactEjectaMinMass: 1,
     impactEjectaMaxPieces: 3,
+    impactFragmentTtlMs: 100,
   },
 };
 context.HC = {
@@ -74,6 +75,13 @@ assert.equal(pieces.length, 3);
 assert.equal(context.World.impactFragments.length, 3);
 assert.equal(pieces[0].visualReady, false);
 assert.equal(pieces[0].x, 7);
+assert.equal(Number.isFinite(pieces[0].createdAt), true);
+assert.equal(pieces[0].ttlMs, 100);
+
+Impact.updateFragments(context.World, 50, 0.05);
+assert.equal(context.World.impactFragments.length, 3);
+Impact.updateFragments(context.World, 101, 0.051);
+assert.equal(context.World.impactFragments.length, 0, 'expired impact fragments are cleaned up');
 
 Impact.logImpactEvidence(context.World, moonMeteorImpact, 'vm_test');
 assert.equal(context.lastLog[1], 'WORLD_IMPACT_RESOLVED');

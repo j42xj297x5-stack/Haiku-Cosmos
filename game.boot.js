@@ -181,7 +181,8 @@ console.log("[HC] game.boot.js loaded");
       moonImpactDustPercent: 0.18,
       moonCanCreateOrbiters: false,
       impactEjectaMinMass: 0.08,
-      impactEjectaMaxPieces: 5
+      impactEjectaMaxPieces: 5,
+      impactFragmentTtlMs: 6000
     },
 
     flags: { firstPlanetZoomed: false, firstStarZoomed: false },
@@ -528,6 +529,7 @@ meteorBaseScale: METEOR_BASE_SCALE,
     if (HC.Comets) HC.Comets.update(dt, nowMs);
     if (HC.Collisions) HC.Collisions.resolve(dt, nowMs);
     if (HC.HarmonicDust) HC.HarmonicDust.update(dt, nowMs);
+    if (HC.Impact?.updateFragments) HC.Impact.updateFragments(World, nowMs, dt);
     if (HC.Asteroids) HC.Asteroids.capture(dt, nowMs);
     if (HC.Planets) HC.Planets.capture(dt, nowMs);
     if (HC.Asteroids) HC.Asteroids.update(dt, nowMs);
@@ -644,6 +646,7 @@ meteorBaseScale: METEOR_BASE_SCALE,
       moonCanCreateOrbiters: World.spaceMechanics?.moonCanCreateOrbiters === true,
       impactEjectaMinMass: Number(World.spaceMechanics?.impactEjectaMinMass) || 0.08,
       impactEjectaMaxPieces: Number(World.spaceMechanics?.impactEjectaMaxPieces) || 5,
+      impactFragmentTtlMs: Number(World.spaceMechanics?.impactFragmentTtlMs) || 6000,
     });
     World.dustClouds = [];
     World.dustParticles = [];
