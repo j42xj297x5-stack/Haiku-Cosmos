@@ -137,6 +137,7 @@ console.log("[HC] game.boot.js loaded");
     impactFragments: [],
     harmonicDust: [],
     harmonicDustCollected: { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0 },
+    harmonicDustDeposits: { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0, GRAY: 0 },
     harmonicDustSequence: { colorName: null, step: 0, lastCollisionAt: 0 },
     harmonicDustReservoir: { activeColorName: null, isMixedGray: false, fillPercent: 0, pureFillPercent: 0, grayFillPercent: 0, lastCollectedColorName: null, samplesCollected: 0 },
 
@@ -619,8 +620,10 @@ meteorBaseScale: METEOR_BASE_SCALE,
     World.impactFragments = [];
     World.harmonicDust = [];
     World.harmonicDustCollected = { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0 };
+    World.harmonicDustDeposits = { RED: 0, YELLOW: 0, GREEN: 0, BLUE: 0, GRAY: 0 };
     World.harmonicDustSequence = { colorName: null, step: 0, lastCollisionAt: 0 };
-    World.harmonicDustReservoir = { activeColorName: null, isMixedGray: false, fillPercent: 0, pureFillPercent: 0, grayFillPercent: 0, lastCollectedColorName: null, samplesCollected: 0 };
+    if (window.HC?.HarmonicDust?.resetHarmonicDustReservoir) window.HC.HarmonicDust.resetHarmonicDustReservoir(World);
+    else World.harmonicDustReservoir = { activeColorName: null, isMixedGray: false, fillPercent: 0, pureFillPercent: 0, grayFillPercent: 0, lastCollectedColorName: null, samplesCollected: 0 };
     World.stars = [];
     World.spawnTimer = 0;
     World.meteorBaseScale = METEOR_BASE_SCALE;

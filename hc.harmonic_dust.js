@@ -4,6 +4,7 @@
 
   const COLORS = Object.freeze({ red: 10, yellow: 45, green: 120, blue: 210, RED: 10, YELLOW: 45, GREEN: 120, BLUE: 210 });
   const COLOR_KEYS = Object.freeze(["RED", "YELLOW", "GREEN", "BLUE"]);
+  const DEPOSIT_KEYS = Object.freeze(["RED", "YELLOW", "GREEN", "BLUE", "GRAY"]);
   let nextDustId = 1;
 
   function finite(value, fallback) {
@@ -46,9 +47,81 @@
       World.harmonicDustSequence = { colorName: null, step: 0, lastCollisionAt: 0 };
     }
     if (!World.harmonicDustReservoir || typeof World.harmonicDustReservoir !== "object") {
-      World.harmonicDustReservoir = { activeColorName: null, isMixedGray: false, fillPercent: 0, pureFillPercent: 0, grayFillPercent: 0, lastCollectedColorName: null, samplesCollected: 0 };
+      World.harmonicDustReservoir = createEmptyReservoir();
+    } else {
+      World.harmonicDustReservoir = Object.assign(createEmptyReservoir(), World.harmonicDustReservoir);
+      World.harmonicDustReservoir.fillPercent = clamp(finite(World.harmonicDustReservoir.fillPercent, 0), 0, 100);
     }
+    ensureDepositState(World);
+    syncDustPileHudState(World);
     return World;
+  }
+
+  function createEmptyReservoir() {
+    return { activeColorName: null, isMixedGray: false, fillPercent: 0, pureFillPercent: 0, grayFillPercent: 0, lastCollectedColorName: null, samplesCollected: 0 };
+  }
+
+  function resetHarmonicDustReservoir(World) {
+    if (!World) return null;
+    World.harmonicDustReservoir = createEmptyReservoir();
+    syncDustPileHudState(World);
+    return World.harmonicDustReservoir;
+  }
+
+  function ensureDepositState(World) {
+    if (!World) return null;
+    if (!World.harmonicDustDeposits || typeof World.harmonicDustDeposits !== "object") World.harmonicDustDeposits = {};
+    for (const key of DEPOSIT_KEYS) World.harmonicDustDeposits[key] = Math.max(0, Math.floor(finite(World.harmonicDustDeposits[key], 0)));
+    return World.harmonicDustDeposits;
+  }
+
+  function getReservoirVisualState(World) {
+    const reservoir = ensureWorldState(World)?.harmonicDustReservoir || createEmptyReservoir();
+    const displayFillPercent = clamp(finite(reservoir.fillPercent, 0), 0, 100);
+    const mixed = reservoir.isMixedGray === true || reservoir.activeColorName === "GRAY";
+    const displayColorName = mixed ? "GRAY" : (canonicalColorName(reservoir.activeColorName) || null);
+    return {
+      displayColorName: displayFillPercent > 0 ? (displayColorName || "EMPTY") : "EMPTY",
+      displayFillPercent,
+      isFull: displayFillPercent >= 100,
+      isMixedGray: mixed,
+      activeColorName: reservoir.activeColorName || null,
+      lastCollectedColorName: reservoir.lastCollectedColorName || null,
+      samplesCollected: Math.max(0, Math.floor(finite(reservoir.samplesCollected, 0))),
+    };
+  }
+
+  function syncDustPileHudState(World) {
+    if (!World) return null;
+    const reservoir = World.harmonicDustReservoir || createEmptyReservoir();
+    const visual = {
+      displayColorName: (reservoir.isMixedGray || reservoir.activeColorName === "GRAY") ? "GRAY" : (canonicalColorName(reservoir.activeColorName) || "EMPTY"),
+      displayFillPercent: clamp(finite(reservoir.fillPercent, 0), 0, 100),
+      isFull: clamp(finite(reservoir.fillPercent, 0), 0, 100) >= 100,
+      isMixedGray: reservoir.isMixedGray === true || reservoir.activeColorName === "GRAY",
+    };
+    World.harmonicDustReservoirVisual = visual;
+    World.dustPile = {
+      activeType: visual.displayFillPercent > 0 ? (visual.displayColorName === "GRAY" ? "GREY" : visual.displayColorName) : "NONE",
+      percent: visual.displayFillPercent,
+      source: "harmonicDustReservoir",
+    };
+    return visual;
+  }
+
+  function depositFullReservoir(World, reason = "auto_full") {
+    ensureWorldState(World);
+    const reservoir = World.harmonicDustReservoir;
+    if (finite(reservoir.fillPercent, 0) < 100) return null;
+    const depositColor = (reservoir.isMixedGray || reservoir.activeColorName === "GRAY") ? "GRAY" : canonicalColorName(reservoir.activeColorName);
+    if (!depositColor) return null;
+    const deposits = ensureDepositState(World);
+    deposits[depositColor] += 1;
+    const deposited = { colorName: depositColor, count: deposits[depositColor], reason, reservoir: Object.assign({}, reservoir) };
+    World.lastHarmonicDustDeposit = deposited;
+    if (window.Events?.emit) window.Events.emit("HARMONIC_DUST_RESERVOIR_DEPOSITED", deposited);
+    resetHarmonicDustReservoir(World);
+    return deposited;
   }
 
   function stepPercents(World) {
@@ -203,10 +276,8 @@
     if (mixedTransition && window.Events?.emit) {
       window.Events.emit("HARMONIC_DUST_RESERVOIR_MIXED", { previousColorName, incomingColorName: sampleColor, addedPercent, fillPercent: reservoir.fillPercent, isMixedGray: true });
     }
-    const pile = window.HC?.DustPileHud;
-    if (pile && typeof pile.setDebugState === "function") {
-      pile.setDebugState({ activeType: reservoir.isMixedGray ? "GREY" : sampleColor, percent: reservoir.fillPercent });
-    }
+    syncDustPileHudState(World);
+    depositFullReservoir(World, "auto_full");
   }
 
   function update(dt, nowMs) {
@@ -280,7 +351,7 @@
   window.HC.initHarmonicDust = () => {
     const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
     ensureWorldState(World);
-    window.HC.HarmonicDust = { ensureWorldState, createOrMergeFromMeteorCollision, update, draw, collectMsForMass, collectMsForPercent, canonicalColorName, percentForStep };
+    window.HC.HarmonicDust = { ensureWorldState, createOrMergeFromMeteorCollision, update, draw, collectMsForMass, collectMsForPercent, canonicalColorName, percentForStep, resetHarmonicDustReservoir, ensureDepositState, depositFullReservoir, getReservoirVisualState, syncDustPileHudState };
     return window.HC.HarmonicDust;
   };
 })();

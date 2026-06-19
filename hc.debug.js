@@ -793,6 +793,8 @@
         rp: Math.max(0, Math.floor(Number(World?.score || 0))),
         harmonicDustSequence: World?.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
         harmonicDustReservoir: World?.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
+        harmonicDustDeposits: Object.assign({}, World?.harmonicDustDeposits || {}),
+        harmonicDustReservoirVisual: World?.harmonicDustReservoirVisual ? Object.assign({}, World.harmonicDustReservoirVisual) : (window.HC?.HarmonicDust?.getReservoirVisualState && World ? window.HC.HarmonicDust.getReservoirVisualState(World) : null),
         activeSequence: sequence ? {
           active: Boolean(sequence.active),
           stage: sequence.stage || null,
@@ -848,6 +850,8 @@
         },
         harmonicDustSequence: World.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
         harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
+        harmonicDustDeposits: Object.assign({}, World.harmonicDustDeposits || {}),
+        harmonicDustReservoirVisual: World.harmonicDustReservoirVisual ? Object.assign({}, World.harmonicDustReservoirVisual) : (window.HC?.HarmonicDust?.getReservoirVisualState ? window.HC.HarmonicDust.getReservoirVisualState(World) : null),
         harmonicDust: Array.isArray(World.harmonicDust) ? World.harmonicDust.filter((dust) => dust && !dust._dead).map((dust) => ({
           id: dust.id || null,
           colorName: dust.colorName || null,
