@@ -622,6 +622,19 @@
       return CE.isColorR1Active(colorName, nowMs);
     }
 
+
+    function getPlanetCaptureMode() {
+      World.spaceMechanics = World.spaceMechanics || {};
+      const mode = World.spaceMechanics.planetCaptureMode;
+      if (mode === "legacy_capture" || mode === "hybrid_debug" || mode === "impact_only") return mode;
+      World.spaceMechanics.planetCaptureMode = "impact_only";
+      return "impact_only";
+    }
+
+    function isLegacyPlanetCaptureEnabled() {
+      return getPlanetCaptureMode() === "legacy_capture";
+    }
+
     function captureMeteorsByPlanets(dt, nowMs) {
       if (!World.planets.length || !World.meteors.length) return;
 
@@ -630,6 +643,7 @@
       }
 
       const meteors = World.meteors;
+      const legacyCaptureEnabled = isLegacyPlanetCaptureEnabled();
 
       for (let mi = meteors.length - 1; mi >= 0; mi--) {
         const m = meteors[mi];
@@ -659,6 +673,13 @@
             meteors.splice(mi, 1);
             break;
           }
+
+          // LEGACY_PLANET_CAPTURE_START
+          // Deprecated planet capture/orbiter path. This capR/orbitPx/orbiters flow is not
+          // the target HC.Impact mechanic, is disconnected from the default live runtime,
+          // and must not receive new features. Keep it only as explicit legacy_capture
+          // debug fallback until it is removed or moved to a legacy fixture/module.
+          if (!legacyCaptureEnabled) continue;
 
           if (p.isRocky) {
             const currentCount = countSystemOrbitersForRocky(p);
@@ -717,6 +738,7 @@
             p.captureCooldown = 0.035;
             break;
           }
+          // LEGACY_PLANET_CAPTURE_END
         }
       }
     }
@@ -725,6 +747,7 @@
       if (!World.planets.length || !World.asteroids.length) return;
 
       const asteroids = World.asteroids;
+      const legacyCaptureEnabled = isLegacyPlanetCaptureEnabled();
 
       for (let ai = asteroids.length - 1; ai >= 0; ai--) {
         const a = asteroids[ai];
@@ -745,6 +768,13 @@
             World.asteroids.splice(ai, 1);
             break;
           }
+
+          // LEGACY_PLANET_CAPTURE_START
+          // Deprecated planet capture/orbiter path. This capR/orbitPx/orbiters flow is not
+          // the target HC.Impact mechanic, is disconnected from the default live runtime,
+          // and must not receive new features. Keep it only as explicit legacy_capture
+          // debug fallback until it is removed or moved to a legacy fixture/module.
+          if (!legacyCaptureEnabled) continue;
 
           const capR = (p.orbitPx || (p.r * 2.6)) + a.r;
           if (d2 <= capR * capR) {
@@ -810,6 +840,7 @@
             p.captureCooldown = 0.06;
             break;
           }
+          // LEGACY_PLANET_CAPTURE_END
         }
       }
     }

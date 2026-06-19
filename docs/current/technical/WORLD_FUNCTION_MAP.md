@@ -237,7 +237,7 @@
 **STATE / helpers:**
 - `HC.SpaceBodies` dostarcza wspólny kontrakt masy, promienia, rodzaju ciała, direct impact i future `orbitState`.
 - `HC.Impact` jest foundation helperem: `splitMass`, `resolvePlanetImpact`, `resolveMoonImpact`, `spawnEjecta`, `updateFragments`.
-- Patch B1: `resolvePlanetImpact` jest podpięty jako live resolver wyłącznie dla bezpośredniego kontaktu w `captureMeteorsByPlanets` i `captureAsteroidsByPlanets`; legacy capture przez `orbitPx` / `gravityR` / `capR` pozostaje aktywny dla obiektów niedotykających fizycznie planety.
+- Patch C0: `resolvePlanetImpact` jest docelową live ścieżką dla bezpośredniego kontaktu meteor/asteroida → planeta w `captureMeteorsByPlanets` i `captureAsteroidsByPlanets`. Legacy planet capture przez `orbitPx` / `gravityR` / `capR` / `orbiters` jest deprecated i nie jest default live path.
 - `resolveMoonImpact` jest częściowo live dla direct moon absorption w `hc.asteroids.js`; moon dostaje tylko masę wchłoniętą z impact split, a `moonImpactDust` pozostaje deskryptorem/evidence, nie fizycznym `harmonicDust`.
 - `World.impactFragments[]` przechowuje lekkie descriptor fragments z TTL; `HC.Impact.updateFragments(World, nowMs, dt)` usuwa wygasłe wpisy.
 - `hc.harmonic_dust.js` obsługuje same-color meteor collision dust, PRG collection, reservoir `10/20/50`, mixed `GRAY` i `World.harmonicDustDeposits`.
@@ -280,6 +280,7 @@
 ### 3.5 `hc.planets.js` — Planety
 **STATE:**
 - `World.planets[]`, per-planet `orbiters`, `rings`, `preStar`, `rocky*`.
+- `World.spaceMechanics.planetCaptureMode` rozdziela live impact od deprecated capture. Default runtime: `"impact_only"`. Jawny fallback debug/deprecated: `"legacy_capture"`. `"hybrid_debug"` jest zarezerwowane roboczo, ale nie jest używane jako live default.
 
 **PARAMS:**
 - `STAR_REQ_*`, `starDominancePctBase`, `STAR_RARE_MONO_MIN`, `PRESTAR_DURATION_*`.
@@ -287,11 +288,19 @@
 
 **Funkcje kluczowe:**
 - `captureMeteorsByPlanets` i `captureAsteroidsByPlanets`:
-  - blokada koloru `pack01ReleaseBlockColor`,
-  - odbicie meteorów wg `fxIntentBouncePlanetPct` gdy aktywne sloty,
-  - legacy capture z dystansu przez `orbitPx` / `gravityR` / `capR` pozostaje aktywny.
+  - live/default `planetCaptureMode: "impact_only"`: uruchamia tylko direct `HC.Impact.resolvePlanetImpact` dla fizycznego kontaktu z planetą; non-direct obiekty wewnątrz dawnego `capR` nie są przechwytywane jako orbitery,
+  - debug/deprecated `planetCaptureMode: "legacy_capture"`: zachowuje dawny fallback `orbitPx` / `gravityR` / `capR` / `orbiters` wyłącznie do testów przejściowych i porównania,
+  - blokada koloru `pack01ReleaseBlockColor` nadal poprzedza meteor impact/capture,
+  - odbicie meteorów wg `fxIntentBouncePlanetPct` należy do legacy capture blocku i nie jest rozwijane jako nowa mechanika impact.
 - `transformGasPlanetIntoStar` (przejście do gwiazdy).
-- `resolvePlanetImpact` z `HC.Impact` jest używany tylko przed legacy capture, gdy obiekt dotyka fizycznego promienia planety; po takim direct impact obiekt jest zużywany i usuwany, więc nie może stać się legacy orbiterem w tym samym przebiegu.
+- `resolvePlanetImpact` z `HC.Impact` jest docelową mechaniką planet impact. Po direct impact obiekt jest zużywany i usuwany, więc nie może stać się legacy orbiterem w tym samym przebiegu.
+
+**Audit C0 — legacy planet capture:**
+- Aktywnie używany legacy capture jest oznaczony w `hc.planets.js` kotwicami `LEGACY_PLANET_CAPTURE_START/END` w dwóch miejscach: meteor → planet i asteroid → planet. Oba bloki są uruchamiane tylko przy `planetCaptureMode === "legacy_capture"`.
+- Legacy runtime fields/pola przejściowe: planetarne `orbitPx`, `gravityR`, `orbiters`, statystyki `captureCount` / `captureSumR` / `captureSumMass` / `captureColorCounts`, asteroidowe `parentKind: "planet"`, `parentRef`, `orbitR`, `theta`, `omega`, oraz transformacje/liczniki oparte o `orbiters`.
+- Legacy pola tylko render/debug/compatibility nadal mogą występować w `hc.world_render_snapshot.js`, `hc.debug.js`, `game.boot.js`, `hc.asteroids.js` i helperach kompatybilności, ale nie są równorzędnym systemem planet capture w default runtime.
+- Testy przejściowe utrzymują jawny fallback `legacy_capture`, żeby potwierdzić, że legacy działa tylko za flagą.
+- Następny etap: fizycznie usunąć legacy capture albo przenieść go do osobnego legacy modułu/test fixture; nie opisywać go jako docelowej mechaniki.
 - `Events.on("PLANET_CREATED")` → otwarcie SUB-META (`World.subMetaOpen`, `World.paused`).
 
 ---
