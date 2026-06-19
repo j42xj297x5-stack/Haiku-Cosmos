@@ -51,7 +51,7 @@ function buildContext() {
   return context;
 }
 
-function planet() { return { id: 'p1', type: 'planet', planetKind: 'gas', x: 0, y: 0, r: 10, mass: 100, orbitPx: 40, orbiters: [], captureCooldown: 0 }; }
+function planet() { return { id: 'p1', type: 'planet', planetKind: 'gas', x: 0, y: 0, r: 10, mass: 100, orbitPx: 40, captureCooldown: 0 }; }
 function meteor(id, x) { return { id, type: 'meteor', kind: 'meteor', colorName: 'red', x, y: 0, vx: 0, vy: 0, r: 2, age: 1 }; }
 
 let context = buildContext();
@@ -64,7 +64,7 @@ context.HC.Planets.capture(0.016, 1234);
 assert.equal(context.World.spaceMechanics.planetCaptureMode, undefined, 'planetCaptureMode is no longer part of live runtime');
 assert.equal(called, 1, 'direct planet impact calls resolvePlanetImpact');
 assert.equal(context.World.meteors.length, 0, 'direct impact consumes meteor');
-assert.equal(context.World.planets[0].orbiters.length, 0, 'direct impact does not also create a legacy orbiter');
+assert.equal(Object.hasOwn(context.World.planets[0], 'orbiters'), false, 'new/direct-impact planet does not gain a legacy orbiters field');
 assert.equal(context.World.planets[0].lastImpact.kind, 'planetImpact');
 assert.equal(context.World.planets[0].lastImpact.mode, 'direct');
 assert.equal(context.World.planets[0].lastImpact.createsDust, false);
@@ -81,7 +81,7 @@ context.World.meteors = [meteor('legacy', 35)];
 context.HC.Planets.capture(0.016, 1234);
 assert.equal(context.World.spaceMechanics.planetCaptureMode, undefined, 'missing planetCaptureMode stays absent');
 assert.equal(context.World.meteors.length, 1, 'impact_only does not consume non-direct meteor inside legacy orbit radius');
-assert.equal(context.World.planets[0].orbiters.length, 0, 'impact_only does not create a legacy orbiter');
+assert.equal(Object.hasOwn(context.World.planets[0], 'orbiters'), false, 'impact_only does not create a legacy orbiters field');
 assert.equal(context.World.planets[0].lastImpact, undefined, 'non-direct legacy-range pass does not set direct impact evidence');
 assert.equal(context.World.planetImpactCount || 0, 0, 'non-direct legacy-range pass does not increment direct impact counter');
 
@@ -91,7 +91,7 @@ context.World.planets = [planet()];
 context.World.meteors = [meteor('legacy-mode-rejected', 35)];
 context.HC.Planets.capture(0.016, 1234);
 assert.equal(context.World.meteors.length, 1, 'legacy_capture is not an accepted runtime fallback for non-direct meteors');
-assert.equal(context.World.planets[0].orbiters.length, 0, 'legacy_capture does not create a planet orbiter');
+assert.equal(Object.hasOwn(context.World.planets[0], 'orbiters'), false, 'legacy_capture does not create a planet orbiters field');
 assert.equal(context.World.planets[0].lastImpact, undefined, 'rejected legacy_capture does not set direct impact evidence');
 assert.equal(context.World.planetImpactCount || 0, 0, 'rejected legacy_capture does not increment direct impact counter');
 

@@ -279,8 +279,9 @@
 
 ### 3.5 `hc.planets.js` — Planety
 **STATE:**
-- `World.planets[]`, per-planet `rings`, `preStar`, `rocky*` oraz compatibility/deprecated pola po starym systemie (`orbiters`, `orbitPx`, `gravityR`, historyczne `capture*` statystyki), jeśli dany obiekt/snapshot jeszcze je niesie.
-- `World.spaceMechanics` nie dopuszcza już runtime trybów planet capture. `planetCaptureMode`, `legacy_capture` i `hybrid_debug` nie są aktywnym kontraktem gry po Patch C1.
+- `World.planets[]`, per-planet `rings`, `preStar`, `rocky*`, `captureCooldown` oraz aktywne pola promienia orbity/progresji (`orbitNativeRadius`, `orbitCurrentRadius`, `orbitPx`, `gravityR`). `orbitPx` i `gravityR` nie są już zasięgiem planet capture; pozostają potrzebne dla spawn/finalize, render/snapshot oraz progresji star/rocky spin.
+- Nowo tworzone planety nie inicjalizują już legacy capture pól `orbiters`, `captureCount`, `captureSumR`, `captureSumMass` ani `captureColorCounts`.
+- `World.spaceMechanics` nie dopuszcza runtime trybów planet capture. `planetCaptureMode`, `legacy_capture` i `hybrid_debug` nie są aktywnym kontraktem gry po Patch C2.
 
 **PARAMS:**
 - `STAR_REQ_*`, `starDominancePctBase`, `STAR_RARE_MONO_MIN`, `PRESTAR_DURATION_*`.
@@ -292,12 +293,15 @@
 - `transformGasPlanetIntoStar` (przejście do gwiazdy).
 - `resolvePlanetImpact` z `HC.Impact` jest jedyną aktualną mechaniką planet impact/capture. Po direct impact obiekt jest zużywany i usuwany, więc nie może stać się legacy orbiterem w tym samym przebiegu.
 
-**Audit C1 — legacy planet capture:**
-- Bloki `LEGACY_PLANET_CAPTURE_START/END` zostały usunięte z `hc.planets.js`; legacy capture nie istnieje już jako importowana/wykonywalna ścieżka gry.
-- `legacy_capture` i `hybrid_debug` nie są dopuszczonymi runtime mode.
-- Historyczne pola planetarne `orbiters`, `orbitPx`, `gravityR`, statystyki `captureCount` / `captureSumR` / `captureSumMass` / `captureColorCounts` oraz asteroidowe `parentKind: "planet"`, `parentRef`, `orbitR`, `theta`, `omega` mogą jeszcze pojawiać się wyłącznie jako compatibility/deprecated dla render/debug/snapshot lub starszych stanów. Nie decydują o planet capture.
-- Dokumentacja starego systemu została przeniesiona do `docs/legacy/technical/LEGACY_PLANET_CAPTURE.md`; nie jest source-of-truth dla bieżącego runtime.
-- Następny etap: osobny cleanup compatibility/deprecated pól planet/moon/star progression tam, gdzie nie są już potrzebne dla renderowania, debugowania lub migracji snapshotów.
+**Audit C2 — cleanup compatibility/deprecated po legacy planet capture:**
+- Bloki `LEGACY_PLANET_CAPTURE_START/END`, helper `addOrbiterToPlanet`, planetarny `bounceMeteorFromBody` oraz nieużywane helpery systemu orbitowego planet zostały usunięte z `hc.planets.js`; legacy capture nie istnieje jako importowana/wykonywalna ścieżka gry.
+- `legacy_capture`, `hybrid_debug` i `planetCaptureMode` nie są dopuszczonymi runtime mode.
+- Nowe planety z asteroid collapse i debug seed nie dostają już `orbiters` ani statystyk `captureCount` / `captureSumR` / `captureSumMass` / `captureColorCounts`. Testy oczekują braku tych pól na nowych planetach.
+- Zachowane compatibility/deprecated odczyty `planet.orbiters` obsługują wyłącznie stare/debugowe stany dla renderu, comet ring marks i historycznej pre-star analizy; live planet impact C2 nie tworzy nowych planetarnych orbiterów.
+- `parentKind === "planet"` w `captureAsteroidsByPlanets` jest tylko transitional stale-state guardem. Live runtime C2 nie ustawia nowego `parentKind: "planet"`, `parentRef`, `orbitR`, `theta` ani `omega` dla planet capture.
+- `orbitPx` i `gravityR` pozostają na nowych planetach jako pola promienia orbity/grawitacji dla finalize/spawn, snapshot/render i star/rocky progression; nie są używane do non-direct capture i nie tworzą `capR`.
+- Dokumentacja starego systemu pozostaje w `docs/legacy/technical/LEGACY_PLANET_CAPTURE.md`; nie jest source-of-truth dla bieżącego runtime.
+- Następny etap: zaprojektować spójny future kontrakt planet/moon/star orbit/impact dla Canvas2D i Three.js bez reaktywowania legacy range capture.
 - `Events.on("PLANET_CREATED")` → otwarcie SUB-META (`World.subMetaOpen`, `World.paused`).
 
 ---

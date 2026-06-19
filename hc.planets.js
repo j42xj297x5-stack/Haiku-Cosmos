@@ -17,8 +17,6 @@
     const hueFromName = window.hueFromName;
     const makeRng = window.makeRng;
     const hash32 = window.hash32;
-    const getDirectOrbitersOfBody = window.getDirectOrbitersOfBody;
-    const removeOrbitersConsumed = window.removeOrbitersConsumed;
     const reconcileStarOwnershipOnBirth = window.reconcileStarOwnershipOnBirth;
     const startStarEpochZoomOut = window.startStarEpochZoomOut;
     const transformAsteroidIntoRockyPlanet = window.transformAsteroidIntoRockyPlanet;
@@ -179,56 +177,6 @@
       const planetMass = (World.ROCKY_FROM_AST_BASE_MASS * (Rm * Rm)) + (World.ROCKY_FROM_AST_KM * sumMassProxy);
       const gravityR = computeGravityFromPlanetRadius(planetR);
       return { planetR, planetMass, gravityR };
-    }
-
-    function countSystemOrbitersForRocky(p) {
-      const seenIds = new Set();
-      const seenObjs = new Set();
-      let count = 0;
-
-      function add(obj) {
-        if (!obj) return;
-        const id = obj.id ?? obj._id;
-        if (id !== undefined && id !== null) {
-          if (seenIds.has(id)) return;
-          seenIds.add(id);
-        } else {
-          if (seenObjs.has(obj)) return;
-          seenObjs.add(obj);
-        }
-        count += 1;
-      }
-
-      if (p.orbiters && p.orbiters.length) {
-        for (const o of p.orbiters) add(o);
-      }
-
-      if (World.asteroids && World.asteroids.length) {
-        for (const a of World.asteroids) {
-          if (a.parentKind !== "planet" || a.parentRef !== p) continue;
-          add(a);
-          if (a.orbiters && a.orbiters.length) {
-            for (const o of a.orbiters) add(o);
-          }
-        }
-      }
-
-      return count;
-    }
-
-    function countOrbitersInBodySystem(o) {
-      let count = 0;
-      if (o) count += 1;
-      if (o && o.orbiters && o.orbiters.length) count += o.orbiters.length;
-      return count;
-    }
-
-    function absorbBodiesIntoRocky(p, bodies) {
-      if (!bodies || !bodies.length) return;
-      for (const b of bodies) {
-        const r = b?.r || 0;
-        p.mass = (p.mass || 0) + massFromR(r);
-      }
     }
 
     function getSystemMeteorsForPlanet(p) {
@@ -508,39 +456,6 @@
       });
     }
 
-    function addOrbiterToPlanet(p, meteor) {
-      if (!p.orbiters) p.orbiters = [];
-      const Rm = meteorBaseRadius();
-      const orbR = meteor.r;
-
-      const idx = p.orbiters.length;
-      const minOrbit = p.r + (Rm * 0.9) + orbR;
-
-      const step = (Rm * 1.2) + orbR * 0.85;
-      const candidate = minOrbit + idx * step;
-
-      const maxOrbit = Math.max(minOrbit, (p.orbitPx || (p.r * 2.4)) - orbR);
-      const baseOrbitRadius = clamp(candidate, minOrbit, maxOrbit);
-      const orbitR = baseOrbitRadius * ((typeof World.metaOrbitMulPlanet === "number") ? World.metaOrbitMulPlanet : 1);
-
-      const baseOmega = rand(0.35, 0.95);
-      const direction = Math.random() < 0.5 ? -1 : 1;
-      const omega = direction * computeOmega(baseOmega, orbitR, Rm);
-
-      const renderMul = 0.5;
-      p.orbiters.push({
-        hue: meteor.hue,
-        colorName: meteor.colorName,
-        r: orbR,
-        renderMul,
-        orbitContributionR: orbR * renderMul,
-        orbitR,
-        angle: rand(0, Math.PI * 2),
-        omega,
-      });
-    }
-
-
     function compactPlanetImpact(impact, fragments, source) {
       const masses = impact?.masses || {};
       return {
@@ -602,20 +517,6 @@
       return true;
     }
 
-    function bounceMeteorFromBody(meteor, body, radius) {
-      const dx = meteor.x - body.x;
-      const dy = meteor.y - body.y;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-      const nx = dx / dist;
-      const ny = dy / dist;
-      const dot = (meteor.vx || 0) * nx + (meteor.vy || 0) * ny;
-      meteor.vx = (meteor.vx || 0) - 2 * dot * nx;
-      meteor.vy = (meteor.vy || 0) - 2 * dot * ny;
-      const push = (Number(radius) || 0) + meteor.r + 0.5;
-      meteor.x = body.x + nx * push;
-      meteor.y = body.y + ny * push;
-    }
-
     function isR1ColorActive(colorName, nowMs) {
       const CE = window.CardEngine;
       if (!CE || typeof CE.isColorR1Active !== "function") return false;
@@ -672,6 +573,7 @@
         const a = asteroids[ai];
         // don't immediately re-capture just-spawned bodies
         if (a.age && a.age < 0.25) continue;
+        // Transitional stale-state guard: live runtime no longer assigns parentKind="planet".
         if (a.parentKind === "planet") continue;
 
         for (let pi = 0; pi < World.planets.length; pi++) {
@@ -697,13 +599,7 @@
       const b = getWorldViewBounds();
       for (let pi = 0; pi < World.planets.length; pi++) {
         const p = World.planets[pi];
-        if (p.parentKind === "planet" && p.parentRef) {
-          const parent = p.parentRef;
-          p.theta = (p.theta || 0) + (p.omega || 0) * dt;
-          const orbitR = (typeof p.orbitR === "number" && isFinite(p.orbitR)) ? p.orbitR : (parent.orbitPx || (parent.r * 2.6));
-          p.x = parent.x + Math.cos(p.theta) * orbitR;
-          p.y = parent.y + Math.sin(p.theta) * orbitR;
-        } else if (!p.stationary && p.source !== "moon_mass_threshold") {
+        if (!p.stationary && p.source !== "moon_mass_threshold") {
           p.x += p.vx * dt;
           p.y += p.vy * dt;
 
@@ -719,7 +615,7 @@
           p.vy = 0;
         }
 
-        // orbiters update
+        // Compatibility/deprecated: animate planet.orbiters only for stale/debug states; live C2 planet impact does not create them.
         if (p.orbiters && p.orbiters.length) {
           const Rm = meteorBaseRadius();
           for (const o of p.orbiters) {
