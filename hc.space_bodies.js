@@ -165,6 +165,35 @@
     return clamped;
   }
 
+  function refreshBodyRadiusFromMass(body, options) {
+    if (!body || typeof body !== "object") return body;
+    const kind = normalizeKind(options?.kind || getBodyKind(body));
+    const mass = getBodyMass(body);
+    const radius = radiusFromMass(kind, mass, {
+      baseRadius: body.massOneRadius ?? body.baseR ?? body.radiusBase ?? body.r ?? body.radius ?? DEFAULT_RADIUS,
+      minRadius: body.minR ?? body.minRadius,
+      maxRadius: body.maxR ?? body.maxRadius,
+      density: body.density,
+    });
+    body.r = radius;
+    body.radius = radius;
+    body.collisionRadius = massRadiusContract.collisionRadiusFromMass(kind, mass, {
+      baseRadius: body.massOneRadius ?? body.baseR ?? body.radiusBase ?? radius,
+      minRadius: body.minR ?? body.minRadius,
+      maxRadius: body.maxR ?? body.maxRadius,
+      density: body.density,
+    });
+    body.viewRadius = massRadiusContract.viewRadiusFromMass(kind, mass, {
+      baseRadius: body.massOneRadius ?? body.baseR ?? body.radiusBase ?? radius,
+      minRadius: body.minR ?? body.minRadius,
+      maxRadius: body.maxR ?? body.maxRadius,
+      density: body.density,
+    });
+    body.massRadiusContractVersion = massRadiusContract.version;
+    body.lastRadiusRefresh = { kind, mass, radius, sourceFunction: options?.sourceFunction || "HC.SpaceBodies.refreshBodyRadiusFromMass" };
+    return body;
+  }
+
   const massRadiusContract = Object.freeze({
     version: 1,
     baseMeteorMass: 1,
@@ -268,6 +297,7 @@
     getBodyKind,
     getBodyMass,
     setBodyMass,
+    refreshBodyRadiusFromMass,
     getBodyRadius,
     getCollisionRadius,
     radiusFromMass,

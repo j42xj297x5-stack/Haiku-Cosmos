@@ -151,12 +151,25 @@
     }
 
     function asteroidRadiusForMass(mass, baseR, minR, maxR) {
-      const safeMass = Number.isFinite(mass) && mass > 0 ? mass : 1;
-      const safeBaseR = Number.isFinite(baseR) && baseR > 0 ? baseR : meteorBaseRadius() * 2.7;
-      const nextR = safeBaseR * Math.sqrt(safeMass);
-      const low = Number.isFinite(minR) && minR > 0 ? minR : 0.9 * meteorBaseRadius();
-      const high = Number.isFinite(maxR) && maxR > 0 ? maxR : 80.0 * meteorBaseRadius();
-      return clamp(nextR, low, high);
+      return SpaceBodies?.radiusFromMass
+        ? SpaceBodies.radiusFromMass("asteroid", mass, { baseRadius: baseR, minRadius: minR || 0.9 * meteorBaseRadius(), maxRadius: maxR || 80.0 * meteorBaseRadius() })
+        : clamp((Number.isFinite(baseR) && baseR > 0 ? baseR : meteorBaseRadius() * 2.7) * Math.sqrt(Number.isFinite(mass) && mass > 0 ? mass : 1), Number.isFinite(minR) && minR > 0 ? minR : 0.9 * meteorBaseRadius(), Number.isFinite(maxR) && maxR > 0 ? maxR : 80.0 * meteorBaseRadius());
+    }
+
+    function refreshRadius(body, kind, sourceFunction) {
+      if (SpaceBodies?.refreshBodyRadiusFromMass) return SpaceBodies.refreshBodyRadiusFromMass(body, { kind, sourceFunction });
+      return body;
+    }
+
+    function attachSourceEvidence(target, sourcePath, sourceRuleId, sourceFunction, bodies, before, after) {
+      if (!target) return target;
+      target.sourcePath = sourcePath;
+      target.sourceRuleId = sourceRuleId || sourcePath;
+      target.sourceFunction = sourceFunction;
+      target.sourceBodyIds = (bodies || []).map((body) => body?.id || body?._id).filter(Boolean);
+      target.sourceMassBefore = before;
+      target.sourceMassAfter = after;
+      return target;
     }
 
     function addColorCount(map, colorName, amount = 1) {
@@ -249,6 +262,10 @@
         visualVariant: "moon_01",
         sourceColors: Array.isArray(a.sourceColors) ? a.sourceColors.slice() : [],
       };
+      moon.baseR = moon.massOneRadius || moon.baseR || (Number(a.massOneRadius || a.baseR) || (moon.r / Math.sqrt(Math.max(1, mass))));
+      moon.massOneRadius = moon.baseR;
+      refreshRadius(moon, "moon", "Asteroids.createMoonFromAsteroid");
+      attachSourceEvidence(moon, "asteroid_threshold_to_moon", "asteroid_to_moon_mass", "Asteroids.transformAsteroidToMoon", [a], asteroidMassValue(a), moonMassValue ? moonMassValue(moon) : moon.mass);
       return moon;
     }
 
@@ -499,6 +516,9 @@
     }
 
     function finishCollapseToPlanet(a) {
+      if (a) { a.legacyPlanetCollapseBlocked = true; }
+      World.legacyPlanetCollapseBlockedCount = (Number(World.legacyPlanetCollapseBlockedCount) || 0) + 1;
+      return null;
       const entries = Object.entries(a.liveColorCounts || a.captureColorCounts);
       entries.sort((p, q) => (q[1] - p[1]));
       const top1 = entries[0]?.[0] || "blue";
@@ -606,7 +626,7 @@
       primary.mass = newMass;
       primary.baseR = mergedBaseR;
       primary.massOneRadius = mergedBaseR;
-      primary.r = asteroidRadiusForMass(newMass, mergedBaseR, primary.minR, primary.maxR);
+      refreshRadius(primary, "asteroid", "Asteroids.mergeAsteroidPair");
       primary.absorbedMeteorCount = (primary.absorbedMeteorCount || 0) + (secondary.absorbedMeteorCount || 0);
       primary.growthLevel = newMass;
       primary.growthSumR = (primary.growthSumR || 0) + (secondary.growthSumR || 0);
@@ -748,6 +768,9 @@
       };
       window.HC?.WorldVisualAssets?.assignPlanetVisual?.(planet);
       planet.asset = planet.assetId;
+      attachSourceEvidence(planet, "moon_threshold_to_rocky_planet", "moon_to_rocky_planet_mass", "Asteroids.transformMoonToRockyPlanet", [moon], moonMassValue(moon), mass);
+      refreshRadius(planet, "planet", "Asteroids.createRockyPlanetFromMoon");
+      planet.fixedR = planet.r;
       return planet;
     }
 
@@ -878,17 +901,14 @@
       for (const a of World.asteroids) {
         if (a.absorbingIntoStarId) continue;
         if (a.parentKind === "planet") {
-          const p = a.parentRef;
-          if (p) {
-            a.theta = (a.theta || 0) + (a.omega || 0) * dt;
-            const orbitR = (typeof a.orbitR === "number" && isFinite(a.orbitR)) ? a.orbitR : (p.orbitPx || (p.r * 2.6));
-            a.x = p.x + Math.cos(a.theta) * orbitR;
-            a.y = p.y + Math.sin(a.theta) * orbitR;
-          } else {
-            a.parentKind = null;
-            a.parentRef = null;
-          }
-        } else if (!a.isCollapsing) {
+          a.parentKind = null;
+          a.parentRef = null;
+          a.orbitR = null;
+          a.orbitState = null;
+          a.legacyOrbitPathBlocked = true;
+          World.legacyOrbitPathBlockedCount = (Number(World.legacyOrbitPathBlockedCount) || 0) + 1;
+        }
+        if (!a.isCollapsing) {
           a.x += a.vx * dt;
           a.y += a.vy * dt;
 
