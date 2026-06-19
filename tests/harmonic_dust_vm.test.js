@@ -149,6 +149,8 @@ assert(Array.isArray(snapshot.world.harmonicDust), 'snapshot exposes harmonicDus
 assert.equal(snapshot.world.harmonicDust[0].type, 'harmonic_dust', 'snapshot exposes harmonic dust type');
 assert.equal(snapshot.world.harmonicDust[0].dustKind, 'harmonic', 'snapshot exposes harmonic dust kind');
 assert.equal(snapshot.world.harmonicDust[0].collectible, true, 'snapshot marks harmonic dust collectible');
+assert.equal(snapshot.world.harmonicDust[0].originalColorName, 'YELLOW', 'snapshot exposes original harmonic color');
+assert.equal(snapshot.world.harmonicDust[0].transformState, 'harmonic', 'snapshot defaults harmonic transform state');
 assert.equal(typeof snapshot.world.harmonicDust[0].collectRatio, 'number', 'snapshot exposes collectRatio');
 assert.equal(snapshot.world.harmonicDust[0].visual.model, 'dust_cloud', 'snapshot exposes dust_cloud visual model');
 assert.notEqual(snapshot.world.harmonicDust[0].dustKind, 'ordinary_colored', 'snapshot never emits ordinary colored dust kind');
@@ -161,13 +163,13 @@ assert.equal(snapshot.diagnostics.harmonicDustManualCollectionEnabled, true, 'di
 assert.equal(snapshot.diagnostics.harmonicDustAutoTestCollectionEnabled, false, 'diagnostics expose auto/test collection flag');
 assert.equal(snapshot.diagnostics.harmonicDustCount, 1, 'diagnostics expose harmonicDustCount');
 assert.equal(snapshot.diagnostics.collectibleDustCount, 1, 'diagnostics expose collectibleDustCount');
-console.log('harmonic_dust_vm.test.js: OK');
-
 context = buildContext();
-context.World.asteroids = [{ id: 'ast_gray_1', type: 'asteroid', x: 0, y: 0, r: 12, mass: 9 }];
+context.World.asteroids = [{ id: 'ast_gray_1', type: 'asteroid', x: 0, y: 0, vx: 4, vy: 0, r: 12, mass: 9 }];
 context.World.harmonicDust = [{ id: 'dust_red_gray', type: 'harmonic_dust', dustKind: 'harmonic', collectible: true, colorName: 'RED', reservoirColorName: 'RED', x: 0, y: 0, r: 14, mass: 10, density: 0.42, collectProgressMs: 0, collectRequiredMs: 999999, reservoirPercentValue: 10 }];
 context.HC.HarmonicDust.updateBodyTransformations(context.World, 4, 16000);
-assert(context.World.harmonicDust[0].grayMixRatio > 0 || context.World.harmonicDust[0].colorName === 'GRAY', 'asteroid overlap grays colored harmonicDust');
+assert(context.World.harmonicDust[0].grayMixRatio > 0, 'asteroid exposure increases grayMixRatio');
+assert.equal(context.World.harmonicDust[0].transformState, 'gray_shifting', 'active asteroid exposure marks gray_shifting');
+assert.equal(context.World.harmonicDust[0].type, 'harmonic_dust', 'asteroid-gray dust keeps harmonic dust type');
 assert.equal(context.World.harmonicDust[0].dustKind, 'harmonic', 'asteroid-gray dust remains harmonic');
 assert.equal(context.World.cosmicDust, undefined, 'asteroid-gray path does not create cosmic dust');
 
@@ -206,9 +208,81 @@ snapshot = context.HC.WorldRenderSnapshot.build({ World: {
   spaceMechanics: {},
 }, Camera: {}, View: context.View, nowMs: 20000, dt: 0.016 });
 assert.equal(snapshot.world.harmonicDust[0].transformState, 'gray_mixed_by_asteroid', 'snapshot exposes harmonicDust transformState');
+assert.equal(snapshot.world.harmonicDust[0].originalColorName, null, 'snapshot tolerates missing originalColorName on legacy GRAY dust');
 assert.equal(snapshot.world.harmonicDust[0].grayMixRatio, 1, 'snapshot exposes harmonicDust grayMixRatio');
 assert.equal(snapshot.world.harmonicDust[0].visual.grayMixRatio, 1, 'snapshot visual exposes grayMixRatio');
 assert.equal(snapshot.world.moons[0].dustRings[0].colorName, 'BLUE', 'snapshot exposes moon dustRings');
 assert.equal(snapshot.world.moons[0].dustRingCount, 1, 'snapshot exposes moon dust ring count');
 assert.equal(snapshot.world.harmonicDust.some((dust) => dust.dustKind === 'ordinary_colored'), false, 'snapshot never emits ordinary_colored dust');
 assert.equal(snapshot.world.cosmicDust, undefined, 'snapshot does not add cosmic dust');
+
+
+context = buildContext();
+context.World.spaceMechanics.harmonicDustGrayRecoveryTimeMul = 2.0;
+context.World.asteroids = [{ id: 'ast_recover', type: 'asteroid', x: 0, y: 0, vx: 4, vy: 0, r: 12, mass: 9 }];
+context.World.harmonicDust = [{ id: 'dust_recover', type: 'harmonic_dust', dustKind: 'harmonic', collectible: true, originalColorName: 'RED', colorName: 'RED', reservoirColorName: 'RED', x: 0, y: 0, r: 14, mass: 10, density: 1, collectProgressMs: 0, collectRequiredMs: 999999, reservoirPercentValue: 10 }];
+context.HC.HarmonicDust.updateBodyTransformations(context.World, 1, 21000);
+const disturbedRatio = context.World.harmonicDust[0].grayMixRatio;
+assert(disturbedRatio > 0, 'exposure created recoverable gray shift');
+context.World.asteroids = [];
+context.HC.HarmonicDust.updateBodyTransformations(context.World, 0.5, 21500);
+assert(context.World.harmonicDust[0].grayMixRatio < disturbedRatio, 'no exposure triggers recovery and lowers grayMixRatio');
+assert(['recovering', 'harmonic'].includes(context.World.harmonicDust[0].transformState), 'recovering dust reports recovering or harmonic after full recovery');
+
+context = buildContext();
+context.World.spaceMechanics.harmonicDustGrayRecoveryTimeMul = 2.0;
+context.World.asteroids = [{ id: 'ast_recover_2x', type: 'asteroid', x: 0, y: 0, vx: 0, vy: 0, r: 12, mass: 9 }];
+context.World.harmonicDust = [{ id: 'dust_recover_2x', type: 'harmonic_dust', dustKind: 'harmonic', collectible: true, originalColorName: 'GREEN', colorName: 'GREEN', reservoirColorName: 'GREEN', x: 0, y: 0, r: 14, mass: 10, density: 1, grayMixRatio: 0.5, grayExposureMs: 1000, collectProgressMs: 0, collectRequiredMs: 999999, reservoirPercentValue: 10 }];
+context.World.asteroids = [];
+context.HC.HarmonicDust.updateBodyTransformations(context.World, 0.5, 22500);
+assert(context.World.harmonicDust[0].grayMixRatio > 0, '2x recovery is not immediate after half the recovery window');
+context.HC.HarmonicDust.updateBodyTransformations(context.World, 2.0, 24500);
+assert.equal(context.World.harmonicDust[0].grayMixRatio, 0, '2x recovery window returns grayMixRatio to 0');
+assert.equal(context.World.harmonicDust[0].transformState, 'harmonic', 'fully recovered dust returns to harmonic state');
+assert.equal(context.World.harmonicDust[0].colorName, 'GREEN', 'fully recovered dust restores original color');
+
+context = buildContext();
+context.World.spaceMechanics.harmonicDustGrayBaseRate = 4;
+context.World.spaceMechanics.harmonicDustGrayConversionThreshold = 1.0;
+context.World.asteroids = [{ id: 'ast_lock', type: 'asteroid', x: 0, y: 0, vx: 10, vy: 0, r: 12, mass: 9 }];
+context.World.harmonicDust = [{ id: 'dust_lock', type: 'harmonic_dust', dustKind: 'harmonic', collectible: true, originalColorName: 'BLUE', colorName: 'BLUE', reservoirColorName: 'BLUE', x: 0, y: 0, r: 14, mass: 10, density: 1, collectProgressMs: 0, collectRequiredMs: 999999, reservoirPercentValue: 10 }];
+context.HC.HarmonicDust.updateBodyTransformations(context.World, 1, 25000);
+assert.equal(context.World.harmonicDust[0].transformState, 'gray_locked', 'threshold locks gray state');
+assert.equal(context.World.harmonicDust[0].colorName, 'GRAY', 'locked dust colorName becomes GRAY');
+assert.equal(context.World.harmonicDust[0].futureCosmicCandidate, true, 'locked gray dust is only marked as future cosmic candidate');
+assert.equal(context.World.cosmicDust, undefined, 'gray lock does not create World.cosmicDust');
+
+context = buildContext();
+context.World.harmonicDust = [{ id: 'dust_partial_collect', type: 'harmonic_dust', dustKind: 'harmonic', collectible: true, originalColorName: 'RED', colorName: 'RED', reservoirColorName: 'RED', transformState: 'recovering', grayMixRatio: 0.4, x: 0, y: 0, r: 14, mass: 10, density: 0.42, collectProgressMs: 0, collectRequiredMs: 1, reservoirPercentValue: 10 }];
+context.Input.pointerDown = true;
+context.Input.wx = 0;
+context.Input.wy = 0;
+context.HC.HarmonicDust.update(1, 26000);
+assert.equal(context.World.harmonicDustReservoir.activeColorName, 'RED', 'recoverable pre-threshold dust collection uses original harmonic color');
+assert.equal(context.World.harmonicDustReservoir.isMixedGray, false, 'recoverable pre-threshold collection does not become cosmic or mixed gray');
+assert.equal(context.World.cosmicDust, undefined, 'recoverable collection does not create cosmic dust');
+
+context = buildContext();
+context.World.harmonicDust = [{ id: 'dust_locked_collect', type: 'harmonic_dust', dustKind: 'harmonic', collectible: true, originalColorName: 'YELLOW', colorName: 'GRAY', reservoirColorName: 'GRAY', transformState: 'gray_locked', futureCosmicCandidate: true, grayMixRatio: 1, x: 0, y: 0, r: 14, mass: 10, density: 0.42, collectProgressMs: 0, collectRequiredMs: 1, reservoirPercentValue: 10 }];
+context.Input.pointerDown = true;
+context.Input.wx = 0;
+context.Input.wy = 0;
+context.HC.HarmonicDust.update(1, 27000);
+assert.equal(context.World.harmonicDustReservoir.activeColorName, 'GRAY', 'locked GRAY dust collection routes to GRAY reservoir');
+assert.equal(context.World.harmonicDustReservoir.isMixedGray, true, 'locked GRAY dust collection marks mixed gray reservoir');
+assert.equal(context.World.cosmicDust, undefined, 'locked GRAY collection does not create cosmic dust');
+
+snapshot = context.HC.WorldRenderSnapshot.build({ World: {
+  harmonicDust: [{ id: 'snapshot_elastic', type: 'harmonic_dust', dustKind: 'harmonic', originalColorName: 'RED', colorName: 'RED', x: 1, y: 2, r: 3, mass: 4, density: 0.4, transformState: 'recovering', grayMixRatio: 0.25, grayExposureMs: 1000, grayRecoveryMs: 500 }],
+  spaceMechanics: {},
+}, Camera: {}, View: context.View, nowMs: 28000, dt: 0.016 });
+assert.equal(snapshot.world.harmonicDust[0].originalColorName, 'RED', 'elastic snapshot exposes originalColorName');
+assert.equal(snapshot.world.harmonicDust[0].grayMixRatio, 0.25, 'elastic snapshot exposes grayMixRatio');
+assert.equal(snapshot.world.harmonicDust[0].grayExposureMs, 1000, 'elastic snapshot exposes grayExposureMs');
+assert.equal(snapshot.world.harmonicDust[0].grayRecoveryMs, 500, 'elastic snapshot exposes grayRecoveryMs');
+assert.equal(snapshot.world.harmonicDust[0].transformState, 'recovering', 'elastic snapshot exposes transformState');
+assert.equal(snapshot.world.harmonicDust[0].visual.originalColorName, 'RED', 'elastic snapshot visual exposes originalColorName');
+assert.equal(snapshot.world.harmonicDust.some((dust) => dust.dustKind === 'cosmic'), false, 'snapshot never emits cosmic dust kind');
+assert.equal(snapshot.world.cosmicDust, undefined, 'snapshot contract has no World.cosmicDust');
+
+console.log('harmonic_dust_vm.test.js: OK');

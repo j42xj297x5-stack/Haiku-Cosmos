@@ -4261,13 +4261,17 @@
   }
 
 
-  function getHarmonicDustMaterial(THREE, colorKey) {
-    const key = normalizeMeteorColorKey(colorKey);
+  function getHarmonicDustMaterial(THREE, colorKey, grayMixRatio) {
+    const baseKey = String(colorKey || '').toLowerCase() === 'gray' ? 'gray' : normalizeMeteorColorKey(colorKey);
+    const mixBucket = Math.round(Math.max(0, Math.min(1, Number(grayMixRatio) || (baseKey === 'gray' ? 1 : 0))) * 20) / 20;
+    const key = `${baseKey}:${mixBucket}`;
     const existing = threeState.harmonicDustMaterials.get(key);
     if (existing) return existing;
     const colorMap = { red: 0xff6b6b, yellow: 0xffd166, green: 0x6ee7a8, blue: 0x7dbdff, gray: 0xaeb4bd, neutral: 0xb6bfd2 };
+    const color = new THREE.Color(colorMap[baseKey] || colorMap.neutral);
+    color.lerp(new THREE.Color(colorMap.gray), mixBucket);
     const mat = new THREE.MeshBasicMaterial({
-      color: colorMap[key] || colorMap.neutral,
+      color,
       transparent: true,
       opacity: 0.42,
       side: THREE.DoubleSide,
@@ -4347,7 +4351,7 @@
     root.userData.hcObjectType = "harmonic_dust";
     root.userData.harmonicDustKey = key;
     root.frustumCulled = false;
-    const mesh = new THREE.Mesh(threeState.harmonicDustGeometry, getHarmonicDustMaterial(THREE, dust.colorName));
+    const mesh = new THREE.Mesh(threeState.harmonicDustGeometry, getHarmonicDustMaterial(THREE, dust.originalColorName || dust.colorName, dust.grayMixRatio || dust.visual?.grayMixRatio));
     mesh.frustumCulled = false;
     mesh.renderOrder = 950;
     root.add(mesh);
@@ -4373,8 +4377,9 @@
         threeState.harmonicDustGroup.add(visual.root);
         threeState.harmonicDustMeshes.set(key, visual);
       }
-      const colorKey = String(dust.colorName || dust.visual?.colorName || '').toLowerCase() === 'gray' ? 'gray' : normalizeMeteorColorKey(dust.colorName || dust.visual?.colorName);
-      visual.mesh.material = getHarmonicDustMaterial(THREE, colorKey);
+      const grayMixRatio = Math.max(0, Math.min(1, Number(dust.grayMixRatio ?? dust.visual?.grayMixRatio) || (String(dust.colorName || '').toLowerCase() === 'gray' ? 1 : 0)));
+      const colorKey = String(dust.colorName || '').toLowerCase() === 'gray' ? 'gray' : normalizeMeteorColorKey(dust.originalColorName || dust.colorName || dust.visual?.originalColorName || dust.visual?.colorName);
+      visual.mesh.material = getHarmonicDustMaterial(THREE, colorKey, grayMixRatio);
       const radius = Math.max(1, Number(dust.visual?.radius ?? dust.r) || 1);
       const collectRatio = Math.max(0, Math.min(1, Number(dust.collectRatio) || 0));
       const renderRadius = applyRenderSpaceToRadius(radius * (1 + collectRatio * 0.08));
@@ -4383,7 +4388,6 @@
       visual.root.renderOrder = 950;
       visual.root.visible = dust.flags?.dead !== true;
       visual.mesh.scale.set(renderRadius, renderRadius, 1);
-      const grayMixRatio = Math.max(0, Math.min(1, Number(dust.grayMixRatio ?? dust.visual?.grayMixRatio) || (colorKey === 'gray' ? 1 : 0)));
       visual.mesh.material.opacity = Math.max(0.12, Math.min(0.62, Number(dust.visual?.alpha) || 0.34)) * (dust.isBeingCollected ? 1.08 : 1) * (1 - grayMixRatio * 0.08);
       visual.mesh.rotation.z = ((Number(nowMs) || 0) / 9000) + i * 0.37;
     }
