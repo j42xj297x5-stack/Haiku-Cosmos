@@ -61,6 +61,7 @@ let called = 0;
 const originalResolve = context.HC.Impact.resolvePlanetImpact;
 context.HC.Impact = Object.assign({}, context.HC.Impact, { resolvePlanetImpact(input) { called += 1; return originalResolve(input); } });
 context.HC.Planets.capture(0.016, 1234);
+assert.equal(context.World.spaceMechanics.planetCaptureMode, 'impact_only', 'default planetCaptureMode is impact_only');
 assert.equal(called, 1, 'direct planet impact calls resolvePlanetImpact');
 assert.equal(context.World.meteors.length, 0, 'direct impact consumes meteor');
 assert.equal(context.World.planets[0].orbiters.length, 0, 'direct impact does not also create a legacy orbiter');
@@ -78,10 +79,21 @@ context = buildContext();
 context.World.planets = [planet()];
 context.World.meteors = [meteor('legacy', 35)];
 context.HC.Planets.capture(0.016, 1234);
-assert.equal(context.World.meteors.length, 0, 'legacy capture still consumes non-direct meteor inside orbit radius');
-assert.equal(context.World.planets[0].orbiters.length, 1, 'legacy capture still creates an orbiter');
-assert.equal(context.World.planets[0].lastImpact, undefined, 'legacy capture does not set direct impact evidence');
-assert.equal(context.World.planetImpactCount || 0, 0, 'legacy capture does not increment direct impact counter');
+assert.equal(context.World.spaceMechanics.planetCaptureMode, 'impact_only', 'missing mode normalizes to impact_only');
+assert.equal(context.World.meteors.length, 1, 'impact_only does not consume non-direct meteor inside legacy orbit radius');
+assert.equal(context.World.planets[0].orbiters.length, 0, 'impact_only does not create a legacy orbiter');
+assert.equal(context.World.planets[0].lastImpact, undefined, 'non-direct legacy-range pass does not set direct impact evidence');
+assert.equal(context.World.planetImpactCount || 0, 0, 'non-direct legacy-range pass does not increment direct impact counter');
+
+context = buildContext();
+context.World.spaceMechanics.planetCaptureMode = 'legacy_capture';
+context.World.planets = [planet()];
+context.World.meteors = [meteor('legacy-fallback', 35)];
+context.HC.Planets.capture(0.016, 1234);
+assert.equal(context.World.meteors.length, 0, 'legacy_capture fallback consumes non-direct meteor inside orbit radius');
+assert.equal(context.World.planets[0].orbiters.length, 1, 'legacy_capture fallback creates an orbiter');
+assert.equal(context.World.planets[0].lastImpact, undefined, 'legacy_capture fallback does not set direct impact evidence');
+assert.equal(context.World.planetImpactCount || 0, 0, 'legacy_capture fallback does not increment direct impact counter');
 
 context = buildContext();
 context.World.planets = [planet()];
@@ -91,5 +103,20 @@ assert.equal(context.World.asteroids.length, 0, 'direct asteroid impact consumes
 assert.equal(context.World.planets[0].lastImpact.source, 'asteroid', 'asteroid direct impact evidence is recorded');
 assert.equal(context.World.harmonicDust.length, 0, 'asteroid planet impact creates no harmonic dust');
 assert.equal(context.World.harmonicDustReservoir.fillPercent, 33, 'asteroid planet impact does not touch reservoir');
+
+context = buildContext();
+context.World.planets = [planet()];
+context.World.asteroids = [{ id: 'a2', type: 'asteroid', kind: 'asteroid', x: 35, y: 0, vx: 0, vy: 0, r: 2, age: 1, mass: 16 }];
+context.HC.Planets.capture(0.016, 1234);
+assert.equal(context.World.asteroids.length, 1, 'impact_only does not capture non-direct asteroid inside legacy orbit radius');
+assert.equal(context.World.asteroids[0].parentKind || null, null, 'impact_only does not set asteroid parentKind=planet');
+
+context = buildContext();
+context.World.spaceMechanics.planetCaptureMode = 'legacy_capture';
+context.World.planets = [planet()];
+context.World.asteroids = [{ id: 'a3', type: 'asteroid', kind: 'asteroid', x: 35, y: 0, vx: 0, vy: 0, r: 2, age: 1, mass: 16 }];
+context.HC.Planets.capture(0.016, 1234);
+assert.equal(context.World.asteroids.length, 1, 'legacy_capture fallback keeps asteroid in active list as an orbiter');
+assert.equal(context.World.asteroids[0].parentKind, 'planet', 'legacy_capture fallback can still set parentKind=planet');
 
 console.log('planet_impact_vm.test.js: OK');
