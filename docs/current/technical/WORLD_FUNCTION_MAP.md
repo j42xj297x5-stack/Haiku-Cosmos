@@ -244,7 +244,7 @@ Dla meteorów, asteroid, księżyców, planet, gwiazd, `impactFragment` oraz prz
 ### 3.3A `hc.space_bodies.js` / `hc.impact.js` / `hc.harmonic_dust.js` — Space foundation po Patch A2
 
 **STATE / helpers:**
-- `HC.SpaceBodies` dostarcza wspólny kontrakt masy, promienia, rodzaju ciała, direct impact i future `orbitState`.
+- `HC.SpaceBodies` dostarcza wspólny kontrakt masy, promienia, rodzaju ciała, direct impact i future `orbitState`; Patch D1 dodaje side-effect-free helper klasyfikacji pól body contract (`classifyBodyField`, `classifyBodyFields`, `getBodyContractFields`) do audytu/testów/refaktorów bez zmiany runtime flow.
 - `HC.Impact` jest foundation helperem: `splitMass`, `resolvePlanetImpact`, `resolveMoonImpact`, `spawnEjecta`, `updateFragments`.
 - Patch C1: `resolvePlanetImpact` jest jedyną aktualną live ścieżką dla bezpośredniego kontaktu meteor/asteroida → planeta w `captureMeteorsByPlanets` i `captureAsteroidsByPlanets`. Legacy planet capture przez `orbitPx` / `gravityR` / `capR` / `orbiters` został fizycznie usunięty z live path.
 - `resolveMoonImpact` jest częściowo live dla direct moon absorption w `hc.asteroids.js`; moon dostaje tylko masę wchłoniętą z impact split, a `moonImpactDust` pozostaje deskryptorem/evidence, nie fizycznym `harmonicDust`.
