@@ -290,7 +290,7 @@
     threeAsteroidCount: 0,
     threeMeteorLastError: null,
     threeAsteroidLastError: null,
-    threeObjectRenderPasses: ["meteors", "asteroids", "planets", "harmonicDust", "prgIndicator"],
+    threeObjectRenderPasses: ["meteors", "asteroids", "moons", "planets", "harmonicDust", "cosmicDust", "prgIndicator"],
     debugMarker: null,
     debugMarkerEnabled: THREE_DEBUG_MARKER_ENABLED,
     threeMeteorRadiusScale: THREE_METEOR_RADIUS_SCALE,
@@ -4526,7 +4526,6 @@
       visual.root.visible = !m.flags?.dead;
       visual.fallback.scale.set(renderRadius, renderRadius, 1);
       visual.fallback.material.opacity = Number.isFinite(m.alpha) ? Math.max(0.9, m.alpha) : 1;
-      syncMoonDustRings(THREE, visual, moon, renderRadius);
       if (visual.glb) {
         const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
         const glbScale = ((renderRadius * METEOR_GLB_RADIUS_SCALE) / unitRadius) * meteorGlbVisualScale;
@@ -4645,7 +4644,6 @@
       visual.fallback.scale.set(renderRadius, renderRadius, 1);
       visual.fallback.rotation.z = Number.isFinite(a.angle) ? a.angle : 0;
       visual.fallback.material.opacity = opacity;
-      syncMoonDustRings(THREE, visual, moon, renderRadius);
       if (visual.glb) {
         const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
         const glbScale = ((renderRadius * ASTEROID_GLB_RADIUS_SCALE) / unitRadius);
@@ -5018,7 +5016,6 @@
       visual.root.visible = !planet.flags?.dead && !planet.visual?.absorbingIntoStarId;
       visual.fallback.scale.set(renderRadius, renderRadius, 1);
       visual.fallback.material.opacity = Number.isFinite(planet.alpha) ? Math.max(0.25, Math.min(1, planet.alpha)) : 1;
-      syncMoonDustRings(THREE, visual, moon, renderRadius);
       if (visual.glb) {
         const unitRadius = Math.max(0.0001, Number(visual.glb.userData?.hcUnitRadius) || 1);
         const glbScale = renderRadius / unitRadius;
@@ -5091,30 +5088,24 @@
         threeModeActive = true; effectiveMode = "three"; fallbackUsed = false; fallbackReason = null; lastError = null;
         resize(renderSnapshot);
         if (isWorldRendererDebugMode()) runGltfDebugProbe(THREE);
-        try {
-          if (threeState.threeMeteorRenderEnabled) syncMeteorPass(renderSnapshot || {}, nowMs);
-          threeState.threeMeteorLastError = null;
-        } catch (err) {
-          threeState.threeMeteorLastError = err?.message || String(err);
-          threeState.threeMeteorCount = 0;
-        }
-        try {
-          if (threeState.threeAsteroidRenderEnabled) syncAsteroidPass(renderSnapshot || {}, nowMs);
-          threeState.threeAsteroidLastError = null;
-        } catch (err) {
-          threeState.threeAsteroidLastError = err?.message || String(err);
-          threeState.threeAsteroidCount = 0;
-        }
-        try {
-          syncMoonPass(renderSnapshot || {}, nowMs);
-          syncPlanetPass(renderSnapshot || {}, nowMs);
-          syncHarmonicDustPass(renderSnapshot || {}, nowMs);
-          syncPrgIndicatorPass(renderSnapshot || {});
-          threeState.threePlanetLastError = null;
-        } catch (err) {
-          threeState.threePlanetLastError = err?.message || String(err);
-          threeState.threePlanetCount = 0;
-        }
+        const runPass = (name, fn, errorField, countField) => {
+          try {
+            fn();
+            if (errorField) threeState[errorField] = null;
+          } catch (err) {
+            const message = err?.message || String(err);
+            if (errorField) threeState[errorField] = message;
+            threeState.lastRendererError = { pass: name, message, at: nowMs || Date.now() };
+            if (countField) threeState[countField] = 0;
+          }
+        };
+        runPass("meteors", () => { if (threeState.threeMeteorRenderEnabled) syncMeteorPass(renderSnapshot || {}, nowMs); }, "threeMeteorLastError", "threeMeteorCount");
+        runPass("asteroids", () => { if (threeState.threeAsteroidRenderEnabled) syncAsteroidPass(renderSnapshot || {}, nowMs); }, "threeAsteroidLastError", "threeAsteroidCount");
+        runPass("moons", () => syncMoonPass(renderSnapshot || {}, nowMs), "threeMoonLastError", "threeMoonCount");
+        runPass("planets", () => syncPlanetPass(renderSnapshot || {}, nowMs), "threePlanetLastError", "threePlanetCount");
+        runPass("harmonicDust", () => syncHarmonicDustPass(renderSnapshot || {}, nowMs), "threeHarmonicDustLastError", null);
+        runPass("cosmicDust", () => syncCosmicDustPass(renderSnapshot || {}, nowMs), "threeCosmicDustLastError", null);
+        runPass("prgIndicator", () => syncPrgIndicatorPass(renderSnapshot || {}), "threePrgIndicatorLastError", null);
         threeState.renderCalls += 1;
         refreshMaterialOverrideStatus(THREE);
         syncMeteorTexturePalettesForActiveEntries(THREE);
@@ -5435,7 +5426,7 @@
       threeAsteroidRenderEnabled: !!threeState.threeAsteroidRenderEnabled, threeAsteroidCount: threeState.threeAsteroidCount, threeAsteroidMeshes: threeState.asteroidMeshes.size, asteroidMeshCount: threeState.asteroidMeshes.size,
       threePlanetCount: threeState.threePlanetCount, threePlanetSnapshotCount: threeState.threePlanetCount, threePlanetMeshes: threeState.planetMeshes.size,
       rockyPlanetCount: threeState.threeRockyPlanetCount, gasPlanetCount: threeState.threeGasPlanetCount,
-      threeMeteorLastError: threeState.threeMeteorLastError, threeAsteroidLastError: threeState.threeAsteroidLastError, threePlanetLastError: threeState.threePlanetLastError, threeObjectRenderPasses: threeState.threeObjectRenderPasses.slice(),
+      lastRendererError: threeState.lastRendererError || null, threeMeteorLastError: threeState.threeMeteorLastError, threeAsteroidLastError: threeState.threeAsteroidLastError, threePlanetLastError: threeState.threePlanetLastError, threeMoonLastError: threeState.threeMoonLastError || null, threeCosmicDustLastError: threeState.threeCosmicDustLastError || null, threePrgIndicatorLastError: threeState.threePrgIndicatorLastError || null, threeObjectRenderPasses: threeState.threeObjectRenderPasses.slice(),
       threeMeteorRadiusScale: threeState.threeMeteorRadiusScale,
       threeMeteorMinRadius: threeState.threeMeteorMinRadius,
       meteorGlbAssets: METEOR_GLB_ASSETS,
@@ -5569,6 +5560,9 @@
       firstMeteor: threeState.firstMeteorSample,
       firstMeteorMesh: threeState.firstMeshSample,
       threeDebugMarker: { globalEnabled: getGlobalHelpersEnabled(), enabled: !!threeState.debugMarkerEnabled, visible: !!threeState.debugMarker?.visible },
+      debugMarkerVisible: !!threeState.debugMarker?.visible,
+      debugMarkerEnabled: !!threeState.debugMarkerEnabled,
+      debugMarkerReason: threeState.debugMarker?.visible ? "global_helpers_and_marker_enabled" : "hidden_by_default_or_debug_disabled",
       cameraBounds: threeState.cameraBounds,
       worldCameraBounds: threeState.worldCameraBounds,
       rendererSize: threeState.rendererSize,
@@ -5579,6 +5573,8 @@
       moonGroupChildrenCount: threeState.moonGroupChildrenCount,
       harmonicDustGroupChildrenCount: threeState.harmonicDustGroupChildrenCount,
       threeHarmonicDustCount: threeState.threeHarmonicDustCount,
+      cosmicDustGroupChildrenCount: threeState.cosmicDustGroupChildrenCount || 0,
+      threeCosmicDustMeshes: threeState.cosmicDustMeshes.size,
       prgIndicatorActive: threeState.prgIndicatorActive,
       prgIndicatorRadius: threeState.prgIndicatorRadius,
       prgIndicatorEnabled: threeState.prgIndicatorEnabled,

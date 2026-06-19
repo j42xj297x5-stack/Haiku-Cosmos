@@ -218,6 +218,7 @@
 
     function createMoonFromAsteroid(a) {
       const mass = asteroidMassValue(a);
+      const currentFrame = Number(World.frame) || 0;
       const moon = {
         id: `moon:${a._id || a.id || Date.now()}:${World.moons.length + 1}`,
         type: "moon",
@@ -236,6 +237,9 @@
         progressionMode: "free",
         isOrbitalBody: false,
         canBecomePlanet: true,
+        bornAtFrame: currentFrame,
+        progressionLockFrame: currentFrame,
+        progressionCooldownUntilFrame: currentFrame + 2,
         parentPlanetId: null,
         orbitState: null,
         sourceAsteroidId: a._id || a.id || null,
@@ -262,6 +266,8 @@
         moonId: moon.id,
         mass: moon.mass,
         radius: moon.r,
+        progressionLockFrame: moon.progressionLockFrame,
+        progressionCooldownUntilFrame: moon.progressionCooldownUntilFrame,
       }, { snapshot: true, source: source || "Asteroids.transformAsteroidToMoon" });
       window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_TRANSFORMATION_COMPLETED, {
         sourceType: "asteroid",
@@ -693,7 +699,7 @@
       const nextR = SpaceBodies?.radiusFromMass?.("moon", moon.mass, {
         baseRadius: Number(moon.massOneRadius || moon.baseR) || 1,
         minRadius: Number(moon.minR) || 0.1,
-        maxRadius: Number(moon.maxR) || Infinity,
+        maxRadius: Number(moon.maxR) || Number(World.spaceMechanics?.maxMoonRadius) || Infinity,
       });
       if (Number.isFinite(nextR) && nextR > 0) {
         moon.r = nextR;
@@ -709,7 +715,7 @@
 
     function createRockyPlanetFromMoon(moon, reason) {
       const mass = moonMassValue(moon);
-      const radius = SpaceBodies?.radiusFromMass?.("planet", mass, { baseRadius: Number(moon.massOneRadius || moon.baseR) || 1, minRadius: Number(moon.r) || 1 }) || Number(moon.r) || 1;
+      const radius = SpaceBodies?.radiusFromMass?.("planet", mass, { baseRadius: Number(moon.massOneRadius || moon.baseR) || 1, minRadius: Number(moon.r) || 1, maxRadius: Number(World.spaceMechanics?.maxRockyPlanetRadius) || Infinity }) || Number(moon.r) || 1;
       const planet = {
         id: `rocky_planet:${moon.id || Date.now()}:${World.planets.length + 1}`,
         type: "planet",
@@ -766,6 +772,18 @@
 
     function canMoonBecomeRockyPlanet(moon) {
       if (!moon || moon._dead) return false;
+      const currentFrame = Number(World.frame) || 0;
+      const cooldownUntil = Number(moon.progressionCooldownUntilFrame);
+      if (Number.isFinite(cooldownUntil) && currentFrame < cooldownUntil) {
+        World.progressionBlockedSameFrameCount = (Number(World.progressionBlockedSameFrameCount) || 0) + 1;
+        World.lastProgressionBlockedEvent = { type: "moon_to_planet_cooldown", moonId: moon.id || moon._id || null, currentFrame, cooldownUntil };
+        return false;
+      }
+      if (moon.progressionLockFrame === currentFrame) {
+        World.progressionBlockedSameFrameCount = (Number(World.progressionBlockedSameFrameCount) || 0) + 1;
+        World.lastProgressionBlockedEvent = { type: "moon_to_planet_same_frame", moonId: moon.id || moon._id || null, currentFrame };
+        return false;
+      }
       if (moon.canBecomePlanet === false) return false;
       if (moon.progressionMode === "orbital") return false;
       if (moon.isOrbitalBody === true) return false;
