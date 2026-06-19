@@ -162,3 +162,53 @@ assert.equal(snapshot.diagnostics.harmonicDustAutoTestCollectionEnabled, false, 
 assert.equal(snapshot.diagnostics.harmonicDustCount, 1, 'diagnostics expose harmonicDustCount');
 assert.equal(snapshot.diagnostics.collectibleDustCount, 1, 'diagnostics expose collectibleDustCount');
 console.log('harmonic_dust_vm.test.js: OK');
+
+context = buildContext();
+context.World.asteroids = [{ id: 'ast_gray_1', type: 'asteroid', x: 0, y: 0, r: 12, mass: 9 }];
+context.World.harmonicDust = [{ id: 'dust_red_gray', type: 'harmonic_dust', dustKind: 'harmonic', collectible: true, colorName: 'RED', reservoirColorName: 'RED', x: 0, y: 0, r: 14, mass: 10, density: 0.42, collectProgressMs: 0, collectRequiredMs: 999999, reservoirPercentValue: 10 }];
+context.HC.HarmonicDust.updateBodyTransformations(context.World, 4, 16000);
+assert(context.World.harmonicDust[0].grayMixRatio > 0 || context.World.harmonicDust[0].colorName === 'GRAY', 'asteroid overlap grays colored harmonicDust');
+assert.equal(context.World.harmonicDust[0].dustKind, 'harmonic', 'asteroid-gray dust remains harmonic');
+assert.equal(context.World.cosmicDust, undefined, 'asteroid-gray path does not create cosmic dust');
+
+context = buildContext();
+context.World.harmonicDust = [{ id: 'dust_gray_collect', type: 'harmonic_dust', dustKind: 'harmonic', collectible: true, colorName: 'GRAY', reservoirColorName: 'GRAY', x: 0, y: 0, r: 14, mass: 10, density: 0.42, collectProgressMs: 0, collectRequiredMs: 1, reservoirPercentValue: 10 }];
+context.Input.pointerDown = true;
+context.Input.wx = 0;
+context.Input.wy = 0;
+context.HC.HarmonicDust.update(1, 17000);
+assert.equal(context.World.harmonicDustReservoir.activeColorName, 'GRAY', 'GRAY harmonicDust collection routes to GRAY reservoir');
+assert.equal(context.World.harmonicDustReservoir.isMixedGray, true, 'GRAY harmonicDust collection marks mixed gray reservoir');
+assert.equal(context.World.cosmicDust, undefined, 'GRAY collection does not create cosmic dust');
+
+context = buildContext();
+context.World.moons = [{ id: 'moon_blue_ring', type: 'moon', x: 0, y: 0, r: 10, mass: 5 }];
+context.World.harmonicDust = [{ id: 'dust_blue_ring', type: 'harmonic_dust', dustKind: 'harmonic', collectible: true, colorName: 'BLUE', reservoirColorName: 'BLUE', x: 0, y: 0, r: 14, mass: 10, density: 0.42, collectProgressMs: 0, collectRequiredMs: 999999, reservoirPercentValue: 10 }];
+const beforeMoonDustMass = context.World.harmonicDust[0].mass;
+context.HC.HarmonicDust.updateBodyTransformations(context.World, 1, 18000);
+assert(Array.isArray(context.World.moons[0].dustRings), 'moon gains dustRings array');
+assert.equal(context.World.moons[0].dustRings[0].colorName, 'BLUE', 'moon mini-ring keeps absorbed dust color');
+assert(context.World.harmonicDust[0].mass < beforeMoonDustMass, 'moon absorption decreases dust mass');
+assert.equal(context.World.moons[0].dustRings[0].source, 'harmonic_dust_absorption', 'moon mini-ring records harmonic absorption source');
+assert.equal(context.World.moons[0].orbiters, undefined, 'moon dust ring does not create moon orbiters');
+assert.equal(context.World.moons[0].dustRings[0].parentKind, undefined, 'moon dust ring does not create parentKind');
+assert.equal(context.World.moons[0].dustRings[0].parentRef, undefined, 'moon dust ring does not create parentRef');
+
+context = buildContext();
+context.World.moons = [{ id: 'moon_gray_ignore', type: 'moon', x: 0, y: 0, r: 10, mass: 5 }];
+context.World.harmonicDust = [{ id: 'dust_gray_ignore', type: 'harmonic_dust', dustKind: 'harmonic', collectible: true, colorName: 'GRAY', reservoirColorName: 'GRAY', x: 0, y: 0, r: 14, mass: 10, density: 0.42, collectProgressMs: 0, collectRequiredMs: 999999, reservoirPercentValue: 10 }];
+context.HC.HarmonicDust.updateBodyTransformations(context.World, 1, 19000);
+assert.equal(context.World.moons[0].dustRings, undefined, 'GRAY harmonicDust is ignored by moon mini-ring path in this patch');
+
+snapshot = context.HC.WorldRenderSnapshot.build({ World: {
+  harmonicDust: [{ id: 'snapshot_gray', type: 'harmonic_dust', dustKind: 'harmonic', colorName: 'GRAY', x: 1, y: 2, r: 3, mass: 4, density: 0.4, transformState: 'gray_mixed_by_asteroid', grayMixRatio: 1 }],
+  moons: [{ id: 'snapshot_moon', type: 'moon', x: 4, y: 5, r: 6, dustRings: [{ id: 'ring1', colorName: 'BLUE', mass: 1, density: 0.1, radius: 8, source: 'harmonic_dust_absorption' }] }],
+  spaceMechanics: {},
+}, Camera: {}, View: context.View, nowMs: 20000, dt: 0.016 });
+assert.equal(snapshot.world.harmonicDust[0].transformState, 'gray_mixed_by_asteroid', 'snapshot exposes harmonicDust transformState');
+assert.equal(snapshot.world.harmonicDust[0].grayMixRatio, 1, 'snapshot exposes harmonicDust grayMixRatio');
+assert.equal(snapshot.world.harmonicDust[0].visual.grayMixRatio, 1, 'snapshot visual exposes grayMixRatio');
+assert.equal(snapshot.world.moons[0].dustRings[0].colorName, 'BLUE', 'snapshot exposes moon dustRings');
+assert.equal(snapshot.world.moons[0].dustRingCount, 1, 'snapshot exposes moon dust ring count');
+assert.equal(snapshot.world.harmonicDust.some((dust) => dust.dustKind === 'ordinary_colored'), false, 'snapshot never emits ordinary_colored dust');
+assert.equal(snapshot.world.cosmicDust, undefined, 'snapshot does not add cosmic dust');

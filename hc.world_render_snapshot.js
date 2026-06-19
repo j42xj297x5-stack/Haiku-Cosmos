@@ -136,7 +136,11 @@
       parentId: body.parentId || body.parentRef?.id || body.parentRef?._id || null,
       orbit: body.orbitState || null,
       orbitState: body.orbitState || null,
+      dustRings: mapDustRings(body),
+      dustRingCount: mapDustRings(body).length,
       visual: {
+        dustRings: mapDustRings(body),
+        dustRingCount: mapDustRings(body).length,
         isCollapsing: !!body.isCollapsing,
         absorbingIntoStarId: body.absorbingIntoStarId || null,
         parentKind: body.parentKind || null,
@@ -155,7 +159,20 @@
 
   function normalizeDustColorName(value) {
     const upper = String(value || "").trim().toUpperCase();
-    return ["RED", "YELLOW", "GREEN", "BLUE"].includes(upper) ? upper : null;
+    return ["RED", "YELLOW", "GREEN", "BLUE", "GRAY"].includes(upper) ? upper : null;
+  }
+
+  function mapDustRings(body) {
+    return pickArray(body?.dustRings).map((ring, index) => ({
+      id: ring?.id || `dust_ring:${index}`,
+      colorName: normalizeDustColorName(ring?.colorName) || String(ring?.colorName || "UNKNOWN").toUpperCase(),
+      mass: toNumber(Number(ring?.mass), 0),
+      density: toNumber(Number(ring?.density), 0),
+      radius: toNumber(Number(ring?.radius), 0),
+      source: ring?.source || null,
+      createdAt: toNumber(Number(ring?.createdAt), undefined),
+      updatedAt: toNumber(Number(ring?.updatedAt), undefined),
+    }));
   }
 
   function clamp01(value) {
@@ -167,6 +184,7 @@
   function mapHarmonicDust(dust, index) {
     if (!dust || typeof dust !== "object" || dust._dead) return null;
     const colorName = normalizeDustColorName(dust.colorName || dust.reservoirColorName) || String(dust.colorName || dust.reservoirColorName || "UNKNOWN").toUpperCase();
+    const grayMixRatio = clamp01(dust.grayMixRatio);
     const collectRequiredMs = Math.max(1, toNumber(Number(dust.collectRequiredMs), 1));
     const collectProgressMs = Math.max(0, toNumber(Number(dust.collectProgressMs), 0));
     const collectRatio = clamp01(collectProgressMs / collectRequiredMs);
@@ -188,6 +206,8 @@
       mass,
       density,
       collectible: true,
+      transformState: dust.transformState || null,
+      grayMixRatio,
       collectProgressMs,
       collectRequiredMs,
       collectRatio,
@@ -200,6 +220,7 @@
         particleCountHint: Math.max(8, Math.min(36, Math.round(radius * 1.4))),
         radius,
         colorName,
+        grayMixRatio,
       },
     };
   }
@@ -346,6 +367,12 @@
         harmonicDustManualCollectionEnabled: World.spaceMechanics?.harmonicDustManualCollectionEnabled !== false,
         harmonicDustAutoTestCollectionEnabled: World.spaceMechanics?.harmonicDustAutoTestCollectionEnabled === true,
         harmonicDustCount: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead).length,
+        harmonicDustBodyTransformEnabled: World.spaceMechanics?.harmonicDustBodyTransformEnabled !== false,
+        harmonicDustAsteroidGrayEnabled: World.spaceMechanics?.harmonicDustAsteroidGrayEnabled !== false,
+        harmonicDustMoonRingAbsorbEnabled: World.spaceMechanics?.harmonicDustMoonRingAbsorbEnabled !== false,
+        harmonicDustGrayMixedCount: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead && (dust.colorName === "GRAY" || Number(dust.grayMixRatio) > 0)).length,
+        moonsWithDustRingsCount: pickArray(World.moons).filter((moon) => Array.isArray(moon?.dustRings) && moon.dustRings.length > 0).length,
+        lastDustTransformEvent: World.lastDustTransformEvent ? Object.assign({}, World.lastDustTransformEvent) : null,
         harmonicDustBeingCollectedCount: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead && dust.isBeingCollected === true).length,
         collectibleDustCount: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead && dust.collectible === true).length,
         harmonicDustMassByColor: pickArray(World.harmonicDust).reduce((acc, dust) => {

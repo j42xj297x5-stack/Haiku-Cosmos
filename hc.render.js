@@ -151,6 +151,17 @@
       ctx.fillStyle = "white";
       ctx.arc((moon.x || 0) - r * 0.22, (moon.y || 0) - r * 0.24, r * 0.28, 0, Math.PI * 2);
       ctx.fill();
+      const rings = Array.isArray(moon.dustRings) ? moon.dustRings : [];
+      for (const ring of rings) {
+        const hue = hueFromName(String(ring.colorName || "blue").toLowerCase());
+        const rr = Math.max(r * 1.18, Number(ring.radius) || r * 1.25);
+        ctx.globalAlpha = 0.34;
+        ctx.strokeStyle = `hsla(${hue} 72% 72% / 0.55)`;
+        ctx.lineWidth = Math.max(0.7, r * 0.045);
+        ctx.beginPath();
+        ctx.ellipse(moon.x || 0, moon.y || 0, rr, rr * 0.34, -0.28, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.restore();
     }
     
