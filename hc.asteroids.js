@@ -387,6 +387,87 @@
       Events.emit("ASTEROID_CREATED", { sides, from: [a.colorName, b.colorName], mass: asteroid.mass });
     }
 
+
+    function liveCollisionNowMs() {
+      return Number(World.nowMs ?? ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()));
+    }
+
+    function liveCollisionFrame() {
+      return Number(World.frame ?? World.frameCount ?? World.tick ?? 0) || 0;
+    }
+
+    function liveCollisionBodyId(body) {
+      return body?.id || body?._id || body?.uid || null;
+    }
+
+    function liveCollisionMass(body) {
+      return SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(body) : (Number(body?.mass) || 0);
+    }
+
+    function liveCollisionRadius(body) {
+      return Number(body?.r ?? body?.radius) || 0;
+    }
+
+    function liveCollisionCollisionRadius(body) {
+      return SpaceBodies?.getCollisionRadius ? SpaceBodies.getCollisionRadius(body) : (Number(body?.collisionRadius ?? body?.physicalRadius ?? body?.r ?? body?.radius) || 0);
+    }
+
+    function liveCollisionViewRadius(body) {
+      return Number(body?.viewRadius ?? body?.visualRadius ?? body?.r ?? body?.radius) || 0;
+    }
+
+    function captureLiveCollisionTargetState(target) {
+      return {
+        mass: liveCollisionMass(target),
+        radius: liveCollisionRadius(target),
+        collisionRadius: liveCollisionCollisionRadius(target),
+        viewRadius: liveCollisionViewRadius(target),
+      };
+    }
+
+    function recordLiveCollisionProbe(kind, bodyA, bodyB, target, beforeTarget, evidence, options = {}) {
+      const afterTarget = captureLiveCollisionTargetState(target);
+      const probe = {
+        ruleId: evidence?.ruleId || (kind === "meteor_asteroid" ? "meteor_asteroid" : "asteroid_asteroid"),
+        sourceFunction: options.sourceFunction || "Asteroids.unknown",
+        frame: liveCollisionFrame(),
+        timeMs: liveCollisionNowMs(),
+        bodyAType: bodyA?.type || bodyA?.kind || null,
+        bodyBType: bodyB?.type || bodyB?.kind || null,
+        bodyAId: liveCollisionBodyId(bodyA),
+        bodyBId: liveCollisionBodyId(bodyB),
+        bodyAMassBefore: Number(options.bodyAMassBefore ?? liveCollisionMass(bodyA)) || 0,
+        bodyBMassBefore: Number(options.bodyBMassBefore ?? liveCollisionMass(bodyB)) || 0,
+        targetId: liveCollisionBodyId(target),
+        targetMassBefore: beforeTarget.mass,
+        targetMassAfter: afterTarget.mass,
+        targetRadiusBefore: beforeTarget.radius,
+        targetRadiusAfter: afterTarget.radius,
+        targetCollisionRadiusBefore: beforeTarget.collisionRadius,
+        targetCollisionRadiusAfter: afterTarget.collisionRadius,
+        targetViewRadiusBefore: beforeTarget.viewRadius,
+        targetViewRadiusAfter: afterTarget.viewRadius,
+        dustMass: Number(evidence?.dustMass ?? evidence?.cosmicDustMass) || 0,
+        absorbMass: Number(evidence?.absorbMass ?? evidence?.absorbedMass) || 0,
+        fragmentsMass: Number(evidence?.fragmentsMass ?? evidence?.fragmentMass) || 0,
+        usedCollisionRules: options.usedCollisionRules === true,
+        usedMassRadiusContract: Boolean(SpaceBodies?.massRadiusContract || target?.massRadiusContractVersion),
+      };
+      if (options.bypassedSplitPolicy) {
+        probe.bypassedSplitPolicy = true;
+        probe.bypassReason = options.bypassReason || "unknown";
+        World.splitPolicyBypassCount = (Number(World.splitPolicyBypassCount) || 0) + 1;
+      }
+      if (afterTarget.radius === beforeTarget.radius) {
+        probe.radiusDidNotChange = true;
+        World.radiusNoChangeCount = (Number(World.radiusNoChangeCount) || 0) + 1;
+      }
+      if (kind === "meteor_asteroid") World.liveMeteorAsteroidCollisionCount = (Number(World.liveMeteorAsteroidCollisionCount) || 0) + 1;
+      if (kind === "asteroid_asteroid") World.liveAsteroidAsteroidCollisionCount = (Number(World.liveAsteroidAsteroidCollisionCount) || 0) + 1;
+      World.lastLiveCollisionProbe = probe;
+      return probe;
+    }
+
     function asteroidGrowthTarget() {
       const target = Number(World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 0);
       return Number.isFinite(target) && target > 0 ? target : Infinity;
@@ -487,11 +568,29 @@
               continue;
             }
 
+            const beforeTarget = captureLiveCollisionTargetState(a);
+            const meteorMassBefore = liveCollisionMass(m) || 1;
+            const asteroidMassBefore = beforeTarget.mass;
             meteors.splice(mi, 1);
+            let splitEvidence = null;
             if (window.HC?.CosmicDust?.applySplitPolicy) {
-              window.HC.CosmicDust.applySplitPolicy(World, { kind: "meteor_asteroid", meteor: m, asteroid: a, source: "Asteroids.resolveMeteorAsteroidContacts" });
+              splitEvidence = window.HC.CosmicDust.applySplitPolicy(World, { kind: "meteor_asteroid", meteor: m, asteroid: a, source: "Asteroids.resolveMeteorAsteroidContacts" });
+              recordLiveCollisionProbe("meteor_asteroid", m, a, a, beforeTarget, splitEvidence, {
+                sourceFunction: "Asteroids.resolveMeteorAsteroidContacts",
+                bodyAMassBefore: meteorMassBefore,
+                bodyBMassBefore: asteroidMassBefore,
+                usedCollisionRules: true,
+              });
             } else {
               absorbMeteorIntoAsteroid(a, m);
+              recordLiveCollisionProbe("meteor_asteroid", m, a, a, beforeTarget, { absorbedMass: 1 }, {
+                sourceFunction: "Asteroids.resolveMeteorAsteroidContacts",
+                bodyAMassBefore: meteorMassBefore,
+                bodyBMassBefore: asteroidMassBefore,
+                usedCollisionRules: false,
+                bypassedSplitPolicy: true,
+                bypassReason: "HC.CosmicDust.applySplitPolicy unavailable; used absorbMeteorIntoAsteroid fallback",
+              });
             }
 
             checkAsteroidMoonThreshold(a, "Asteroids.resolveMeteorAsteroidContacts");
@@ -674,7 +773,20 @@
             const massB = asteroidMassValue(b);
             const primary = massA >= massB ? a : b;
             const secondary = primary === a ? b : a;
+            const beforeTarget = captureLiveCollisionTargetState(primary);
             mergeAsteroidPair(primary, secondary);
+            recordLiveCollisionProbe("asteroid_asteroid", a, b, primary, beforeTarget, {
+              ruleId: "asteroid_asteroid",
+              cosmicDustMass: Math.min(massA, massB) * (Number(World.spaceMechanics?.cosmicDustSplitAsteroidAsteroidDustPct) || 0.50),
+              absorbedMass: Math.min(massA, massB) * (Number(World.spaceMechanics?.cosmicDustSplitAsteroidAsteroidAbsorbPct) || 0.50),
+            }, {
+              sourceFunction: "Asteroids.resolveAsteroidAsteroidContacts",
+              bodyAMassBefore: massA,
+              bodyBMassBefore: massB,
+              usedCollisionRules: false,
+              bypassedSplitPolicy: true,
+              bypassReason: "Asteroids.mergeAsteroidPair legacy path; HC.CosmicDust.applySplitPolicy not called",
+            });
             consumed.add(primary === a ? j : i);
             consumed.add(primary === a ? i : j);
             break;
