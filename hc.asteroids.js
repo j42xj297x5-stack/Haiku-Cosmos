@@ -767,18 +767,27 @@
     }
 
     function absorbBodyIntoMoon(moon, body, source) {
-      moon.mass = moonMassValue(moon) + (SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(body) : (Number(body.mass) || massFromR(Number(body.r) || 1)));
+      const impact = window.HC?.Impact?.resolveMoonImpact
+        ? window.HC.Impact.resolveMoonImpact({ moon, incoming: body, mechanics: World.spaceMechanics })
+        : null;
+      const absorbedMass = impact?.masses?.absorbed ?? (SpaceBodies?.getBodyMass ? SpaceBodies.getBodyMass(body) : (Number(body.mass) || massFromR(Number(body.r) || 1)));
+      moon.mass = moonMassValue(moon) + absorbedMass;
+      moon.lastImpact = impact || null;
       updateMoonRadius(moon);
+      if (impact && window.HC?.Impact?.spawnEjecta) window.HC.Impact.spawnEjecta(World, impact, moon);
+      if (impact && window.HC?.Impact?.logImpactEvidence) window.HC.Impact.logImpactEvidence(World, impact, "Asteroids.absorbBodyIntoMoon");
       body._dead = true;
       window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, {
         sourceType: "moon",
         sourceId: moon.id || moon._id || null,
         absorbedType: body.kind || body.type || source,
         absorbedId: body.id || body._id || null,
+        absorbedMass,
+        impactDust: impact?.dust || null,
         current: moon.mass,
         target: moonToRockyPlanetMassThreshold(),
         thresholdType: "moon_to_rocky_planet_mass",
-      }, { source: "Asteroids.absorbBodyIntoMoon" });
+      }, { source: "Asteroids.absorbBodyIntoMoon", snapshot: true });
       checkMoonRockyPlanetThreshold(moon, "moon_absorb_contact");
     }
 
