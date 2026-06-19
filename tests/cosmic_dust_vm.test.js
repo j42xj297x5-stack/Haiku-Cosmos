@@ -6,7 +6,9 @@ const vm = require('node:vm');
 function buildContext() {
   const context = { console, performance: { now: () => context.World?.nowMs || 0 }, window: {} };
   context.window = context;
-  context.HC = { getWorld: () => context.World, logEvent() {} };
+  context.HC = { getWorld: () => context.World, logEvent(domain, type, payload, options) {
+    context.Events.emitted.push({ domain, type, payload, options, lastMassSplitEvent: context.World?.lastMassSplitEvent ? Object.assign({}, context.World.lastMassSplitEvent) : null });
+  } };
   context.Events = { emitted: [], emit(type, payload) { this.emitted.push({ type, payload }); } };
   context.CardEngine = { onHitColor() {}, isColorR1Active() { return false; }, state: { engineStats: {} } };
   context.rand = (a, b) => (a + b) / 2;
@@ -58,16 +60,25 @@ assert.equal(c.World.cosmicDust.length, 0, 'same-color meteor collision does not
 
 c = buildContext();
 let m = meteor('m', 'yellow', 10), a = asteroid('a', 30);
+const loadedRules = JSON.parse(JSON.stringify(c.HC.CollisionRules.DEFAULT_RULES)); loadedRules.profile = 'test_loaded_settings'; Object.assign(loadedRules.rules.find((rule) => rule.id === 'meteor_asteroid'), { dustPct: 0.3, absorbPct: 0.3, fragmentsPct: 0.4, orbiterPct: 0 }); c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, loadedRules);
 c.World.asteroids = [a];
 c.HC.CosmicDust.applySplitPolicy(c.World, { kind: 'meteor_asteroid', meteor: m, asteroid: a });
-assert.equal(totalCosmic(c.World), 8, 'meteor+asteroid sends 80% meteor mass to cosmic dust');
-assert.equal(a.mass, 32, 'meteor+asteroid absorbs 20% meteor mass into asteroid');
+assert.equal(totalCosmic(c.World), 3, 'meteor+asteroid sends configured dustPct meteor mass to cosmic dust');
+assert.equal(a.mass, 33, 'meteor+asteroid absorbs configured absorbPct meteor mass into asteroid');
+assert.equal(c.World.lastMassSplitEvent.fragmentsMass, 4, 'meteor+asteroid records fragmentsMass descriptor from fragmentsPct');
+assert.equal(c.World.lastMassSplitEvent.conservationOutputMass, 10, 'meteor+asteroid conservation output includes dust absorb fragments orbiter');
+assert.ok(Math.abs(c.World.lastMassSplitEvent.conservationDelta) < 1e-9, 'meteor+asteroid split evidence conserves mass');
+assert.ok(a.lastRadiusRefresh.rawRadiusFromMass > 0, 'radius refresh stores raw radius evidence');
+assert.equal(typeof a.lastRadiusRefresh.clampApplied, 'boolean', 'radius refresh stores clamp evidence');
 assert.ok(a.r > 8, 'meteor+asteroid recomputes asteroid radius immediately');
 assert.equal(a.collisionRadius, a.r, 'meteor+asteroid recomputes collision radius immediately');
 assert.equal(a.viewRadius, a.r, 'meteor+asteroid recomputes view radius immediately');
 const meteorAsteroidSnap = c.HC.WorldRenderSnapshot.build({ World: c.World });
 assert.equal(meteorAsteroidSnap.world.asteroids[0].radius, a.r, 'snapshot exposes recomputed asteroid radius');
 assert.equal(meteorAsteroidSnap.world.asteroids[0].visual.radius, a.viewRadius, 'snapshot exposes recomputed renderer view radius');
+const createdEvent = c.Events.emitted.find((event) => event.type === 'COSMIC_DUST_CREATED');
+assert.equal(createdEvent.lastMassSplitEvent.ruleId, 'meteor_asteroid', 'COSMIC_DUST_CREATED snapshot sees current split event');
+assert.equal(createdEvent.lastMassSplitEvent.fragmentsMass, 4, 'COSMIC_DUST_CREATED snapshot does not lag by one split event');
 assert.equal(m._dead, true, 'meteor+asteroid kills meteor');
 
 c = buildContext();
@@ -130,6 +141,20 @@ c.World.meteors = [{ id: 'mismatch-meteor', type: 'meteor', kind: 'meteor', x: 0
 const mismatchSnap = c.HC.WorldRenderSnapshot.build({ World: c.World, nowMs: 3000 });
 assert.equal(mismatchSnap.diagnostics.radiusMismatchWarningsCount, 1, 'radius mismatch warning count exposes artificial mismatch');
 assert.equal(mismatchSnap.diagnostics.radiusMismatchWarnings[0].type, 'collision_view_radius_mismatch', 'radius mismatch warning type is stable');
+
+c = buildContext();
+c.World.spaceMechanics.maxAsteroidRadius = 28;
+a = asteroid('clamped', 25); a.baseR = 28; a.massOneRadius = 28; a.minR = 28; a.maxR = 999; c.World.asteroids = [a];
+c.HC.SpaceBodies.refreshBodyRadiusFromMass(a, { kind: 'asteroid', sourceFunction: 'test.radiusClampEvidence' });
+assert.equal(a.r, 28, 'asteroid radius clamp can mask growth at min/max 28');
+assert.equal(c.World.radiusClampCount, 1, 'radius clamp count increments with evidence');
+assert.equal(c.World.lastBodyRadiusClampEvent.bodyId, 'clamped', 'radius clamp evidence includes body id');
+assert.equal(c.World.lastBodyRadiusClampEvent.bodyKind, 'asteroid', 'radius clamp evidence includes body kind');
+assert.ok(c.World.lastBodyRadiusClampEvent.rawRadiusFromMass > 28, 'radius clamp evidence includes raw radius');
+assert.equal(c.World.lastBodyRadiusClampEvent.clampedRadius, 28, 'radius clamp evidence includes clamped radius');
+assert.equal(c.World.lastBodyRadiusClampEvent.finalRadius, 28, 'radius clamp evidence includes final radius');
+assert.equal(c.World.lastBodyRadiusClampEvent.clampApplied, true, 'radius clamp evidence marks clamp applied');
+assert.ok(c.World.lastBodyRadiusClampEvent.clampReason, 'radius clamp evidence includes reason');
 
 function cloud(id, x = 0, y = 0, r = 30, density = 1) { return { id, type: 'cosmic_dust', dustKind: 'cosmic', x, y, r, mass: 10, density, collectible: false }; }
 function speed(body) { return Math.sqrt(body.vx * body.vx + body.vy * body.vy); }

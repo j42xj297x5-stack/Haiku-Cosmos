@@ -538,6 +538,7 @@
         lastCosmicDustEvent: World.lastCosmicDustEvent ? Object.assign({}, World.lastCosmicDustEvent) : null,
         lastMassSplitEvent: World.lastMassSplitEvent ? Object.assign({}, World.lastMassSplitEvent) : null,
         lastMassSplitEventCompact: compactMassSplitEvent(World.lastMassSplitEvent),
+        lastLiveCollisionProbe: World.lastLiveCollisionProbe ? Object.assign({}, World.lastLiveCollisionProbe) : null,
         collisionRulesStatus: World?.collisionRulesDiagnostics?.collisionRulesStatus || null,
         collisionRulesSource: World?.collisionRulesDiagnostics?.collisionRulesSource || null,
         collisionRulesProfile: World?.collisionRulesDiagnostics?.activeCollisionRulesProfile || World?.collisionRules?.profile || window.HC?.CollisionRules?._active?.profile || null,

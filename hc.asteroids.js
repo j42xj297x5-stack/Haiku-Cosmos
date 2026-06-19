@@ -450,6 +450,10 @@
         dustMass: Number(evidence?.dustMass ?? evidence?.cosmicDustMass) || 0,
         absorbMass: Number(evidence?.absorbMass ?? evidence?.absorbedMass) || 0,
         fragmentsMass: Number(evidence?.fragmentsMass ?? evidence?.fragmentMass) || 0,
+        conservationDelta: Number(evidence?.conservationDelta ?? evidence?.delta) || 0,
+        rawRadiusFromMass: Number(target?.lastRadiusRefresh?.rawRadiusFromMass ?? target?.lastRadiusRefresh?.unclampedRadius) || null,
+        clampApplied: target?.lastRadiusRefresh?.clampApplied === true,
+        clampReason: target?.lastRadiusRefresh?.clampReason || null,
         usedCollisionRules: options.usedCollisionRules === true,
         usedMassRadiusContract: Boolean(SpaceBodies?.massRadiusContract || target?.massRadiusContractVersion),
       };

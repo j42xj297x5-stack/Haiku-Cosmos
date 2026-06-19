@@ -140,7 +140,7 @@
     return body;
   }
 
-  function radiusFromMass(kind, mass, options) {
+  function buildRadiusEvidence(kind, mass, options) {
     const bodyKind = normalizeKind(kind);
     const defaults = RADIUS_FROM_MASS_DEFAULTS[bodyKind] || RADIUS_FROM_MASS_DEFAULTS.body;
     const opts = options || {};
@@ -149,32 +149,60 @@
     const maxRadius = finitePositive(opts.maxRadius, Infinity);
     const baseRadius = finitePositive(opts.baseRadius, 1);
     const safeMass = finitePositive(mass, DEFAULT_MASS);
-    const radius = baseRadius * Math.sqrt(safeMass / density);
+    const rawRadiusFromMass = baseRadius * Math.sqrt(safeMass / density);
     const world = root.World || null;
     let clampMax = maxRadius;
+    let clampReason = null;
     if (world?.spaceMechanics?.bodyRadiusClampEnabled !== false) {
       const key = bodyKind === "asteroid" ? "maxAsteroidRadius" : bodyKind === "moon" ? "maxMoonRadius" : bodyKind === "planet" ? "maxRockyPlanetRadius" : null;
       const configured = key ? Number(world.spaceMechanics[key]) : NaN;
-      if (Number.isFinite(configured) && configured > 0) clampMax = Math.min(clampMax, configured);
+      if (Number.isFinite(configured) && configured > 0 && configured < clampMax) { clampMax = configured; clampReason = `${key}:${configured}`; }
     }
-    const clamped = Math.max(minRadius, Math.min(clampMax, radius));
-    if (clamped !== radius && world) {
-      world.lastBodyRadiusClampEvent = { kind: bodyKind, mass: safeMass, rawRadius: radius, clampedRadius: clamped, minRadius, maxRadius: clampMax, atFrame: Number(world.frame) || 0 };
+    const clampedRadius = Math.max(minRadius, Math.min(clampMax, rawRadiusFromMass));
+    const clampApplied = clampedRadius !== rawRadiusFromMass;
+    if (clampApplied && !clampReason) clampReason = rawRadiusFromMass < minRadius ? `minRadius:${minRadius}` : `maxRadius:${clampMax}`;
+    return {
+      bodyId: opts.bodyId || null, bodyKind, mass: safeMass, rawRadiusFromMass,
+      unclampedRadius: rawRadiusFromMass, clampedRadius, finalRadius: clampedRadius,
+      clampApplied, clampReason, minRadius, maxRadius: clampMax,
+      sourceFunction: opts.sourceFunction || "HC.SpaceBodies.radiusFromMass",
+      caller: opts.sourceFunction || "HC.SpaceBodies.radiusFromMass",
+      atFrame: Number(world?.frame) || 0,
+    };
+  }
+
+  function radiusFromMass(kind, mass, options) {
+    const evidence = buildRadiusEvidence(kind, mass, options);
+    const world = root.World || null;
+    if (evidence.clampApplied && world && options?.recordClamp !== false) {
+      world.lastBodyRadiusClampEvent = evidence;
       world.radiusClampCount = (Number(world.radiusClampCount) || 0) + 1;
     }
-    return clamped;
+    return evidence.finalRadius;
   }
 
   function refreshBodyRadiusFromMass(body, options) {
     if (!body || typeof body !== "object") return body;
     const kind = normalizeKind(options?.kind || getBodyKind(body));
     const mass = getBodyMass(body);
-    const radius = radiusFromMass(kind, mass, {
+    const sourceFunction = options?.sourceFunction || "HC.SpaceBodies.refreshBodyRadiusFromMass";
+    const radiusOptions = {
+      bodyId: body.id || body._id || null,
+      sourceFunction,
       baseRadius: body.massOneRadius ?? body.baseR ?? body.radiusBase ?? body.r ?? body.radius ?? DEFAULT_RADIUS,
       minRadius: body.minR ?? body.minRadius,
       maxRadius: body.maxR ?? body.maxRadius,
       density: body.density,
-    });
+    };
+    const radiusEvidence = buildRadiusEvidence(kind, mass, radiusOptions);
+    const radius = radiusEvidence.finalRadius;
+    if (radiusEvidence.clampApplied) {
+      const world = root.World || null;
+      if (world) {
+        world.lastBodyRadiusClampEvent = radiusEvidence;
+        world.radiusClampCount = (Number(world.radiusClampCount) || 0) + 1;
+      }
+    }
     body.r = radius;
     body.radius = radius;
     body.collisionRadius = massRadiusContract.collisionRadiusFromMass(kind, mass, {
@@ -182,15 +210,17 @@
       minRadius: body.minR ?? body.minRadius,
       maxRadius: body.maxR ?? body.maxRadius,
       density: body.density,
+      recordClamp: false,
     });
     body.viewRadius = massRadiusContract.viewRadiusFromMass(kind, mass, {
       baseRadius: body.massOneRadius ?? body.baseR ?? body.radiusBase ?? radius,
       minRadius: body.minR ?? body.minRadius,
       maxRadius: body.maxR ?? body.maxRadius,
       density: body.density,
+      recordClamp: false,
     });
     body.massRadiusContractVersion = massRadiusContract.version;
-    body.lastRadiusRefresh = { kind, mass, radius, sourceFunction: options?.sourceFunction || "HC.SpaceBodies.refreshBodyRadiusFromMass" };
+    body.lastRadiusRefresh = Object.assign({}, radiusEvidence, { kind, radius });
     return body;
   }
 
@@ -200,6 +230,7 @@
     meteorMassMin: 0.5,
     meteorMassMax: 1.0,
     radiusFromMass,
+    radiusEvidenceFromMass: buildRadiusEvidence,
     collisionRadiusFromMass(kind, mass, options) { return radiusFromMass(kind, mass, options); },
     viewRadiusFromMass(kind, mass, options) { return radiusFromMass(kind, mass, options); },
   });
@@ -301,6 +332,7 @@
     getBodyRadius,
     getCollisionRadius,
     radiusFromMass,
+    radiusEvidenceFromMass: buildRadiusEvidence,
     collisionRadiusFromMass: massRadiusContract.collisionRadiusFromMass,
     viewRadiusFromMass: massRadiusContract.viewRadiusFromMass,
     massRadiusContract,
