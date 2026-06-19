@@ -520,15 +520,9 @@
         lockRadius: true,
         fixedR: r0,
 
-        // Planet orbital system
-        orbiters: [],
+        // Planet impact state; legacy planet capture fields are intentionally not initialized for new planets.
         captureCooldown: 0,
-        captureCount: 0,
-        captureSumR: 0,
-        captureSumMass: 0,
-        captureColorCounts: Object.create(null),
-        // For future: captured asteroids with their systems
-              rings: [],
+        rings: [],
         capturedAsteroids: [],
       });
 
