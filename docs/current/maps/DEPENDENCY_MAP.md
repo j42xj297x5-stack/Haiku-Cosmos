@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa zależności projektu
 > Źródło prawdy: TAK, dla relacji między dokumentami/systemami
-> Ostatnia aktualizacja: 2026-06-12
+> Ostatnia aktualizacja: 2026-06-19
 > Powiązane dokumenty: PROJECT_INDEX.md, ../README.md, ../../../AGENTS.md
 
 ## 1. Cel dokumentu
@@ -56,7 +56,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 ### D) Zadania technical / runtime / evidence
 1. Warstwa map jak wyżej
 2. `docs/current/technical/README.md`
-3. `WORLD_FUNCTION_MAP.md`, `FRAME_COMPOSER_SPEC.md`, `SEQUENCE_STATE_CONTRACT.md`, `IMPLEMENTATION_TRACKER.md`, `LIVE_VALIDATION_PACK.md`
+3. `WORLD_FUNCTION_MAP.md`, `SPACE_MECHANICS_CONTRACT.md`, `FRAME_COMPOSER_SPEC.md`, `SEQUENCE_STATE_CONTRACT.md`, `IMPLEMENTATION_TRACKER.md`, `LIVE_VALIDATION_PACK.md`
 4. audyty i handoff traktuj pomocniczo: `docs/audits/`, `docs/handoff/`
 
 ## 3. KANON
@@ -104,7 +104,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/systems/ROADMAP.md`
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU)
 - `docs/current/systems/COMETS_SYSTEM.md` (ROBOCZY / SYSTEM ŚWIATA) - projektowy kontrakt typów komet, kolorów, przemian świata, jawnych stanów obiektów, konfliktów efektów i debug/balansu; powiązany z kartami specjalnymi, SUB-META, PRG, roadmapą i mapą funkcji świata.
-- `docs/current/systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` (ROBOCZY / KONTRAKT PROJEKTOWY / PRZED RUNTIME) - zależy od `WORLD_FUNCTION_MAP.md`, fundamentu `HC.SpaceBodies` i progresji moon/planet; powiązany z harmonic dust, przyszłym cosmic gray dust oraz `COMETS_SYSTEM.md`; nie zastępuje `COMETS_SYSTEM.md` ani `CARDS_SYSTEM.md`.
+- `docs/current/systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` (ROBOCZY / KONTRAKT PROJEKTOWY / PRZED RUNTIME) - zależy od `WORLD_FUNCTION_MAP.md`, `SPACE_MECHANICS_CONTRACT.md`, fundamentu `HC.SpaceBodies` i progresji moon/planet; powiązany z harmonic dust, przyszłym cosmic gray dust oraz `COMETS_SYSTEM.md`; nie zastępuje `COMETS_SYSTEM.md` ani `CARDS_SYSTEM.md`.
 - `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - nie jest kanonem mechaniki, tylko listą decyzji przed runtime dla `CARD_SLOT_NETWORK_SYSTEM.md`.
 - `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - doprecyzowuje przepływ pyłu: HUD zbiera jednokolorowy stosik pyłu, Magazyn przechowuje stosiki, mieszanie kolorów pyłu jest przeniesione do SUB-META / Kuźni, a Kuźnia rafinuje 3 stosiki w flakon/naczynie i 3 flakony/naczynia w kryształ. Dokument synchronizuje `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md` i `UI_WORLD.md`.
 - `docs/current/systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
@@ -116,6 +116,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/technical/README.md`
 - `docs/current/technical/DEBUG_SETTINGS_STANDARD.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
+- `docs/current/technical/SPACE_MECHANICS_CONTRACT.md` (roboczy kontrakt runtime ciał kosmicznych; wspólny snapshot/view-model Canvas2D/Three.js; zakaz legacy planet capture)
 - `docs/current/technical/WORLD_RENDERING_MODEL.md`
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (robocza architektura rozdzialu card mechanics vs card visuals / FrameComposer)
 - `docs/current/technical/FONT_SYSTEM_SPEC.md` (roboczy kontrakt font systemu UI/kart pod i18n)
@@ -146,7 +147,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 - `CARDS_SYSTEM.md` definiuje typy kart, ID i sekwencje RUN.
 - `COMETS_SYSTEM.md` definiuje roboczy kontrakt systemu komet jako rzadkich zdarzeń przemiany świata; synchronizuje przyszłe efekty świata z `CARDS_SYSTEM.md` (karty specjalne/eventowe, bez zmiany R1–R4), `SUB_META_SYSTEM.md` (sloty ŚWIAT i Kuźnia dla mieszania pyłów), `PRG_SYSTEM.md` (ograniczone nakierowywanie komety życia), `ROADMAP.md` (kolejność wdrożeń) oraz `WORLD_FUNCTION_MAP.md` (audyt przyszłych punktów runtime).
-- `COSMIC_IMPACT_ORBIT_SYSTEM.md` definiuje kontrakt zwykłych impactów planet/księżyców i progresji orbiterów: zależy od `WORLD_FUNCTION_MAP.md`, fundamentu `HC.SpaceBodies` oraz obecnego łańcucha moon/planet; powiązany z `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`, harmonic dust reservoir, przyszłym `cosmicGrayDust` i `COMETS_SYSTEM.md`, ale nie zastępuje komet ani systemu kart.
+- `COSMIC_IMPACT_ORBIT_SYSTEM.md` definiuje kontrakt zwykłych impactów planet/księżyców i progresji orbiterów: zależy od `WORLD_FUNCTION_MAP.md`, `SPACE_MECHANICS_CONTRACT.md`, fundamentu `HC.SpaceBodies` oraz obecnego łańcucha moon/planet; powiązany z `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`, harmonic dust reservoir, przyszłym `cosmicGrayDust` i `COMETS_SYSTEM.md`, ale nie zastępuje komet ani systemu kart.
 - `CARD_SLOT_NETWORK_SYSTEM.md` definiuje osadzanie kart w slotach, sieć wzmocnień, trwałość, pył, napięcie, blizny i naprawę slotów; status: ROBOCZY / KANDYDAT DO KANONU.
 - `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` rozszerza `CARD_SLOT_NETWORK_SYSTEM.md` o strukturę slotu, DS jako kartę naprawczą, karty specjalne, artefakty i pamięć eonów.
 - `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` jest checklistą UI/visual dla `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` i `CARD_SLOT_NETWORK_SYSTEM.md`; nie jest kanonem mechaniki ani layout tokens.

@@ -1,4 +1,8 @@
-// HC space body helper contract (future mechanics foundation)
+// HC space body helper contract (future mechanics foundation).
+// Patch D0 status: this module is the future home for side-effect-free body
+// contract normalization (canonical/render-only/compatibility/deprecated fields).
+// It must not reintroduce legacy planet capture or make visual assets drive
+// progression; see docs/current/technical/SPACE_MECHANICS_CONTRACT.md.
 (function (root) {
   root.HC = root.HC || {};
 
