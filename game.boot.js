@@ -749,6 +749,8 @@ meteorBaseScale: METEOR_BASE_SCALE,
       impactFragmentTtlMs: Number(World.spaceMechanics?.impactFragmentTtlMs) || 6000,
     });
     if (window.HC?.CosmicDust?.ensureWorldState) window.HC.CosmicDust.ensureWorldState(World);
+    if (window.HC?.CollisionRules?.applyRulesToWorldMechanics) window.HC.CollisionRules.applyRulesToWorldMechanics(World, window.HC.CollisionRules.DEFAULT_RULES);
+    if (window.HC?.CollisionRules?.loadDefaultRules) window.HC.CollisionRules.loadDefaultRules(World).catch((error) => { World.collisionRulesDiagnostics = Object.assign({}, World.collisionRulesDiagnostics, { collisionRulesLastError: String(error?.message || error) }); });
     World.dustClouds = [];
     World.dustParticles = [];
     World.impactFragments = [];
