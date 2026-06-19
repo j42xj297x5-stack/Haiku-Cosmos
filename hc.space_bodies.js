@@ -16,6 +16,48 @@
     impactfragment: "impactFragment",
     impact_fragment: "impactFragment",
   });
+
+  const BODY_CONTRACT_FIELDS = Object.freeze({
+    canonical: Object.freeze([
+      "id", "kind", "type", "x", "y", "vx", "vy", "r", "radius", "mass",
+      "color", "material", "progressionMode", "isOrbitalBody", "canBecomePlanet",
+      "parentPlanetId", "orbitState", "lastImpact",
+    ]),
+    renderOnly: Object.freeze([
+      "visualKind", "visualVariant", "assetId", "asset", "modelId", "glbId",
+      "rotation", "visualRotationSeed", "visualRotationX", "visualRotationY",
+      "visualRotationZ", "visualRotationSpeedX", "visualRotationSpeedY",
+      "visualRotationSpeedZ", "scale", "alpha", "sides", "angle", "grayLight",
+      "rings", "aura", "renderKey", "source", "sourceMoonId",
+    ]),
+    compatibility: Object.freeze([
+      "orbitPx", "orbitCurrentRadius", "gravityR", "parentKind", "parentRef",
+      "theta", "omega", "orbitR", "orbiters", "World.lastPlanetImpact",
+      "World.impactFragments", "World.moons",
+    ]),
+    deprecated: Object.freeze([
+      "capR", "captureCooldown", "captureCount", "captureSumR", "captureSumMass",
+      "captureColorCounts", "planetCaptureMode", "legacy_capture", "hybrid_debug",
+      "LEGACY_PLANET_CAPTURE", "parentKind=planet", "legacy planet.orbiters",
+    ]),
+  });
+
+  const BODY_CONTRACT_REASONS = Object.freeze({
+    canonical: "canonical mechanics/snapshot body field",
+    renderOnly: "render/snapshot/debug presentation field; not progression mechanics",
+    compatibility: "transitional compatibility/debug field; not planet capture",
+    deprecated: "deprecated legacy planet capture or stale live-relation field",
+    unknown: "field is not classified by the current body contract",
+  });
+
+  const BODY_CONTRACT_LOOKUP = (() => {
+    const lookup = Object.create(null);
+    for (const status of Object.keys(BODY_CONTRACT_FIELDS)) {
+      for (const field of BODY_CONTRACT_FIELDS[status]) lookup[field] = status;
+    }
+    return Object.freeze(lookup);
+  })();
+
   const RADIUS_FROM_MASS_DEFAULTS = Object.freeze({
     meteor: { density: 1, minRadius: 0.1 },
     asteroid: { density: 1, minRadius: 0.1 },
@@ -137,6 +179,50 @@
     };
   }
 
+
+  function getBodyContractFields() {
+    return {
+      canonical: BODY_CONTRACT_FIELDS.canonical.slice(),
+      renderOnly: BODY_CONTRACT_FIELDS.renderOnly.slice(),
+      compatibility: BODY_CONTRACT_FIELDS.compatibility.slice(),
+      deprecated: BODY_CONTRACT_FIELDS.deprecated.slice(),
+    };
+  }
+
+  function classifyBodyField(fieldName) {
+    const field = String(fieldName || "");
+    const status = BODY_CONTRACT_LOOKUP[field] || "unknown";
+    const result = {
+      field,
+      status,
+      reason: BODY_CONTRACT_REASONS[status],
+    };
+    if (field === "parentKind") {
+      result.note = "contextual; parentKind=planet must not be used as an active live planet relation";
+    }
+    if (field === "orbiters") {
+      result.note = "contextual; compatibility/debug only, not legacy planet.orbiters as a live relation";
+    }
+    if (field === "captureCooldown") {
+      result.note = "deprecated when used exclusively for legacy planet capture";
+    }
+    return result;
+  }
+
+  function classifyBodyFields(body) {
+    const grouped = { canonical: [], renderOnly: [], compatibility: [], deprecated: [], unknown: [] };
+    if (!body || typeof body !== "object") return grouped;
+    for (const field of Object.keys(body)) {
+      const classification = classifyBodyField(field);
+      grouped[classification.status].push(field);
+    }
+    return grouped;
+  }
+
+  function getBodyContractStatus(body) {
+    return classifyBodyFields(body);
+  }
+
   function isOrbiting(body) {
     if (!body || typeof body !== "object") return false;
     if (body.orbitState && typeof body.orbitState === "object") return true;
@@ -144,6 +230,10 @@
   }
 
   root.HC.SpaceBodies = Object.freeze({
+    getBodyContractFields,
+    classifyBodyField,
+    classifyBodyFields,
+    getBodyContractStatus,
     getBodyKind,
     getBodyMass,
     setBodyMass,

@@ -152,9 +152,32 @@ Szczegóły:
 6. Snapshot/view-model jest wspólną warstwą wejściową dla Canvas2D i Three.js.
 7. Visual asset routing dobiera tylko prezentację.
 
-## 11. Checklist dla kolejnych patchy runtime
+## 11. Patch D1 — `HC.SpaceBodies` field classifier
 
-1. D1: mały helper w `HC.SpaceBodies` klasyfikujący pola body jako `canonical`, `renderOnly`, `compatibility`, `deprecated` + test VM.
+Patch D1 dodaje w `hc.space_bodies.js` diagnostyczny helper klasyfikacji pól body contract. Helper jest małym narzędziem testowo-debugowym dla audytu pól planet/moon/star/asteroid/meteor i dla przyszłych refaktorów snapshotu.
+
+API Patch D1:
+
+- `HC.SpaceBodies.classifyBodyField(fieldName)` — zwraca `{ field, status, reason }` oraz opcjonalną lekką notę kontekstową dla pól takich jak `parentKind`, `orbiters` albo `captureCooldown`.
+- `HC.SpaceBodies.classifyBodyFields(body)` — grupuje własne pola obiektu do koszyków `canonical`, `renderOnly`, `compatibility`, `deprecated`, `unknown`.
+- `HC.SpaceBodies.getBodyContractFields()` — zwraca kopie list pól kontraktu, tak aby test/debug nie mógł mutować źródłowych list klasyfikatora.
+- `HC.SpaceBodies.getBodyContractStatus(body)` — alias diagnostyczny do grupowania statusu pól obiektu.
+
+Zasady Patch D1:
+
+1. Helper nie jest mechaniką progression i nie decyduje o masie, promieniu, transformacji, direct impact ani orbitach.
+2. Helper jest side-effect-free: nie mutuje wejściowego body, nie usuwa pól i nie tworzy obiektów świata.
+3. Helper nie zależy od Canvas2D, Three.js ani DOM; test VM ładuje tylko `hc.space_bodies.js`.
+4. Pola visual (`modelId`, `glbId`, `assetId`, `visualKind`) są klasyfikowane jako `renderOnly`; nie mogą sterować progression.
+5. Pola transitional (`orbitPx`, `gravityR`, `parentKind`, `parentRef`, `orbiters`) są klasyfikowane jako `compatibility`; nie reaktywują planet capture.
+6. Pola legacy capture (`capR`, `captureCount`, `planetCaptureMode`, `legacy_capture`, `hybrid_debug`, `LEGACY_PLANET_CAPTURE`) są klasyfikowane jako `deprecated`; klasyfikator nie dodaje ich do runtime i nie tworzy trybów zgodności.
+7. Nieznane pola dostają status `unknown`, a nie `deprecated`; unknown jest sygnałem audytu, nie automatyczną decyzją o usunięciu.
+
+Patch D1 zamyka pierwszy runtime follow-up po D0: kontrakt pól jest teraz obecny zarówno w dokumencie, jak i w czystym helperze VM-testable. Nie wolno używać tego helpera do przywrócenia `legacy_capture`, `planetCaptureMode` ani żywego `planet.orbiters`.
+
+## 12. Checklist dla kolejnych patchy runtime
+
+1. D1: DONE — `HC.SpaceBodies` ma side-effect-free helper klasyfikacji pól body jako `canonical`, `renderOnly`, `compatibility`, `deprecated`, `unknown` + test VM.
 2. D2: przenieść snapshot fallbacki orbitalne do jawnej sekcji `compatibility` bez usuwania danych.
 3. D3: usunąć albo odseparować `planet.orbiters` z live render/update poza debug stale-state path.
 4. D4: migracja `parentKind`/`parentRef` planetarnych stanów do `parentPlanetId` + `orbitState`.
