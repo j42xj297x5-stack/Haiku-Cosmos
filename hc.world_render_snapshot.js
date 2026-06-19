@@ -149,6 +149,8 @@
         vx: toNumber(body.vx, 0),
         vy: toNumber(body.vy, 0),
       },
+      cosmicDustStopped: body.cosmicDustStopped === true,
+      cosmicDustDragRatioLast: toNumber(body.cosmicDustDragRatioLast, undefined),
       flags: {
         dead: !!body._dead,
         active: !!body.active,
@@ -404,6 +406,9 @@
         cosmicDustEnabled: World.spaceMechanics?.cosmicDustEnabled !== false,
         cosmicDustVisualEnabled: World.spaceMechanics?.cosmicDustVisualEnabled !== false,
         cosmicDustAffectsBodiesEnabled: World.spaceMechanics?.cosmicDustAffectsBodiesEnabled === true,
+        cosmicDustAffectedBodiesCount: toNumber(World.cosmicDustAffectedBodiesCount, 0),
+        cosmicDustStoppedBodiesCount: toNumber(World.cosmicDustStoppedBodiesCount, 0),
+        lastCosmicDustInfluenceEvent: World.lastCosmicDustInfluenceEvent ? Object.assign({}, World.lastCosmicDustInfluenceEvent) : null,
         cosmicDustCount: pickArray(World.cosmicDust).filter((dust) => dust && !dust._dead).length,
         cosmicDustTotalMass: pickArray(World.cosmicDust).reduce((sum, dust) => sum + (dust && !dust._dead ? toNumber(dust.mass, 0) : 0), 0),
         cosmicDustMaxDensity: pickArray(World.cosmicDust).reduce((max, dust) => Math.max(max, dust && !dust._dead ? toNumber(dust.density, 0) : 0), 0),

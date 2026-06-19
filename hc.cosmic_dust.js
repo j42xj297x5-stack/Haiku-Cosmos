@@ -14,9 +14,20 @@
     cosmicDustMinMass: 0.1,
     cosmicDustMinVisualRadius: 6,
     cosmicDustMaxVisualRadius: 120,
-    cosmicDustAffectsBodiesEnabled: false,
-    cosmicDustDragStrength: 0,
-    cosmicDustStopSpeedThreshold: 0,
+    cosmicDustAffectsBodiesEnabled: true,
+    cosmicDustDragStrength: 0.35,
+    cosmicDustDensityDragMul: 1.0,
+    cosmicDustOverlapDragMul: 1.0,
+    cosmicDustMassResistanceMul: 1.0,
+    cosmicDustStopEnabled: true,
+    cosmicDustStopSpeedThreshold: 0.025,
+    cosmicDustLightBodyMassThreshold: 8,
+    cosmicDustStopOverlapThreshold: 0.25,
+    cosmicDustAffectsMeteors: true,
+    cosmicDustAffectsAsteroids: true,
+    cosmicDustAffectsMoons: true,
+    cosmicDustAffectsImpactFragments: true,
+    cosmicDustAffectsPlanets: false,
     cosmicDustCondensationEnabled: false,
     cosmicDustCloudToGasPlanetMassThreshold: 999999,
     cosmicDustSplitMeteorMeteorDustPct: 0.25,
@@ -57,6 +68,9 @@
     if (!Array.isArray(World.cosmicDust)) World.cosmicDust = [];
     World.spaceMechanics = Object.assign({}, DEFAULTS, World.spaceMechanics || {});
     if (!World.lastCosmicDustEvent) World.lastCosmicDustEvent = null;
+    if (!World.lastCosmicDustInfluenceEvent) World.lastCosmicDustInfluenceEvent = null;
+    if (!Number.isFinite(Number(World.cosmicDustAffectedBodiesCount))) World.cosmicDustAffectedBodiesCount = 0;
+    if (!Number.isFinite(Number(World.cosmicDustStoppedBodiesCount))) World.cosmicDustStoppedBodiesCount = 0;
     return World;
   }
   function centerOf(spec) {
@@ -105,6 +119,78 @@
     world.lastCosmicDustEvent = Object.assign({ type: "cosmic_dust_split", at: nowMs(world) }, evidence, { cloudId: evidence.cloud?.id || null });
     return evidence;
   }
+
+  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+  function bodyRadius(body) {
+    if (window.HC?.SpaceBodies?.getCollisionRadius) return Math.max(0, finite(window.HC.SpaceBodies.getCollisionRadius(body), finite(body?.r, 1)));
+    return Math.max(0, finite(body?.collisionRadius, finite(body?.physicalRadius, finite(body?.r, finite(body?.radius, 1)))));
+  }
+  function getCloudBodyOverlap(cloud, body) {
+    if (!cloud || !body || cloud._dead || body._dead) return 0;
+    const cx = finite(cloud.x, NaN), cy = finite(cloud.y, NaN), bx = finite(body.x, NaN), by = finite(body.y, NaN);
+    if (![cx, cy, bx, by].every(Number.isFinite)) return 0;
+    const cloudR = Math.max(0, finite(cloud.r, 0));
+    const contactR = cloudR + bodyRadius(body);
+    if (contactR <= 0) return 0;
+    const dx = bx - cx, dy = by - cy;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return clamp((contactR - distance) / contactR, 0, 1);
+  }
+  function eligibleBodies(World) {
+    const sm = World.spaceMechanics || {};
+    const groups = [];
+    if (sm.cosmicDustAffectsMeteors !== false) groups.push(...(Array.isArray(World.meteors) ? World.meteors : []));
+    if (sm.cosmicDustAffectsAsteroids !== false) groups.push(...(Array.isArray(World.asteroids) ? World.asteroids : []));
+    if (sm.cosmicDustAffectsMoons === true) groups.push(...(Array.isArray(World.moons) ? World.moons : []));
+    if (sm.cosmicDustAffectsImpactFragments !== false) groups.push(...(Array.isArray(World.impactFragments) ? World.impactFragments : []));
+    if (sm.cosmicDustAffectsPlanets === true) groups.push(...(Array.isArray(World.planets) ? World.planets : []));
+    return groups;
+  }
+  function canAffectBody(body) {
+    if (!body || body._dead) return false;
+    const kind = window.HC?.SpaceBodies?.getBodyKind ? window.HC.SpaceBodies.getBodyKind(body) : String(body.kind || body.type || "").toLowerCase();
+    if (kind === "planet" || kind === "star" || body.planetKind === "rocky" || body.planetKind === "gas") return false;
+    return Number.isFinite(Number(body.x)) && Number.isFinite(Number(body.y)) && Number.isFinite(Number(body.vx)) && Number.isFinite(Number(body.vy));
+  }
+  function applyPhysicalInfluence(World, dt, now) {
+    const world = ensureWorldState(World); if (!world || world.spaceMechanics.cosmicDustEnabled === false || world.spaceMechanics.cosmicDustAffectsBodiesEnabled !== true) return { affected: 0, stopped: 0 };
+    const sm = world.spaceMechanics;
+    const dtSeconds = Math.max(0, finite(dt, 0));
+    const clouds = world.cosmicDust.filter((cloud) => cloud && !cloud._dead);
+    let affected = 0, stopped = 0, lastEvent = null;
+    for (const body of eligibleBodies(world)) {
+      if (!canAffectBody(body)) continue;
+      const beforeSpeed = Math.sqrt(finite(body.vx, 0) * finite(body.vx, 0) + finite(body.vy, 0) * finite(body.vy, 0));
+      if (beforeSpeed <= 0) { body.cosmicDustDragRatioLast = 1; body.cosmicDustOverlapLast = 0; continue; }
+      let maxOverlap = 0;
+      let multiplier = 1;
+      for (const cloud of clouds) {
+        const overlap = getCloudBodyOverlap(cloud, body);
+        if (overlap <= 0) continue;
+        maxOverlap = Math.max(maxOverlap, overlap);
+        const densityFactor = Math.max(0, finite(cloud.density, 1)) * Math.max(0, finite(sm.cosmicDustDensityDragMul, 1));
+        const overlapFactor = Math.max(0, overlap * finite(sm.cosmicDustOverlapDragMul, 1));
+        const massResistance = Math.max(0.001, 1 + Math.max(0, bodyMass(body)) * Math.max(0, finite(sm.cosmicDustMassResistanceMul, 1)));
+        const dragAmount = dtSeconds * Math.max(0, finite(sm.cosmicDustDragStrength, 0)) * densityFactor * overlapFactor / massResistance;
+        multiplier *= clamp(1 - dragAmount, 0, 1);
+      }
+      body.cosmicDustOverlapLast = maxOverlap;
+      body.cosmicDustDragRatioLast = multiplier;
+      if (maxOverlap <= 0 || multiplier >= 1) continue;
+      body.vx = finite(body.vx, 0) * multiplier;
+      body.vy = finite(body.vy, 0) * multiplier;
+      affected += 1;
+      const afterSpeed = Math.sqrt(body.vx * body.vx + body.vy * body.vy);
+      if (sm.cosmicDustStopEnabled === true && bodyMass(body) <= finite(sm.cosmicDustLightBodyMassThreshold, 8) && afterSpeed <= finite(sm.cosmicDustStopSpeedThreshold, 0.025) && maxOverlap >= finite(sm.cosmicDustStopOverlapThreshold, 0.25)) {
+        body.vx = 0; body.vy = 0; body.cosmicDustStopped = true; body.stoppedByCosmicDustAt = nowMs(world, now); stopped += 1;
+      }
+      lastEvent = { type: "cosmic_dust_influence", bodyId: bodyId(body), bodyKind: body.kind || body.type || null, overlap: maxOverlap, dragRatio: multiplier, speedBefore: beforeSpeed, speedAfter: Math.sqrt(finite(body.vx, 0) ** 2 + finite(body.vy, 0) ** 2), stopped: body.cosmicDustStopped === true, at: nowMs(world, now) };
+    }
+    world.cosmicDustAffectedBodiesCount = affected;
+    world.cosmicDustStoppedBodiesCount = stopped;
+    if (lastEvent) world.lastCosmicDustInfluenceEvent = lastEvent;
+    return { affected, stopped, lastEvent };
+  }
   function mergeNearbyClouds(World) {
     const world = ensureWorldState(World); if (!world || world.spaceMechanics.cosmicDustMergeEnabled === false) return [];
     const clouds = world.cosmicDust.filter((c) => c && !c._dead); const merged = [];
@@ -112,6 +198,6 @@
     world.cosmicDust = clouds.filter((c) => !c._dead).sort((a, b) => b.mass - a.mass).slice(0, Math.max(0, Math.floor(finite(world.spaceMechanics.cosmicDustMaxClouds, 80))));
     return merged;
   }
-  function update(World, dt, now) { const world = ensureWorldState(World); if (!world) return []; const n = nowMs(world, now); for (const c of world.cosmicDust) { c.updatedAt = n; c.ageMs = Math.max(0, n - finite(c.createdAt, n)); c.affectsBodies = false; } if (world.spaceMechanics.cosmicDustMergeEnabled !== false) mergeNearbyClouds(world); return world.cosmicDust; }
-  window.HC.CosmicDust = Object.freeze({ DEFAULTS, ensureWorldState, createCloud, createFromCollision, applySplitPolicy, mergeNearbyClouds, update });
+  function update(World, dt, now) { const world = ensureWorldState(World); if (!world) return []; const n = nowMs(world, now); for (const c of world.cosmicDust) { c.updatedAt = n; c.ageMs = Math.max(0, n - finite(c.createdAt, n)); c.affectsBodies = false; } if (world.spaceMechanics.cosmicDustEnabled !== false && world.spaceMechanics.cosmicDustAffectsBodiesEnabled === true) applyPhysicalInfluence(world, dt, n); else { world.cosmicDustAffectedBodiesCount = 0; world.cosmicDustStoppedBodiesCount = 0; } if (world.spaceMechanics.cosmicDustMergeEnabled !== false) mergeNearbyClouds(world); return world.cosmicDust; }
+  window.HC.CosmicDust = Object.freeze({ DEFAULTS, ensureWorldState, createCloud, createFromCollision, applySplitPolicy, getCloudBodyOverlap, applyPhysicalInfluence, mergeNearbyClouds, update });
 })();
