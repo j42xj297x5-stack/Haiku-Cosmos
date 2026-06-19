@@ -1284,10 +1284,12 @@
       ["stage status", rendererDiag?.stageModelEnabled ? JSON.stringify(rendererDiag.stageSettings || {}) : "absolute/canvas"],
       ["Three dependency", rendererDiag?.hasThreeDependency ? "yes" : "no"],
       ["Three initialized", rendererDiag?.threeInitialized ? "yes" : "no"],
+      ["CollisionRules profile", snap?.activeCollisionRulesProfile || snap?.collisionRulesProfile || "n/a"],
       ["MassRadiusContract", snap?.massRadiusContractVersion || window.HC?.SpaceBodies?.massRadiusContract?.version || "n/a"],
-      ["lastMassSplitEvent", snap?.lastMassSplitEvent ? JSON.stringify(snap.lastMassSplitEvent) : "none"],
+      ["lastMassSplitEvent", snap?.lastMassSplitEventCompact ? JSON.stringify(snap.lastMassSplitEventCompact) : (snap?.lastMassSplitEvent ? JSON.stringify({ ruleId: snap.lastMassSplitEvent.ruleId, conservationDelta: snap.lastMassSplitEvent.conservationDelta }) : "none")],
+      ["bodyCountByKind", snap?.bodyCountByKind ? JSON.stringify(snap.bodyCountByKind) : "n/a"],
       ["radiusClampCount", snap?.radiusClampCount ?? 0],
-      ["radiusMismatchWarnings", (rendererDiag?.radiusMismatchWarnings || snap?.radiusMismatchWarnings || []).join(" | ") || "none"],
+      ["radiusMismatchWarnings", snap?.radiusMismatchWarningsCount ?? (rendererDiag?.radiusMismatchWarnings || snap?.radiusMismatchWarnings || []).length ?? 0],
     ], `
       <label class="overlay-select-row" for="dbgRendererMode">Renderer <select id="dbgRendererMode">${modeOptions}</select></label>
       <label class="overlay-select-row" for="dbgThreeCameraModel">Camera model

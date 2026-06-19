@@ -16,7 +16,7 @@
     planet_moon: ["cosmicDustSplitPlanetMoonDustPct", null, "cosmicDustSplitPlanetMoonFragmentsPct", "cosmicDustSplitPlanetMoonOrbiterPct"],
     planet_planet: ["cosmicDustSplitPlanetPlanetDustPct", null, "cosmicDustSplitPlanetPlanetFragmentsPct", null],
   });
-  const DEFAULT_RULES = Object.freeze({ version: 1, rules: Object.freeze([
+  const DEFAULT_RULES = Object.freeze({ version: 1, profile: "baseline_safe_v1", rules: Object.freeze([
     { id: "meteor_meteor_different", enabled: true, sourceMassPolicy: "lighter_body", dustPct: 0.80, absorbPct: 0.20, fragmentsPct: 0, orbiterPct: 0, createsBaseProgressionObject: true, notes: "Different-color meteors still create asteroid; split lighter meteor only." },
     { id: "meteor_asteroid", enabled: true, sourceMassPolicy: "incoming_body", dustPct: 0.80, absorbPct: 0.20, fragmentsPct: 0, orbiterPct: 0, createsBaseProgressionObject: false, notes: "Incoming meteor split." },
     { id: "asteroid_asteroid", enabled: true, sourceMassPolicy: "lighter_body", dustPct: 0.50, absorbPct: 0.50, fragmentsPct: 0, orbiterPct: 0, createsBaseProgressionObject: false, notes: "Heavier asteroid survives." },
@@ -59,7 +59,7 @@
         rules.push(marked);
       } else rules.push(validated);
     }
-    return { version: Number(source.version) || 1, rules, validCount: rules.length - invalidCount, invalidCount };
+    return { version: Number(source.version) || 1, profile: String(source.profile || DEFAULT_RULES.profile || "baseline_safe_v1"), rules, validCount: rules.length - invalidCount, invalidCount };
   }
   function diagnosticsFor(World) { if (!World) return null; World.collisionRulesDiagnostics = World.collisionRulesDiagnostics || {}; return World.collisionRulesDiagnostics; }
   function applyRulesToWorldMechanics(World, ruleset) {
@@ -70,7 +70,7 @@
       const keys = MECHANIC_KEYS[rule.id] || [];
       [rule.dustPct, rule.absorbPct, rule.fragmentsPct, rule.orbiterPct].forEach((value, i) => { if (keys[i]) World.spaceMechanics[keys[i]] = value; });
     }
-    const d = diagnosticsFor(World); if (d) Object.assign(d, { collisionRulesStatus: normalized.invalidCount ? "loaded_with_invalid_fallback" : "loaded", collisionRulesVersion: normalized.version, collisionRulesValidCount: normalized.validCount, collisionRulesInvalidCount: normalized.invalidCount, collisionRulesLastAppliedAt: Date.now(), collisionRulesLastError: normalized.invalidCount ? "one or more rules invalid; fallback used" : null });
+    const d = diagnosticsFor(World); if (d) Object.assign(d, { collisionRulesStatus: normalized.invalidCount ? "loaded_with_invalid_fallback" : "loaded", activeCollisionRulesProfile: normalized.profile, collisionRulesProfile: normalized.profile, collisionRulesVersion: normalized.version, collisionRulesValidCount: normalized.validCount, collisionRulesInvalidCount: normalized.invalidCount, collisionRulesLastAppliedAt: Date.now(), collisionRulesLastError: normalized.invalidCount ? "one or more rules invalid; fallback used" : null });
     return normalized;
   }
   function getRule(id, World) { const rules = ((World || root.World)?.collisionRules?.rules || root.HC.CollisionRules?._active?.rules || []); return rules.find((r) => r.id === id && r.enabled && r.valid !== false) || validateRule((DEFAULT_RULES.rules.find((r) => r.id === id) || {})); }

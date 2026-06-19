@@ -10,6 +10,85 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function totalMass(items) {
+    return pickArray(items).reduce((sum, item) => sum + (item && !item._dead ? toNumber(Number(item.mass), 0) : 0), 0);
+  }
+
+  function compactMassSplitEvent(event) {
+    if (!event) return null;
+    return {
+      ruleId: event.ruleId || event.kind || null,
+      sourceMassPolicy: event.sourceMassPolicy || null,
+      inputMass: toNumber(Number(event.inputMass ?? event.conservationInputMass), 0),
+      outputMass: toNumber(Number(event.outputMass ?? event.conservationOutputMass), 0),
+      conservationDelta: toNumber(Number(event.conservationDelta ?? event.delta), 0),
+      cosmicDustMass: toNumber(Number(event.cosmicDustMass), 0),
+      absorbedMass: toNumber(Number(event.absorbedMass), 0),
+      fragmentMass: toNumber(Number(event.fragmentMass), 0),
+    };
+  }
+
+  function pushBoundedUnique(list, warning, limit) {
+    const target = Array.isArray(list) ? list : [];
+    const key = warning && (warning.key || `${warning.type}:${warning.id || ""}:${warning.kind || ""}`);
+    if (!key || !target.some((entry) => entry && entry.key === key)) target.push(warning);
+    while (target.length > (limit || 8)) target.shift();
+    return target;
+  }
+
+  function recordSnapshotWarnings(World, snapshotWorld, nowMs) {
+    if (!World || typeof World !== "object") return;
+    const warnings = Array.isArray(World.radiusMismatchWarnings) ? World.radiusMismatchWarnings : [];
+    const allBodies = ["meteors", "asteroids", "moons", "planets", "impactFragments"].flatMap((key) => pickArray(snapshotWorld[key]));
+    for (const body of allBodies) {
+      const collisionRadius = Number(body?.collisionRadius);
+      const viewRadius = Number(body?.viewRadius ?? body?.visual?.radius);
+      if (!(collisionRadius > 0) || !(viewRadius > 0)) continue;
+      const mismatchRatio = Math.abs(collisionRadius - viewRadius) / Math.max(collisionRadius, viewRadius);
+      if (mismatchRatio > 0.10) {
+        World.radiusMismatchWarnings = pushBoundedUnique(warnings, {
+          type: "collision_view_radius_mismatch",
+          key: `collision_view_radius_mismatch:${body.id || body.renderKey}`,
+          id: body.id || body.renderKey || null,
+          kind: body.kind || body.type || null,
+          collisionRadius,
+          viewRadius,
+          mismatchRatio,
+          at: nowMs,
+        }, 8);
+      }
+    }
+
+    const bodyCountByKind = {
+      meteor: pickArray(World.meteors).filter((b) => b && !b._dead).length,
+      asteroid: pickArray(World.asteroids).filter((b) => b && !b._dead).length,
+      moon: pickArray(World.moons).filter((b) => b && !b._dead).length,
+      planet: pickArray(World.planets).filter((b) => b && !b._dead).length,
+      cosmicDust: pickArray(World.cosmicDust).filter((b) => b && !b._dead).length,
+      harmonicDust: pickArray(World.harmonicDust).filter((b) => b && !b._dead).length,
+      impactFragment: pickArray(World.impactFragments).filter((b) => b && !b._dead).length,
+    };
+    const prev = World.__bodyCountGrowthSample;
+    if (prev && nowMs - prev.at <= 2000) {
+      for (const kind of ["asteroid", "moon", "planet"]) {
+        const delta = bodyCountByKind[kind] - (prev.counts[kind] || 0);
+        if (delta > 8) {
+          World.bodyCountGrowthWarnings = pushBoundedUnique(World.bodyCountGrowthWarnings, {
+            type: "rapid_body_count_growth",
+            key: `rapid_body_count_growth:${kind}:${Math.floor(nowMs / 2000)}`,
+            kind,
+            previousCount: prev.counts[kind] || 0,
+            currentCount: bodyCountByKind[kind],
+            delta,
+            windowMs: nowMs - prev.at,
+            at: nowMs,
+          }, 8);
+        }
+      }
+    }
+    World.__bodyCountGrowthSample = { at: nowMs, counts: bodyCountByKind };
+  }
+
   const PLANET_BASE_VISUAL = Object.freeze({
     visualKind: "planet",
     visualVariant: "planet_01",
@@ -356,8 +435,24 @@
     const snapshotPlanets = mapCollection(sourcePlanets, "planet");
     const rockyPlanetCount = sourcePlanets.filter((planet) => getPlanetKind(planet) === "rocky").length;
     const gasPlanetCount = sourcePlanets.filter((planet) => getPlanetKind(planet) === "gas").length;
+    const snapshotMeteors = mapCollection(World.meteors, "meteor");
+    const snapshotAsteroids = mapCollection(World.asteroids, "asteroid");
+    const snapshotMoons = mapCollection(World.moons, "moon");
+    const snapshotImpactFragments = mapCollection(World.impactFragments, "impactFragment");
+    const snapshotCosmicDust = pickArray(World.cosmicDust).map(mapCosmicDust).filter(Boolean);
+    const bodyCountByKind = {
+      meteor: snapshotMeteors.length,
+      asteroid: snapshotAsteroids.length,
+      moon: snapshotMoons.length,
+      planet: snapshotPlanets.length,
+      cosmicDust: snapshotCosmicDust.length,
+      harmonicDust: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead).length,
+      impactFragment: snapshotImpactFragments.length,
+    };
 
     const prgIndicator = buildPrgIndicator(World);
+    const snapshotWorldForWarnings = { meteors: snapshotMeteors, asteroids: snapshotAsteroids, moons: snapshotMoons, planets: snapshotPlanets, impactFragments: snapshotImpactFragments };
+    recordSnapshotWarnings(World, snapshotWorldForWarnings, toNumber(opts.nowMs, 0));
 
     const snapshot = {
       version: "world-render-snapshot-v1",
@@ -376,15 +471,15 @@
         worldBounds,
       },
       world: {
-        meteors: mapCollection(World.meteors, "meteor"),
+        meteors: snapshotMeteors,
         comets: mapCollection(World.comets, "comet"),
-        asteroids: mapCollection(World.asteroids, "asteroid"),
+        asteroids: snapshotAsteroids,
         planets: snapshotPlanets,
-        moons: mapCollection(World.moons, "moon"),
+        moons: snapshotMoons,
         dustClouds: mapCollection(World.dustClouds, "dustCloud"),
         dustParticles: mapCollection(World.dustParticles, "dustParticle"),
-        impactFragments: mapCollection(World.impactFragments, "impactFragment"),
-        cosmicDust: pickArray(World.cosmicDust).map(mapCosmicDust).filter(Boolean),
+        impactFragments: snapshotImpactFragments,
+        cosmicDust: snapshotCosmicDust,
         harmonicDust: pickArray(World.harmonicDust).map(mapHarmonicDust).filter(Boolean),
         harmonicDustSequence: World.harmonicDustSequence ? Object.assign({}, World.harmonicDustSequence) : null,
         harmonicDustReservoir: World.harmonicDustReservoir ? Object.assign({}, World.harmonicDustReservoir) : null,
@@ -425,18 +520,21 @@
           stars: pickArray(World.stars).length,
         },
         cosmicDustEnabled: World.spaceMechanics?.cosmicDustEnabled !== false,
+        activeCollisionRulesProfile: World?.collisionRulesDiagnostics?.activeCollisionRulesProfile || World?.collisionRules?.profile || window.HC?.CollisionRules?._active?.profile || null,
         cosmicDustVisualEnabled: World.spaceMechanics?.cosmicDustVisualEnabled !== false,
         cosmicDustAffectsBodiesEnabled: World.spaceMechanics?.cosmicDustAffectsBodiesEnabled === true,
         cosmicDustAffectedBodiesCount: toNumber(World.cosmicDustAffectedBodiesCount, 0),
         cosmicDustStoppedBodiesCount: toNumber(World.cosmicDustStoppedBodiesCount, 0),
         lastCosmicDustInfluenceEvent: World.lastCosmicDustInfluenceEvent ? Object.assign({}, World.lastCosmicDustInfluenceEvent) : null,
         cosmicDustCount: pickArray(World.cosmicDust).filter((dust) => dust && !dust._dead).length,
-        cosmicDustTotalMass: pickArray(World.cosmicDust).reduce((sum, dust) => sum + (dust && !dust._dead ? toNumber(dust.mass, 0) : 0), 0),
+        cosmicDustTotalMass: totalMass(World.cosmicDust),
         cosmicDustMaxDensity: pickArray(World.cosmicDust).reduce((max, dust) => Math.max(max, dust && !dust._dead ? toNumber(dust.density, 0) : 0), 0),
         lastCosmicDustEvent: World.lastCosmicDustEvent ? Object.assign({}, World.lastCosmicDustEvent) : null,
         lastMassSplitEvent: World.lastMassSplitEvent ? Object.assign({}, World.lastMassSplitEvent) : null,
+        lastMassSplitEventCompact: compactMassSplitEvent(World.lastMassSplitEvent),
         collisionRulesStatus: World?.collisionRulesDiagnostics?.collisionRulesStatus || null,
         collisionRulesSource: World?.collisionRulesDiagnostics?.collisionRulesSource || null,
+        collisionRulesProfile: World?.collisionRulesDiagnostics?.activeCollisionRulesProfile || World?.collisionRules?.profile || window.HC?.CollisionRules?._active?.profile || null,
         collisionRulesVersion: World?.collisionRulesDiagnostics?.collisionRulesVersion ?? World?.collisionRules?.version ?? null,
         collisionRulesValidCount: World?.collisionRulesDiagnostics?.collisionRulesValidCount ?? 0,
         collisionRulesInvalidCount: World?.collisionRulesDiagnostics?.collisionRulesInvalidCount ?? 0,
@@ -446,10 +544,18 @@
         progressionBlockedSameFrameCount: toNumber(World.progressionBlockedSameFrameCount, 0),
         planetToStarEnabled: World.spaceMechanics?.planetToStarEnabled === true,
         massRadiusContractVersion: window.HC?.SpaceBodies?.massRadiusContract?.version || null,
+        firstMeteorMass: toNumber(Number(snapshotMeteors[0]?.mass), null),
+        firstMeteorRadius: toNumber(Number(snapshotMeteors[0]?.radius ?? snapshotMeteors[0]?.r), null),
+        firstAsteroidMass: toNumber(Number(snapshotAsteroids[0]?.mass), null),
+        firstAsteroidRadius: toNumber(Number(snapshotAsteroids[0]?.radius ?? snapshotAsteroids[0]?.r), null),
+        bodyCountByKind,
         bodyRadiusClampEnabled: World.spaceMechanics?.bodyRadiusClampEnabled !== false,
         lastBodyRadiusClampEvent: World.lastBodyRadiusClampEvent ? Object.assign({}, World.lastBodyRadiusClampEvent) : null,
         radiusClampCount: toNumber(World.radiusClampCount, 0),
         radiusMismatchWarnings: Array.isArray(World.radiusMismatchWarnings) ? World.radiusMismatchWarnings.slice(-8) : [],
+        radiusMismatchWarningsCount: Array.isArray(World.radiusMismatchWarnings) ? World.radiusMismatchWarnings.length : 0,
+        bodyCountGrowthWarnings: Array.isArray(World.bodyCountGrowthWarnings) ? World.bodyCountGrowthWarnings.slice(-8) : [],
+        massSplitConservationWarnings: Array.isArray(World.massSplitConservationWarnings) ? World.massSplitConservationWarnings.slice(-8) : [],
         harmonicDustManualCollectionEnabled: World.spaceMechanics?.harmonicDustManualCollectionEnabled !== false,
         harmonicDustAutoTestCollectionEnabled: World.spaceMechanics?.harmonicDustAutoTestCollectionEnabled === true,
         harmonicDustElasticGrayEnabled: World.spaceMechanics?.harmonicDustElasticGrayEnabled !== false,

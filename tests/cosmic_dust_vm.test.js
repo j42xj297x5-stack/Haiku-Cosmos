@@ -107,6 +107,7 @@ assert.equal(p.orbiters.length, 0, 'planet+asteroid does not restore legacy capt
 
 const snap = c.HC.WorldRenderSnapshot.build({ World: c.World });
 assert.ok(Array.isArray(snap.world.cosmicDust), 'snapshot exposes world.cosmicDust');
+assert.equal(snap.diagnostics.activeCollisionRulesProfile, 'baseline_safe_v1', 'snapshot diagnostics exposes active collision rules profile');
 assert.equal(snap.world.cosmicDust[0].dustKind, 'cosmic');
 assert.equal(snap.world.cosmicDust[0].collectible, false);
 assert.equal(snap.world.cosmicDust[0].visual.model, 'cosmic_dust_cloud');
@@ -114,6 +115,11 @@ assert.equal(c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled, false, 'phys
 assert.ok(c.World.lastMassSplitEvent, 'mass split evidence is recorded');
 assert.ok(Math.abs((pm.absorbedMass + pm.cosmicDustMass + pm.fragmentMass) - 20) < 1e-9, 'planet+meteor split conserves incoming meteor mass');
 
+c = buildContext();
+c.World.meteors = [{ id: 'mismatch-meteor', type: 'meteor', kind: 'meteor', x: 0, y: 0, r: 10, collisionRadius: 10, viewRadius: 13 }];
+const mismatchSnap = c.HC.WorldRenderSnapshot.build({ World: c.World, nowMs: 3000 });
+assert.equal(mismatchSnap.diagnostics.radiusMismatchWarningsCount, 1, 'radius mismatch warning count exposes artificial mismatch');
+assert.equal(mismatchSnap.diagnostics.radiusMismatchWarnings[0].type, 'collision_view_radius_mismatch', 'radius mismatch warning type is stable');
 
 function cloud(id, x = 0, y = 0, r = 30, density = 1) { return { id, type: 'cosmic_dust', dustKind: 'cosmic', x, y, r, mass: 10, density, collectible: false }; }
 function speed(body) { return Math.sqrt(body.vx * body.vx + body.vy * body.vy); }
