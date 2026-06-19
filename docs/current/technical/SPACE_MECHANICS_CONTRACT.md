@@ -197,3 +197,63 @@ Zasady kontraktu dla pyłu i orbit:
 3. D3: usunąć albo odseparować `planet.orbiters` z live render/update poza debug stale-state path.
 4. D4: migracja `parentKind`/`parentRef` planetarnych stanów do `parentPlanetId` + `orbitState`.
 5. D5: body registry / normalized collection, jeśli nadal potrzebne dla Canvas2D i Three.js.
+
+## 12A. Trzypoziomowy kontrakt pyłu przed `cosmic dust`
+
+Aktualny kontrakt rozróżnia trzy poziomy pyłu i nie zakłada, że przyszłe pola `cosmic dust` już istnieją w runtime.
+
+### 12A.1. `harmonicDust` — obecny zbieralny pył
+
+- `collectible:true` w sensie projektowym dla jedynego zbieralnego kolorowego pyłu.
+- Integracja PRG/HUD: ręczne collection przez PRG jest target path, HUD reservoir / stosik przyjmuje zasób.
+- `dustKind:"harmonic"` i `type:"harmonic_dust"` pozostają identyfikacją chmury harmonicznej.
+- Render ma iść przez render-agnostic snapshot/view-model wspólny dla Canvas2D i Three.js.
+- Manual collection jest target modelem; auto/test collection nie jest docelowym zachowaniem.
+- Brak fizycznego drag/stop: `harmonicDust` nie spowalnia i nie zatrzymuje obiektów.
+
+### 12A.2. Gray-shifted `harmonicDust` — obecny/foundation stan chmury harmonicznej
+
+- Nadal `dustKind:"harmonic"`; GRAY chmura harmoniczna nie staje się przez to `dustKind:"cosmic"`.
+- `grayMixRatio` opisuje stopień utraty harmoniczności w zakresie `0..1`.
+- `transformState` może bezpiecznie używać stanów `harmonic`, `gray_shifting`, `recovering`, `gray_locked`.
+- `futureCosmicCandidate` jest wyłącznie znacznikiem kwalifikacji do przyszłej konwersji.
+- Przed progiem pełnej przemiany chmura jest recoverable; recovery trwa około `2× exposureTime`.
+- `World.cosmicDust` obecnie nie istnieje i gray-shifted `harmonicDust` nie może udawać tej kolekcji.
+
+### 12A.3. Future `cosmic dust` — przyszły fizyczny pył świata
+
+- `dustKind:"cosmic"`.
+- `collectible:false`.
+- Fizyczny wpływ na świat: drag/stop/condensation.
+- Oddzielna kolekcja danych, np. `World.cosmicDust` albo `World.dustClouds`.
+- Nie trafia do HUD reservoir i nie jest `GRAY/mixed reservoir`.
+
+Przyszłe pola runtime dla obiektu `cosmic dust` (kontrakt planowany, nie obecny runtime):
+
+- `id`,
+- `type:"cosmic_dust"`,
+- `dustKind:"cosmic"`,
+- `collectible:false`,
+- `x`, `y`, `z`,
+- `r`,
+- `mass`,
+- `density`,
+- `state:"cold" | "condensing" | "burning" | "charged"`,
+- `source`,
+- `sourceDustId`,
+- `createdAt`,
+- `ageMs`,
+- `mergeGroupId`,
+- `visual`,
+- `affectsBodies:true`.
+
+Przyszłe parametry runtime dla `cosmic dust` (planowane, nie obecne):
+
+- `cosmicDustEnabled`,
+- `cosmicDustDragStrength`,
+- `cosmicDustStopSpeedThreshold`,
+- `cosmicDustLightBodyMassThreshold`,
+- `cosmicDustMergeDistanceMul`,
+- `cosmicDustCloudToGasPlanetMassThreshold`,
+- `cosmicDustMaxClouds`,
+- `cosmicDustCondensationEnabled`.

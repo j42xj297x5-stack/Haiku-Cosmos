@@ -29,10 +29,10 @@ Kanon jest mapowany warstwowo przez:
 
 - `docs/current/systems/CARDS_SYSTEM.md` (KANON)
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU) - roboczy system sieci slotów kart, wzmocnień, trwałości, pyłu, napięć, blizn i naprawy slotów.
-- `docs/current/systems/COMETS_SYSTEM.md` (ROBOCZY / SYSTEM ŚWIATA) - projektowy kontrakt czterech docelowych typów komet, przemian świata, stanów obiektów, pyłów, konfliktów efektów i relacji z kartami specjalnymi/SUB-META/PRG; Kometa podstawowa jest deprecated / legacy idea.
-- `docs/current/systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` (ROBOCZY / KONTRAKT PROJEKTOWY / PRZED RUNTIME) - kontrakt impact/orbit dla planet skalistych, księżyców orbitalnych oraz rozdziału `harmonicDust` / `GRAY/mixed reservoir` / future `cosmic dust`; nie zastępuje COMETS ani kart.
+- `docs/current/systems/COMETS_SYSTEM.md` (ROBOCZY / SYSTEM ŚWIATA) - osobny future system czterech docelowych typów komet; nie jest wymagany do pierwszych patchy `cosmic dust`, a reakcje komet z pyłem są etapem po podstawowym `cosmic dust` foundation.
+- `docs/current/systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` (ROBOCZY / KONTRAKT PROJEKTOWY / PRZED RUNTIME) - kontrakt impact/orbit oraz rozróżnienia `harmonicDust` / `GRAY/mixed reservoir` / gray-shifted `harmonicDust` / future `cosmic dust`; nie zastępuje COMETS ani kart.
 - `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - lista decyzji i zależności do zamknięcia przed pierwszym runtime pass CARD SLOT NETWORK.
-- `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - pętla zbierania i rafinacji pyłu: jeden zbieralny kolorowy pył (`harmonicDust`) trafia docelowo ręcznie przez PRG do HUD reservoir/stosiku; pomieszanie kolorów tworzy `GRAY/mixed reservoir`, a Magazyn/Kuźnia przechowują i rafinują pełne stosiki.
+- `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - source dla `harmonicDust` / HUD / PRG / reservoir: jeden wysokoenergetyczny zbieralny kolorowy pył trafia ręcznie przez PRG do HUD reservoir/stosiku/depozytu, działa przez `10/20/50`, definiuje elastic gray shift oraz rozdziela `GRAY/mixed reservoir` od przyszłego `cosmic dust`.
 - `docs/current/systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
 - `docs/current/systems/ECONOMY_SYSTEM.md` (KANON)
 - `docs/current/systems/SUB_META_SYSTEM.md` (KANON)
@@ -82,7 +82,7 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/technical/README.md` (ROBOCZY)
 - `docs/current/technical/DEBUG_SETTINGS_STANDARD.md` (ROBOCZY / STANDARD TECHNICZNY DEBUG SETTINGS) - definiuje standard ładowania, importu i exportu ustawień debug/layout przez `public/settings/*.json` i mini panele debug.
 - `docs/current/technical/WORLD_FUNCTION_MAP.md` (ROBOCZY)
-- `docs/current/technical/SPACE_MECHANICS_CONTRACT.md` (ROBOCZY / KONTRAKT TECHNICZNY) - kontrakt nowej mechaniki ciał kosmicznych dla Canvas2D/Three.js: direct planet impact, typy live, pola canonical/render-only/compatibility/deprecated i zakaz legacy planet capture.
+- `docs/current/technical/SPACE_MECHANICS_CONTRACT.md` (ROBOCZY / KONTRAKT TECHNICZNY) - kontrakt techniczny przyszłej implementacji `cosmic dust` oraz mechaniki ciał kosmicznych dla Canvas2D/Three.js: trzy poziomy pyłu, planowane pola/parametry `cosmic dust`, direct impact i zakaz legacy planet capture.
 - `docs/current/technical/WORLD_RENDERING_MODEL.md` (ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA; zawiera checkpoint 2026-06-05: Three jako domyślny renderer gry/debug, Canvas2D legacy/fallback, `stage_normalized` camera, `stage_spot_v1` lighting z `mainStageSpot`, debug overlay/global helpers, compact evidence logging, SUB-META logging contract `future_event_based_v1` oraz snapshot Three GLB + external meteor textures: aktywny lokalny `GLTFLoader` dla meteorów/asteroid, cache template/clone GLB, cache PNG `map`/`emissiveMap` red/yellow przez `TextureLoader`, no-overwrite imported GLB materials i runtime asset policy)
 - `docs/current/technical/CARD_VISUAL_ARCHITECTURE.md` (ROBOCZY / ARCHITEKTURA TECHNICZNA)
 - `docs/current/technical/FONT_SYSTEM_SPEC.md` (ROBOCZY / DO WDROZENIA)
