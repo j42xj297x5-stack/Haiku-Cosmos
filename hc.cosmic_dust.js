@@ -106,12 +106,19 @@
   function recordMassSplit(world, evidence, inputMass, outputOverride) {
     const output = Number.isFinite(Number(outputOverride)) ? Number(outputOverride) : ((evidence.cosmicDustMass || 0) + (evidence.absorbedMass || 0) + (evidence.fragmentMass || 0) + (evidence.orbiterCandidate?.mass || 0));
     const input = Math.max(0, inputMass || 0);
+    const delta = output - input;
     world.lastMassSplitEvent = Object.assign({
       type: "mass_split", ruleId: evidence.ruleId || evidence.kind,
-      inputMass: input, outputMass: output, delta: output - input,
-      conservationInputMass: input, conservationOutputMass: output, conservationDelta: output - input,
+      inputMass: input, outputMass: output, delta,
+      conservationInputMass: input, conservationOutputMass: output, conservationDelta: delta,
       at: nowMs(world)
     }, evidence);
+    if (Math.abs(delta) > 0.001) {
+      world.massSplitConservationWarnings = Array.isArray(world.massSplitConservationWarnings) ? world.massSplitConservationWarnings : [];
+      world.massSplitConservationWarnings.push({ ruleId: world.lastMassSplitEvent.ruleId, inputMass: input, outputMass: output, conservationDelta: delta, at: nowMs(world) });
+      if (world.massSplitConservationWarnings.length > 8) world.massSplitConservationWarnings.shift();
+      world.lastMassSplitConservationWarning = world.massSplitConservationWarnings[world.massSplitConservationWarnings.length - 1];
+    }
   }
   function resizeAsteroid(World, a) { if (window.HC?.SpaceBodies?.radiusFromMass && a) a.r = window.HC.SpaceBodies.radiusFromMass("asteroid", a.mass, { baseRadius: a.massOneRadius || a.baseR || a.r || 1, minRadius: a.minR || 1, maxRadius: a.maxR || Infinity }); }
   function resizeMoon(World, m) { if (window.HC?.SpaceBodies?.radiusFromMass && m) { m.r = window.HC.SpaceBodies.radiusFromMass("moon", m.mass, { baseRadius: m.massOneRadius || m.baseR || m.r || 1, minRadius: m.minR || 0.1, maxRadius: m.maxR || Infinity }); m.radius = m.r; } }
