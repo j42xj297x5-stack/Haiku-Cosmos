@@ -216,6 +216,10 @@
     planetGroup: null,
     moonGroup: null,
     harmonicDustGroup: null,
+    prgIndicatorGroup: null,
+    prgIndicatorLine: null,
+    prgIndicatorGeometry: null,
+    prgIndicatorMaterial: null,
     lightsGroup: null,
     ambientLight: null,
     debugKeyLight: null,
@@ -259,6 +263,9 @@
     planetGroupChildrenCount: 0,
     moonGroupChildrenCount: 0,
     harmonicDustGroupChildrenCount: 0,
+    prgIndicatorActive: false,
+    prgIndicatorRadius: 0,
+    prgIndicatorEnabled: true,
     threeHarmonicDustCount: 0,
     threeMoonCount: 0,
     planetGlbInstanceCreates: 0,
@@ -281,7 +288,7 @@
     threeAsteroidCount: 0,
     threeMeteorLastError: null,
     threeAsteroidLastError: null,
-    threeObjectRenderPasses: ["meteors", "asteroids", "planets", "harmonicDust"],
+    threeObjectRenderPasses: ["meteors", "asteroids", "planets", "harmonicDust", "prgIndicator"],
     debugMarker: null,
     debugMarkerEnabled: THREE_DEBUG_MARKER_ENABLED,
     threeMeteorRadiusScale: THREE_METEOR_RADIUS_SCALE,
@@ -4224,6 +4231,8 @@
       const planetGroup = new THREE.Group();
       const moonGroup = new THREE.Group();
       const harmonicDustGroup = new THREE.Group();
+      const prgIndicatorGroup = new THREE.Group();
+      prgIndicatorGroup.name = "hc_prg_indicator_group";
       const lightsGroup = createThreeLights(THREE);
       scene.add(lightsGroup);
       if (threeState.mainStageSpotTarget) scene.add(threeState.mainStageSpotTarget);
@@ -4231,11 +4240,12 @@
       scene.add(moonGroup);
       scene.add(asteroidGroup);
       scene.add(harmonicDustGroup);
+      scene.add(prgIndicatorGroup);
       scene.add(meteorGroup);
       scene.background = new THREE.Color(0x05070a);
       canvas.style.display = "block";
       canvas.style.visibility = "visible";
-      Object.assign(threeState, { canvas, renderer, scene, camera, orthographicCamera, perspectiveCamera, meteorGroup, asteroidGroup, planetGroup, moonGroup, harmonicDustGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16), planetGeometry: new THREE.CircleGeometry(1, 32), harmonicDustGeometry: new THREE.CircleGeometry(1, 24) });
+      Object.assign(threeState, { canvas, renderer, scene, camera, orthographicCamera, perspectiveCamera, meteorGroup, asteroidGroup, planetGroup, moonGroup, harmonicDustGroup, prgIndicatorGroup, lightsGroup, meteorGeometry: new THREE.CircleGeometry(1, 16), planetGeometry: new THREE.CircleGeometry(1, 32), harmonicDustGeometry: new THREE.CircleGeometry(1, 24) });
       applyRendererPbrSettings();
       syncThreeLights();
       createDebugMarker(THREE);
@@ -4267,6 +4277,63 @@
     });
     threeState.harmonicDustMaterials.set(key, mat);
     return mat;
+  }
+
+
+  function ensurePrgIndicatorVisual(THREE, dashCount) {
+    const count = Math.max(1, Math.floor(Number(dashCount) || 48));
+    const existingCount = threeState.prgIndicatorLine?.userData?.dashCount;
+    if (threeState.prgIndicatorLine && existingCount === count) return threeState.prgIndicatorLine;
+    if (threeState.prgIndicatorLine) threeState.prgIndicatorGroup?.remove(threeState.prgIndicatorLine);
+    threeState.prgIndicatorGeometry?.dispose?.();
+    const positions = [];
+    const TAU = Math.PI * 2;
+    const visibleArc = 0.52;
+    for (let i = 0; i < count; i += 1) {
+      const a0 = (i / count) * TAU;
+      const a1 = ((i + visibleArc) / count) * TAU;
+      positions.push(Math.cos(a0), Math.sin(a0), 0, Math.cos(a1), Math.sin(a1), 0);
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    const material = threeState.prgIndicatorMaterial || new THREE.LineBasicMaterial({ color: 0xfff2c7, transparent: true, opacity: 0.45, depthWrite: false, depthTest: false });
+    material.transparent = true;
+    material.depthWrite = false;
+    material.depthTest = false;
+    const line = new THREE.LineSegments(geometry, material);
+    line.name = "hc_prg_action_range_indicator";
+    line.frustumCulled = false;
+    line.renderOrder = 980;
+    line.userData.hcObjectType = "prg_indicator";
+    line.userData.dashCount = count;
+    threeState.prgIndicatorGeometry = geometry;
+    threeState.prgIndicatorMaterial = material;
+    threeState.prgIndicatorLine = line;
+    threeState.prgIndicatorGroup?.add(line);
+    return line;
+  }
+
+  function syncPrgIndicatorPass(renderSnapshot) {
+    const THREE = window.HC_THREE || window.THREE;
+    const indicator = renderSnapshot?.world?.prgIndicator || {};
+    const style = indicator.style || {};
+    threeState.prgIndicatorEnabled = indicator.active === true || renderSnapshot?.diagnostics?.prgIndicatorEnabled !== false;
+    threeState.prgIndicatorActive = indicator.active === true;
+    threeState.prgIndicatorRadius = Number(indicator.radius) || 0;
+    if (!THREE || !threeState.prgIndicatorGroup || indicator.active !== true || !(Number(indicator.radius) > 0)) {
+      if (threeState.prgIndicatorLine) threeState.prgIndicatorLine.visible = false;
+      return;
+    }
+    const line = ensurePrgIndicatorVisual(THREE, style.dashCount || 48);
+    const radius = applyRenderSpaceToRadius(Number(indicator.radius) || 0);
+    const pos = applyRenderSpaceToVector(Number(indicator.x) || 0, Number(indicator.y) || 0, Number(indicator.z) || 0.12);
+    line.position.set(pos.x, pos.y, pos.z);
+    line.scale.set(radius, radius, 1);
+    line.visible = true;
+    if (line.material) {
+      line.material.opacity = Math.max(0.01, Math.min(1, Number(style.opacity) || 0.45));
+      line.material.needsUpdate = true;
+    }
   }
 
   function getStableHarmonicDustSnapshotKey(dust, index) {
@@ -4872,6 +4939,8 @@
     threeState.meteorGeometry?.dispose?.();
     threeState.planetGeometry?.dispose?.();
     threeState.harmonicDustGeometry?.dispose?.();
+    threeState.prgIndicatorGeometry?.dispose?.();
+    threeState.prgIndicatorMaterial?.dispose?.();
     threeState.environment?.dispose?.();
     threeState.environment = null;
     threeState.environmentCanvas = null;
@@ -4884,7 +4953,7 @@
     if (threeState.canvas) { threeState.canvas.style.display = "none"; threeState.canvas.style.visibility = "hidden"; }
     if (threeState.debugMarker?.parent) threeState.debugMarker.parent.remove(threeState.debugMarker);
     if (threeState.firstMeteorMarker?.parent) threeState.firstMeteorMarker.parent.remove(threeState.firstMeteorMarker);
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, harmonicDustGroup: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], meteorGeometry: null, planetGeometry: null, harmonicDustGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, harmonicDustGroup: null, prgIndicatorGroup: null, prgIndicatorLine: null, prgIndicatorGeometry: null, prgIndicatorMaterial: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], meteorGeometry: null, planetGeometry: null, harmonicDustGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -4916,6 +4985,7 @@
           syncMoonPass(renderSnapshot || {}, nowMs);
           syncPlanetPass(renderSnapshot || {}, nowMs);
           syncHarmonicDustPass(renderSnapshot || {}, nowMs);
+          syncPrgIndicatorPass(renderSnapshot || {});
           threeState.threePlanetLastError = null;
         } catch (err) {
           threeState.threePlanetLastError = err?.message || String(err);
@@ -5385,6 +5455,9 @@
       moonGroupChildrenCount: threeState.moonGroupChildrenCount,
       harmonicDustGroupChildrenCount: threeState.harmonicDustGroupChildrenCount,
       threeHarmonicDustCount: threeState.threeHarmonicDustCount,
+      prgIndicatorActive: threeState.prgIndicatorActive,
+      prgIndicatorRadius: threeState.prgIndicatorRadius,
+      prgIndicatorEnabled: threeState.prgIndicatorEnabled,
       threeMoonCount: threeState.threeMoonCount,
       moonGlbAssets: MOON_GLB_ASSETS,
       cameraSnapshotCenter: threeState.cameraSnapshotCenter,

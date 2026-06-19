@@ -1340,6 +1340,8 @@
       ["harmonic dust", wc.harmonicDustCount ?? 0],
       ["harmonic manual PRG", window.World?.spaceMechanics?.harmonicDustManualCollectionEnabled !== false ? "on" : "off"],
       ["harmonic auto/test", window.World?.spaceMechanics?.harmonicDustAutoTestCollectionEnabled === true ? "on" : "off"],
+      ["PRG indicator", `${window.World?.spaceMechanics?.prgIndicatorEnabled !== false ? "on" : "off"} / ${window.Input?.pointerDown ? "active" : "idle"}`],
+      ["PRG indicator radius", Number((window.HC?.HarmonicDust?.getPrgActionField && window.HC.HarmonicDust.getPrgActionField(window.World))?.radius || 0).toFixed(2)],
       ["harmonic being collected", Array.isArray(window.World?.harmonicDust) ? window.World.harmonicDust.filter((dust) => dust && !dust._dead && dust.isBeingCollected === true).length : 0],
       ["dust sequence", `${window.World?.harmonicDustSequence?.colorName || "-"} #${window.World?.harmonicDustSequence?.step || 0}`],
       ["Dust Reservoir", `${window.World?.harmonicDustReservoir?.isMixedGray ? "GRAY" : (window.World?.harmonicDustReservoir?.activeColorName || "EMPTY")} ${Math.floor(Number(window.World?.harmonicDustReservoir?.fillPercent || 0))}%`],

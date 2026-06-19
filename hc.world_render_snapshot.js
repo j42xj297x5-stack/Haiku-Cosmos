@@ -204,6 +204,47 @@
     };
   }
 
+
+  function positive(value, fallback) {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  }
+
+  function buildPrgIndicator(World) {
+    const sm = World?.spaceMechanics || {};
+    const enabled = sm.prgIndicatorEnabled !== false;
+    const style = {
+      kind: "dashed_circle",
+      opacity: Math.max(0.01, Math.min(1, positive(sm.prgIndicatorOpacity, 0.45))),
+      lineWidth: positive(sm.prgIndicatorLineWidth, 1),
+      dashCount: Math.max(1, Math.floor(positive(sm.prgIndicatorDashCount, 48))),
+      color: typeof sm.prgIndicatorColor === "string" ? sm.prgIndicatorColor : "rgba(255,245,210,0.72)",
+    };
+    let field = null;
+    if (window.HC?.HarmonicDust?.getPrgActionField) field = window.HC.HarmonicDust.getPrgActionField(World);
+    if (!field) {
+      const Input = window.Input;
+      if (Input?.pointerDown && Number.isFinite(Number(Input.wx)) && Number.isFinite(Number(Input.wy))) {
+        const View = (window.HC?.getView && window.HC.getView()) || window.View || {};
+        const CE = window.CardEngine;
+        const mul = CE?.state?.engineStats?.pointer_radius_mul || 1;
+        const radius = positive(View.worldScale, 1) * positive(World?.pointerRadius, 0.2) * positive(mul, 1);
+        field = { x: Number(Input.wx), y: Number(Input.wy), z: 0, radius, r: radius };
+      }
+    }
+    const radius = positive(field?.radius ?? field?.r, 0);
+    const active = enabled && !!field && radius > 0;
+    return {
+      active,
+      x: active ? toNumber(Number(field.x), 0) : 0,
+      y: active ? toNumber(Number(field.y), 0) : 0,
+      z: active ? toNumber(Number(field.z), 0) : 0,
+      radius: active ? radius : 0,
+      mode: "prg",
+      style,
+    };
+  }
+
   function mapCollection(items, kind) {
     const result = [];
     const src = pickArray(items);
@@ -240,6 +281,8 @@
     const rockyPlanetCount = sourcePlanets.filter((planet) => getPlanetKind(planet) === "rocky").length;
     const gasPlanetCount = sourcePlanets.filter((planet) => getPlanetKind(planet) === "gas").length;
 
+    const prgIndicator = buildPrgIndicator(World);
+
     const snapshot = {
       version: "world-render-snapshot-v1",
       nowMs: toNumber(opts.nowMs, 0),
@@ -274,6 +317,7 @@
         lastPlanetImpact: World.lastPlanetImpact ? Object.assign({}, World.lastPlanetImpact) : null,
         stars: mapCollection(World.stars, "star"),
         prg: World.prg || null,
+        prgIndicator,
         background: World.background || null,
         sequenceVisualSignals: World.sequenceVisualSignals || null,
         debug: World.debug || null,
@@ -321,6 +365,9 @@
         harmonicDustDeposits: Object.assign({}, World.harmonicDustDeposits || {}),
         harmonicDustReservoirVisual: World.harmonicDustReservoirVisual ? Object.assign({}, World.harmonicDustReservoirVisual) : (window.HC?.HarmonicDust?.getReservoirVisualState ? window.HC.HarmonicDust.getReservoirVisualState(World) : null),
         harmonicDustCollected: Object.assign({}, World.harmonicDustCollected || {}),
+        prgIndicatorActive: prgIndicator.active,
+        prgIndicatorRadius: prgIndicator.radius,
+        prgIndicatorEnabled: World.spaceMechanics?.prgIndicatorEnabled !== false,
         planetImpactCount: toNumber(World.planetImpactCount, 0),
         lastPlanetImpact: World.lastPlanetImpact ? Object.assign({}, World.lastPlanetImpact) : null,
         cameraAvailability: {
