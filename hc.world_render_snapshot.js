@@ -46,6 +46,11 @@
 
   function mapBody(body, fallbackKind, index) {
     if (!body || typeof body !== "object") return null;
+    // Patch D0 body contract boundary:
+    // - canonical mechanics fields are copied for a shared Canvas2D/Three.js VM;
+    // - visualKind/assetId/model routing fields are render-only;
+    // - orbitPx/orbitCurrentRadius/orbiters/parentKind are compatibility evidence
+    //   and must not reactivate legacy planet capture.
     const radius = toNumber(body.r, toNumber(body.radius, toNumber(body.collisionRadius, undefined)));
     const scale = toNumber(body.scale, undefined);
     const stableRenderKey = getStableRenderBodyId(body, fallbackKind) || `${fallbackKind}:snapshot:${index}`;

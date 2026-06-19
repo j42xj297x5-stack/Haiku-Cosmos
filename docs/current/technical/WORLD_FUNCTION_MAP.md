@@ -1,14 +1,23 @@
 > Status: ROBOCZY
 > Obszar: mapa funkcji świata / runtime
 > Źródło prawdy: CZĘŚCIOWO — robocza mapa orientacyjna; NIE zastępuje audytu kodu
-> Ostatnia aktualizacja: 2026-06-06
-> Powiązane dokumenty: ../maps/DEPENDENCY_MAP.md, SEQUENCE_STATE_CONTRACT.md, IMPLEMENTATION_TRACKER.md, LIVE_VALIDATION_PACK.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../ui/UI_WORLD.md
+> Ostatnia aktualizacja: 2026-06-19
+> Powiązane dokumenty: ../maps/DEPENDENCY_MAP.md, SPACE_MECHANICS_CONTRACT.md, SEQUENCE_STATE_CONTRACT.md, IMPLEMENTATION_TRACKER.md, LIVE_VALIDATION_PACK.md, ../systems/CARDS_SYSTEM.md, ../systems/PRG_SYSTEM.md, ../ui/UI_WORLD.md
 
 # Haiku Cosmos — MAP_FUNCTIONS_WORLD_vNEXT
 
 > Ten dokument jest roboczą mapą orientacyjną runtime i służy do szybkiego mapowania obszarów kodu.
 > Nie jest kanonem technicznym funkcja-po-funkcji i nie zastępuje pełnego audytu runtime.
 > Przy zmianach runtime należy aktualizować tę mapę albo `IMPLEMENTATION_TRACKER.md` oraz oznaczać sekcje niepewne jako `DO WERYFIKACJI`.
+
+---
+
+
+## 0A. Kontrakt ciał kosmicznych (Patch D0)
+
+**Nowy kontrakt techniczny:** `SPACE_MECHANICS_CONTRACT.md`.
+
+Dla meteorów, asteroid, księżyców, planet, gwiazd, `impactFragment` oraz przyszłych orbital bodies obowiązuje model: direct impact/progression w runtime -> wspólny snapshot/view-model -> Canvas2D albo Three.js. Legacy planet capture nie jest live ścieżką: `orbitPx`, `gravityR`, `parentKind`/`parentRef`, `theta`/`omega`/`orbitR` oraz `orbiters` są polami compatibility/deprecated zależnie od kontekstu, a nie nowym źródłem mechaniki planetarnej.
 
 ---
 

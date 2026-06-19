@@ -1,3 +1,4 @@
+> Update 2026-06-19: `SPACE_MECHANICS_CONTRACT.md` dodaje roboczy kontrakt techniczny ciał kosmicznych dla Canvas2D/Three.js: direct planet impact przez `HC.Impact.resolvePlanetImpact`, wspólny snapshot/view-model oraz klasyfikację pól canonical/render-only/compatibility/deprecated.
 > Update 2026-06-05: `WORLD_RENDERING_MODEL.md` zawiera snapshot Three GLB + external meteor textures: lokalny `GLTFLoader` jest aktywną ścieżką GLB dla meteorów/asteroid, cache przechowuje template per URL i klonuje instancje, zewnętrzne PNG `map`/`emissiveMap` dla `red`/`yellow` są cache’owane przez `TextureLoader`, imported GLB maps nie są nadpisywane, a fallback visual pozostaje tylko dla `loading`/`failed`.
 > Update 2026-06-05: `WORLD_RENDERING_MODEL.md` zawiera checkpoint Three renderer + `stage_normalized` camera + `stage_spot_v1` lighting: Three jest domyślnym rendererem gry/debug, Canvas2D pozostaje legacy/fallback/mechanics verification, `mainStageSpot` jest jedynym głównym światłem scenicznym, legacy corner PointLight są usunięte z aktywnego runtime, debug overlay ma zwijane sekcje/global helpers, a evidence logging działa w trybie compact.
 > Update 2026-06-04: `WORLD_RENDERING_MODEL.md` zawiera snapshot Three GLB PBR material pipeline po naprawie: `MeshStandardMaterial`/PBR zamiast `MeshBasicMaterial` dla obiektów światłoczułych, audyt 21 GLB bez tekstur/normalMap oraz wymagania bake/eksportu map z Blendera.
@@ -18,7 +19,7 @@
 > Status: ROBOCZY
 > Obszar: mapa dokumentów technicznych
 > Źródło prawdy: NIE (warstwa pomocnicza do kanonu)
-> Ostatnia aktualizacja: 2026-06-05
+> Ostatnia aktualizacja: 2026-06-19
 > Powiązane dokumenty: ../README.md, ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md
 
 Katalog `docs/current/technical/` zawiera dokumenty techniczne używane do pracy operacyjnej,
@@ -29,6 +30,7 @@ audytów i synchronizacji dokumentacji z runtime.
 - `DEBUG_SETTINGS_STANDARD.md` — **ROBOCZY / STANDARD TECHNICZNY DEBUG SETTINGS** (standard ładowania, importu i exportu ustawień debug/layout przez `public/settings/*.json` oraz mini panele debug)
 
 - `WORLD_FUNCTION_MAP.md` — **ROBOCZY** (aktywna mapa techniczna orientacyjna; nie zastępuje pełnego audytu runtime)
+- `SPACE_MECHANICS_CONTRACT.md` — **ROBOCZY / KONTRAKT TECHNICZNY** (kontrakt nowej mechaniki ciał kosmicznych: typy live, pola canonical/render-only/compatibility/deprecated, zakaz legacy planet capture oraz wspólny snapshot/view-model dla Canvas2D i Three.js)
 - `WORLD_RENDERING_MODEL.md` — **ROBOCZY / KONTRAKT TECHNICZNY RENDERINGU ŚWIATA** (Three.js adapter, domyślny renderer Three dla gry/debug, Canvas2D jako legacy/fallback/mechanics verification, `stage_normalized` camera, `stage_spot_v1` lighting, debug overlay, compact evidence logging; obejmuje GLTFLoader jako aktywną ścieżkę GLB dla meteorów/asteroid, GLB template/clone cache, zewnętrzne palety PNG `map`/`emissiveMap` red/yellow przez `TextureLoader`, no-overwrite imported materials oraz fallback visual tylko dla `loading`/`failed`)
 - `SEQUENCE_STATE_CONTRACT.md` — **ROBOCZY / KONTRAKT TECHNICZNY** (single source-of-truth sekwencji + zasady evidence timeline)
 - `IMPLEMENTATION_TRACKER.md` — **ROBOCZY** (tracker wdrożeń i obszarów do weryfikacji)
