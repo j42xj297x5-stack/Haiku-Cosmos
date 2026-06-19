@@ -671,7 +671,10 @@
         // 5) Wywołaj HC.WorldEvents.interruptPreStar(planetId), potwierdź powrót do planety
         //    oraz wzrost progu o +30% w tym samym runie.
         if (p.planetKind === "gas") {
-          if (p.preStar && p.preStar.active) {
+          if (World.spaceMechanics?.planetToStarEnabled !== true) {
+            if (p.preStar) p.preStar.active = false;
+            World.planetToStarEnabled = false;
+          } else if (p.preStar && p.preStar.active) {
             p.preStar.t += dt;
             p.preStar.timeAbs = (p.preStar.timeAbs || 0) + dt;
             if (p.preStar.t >= p.preStar.duration) {

@@ -100,7 +100,9 @@ assert.ok(Array.isArray(snap.world.cosmicDust), 'snapshot exposes world.cosmicDu
 assert.equal(snap.world.cosmicDust[0].dustKind, 'cosmic');
 assert.equal(snap.world.cosmicDust[0].collectible, false);
 assert.equal(snap.world.cosmicDust[0].visual.model, 'cosmic_dust_cloud');
-assert.equal(c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled, true, 'physical effects default on');
+assert.equal(c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled, false, 'physical effects default off for stabilization');
+assert.ok(c.World.lastMassSplitEvent, 'mass split evidence is recorded');
+assert.ok(Math.abs((pm.absorbedMass + pm.cosmicDustMass + pm.fragmentMass) - 20) < 1e-9, 'planet+meteor split conserves incoming meteor mass');
 
 
 function cloud(id, x = 0, y = 0, r = 30, density = 1) { return { id, type: 'cosmic_dust', dustKind: 'cosmic', x, y, r, mass: 10, density, collectible: false }; }
@@ -109,9 +111,13 @@ function speed(body) { return Math.sqrt(body.vx * body.vx + body.vy * body.vy); 
 c = buildContext();
 m = meteor('drag-meteor', 'red', 4); m.vx = 1; m.vy = 0; c.World.meteors = [m]; c.World.cosmicDust = [cloud('c1')];
 const beforeDrag = speed(m); c.HC.CosmicDust.update(c.World, 1, 2000);
-assert.ok(speed(m) < beforeDrag, 'cosmic dust drag slows meteor');
+assert.equal(speed(m), beforeDrag, 'cosmic dust has no physical influence by default');
+c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled = true; c.World.spaceMechanics.cosmicDustStopEnabled = true;
+c.HC.CosmicDust.update(c.World, 1, 2000);
+assert.ok(speed(m) < beforeDrag, 'explicit legacy/debug opt-in cosmic dust drag slows meteor');
 
 c = buildContext();
+c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled = true;
 m = meteor('far-meteor', 'red', 4); m.vx = 1; m.vy = 0; c.World.meteors = [m]; c.World.cosmicDust = [cloud('far', 999, 999)];
 c.HC.CosmicDust.update(c.World, 1, 2000);
 assert.equal(m.vx, 1, 'no overlap means no drag vx');
@@ -128,6 +134,7 @@ c.HC.CosmicDust.update(c.World, 1, 2000);
 assert.equal(m.vx, 1, 'harmonicDust does not drag through cosmic dust update');
 
 c = buildContext();
+c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled = true;
 const light = meteor('light', 'red', 2); light.vx = 1;
 const heavy = asteroid('heavy', 40); heavy.vx = 1;
 c.World.meteors = [light]; c.World.asteroids = [heavy]; c.World.cosmicDust = [cloud('c3', 0, 0, 40, 2)];
@@ -135,6 +142,7 @@ c.HC.CosmicDust.update(c.World, 1, 2000);
 assert.ok(speed(light) < speed(heavy), 'heavy body resists cosmic dust drag more than light body');
 
 c = buildContext();
+c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled = true; c.World.spaceMechanics.cosmicDustStopEnabled = true;
 m = meteor('slow-light', 'red', 2); m.vx = 0.01; m.vy = 0; c.World.meteors = [m]; c.World.cosmicDust = [cloud('c4', 0, 0, 40, 5)];
 c.HC.CosmicDust.update(c.World, 1, 2000);
 assert.equal(m.vx, 0, 'stop threshold zeros vx for light slow body');
@@ -142,18 +150,21 @@ assert.equal(m.vy, 0, 'stop threshold zeros vy for light slow body');
 assert.equal(m.cosmicDustStopped, true, 'stop threshold marks body stopped');
 
 c = buildContext();
+c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled = true;
 m = meteor('fast-light', 'red', 2); m.vx = 1; c.World.meteors = [m]; c.World.cosmicDust = [cloud('c5', 0, 0, 40, 2)];
 c.HC.CosmicDust.update(c.World, 1, 2000);
 assert.ok(m.vx > 0 && m.vx < 1, 'fast body is slowed but not zeroed');
 assert.notEqual(m.cosmicDustStopped, true, 'fast body is not stopped immediately');
 
 c = buildContext();
+c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled = true;
 p = planet('stationary-planet', 100); p.vx = 1; p.vy = 0; c.World.planets = [p]; c.World.cosmicDust = [cloud('c6', 0, 0, 60, 5)]; c.World.spaceMechanics.cosmicDustAffectsPlanets = false;
 c.HC.CosmicDust.update(c.World, 1, 2000);
 assert.equal(p.vx, 1, 'planets are not affected when cosmicDustAffectsPlanets is false');
 assert.equal(p.cosmicDustDragRatioLast, undefined, 'planet has no cosmic dust drag evidence');
 
 c = buildContext();
+c.World.spaceMechanics.cosmicDustAffectsBodiesEnabled = true;
 m = meteor('snapshot-drag', 'red', 2); m.vx = 1; c.World.meteors = [m]; c.World.cosmicDust = [cloud('c7', 0, 0, 40, 2)];
 c.HC.CosmicDust.update(c.World, 1, 2000);
 const dragSnap = c.HC.WorldRenderSnapshot.build({ World: c.World });

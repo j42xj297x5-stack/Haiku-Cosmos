@@ -141,7 +141,18 @@
     const baseRadius = finitePositive(opts.baseRadius, 1);
     const safeMass = finitePositive(mass, DEFAULT_MASS);
     const radius = baseRadius * Math.sqrt(safeMass / density);
-    return Math.max(minRadius, Math.min(maxRadius, radius));
+    const world = root.World || null;
+    let clampMax = maxRadius;
+    if (world?.spaceMechanics?.bodyRadiusClampEnabled !== false) {
+      const key = bodyKind === "asteroid" ? "maxAsteroidRadius" : bodyKind === "moon" ? "maxMoonRadius" : bodyKind === "planet" ? "maxRockyPlanetRadius" : null;
+      const configured = key ? Number(world.spaceMechanics[key]) : NaN;
+      if (Number.isFinite(configured) && configured > 0) clampMax = Math.min(clampMax, configured);
+    }
+    const clamped = Math.max(minRadius, Math.min(clampMax, radius));
+    if (clamped < radius && world) {
+      world.lastBodyRadiusClampEvent = { kind: bodyKind, mass: safeMass, rawRadius: radius, clampedRadius: clamped, maxRadius: clampMax, atFrame: Number(world.frame) || 0 };
+    }
+    return clamped;
   }
 
   function isDirectImpact(a, b) {

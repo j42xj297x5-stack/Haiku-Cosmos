@@ -1,4 +1,4 @@
-console.log("[HC] game.boot.js loaded");
+if (window?.HC_DEBUG_BOOT_LOGS === true) console.log("[HC] game.boot.js loaded");
 /* =========================================================
    Haiku Cosmos — game.js (MONOLITH SAFE v4.1)
    Part 1/3
@@ -216,12 +216,12 @@ console.log("[HC] game.boot.js loaded");
       cosmicDustMinMass: 0.1,
       cosmicDustMinVisualRadius: 6,
       cosmicDustMaxVisualRadius: 120,
-      cosmicDustAffectsBodiesEnabled: true,
+      cosmicDustAffectsBodiesEnabled: false,
       cosmicDustDragStrength: 0.35,
       cosmicDustDensityDragMul: 1.0,
       cosmicDustOverlapDragMul: 1.0,
       cosmicDustMassResistanceMul: 1.0,
-      cosmicDustStopEnabled: true,
+      cosmicDustStopEnabled: false,
       cosmicDustStopSpeedThreshold: 0.025,
       cosmicDustLightBodyMassThreshold: 8,
       cosmicDustStopOverlapThreshold: 0.25,
@@ -232,6 +232,11 @@ console.log("[HC] game.boot.js loaded");
       cosmicDustAffectsPlanets: false,
       cosmicDustCondensationEnabled: false,
       cosmicDustCloudToGasPlanetMassThreshold: 999999,
+      planetToStarEnabled: false,
+      bodyRadiusClampEnabled: true,
+      maxAsteroidRadius: 28,
+      maxMoonRadius: 48,
+      maxRockyPlanetRadius: 72,
       cosmicDustSplitMeteorMeteorDustPct: 0.25,
       cosmicDustSplitMeteorAsteroidDustPct: 0.80,
       cosmicDustSplitMeteorAsteroidAbsorbPct: 0.20,

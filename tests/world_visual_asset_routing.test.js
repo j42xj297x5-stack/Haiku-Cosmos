@@ -107,4 +107,12 @@ assert.doesNotMatch(rendererSource, /Math\.random\(\).*asteroid_0[123]/s, "rende
 assert.match(rendererSource, /applyPlanetVisualRotation\(visual, planet, rotationNowMs\)/, "Three planet pass must animate snapshot rotation metadata");
 assert.doesNotMatch(rendererSource, /function applyPlanetVisualRotation[\s\S]*?Math\.random\(/, "planet renderer must not reroll rotation per frame");
 
+assert.equal((rendererSource.match(/syncMoonDustRings\(THREE, visual, moon, renderRadius\);/g) || []).length, 1, 'only the moon pass invokes moon dust rings with an in-scope moon variable');
+assert.match(rendererSource, /threeObjectRenderPasses: \["meteors", "asteroids", "moons", "planets", "harmonicDust", "cosmicDust", "prgIndicator"\]/, 'Three render pass diagnostics includes cosmicDust and prgIndicator');
+assert.match(rendererSource, /debugMarkerReason/, 'debug marker diagnostics exposes visibility reason');
+const bootSource = fs.readFileSync(path.join(root, 'game.boot.js'), 'utf8');
+const planetsSource = fs.readFileSync(path.join(root, 'hc.planets.js'), 'utf8');
+assert.match(bootSource, /planetToStarEnabled: false/, 'planet-to-star progression is disabled by default');
+assert.match(planetsSource, /planetToStarEnabled !== true/, 'planet-to-star update path is gated behind explicit flag');
+
 console.log("world visual asset routing contract ok");
