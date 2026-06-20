@@ -263,7 +263,8 @@
     "conservationInputMass", "conservationOutputMass", "conservationDelta",
     "targetId", "targetKind", "targetMassBefore", "targetMassAfter", "targetRadiusBefore",
     "targetRadiusAfter", "targetCollisionRadiusBefore", "targetCollisionRadiusAfter",
-    "targetViewRadiusBefore", "targetViewRadiusAfter", "clampApplied", "clampReason",
+    "targetViewRadiusBefore", "targetViewRadiusAfter", "rawRadiusFromMass", "unclampedRadius",
+    "finalRadius", "minClampApplied", "maxClampApplied", "clampApplied", "clampReason",
     "sourceType", "sourceId", "thresholdType", "current", "target", "thresholdSource",
     "sourceRadius", "overThreshold", "triggeredProgression", "resultingObjectType", "resultingObjectId",
     "bodyAId", "bodyAKind", "bodyAMassBefore", "bodyBId", "bodyBKind", "bodyBMassBefore",
@@ -316,8 +317,11 @@
   }
 
   function pickActiveCollisionRule(physics, ruleId) {
-    const rules = Array.isArray(physics?.activeCollisionRulesSummary) ? physics.activeCollisionRulesSummary : [];
-    return rules.find((rule) => String(rule?.id || rule?.ruleId || rule?.kind || "") === ruleId) || null;
+    const rules = Array.isArray(physics?.activeCollisionRulesSummary) && physics.activeCollisionRulesSummary.length
+      ? physics.activeCollisionRulesSummary
+      : (window.HC?.CollisionRules?.activeCollisionRulesSummary ? window.HC.CollisionRules.activeCollisionRulesSummary(window.World) : []);
+    const fallbackRules = rules.length ? rules : (Array.isArray(window.HC?.CollisionRules?._active?.rules) ? window.HC.CollisionRules._active.rules : []);
+    return fallbackRules.find((rule) => String(rule?.id || rule?.ruleId || rule?.kind || "") === ruleId) || null;
   }
 
   function compactPhysicsSnapshot(snapshot) {
@@ -327,17 +331,17 @@
       worldCounts: base.worldCounts || physics.objectCounts || physics.worldCounts || null,
       thresholds: base.thresholds || physics.thresholds || null,
       collisionRulesProfile: physics.collisionRulesProfile || physics.activeCollisionRulesProfile || null,
-      collisionRulesSource: physics.collisionRulesSource || null,
+      collisionRulesSource: physics.collisionRulesSource || (physics.collisionRulesProfile || physics.activeCollisionRulesProfile ? "runtime_diagnostics" : null),
       activeCollisionRulesProfile: physics.activeCollisionRulesProfile || physics.collisionRulesProfile || null,
-      activeCollisionRulesVersion: physics.collisionRulesVersion ?? physics.activeCollisionRulesVersion ?? null,
+      activeCollisionRulesVersion: physics.collisionRulesVersion ?? physics.activeCollisionRulesVersion ?? window.HC?.CollisionRules?._active?.version ?? null,
       activeMeteorMeteorDifferentRule: pickActiveCollisionRule(physics, "meteor_meteor_different"),
       activeMeteorAsteroidRule: pickActiveCollisionRule(physics, "meteor_asteroid"),
       activeAsteroidAsteroidRule: pickActiveCollisionRule(physics, "asteroid_asteroid"),
-      massRadiusContractVersion: physics.massRadiusContractVersion || null,
+      massRadiusContractVersion: physics.massRadiusContractVersion || window.HC?.SpaceBodies?.massRadiusContract?.version || null,
       lastMassSplitEvent: physics.lastMassSplitEventCompact || physics.lastMassSplitEvent || null,
-      lastLiveCollisionProbe: physics.lastLiveCollisionProbe || null,
-      lastRadiusRefreshEvent: physics.lastRadiusRefreshEvent || null,
-      lastRadiusClampEvent: physics.lastRadiusClampEvent || physics.lastBodyRadiusClampEvent || null,
+      lastLiveCollisionProbe: physics.lastLiveCollisionProbe || window.World?.lastLiveCollisionProbe || null,
+      lastRadiusRefreshEvent: physics.lastRadiusRefreshEvent || window.World?.lastRadiusRefreshEvent || null,
+      lastRadiusClampEvent: physics.lastRadiusClampEvent || physics.lastBodyRadiusClampEvent || window.World?.lastRadiusClampEvent || window.World?.lastBodyRadiusClampEvent || null,
       radiusClampCount: Number(physics.radiusClampCount || 0),
       asteroidOverThresholdCount: Number(physics.asteroidOverThresholdCount || 0),
       asteroidOverThresholdSamples: Array.isArray(physics.asteroidOverThresholdSamples) ? physics.asteroidOverThresholdSamples.slice(0, 8) : [],

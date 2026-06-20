@@ -69,6 +69,8 @@ assert.equal(c.World.lastMassSplitEvent.fragmentsMass, 4, 'meteor+asteroid recor
 assert.equal(c.World.lastMassSplitEvent.conservationOutputMass, 10, 'meteor+asteroid conservation output includes dust absorb fragments orbiter');
 assert.ok(Math.abs(c.World.lastMassSplitEvent.conservationDelta) < 1e-9, 'meteor+asteroid split evidence conserves mass');
 assert.ok(a.lastRadiusRefresh.rawRadiusFromMass > 0, 'radius refresh stores raw radius evidence');
+assert.equal(a.lastRadiusRefresh.unclampedRadius, a.lastRadiusRefresh.rawRadiusFromMass, 'radius refresh stores unclamped radius evidence');
+assert.equal(a.lastRadiusRefresh.finalRadius, a.r, 'radius refresh stores final radius evidence');
 assert.equal(typeof a.lastRadiusRefresh.clampApplied, 'boolean', 'radius refresh stores clamp evidence');
 assert.ok(a.r > 8, 'meteor+asteroid recomputes asteroid radius immediately');
 assert.equal(a.collisionRadius, a.r, 'meteor+asteroid recomputes collision radius immediately');
@@ -79,6 +81,11 @@ assert.equal(meteorAsteroidSnap.world.asteroids[0].visual.radius, a.viewRadius, 
 const createdEvent = c.Events.emitted.find((event) => event.type === 'COSMIC_DUST_CREATED');
 assert.equal(createdEvent.lastMassSplitEvent.ruleId, 'meteor_asteroid', 'COSMIC_DUST_CREATED snapshot sees current split event');
 assert.equal(createdEvent.lastMassSplitEvent.fragmentsMass, 4, 'COSMIC_DUST_CREATED snapshot does not lag by one split event');
+assert.ok(createdEvent.payload.rawRadiusFromMass > 0, 'collision event payload exposes raw radius from mass');
+assert.equal(createdEvent.payload.unclampedRadius, createdEvent.payload.rawRadiusFromMass, 'collision event payload exposes unclamped radius');
+assert.equal(createdEvent.payload.finalRadius, a.r, 'collision event payload exposes final radius');
+assert.equal(createdEvent.payload.usedCollisionRules, true, 'meteor+asteroid event marks collision rules as used');
+assert.equal(createdEvent.payload.usedMassRadiusContract, true, 'meteor+asteroid event marks mass/radius contract as used');
 assert.equal(m._dead, true, 'meteor+asteroid kills meteor');
 
 c = buildContext();
@@ -146,15 +153,24 @@ c = buildContext();
 c.World.spaceMechanics.maxAsteroidRadius = 28;
 a = asteroid('clamped', 25); a.baseR = 28; a.massOneRadius = 28; a.minR = 28; a.maxR = 999; c.World.asteroids = [a];
 c.HC.SpaceBodies.refreshBodyRadiusFromMass(a, { kind: 'asteroid', sourceFunction: 'test.radiusClampEvidence' });
-assert.equal(a.r, 28, 'asteroid radius clamp can mask growth at min/max 28');
-assert.equal(c.World.radiusClampCount, 1, 'radius clamp count increments with evidence');
-assert.equal(c.World.lastBodyRadiusClampEvent.bodyId, 'clamped', 'radius clamp evidence includes body id');
+assert.ok(a.r > 28, 'legacy maxAsteroidRadius does not cap growing asteroid radius');
+assert.equal(a.lastRadiusRefresh.maxClampApplied, false, 'asteroid radius refresh does not apply maxAsteroidRadius as upper clamp');
+assert.notEqual(a.lastRadiusRefresh.clampReason, 'maxAsteroidRadius:28', 'asteroid clamp reason does not report legacy maxAsteroidRadius as a max clamp');
+assert.equal(a.collisionRadius, a.r, 'large asteroid collision radius follows mass/radius contract above 28');
+assert.equal(a.viewRadius, a.r, 'large asteroid view radius follows mass/radius contract above 28');
+const smallAsteroid = asteroid('small-floor', 1); smallAsteroid.baseR = 8; smallAsteroid.massOneRadius = 8; delete smallAsteroid.minR; delete smallAsteroid.maxR; c.World.asteroids = [smallAsteroid];
+c.HC.SpaceBodies.refreshBodyRadiusFromMass(smallAsteroid, { kind: 'asteroid', sourceFunction: 'test.radiusMinEvidence' });
+assert.equal(smallAsteroid.r, 28, 'legacy maxAsteroidRadius:28 acts only as a minimum floor for small asteroids');
+assert.equal(c.World.radiusClampCount, 1, 'radius clamp count increments with minimum clamp evidence');
+assert.equal(c.World.lastBodyRadiusClampEvent.bodyId, 'small-floor', 'radius clamp evidence includes body id');
 assert.equal(c.World.lastBodyRadiusClampEvent.bodyKind, 'asteroid', 'radius clamp evidence includes body kind');
-assert.ok(c.World.lastBodyRadiusClampEvent.rawRadiusFromMass > 28, 'radius clamp evidence includes raw radius');
+assert.ok(c.World.lastBodyRadiusClampEvent.rawRadiusFromMass < 28, 'radius clamp evidence includes raw radius below minimum');
 assert.equal(c.World.lastBodyRadiusClampEvent.clampedRadius, 28, 'radius clamp evidence includes clamped radius');
 assert.equal(c.World.lastBodyRadiusClampEvent.finalRadius, 28, 'radius clamp evidence includes final radius');
+assert.equal(c.World.lastBodyRadiusClampEvent.minClampApplied, true, 'radius clamp evidence marks min clamp applied');
+assert.equal(c.World.lastBodyRadiusClampEvent.maxClampApplied, false, 'radius clamp evidence marks max clamp not applied');
 assert.equal(c.World.lastBodyRadiusClampEvent.clampApplied, true, 'radius clamp evidence marks clamp applied');
-assert.ok(c.World.lastBodyRadiusClampEvent.clampReason, 'radius clamp evidence includes reason');
+assert.equal(c.World.lastBodyRadiusClampEvent.clampReason, 'minRadius:28', 'radius clamp evidence names minimum clamp reason');
 
 function cloud(id, x = 0, y = 0, r = 30, density = 1) { return { id, type: 'cosmic_dust', dustKind: 'cosmic', x, y, r, mass: 10, density, collectible: false }; }
 function speed(body) { return Math.sqrt(body.vx * body.vx + body.vy * body.vy); }
