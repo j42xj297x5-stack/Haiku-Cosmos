@@ -693,7 +693,8 @@
     }
 
     function startAsteroidCollapse(a) {
-      return recordLegacyAsteroidToPlanetBlocked(a, "Asteroids.startAsteroidCollapse");
+      recordLegacyAsteroidToPlanetBlocked(a, "Asteroids.startAsteroidCollapse");
+      throw new Error("LEGACY_ASTEROID_TO_PLANET_DISABLED");
     }
 
     function recordLegacyAsteroidToPlanetBlocked(a, sourceFunction) {
@@ -719,109 +720,7 @@
 
     function finishCollapseToPlanet(a) {
       recordLegacyAsteroidToPlanetBlocked(a, "Asteroids.finishCollapseToPlanet");
-      if (a) { a.legacyPlanetCollapseBlocked = true; }
-      World.legacyPlanetCollapseBlockedCount = (Number(World.legacyPlanetCollapseBlockedCount) || 0) + 1;
-      World.lastLegacyPlanetSpawnBlockedEvent = World.lastPlanetSpawnBlockedEvent = {
-        type: "legacy_planet_spawn_blocked",
-        legacyPlanetSpawnBlocked: true,
-        sourceFunction: "Asteroids.finishCollapseToPlanet",
-        sourcePath: "legacy_asteroid_collapse_to_planet",
-        blockedLegacyPath: true,
-        blockedSourceFunction: "Asteroids.finishCollapseToPlanet",
-        blockedSourcePath: "legacy_asteroid_collapse_to_planet",
-        sourceBodyIds: [a?._id || a?.id].filter(Boolean),
-        sourceMassBefore: asteroidMassValue(a),
-        sourceMassAfter: asteroidMassValue(a),
-        allowedProgressionPath: false,
-      };
-      window.HC?.logEvent?.("world", "legacy_planet_spawn_blocked", World.lastPlanetSpawnBlockedEvent, { source: "Asteroids.finishCollapseToPlanet", snapshot: true });
-      return null;
-      const entries = Object.entries(a.liveColorCounts || a.captureColorCounts);
-      entries.sort((p, q) => (q[1] - p[1]));
-      const top1 = entries[0]?.[0] || "blue";
-      const top2 = entries[1]?.[0] || top1;
-
-      const hueA = hueFromName(top1);
-      const hueB = hueFromName(top2);
-
-      const Rm = meteorBaseRadius();
-      const sumM = (typeof a.liveSumMass === 'number') ? a.liveSumMass : a.growthSumMass;
-
-      const planetMass = sumM + massFromR(a.r);
-      const r0 = Math.max(a.r * 1.35, Math.sqrt(Math.max(planetMass, 1)) * 0.75);
-
-      const orbitMul = (typeof World.metaOrbitMulPlanet === "number") ? World.metaOrbitMulPlanet : 1;
-      const currentOrbit = 0;
-      const p = assignPlanetVisual({
-        type: "planet",
-        x: a.x,
-        y: a.y,
-        vx: a.vx,
-        vy: a.vy,
-        r: r0,
-        orbitPx: currentOrbit,
-        orbitNativeRadius: 0,
-        orbitCurrentRadius: currentOrbit,
-        gravityR: 0,
-        hueA,
-        hueB,
-        mass: planetMass,
-        planetKind: (a.cometHits && a.cometHits > 0) ? "rocky" : "gas",
-        cometHits: a.cometHits || 0,
-        rockyLocked: false,
-        lockRadius: true,
-        fixedR: r0,
-
-        // Planet impact state; legacy planet capture fields are intentionally not initialized for new planets.
-        captureCooldown: 0,
-        rings: [],
-        capturedAsteroids: [],
-      });
-
-      if (typeof finalizePlanetSpawn === "function") {
-        finalizePlanetSpawn(a, p, { kind: "gas" });
-      }
-      if (!p.lockRadius) {
-        p.lockRadius = true;
-      }
-      if (!Number.isFinite(p.fixedR)) {
-        p.fixedR = p.r;
-      }
-      const baseOrbit = Math.max(p.r * 1.20, p.r + 2.8 * Rm);
-      const orbit0 = clamp(baseOrbit, baseOrbit, 420.0 * Rm);
-      const currentOrbitFinal = orbit0 * orbitMul;
-      p.orbitNativeRadius = orbit0;
-      p.orbitCurrentRadius = currentOrbitFinal;
-      p.orbitPx = currentOrbitFinal;
-      const baseGravity = computeGravityFromPlanetRadius(p.r);
-      p.gravityR = Math.max(baseGravity, p.orbitCurrentRadius || 0);
-
-      World.planets.push(p);
-      window.HC?.logEvent?.("world", (window.HC.DebugEventTypes?.WORLD_CLEANUP_STARTED || "world.cleanup_started"), {
-        sourceType: "asteroid",
-        sourceId: a._id || a.id || null,
-        targetType: "planet",
-        targetId: p._id || p.id || null,
-      }, { source: "Asteroids.finishCollapseToPlanet" });
-      window.HC?.logEvent?.("world", (window.HC.DebugEventTypes?.WORLD_OBJECT_TRANSFORMED || "world.object_transformed"), {
-        fromType: "asteroid",
-        toType: "planet",
-        asteroidId: a._id || null,
-      }, { snapshot: true, source: "Asteroids.finishCollapseToPlanet" });
-      window.HC?.logEvent?.("world", (window.HC.DebugEventTypes?.WORLD_TRANSFORMATION_COMPLETED || "world.transformation_completed"), {
-        sourceType: "asteroid",
-        sourceId: a._id || a.id || null,
-        targetType: "planet",
-        targetId: p._id || p.id || null,
-      }, { source: "Asteroids.finishCollapseToPlanet", snapshot: true });
-
-      a.orbiters = [];
-      window.HC?.logEvent?.("world", (window.HC.DebugEventTypes?.WORLD_CLEANUP_COMPLETED || "world.cleanup_completed"), {
-        sourceType: "asteroid",
-        sourceId: a._id || a.id || null,
-        removed: true,
-      }, { source: "Asteroids.finishCollapseToPlanet" });
-      Events.emit("PLANET_CREATED", { hueA, hueB, top1, top2 });
+      throw new Error("LEGACY_COLLAPSE_TO_PLANET_DISABLED");
     }
 
 
@@ -975,9 +874,9 @@
       const target = moonToRockyPlanetMassThreshold();
       if (sourcePath !== "moon_to_rocky_planet" || !(mass >= target)) {
         World.legacyPlanetSpawnBlockedCount = (Number(World.legacyPlanetSpawnBlockedCount) || 0) + 1;
-        World.lastLegacyPlanetSpawnBlockedEvent = { type: "legacy_planet_spawn_blocked", sourcePath, sourceFunction: opts.sourceFunction || "Asteroids.createRockyPlanetFromMoon", sourceMoonId: moon?.id || moon?._id || null, sourceMoonMass: mass, target, blockedLegacyPath: true, allowedProgressionPath: false };
-        window.HC?.logEvent?.("world", "legacy_planet_spawn_blocked", World.lastLegacyPlanetSpawnBlockedEvent, { source: reason || "Asteroids.createRockyPlanetFromMoon", snapshot: true });
-        return null;
+        World.lastLegacyPlanetSpawnBlockedEvent = { type: "legacy_planet_spawn_blocked", sourcePath, sourceFunction: opts.sourceFunction || "Asteroids.createRockyPlanetFromMoon", sourceMoonId: moon?.id || moon?._id || null, sourceMoonMass: mass, target, blockedLegacyPath: true, allowedProgressionPath: false, fatal: true };
+        window.HC?.logEvent?.("world", "legacy_planet_spawn_blocked", World.lastLegacyPlanetSpawnBlockedEvent, { source: reason || "Asteroids.createRockyPlanetFromMoon", snapshot: true, severity: "fatal" });
+        throw new Error("LEGACY_ASTEROID_TO_PLANET_DISABLED");
       }
       const radius = SpaceBodies?.radiusFromMass?.("planet", mass, { baseRadius: Number(moon.massOneRadius || moon.baseR) || 1, minRadius: Number(moon.r) || 1 }) || Number(moon.r) || 1;
       const planet = {
@@ -1035,6 +934,9 @@
         return null;
       }
       World.planets = Array.isArray(World.planets) ? World.planets : [];
+      if (!planet || planet.sourcePath !== "moon_to_rocky_planet" || planet.allowedProgressionPath !== true || planet.validProgressionOrigin !== true || !planet.sourceMoonId) {
+        throw new Error("LEGACY_ASTEROID_TO_PLANET_DISABLED");
+      }
       World.planets.push(planet);
       moon._dead = true;
       moon.progressed = true;
@@ -1237,13 +1139,8 @@
 
       for (const a of World.asteroids) {
         if (a.absorbingIntoStarId) continue;
-        if (a.parentKind === "planet") {
-          a.parentKind = null;
-          a.parentRef = null;
-          a.orbitR = null;
-          a.orbitState = null;
-          a.legacyOrbitPathBlocked = true;
-          World.legacyOrbitPathBlockedCount = (Number(World.legacyOrbitPathBlockedCount) || 0) + 1;
+        if (a.parentKind === "planet" || a.parentRef) {
+          throw new Error("LEGACY_CAPTURE_ORBIT_DISABLED");
         }
         if (!a.isCollapsing) {
           a.x += a.vx * dt;

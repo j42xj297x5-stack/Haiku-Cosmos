@@ -361,7 +361,7 @@ meteorBaseScale: METEOR_BASE_SCALE,
 
 
 
-  // COMETS moved to hc.comets.js
+  // COMETS legacy-disabled; no active runtime module.
 
   // ---------- API (future cards) ----------
   function setAsteroidOrbitRadius(asteroid, currentRadius) {
@@ -602,16 +602,13 @@ meteorBaseScale: METEOR_BASE_SCALE,
     }
 
     if (HC.Meteors) HC.Meteors.update(dt, nowMs);
-    if (HC.Comets) HC.Comets.update(dt, nowMs);
     if (HC.Collisions) HC.Collisions.resolve(dt, nowMs);
     if (HC.HarmonicDust) HC.HarmonicDust.update(dt, nowMs);
     if (HC.CosmicDust) HC.CosmicDust.update(World, dt, nowMs);
     if (HC.Impact?.updateFragments) HC.Impact.updateFragments(World, nowMs, dt);
     if (HC.Asteroids) HC.Asteroids.capture(dt, nowMs);
-    if (HC.Planets) HC.Planets.capture(dt, nowMs);
     if (HC.Asteroids) HC.Asteroids.update(dt, nowMs);
     if (HC.Planets) HC.Planets.update(dt, nowMs);
-    if (HC.Stars) HC.Stars.update(dt, nowMs);
 
     // CardEngine runtime (offers, timed effects, rituals)
     const CE = window.CardEngine;
@@ -646,14 +643,15 @@ meteorBaseScale: METEOR_BASE_SCALE,
   window.hash32 = hash32;
   window.removeOrbitersConsumed = removeOrbitersConsumed;
   window.WorldAPI = WorldAPI;
-  if (window.HC && window.HC.initStarsEpoch && !window.HC.Stars) {
-    window.HC.initStarsEpoch();
+  if (window.HC && !Object.prototype.hasOwnProperty.call(window.HC, "Comets")) {
+    Object.defineProperty(window.HC, "Comets", {
+      configurable: true,
+      get() { throw new Error("HC.Comets is legacy-disabled in current runtime"); },
+      set() { throw new Error("HC.Comets is legacy-disabled in current runtime"); }
+    });
   }
   if (window.HC && window.HC.initPlanets && !window.HC.Planets) {
     window.HC.initPlanets();
-  }
-  if (window.HC && window.HC.initComets && !window.HC.Comets) {
-    window.HC.initComets();
   }
   if (window.HC && window.HC.initMeteors && !window.HC.Meteors) {
     window.HC.initMeteors();

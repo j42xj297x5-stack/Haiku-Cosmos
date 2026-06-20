@@ -582,7 +582,6 @@
       ctx.translate(-camX, -camY);
 
       drawPointerRing();
-      window.HC.Comets.draw(ctx);
       for (const a of world.asteroids) drawAsteroid(a);
       if (Array.isArray(world.moons)) {
         for (const moon of world.moons) drawMoon(moon);
