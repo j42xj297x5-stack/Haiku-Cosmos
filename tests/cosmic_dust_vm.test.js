@@ -101,6 +101,19 @@ c.HC.CosmicDust.applySplitPolicy(c.World, { kind: 'moon_meteor', moon: mo, meteo
 assert.equal(totalCosmic(c.World), 3, 'moon+meteor sends 30% meteor mass to cosmic dust');
 assert.equal(mo.mass, 27, 'moon+meteor absorbs 70% meteor mass');
 assert.equal(mm._dead, true, 'moon+meteor kills meteor');
+assert.ok(Math.abs(c.World.lastMoonMeteorSplitEvent.conservationDelta) < 1e-9, 'moon+meteor split conserves meteor mass');
+assert.equal(c.World.lastMoonMeteorSplitEvent.fragmentsMass, 0, 'moon+meteor records fragments descriptor mass from active rule');
+assert.equal(c.World.lastMoonMeteorSplitEvent.orbiterMass, 0, 'moon+meteor records orbiter descriptor mass from active rule');
+
+c = buildContext();
+const moonMeteorRule = c.HC.CollisionRules.DEFAULT_RULES.rules.find((rule) => rule.id === 'moon_meteor');
+moonMeteorRule.absorbPct = 0.3; moonMeteorRule.orbiterPct = 0.4;
+c.HC.CollisionRules.applyRulesToWorldMechanics(c.World, c.HC.CollisionRules.DEFAULT_RULES);
+mo = moon('moon-rule', 20); mm = meteor('met-rule', 'green', 10);
+c.HC.CosmicDust.applySplitPolicy(c.World, { kind: 'moon_meteor', moon: mo, meteor: mm });
+assert.equal(c.World.lastMoonMeteorSplitEvent.absorbMass, 3, 'moon+meteor uses active rule absorb percent');
+assert.equal(c.World.lastMoonMeteorSplitEvent.orbiterMass, 4, 'moon+meteor records runtime-unimplemented orbiter mass descriptor');
+assert.ok(Math.abs(c.World.lastMoonMeteorSplitEvent.conservationDelta) < 1e-9, 'moon+meteor active rule split conserves meteor mass');
 
 c = buildContext();
 mo = moon('moon', 20); a = asteroid('ast', 10);
@@ -156,7 +169,7 @@ c = buildContext();
 c.World.meteors = [{ id: 'mismatch-meteor', type: 'meteor', kind: 'meteor', x: 0, y: 0, r: 10, collisionRadius: 10, viewRadius: 13 }];
 const mismatchSnap = c.HC.WorldRenderSnapshot.build({ World: c.World, nowMs: 3000 });
 assert.equal(mismatchSnap.diagnostics.radiusMismatchWarningsCount, 1, 'radius mismatch warning count exposes artificial mismatch');
-assert.equal(mismatchSnap.diagnostics.radiusMismatchWarnings[0].type, 'collision_view_radius_mismatch', 'radius mismatch warning type is stable');
+assert.equal(mismatchSnap.diagnostics.radiusMismatchWarnings[0].type, 'render_collision_radius_mismatch', 'radius mismatch warning type is stable');
 
 c = buildContext();
 c.World.spaceMechanics.maxAsteroidRadius = 28;

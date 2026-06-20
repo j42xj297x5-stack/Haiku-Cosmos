@@ -223,7 +223,7 @@
   const EVIDENCE_EVENT_FILTERS = Object.freeze({
     minimal: ["debug.issue*", "error.*"],
     gameplay: ["sequence.*", "card.*", "cards.*", "economy.*", "rp.*", "world.collision*", "world.body*", "world.meteor*", "world.asteroid*", "world.moon*", "world.planet*", "world.dust*", "world.impact*", "world.orbit*", "run.*", "input.decision*", "debug.issue*", "error.*"],
-    collisions: ["COSMIC_DUST_CREATED", "world.threshold_progress", "radius_refresh", "radius_clamp", "mass_split", "live_collision_probe", "moon_created", "rocky_planet_created", "legacy_asteroid_to_planet_blocked", "session.ended", "session.aborted"],
+    collisions: ["COSMIC_DUST_CREATED", "world.threshold_progress", "moon_to_rocky_planet_threshold", "rocky_planet_created", "rocky_planet_creation_failed", "render_radius_evidence", "render_collision_radius_mismatch", "radius_refresh", "radius_clamp", "mass_split", "live_collision_probe", "moon_created", "legacy_asteroid_to_planet_blocked", "session.ended", "session.aborted"],
     renderer: ["world.glb*", "world.three*", "world.renderer*", "world.material*", "world.light*", "world.asset*", "world.texture*", "renderer.*", "three.*", "glb.*", "asset.*", "material.*", "light.*", "debug.issue*", "error.*"],
   });
 
@@ -261,7 +261,7 @@
     "sourceMassPolicy", "sourceMass", "sourceAsteroidMass", "sourceAsteroidRadius", "createdMoonMass",
     "createdMoonRawRadiusFromMass", "createdMoonFinalRadius", "sourceMoonMass", "sourceMoonRadius",
     "createdPlanetMass", "createdPlanetRawRadiusFromMass", "createdPlanetFinalRadius", "radiusContinuityRatio",
-    "dustMass", "absorbMass", "fragmentsMass", "orbiterMass",
+    "dustPct", "absorbPct", "fragmentsPct", "orbiterPct", "dustMass", "absorbMass", "fragmentsMass", "orbiterMass",
     "conservationInputMass", "conservationOutputMass", "conservationDelta",
     "targetId", "targetKind", "targetMassBefore", "targetMassAfter", "targetRadiusBefore",
     "targetRadiusAfter", "targetCollisionRadiusBefore", "targetCollisionRadiusAfter",
@@ -270,7 +270,7 @@
     "sourceType", "sourceId", "thresholdType", "current", "target", "thresholdSource",
     "sourceRadius", "overThreshold", "triggeredProgression", "resultingObjectType", "resultingObjectId",
     "bodyAId", "bodyAKind", "bodyAMassBefore", "bodyBId", "bodyBKind", "bodyBMassBefore",
-    "targetKind", "usedCollisionRules", "usedMassRadiusContract",
+    "targetKind", "usedCollisionRules", "usedMassRadiusContract", "createdPlanetId", "sourceMoonId", "consumedMoon", "massRadiusContractRadius", "collisionRadius", "viewRadius", "renderBodyRadius", "renderRingRadius", "visualHaloRadius", "bodySurfaceRadius", "absorptionRadius", "absorptionBufferRatio", "meshWorldRadius", "glbVisualScale", "reason", "creationFailed", "failureReason",
   ]);
 
   function collisionEventName(event) {
@@ -298,6 +298,22 @@
     out.frame = out.frame ?? event?.frame ?? null;
     out.sessionTimeMs = out.sessionTimeMs ?? event?.sessionTimeMs ?? null;
     return out;
+  }
+
+  function limitCollisionEvents(events, options = {}) {
+    const maxByType = options.maxEventsPerType || { COSMIC_DUST_CREATED: 80, mass_split: 80, live_collision_probe: 80, [EVENT_TYPES.WORLD_THRESHOLD_PROGRESS]: 20 };
+    const keepAll = new Set(["rocky_planet_created", "rocky_planet_creation_failed", "moon_created"]);
+    const grouped = new Map();
+    for (const event of Array.isArray(events) ? events : []) {
+      const name = collisionEventName(event) || event?.type || "unknown";
+      if (keepAll.has(name)) { grouped.set(`${name}:${Math.random()}`, [event]); continue; }
+      const limit = Number(maxByType[name] ?? maxByType[event?.type] ?? (name === EVENT_TYPES.WORLD_THRESHOLD_PROGRESS ? 20 : 120));
+      if (!grouped.has(name)) grouped.set(name, []);
+      const bucket = grouped.get(name);
+      bucket.push(event);
+      while (bucket.length > Math.max(1, limit)) bucket.shift();
+    }
+    return Array.from(grouped.values()).flat().sort((a, b) => Number(a?.sessionTimeMs ?? 0) - Number(b?.sessionTimeMs ?? 0));
   }
 
   function compactCollisionEvent(event) {
@@ -354,8 +370,14 @@
       asteroidOverThresholdCount: Number(physics.asteroidOverThresholdCount || 0),
       asteroidOverThresholdSamples: Array.isArray(physics.asteroidOverThresholdSamples) ? physics.asteroidOverThresholdSamples.slice(0, 8) : [],
       lastThresholdProgressionEvent: physics.lastThresholdProgressionEvent || null,
+      lastMoonToRockyPlanetThresholdEvent: physics.lastMoonToRockyPlanetThresholdEvent || null,
       lastMoonCreatedEvent: physics.lastMoonCreatedEvent || null,
       lastRockyPlanetCreatedEvent: physics.lastRockyPlanetCreatedEvent || null,
+      lastRockyPlanetCreationFailedEvent: physics.lastRockyPlanetCreationFailedEvent || null,
+      lastMoonMeteorSplitEvent: physics.lastMoonMeteorSplitEvent || null,
+      lastMoonRenderRadiusEvidence: physics.lastMoonRenderRadiusEvidence || null,
+      lastRockyPlanetRenderRadiusEvidence: physics.lastRockyPlanetRenderRadiusEvidence || null,
+      renderCollisionRadiusMismatchWarnings: Array.isArray(physics.renderCollisionRadiusMismatchWarnings) ? physics.renderCollisionRadiusMismatchWarnings.slice(0, 8) : [],
       lastLegacyAsteroidToPlanetBlockedEvent: physics.lastLegacyAsteroidToPlanetBlockedEvent || null,
     };
     result.physicsDiagnosticsMissingFields = [
@@ -1865,7 +1887,8 @@
       } else {
         Object.assign(summary, exportCounters, { timelineStatus: buildTimelineStatus(filteredEvents, this.debugConfig?.loggingEnabled !== false) });
       }
-      const collisionEvents = exportProfile === "collisions" ? filteredEvents.map(compactCollisionEvent) : null;
+      const limitedCollisionEvents = exportProfile === "collisions" ? limitCollisionEvents(filteredEvents, { maxEventsPerType: this.debugConfig?.maxEventsPerType }) : null;
+      const collisionEvents = exportProfile === "collisions" ? limitedCollisionEvents.map(compactCollisionEvent) : null;
       const eventsJsonl = exportProfile === "collisions" ? "" : exportedEventsJsonl;
       return {
         exportProfile,
