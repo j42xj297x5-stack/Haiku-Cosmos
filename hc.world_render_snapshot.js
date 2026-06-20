@@ -476,21 +476,31 @@
 
     const sourcePlanets = pickArray(World.planets);
     const invalidPlanetOriginSamples = [];
+    const missingEvidenceSamples = [];
     const planetCountByOrigin = {};
+    const planetCreationPathCounts = {};
     for (const planet of sourcePlanets) {
       if (!planet || planet._dead) continue;
       const origin = planetOriginKey(planet);
       planetCountByOrigin[origin] = (planetCountByOrigin[origin] || 0) + 1;
+      planetCreationPathCounts[origin] = (planetCreationPathCounts[origin] || 0) + 1;
       if (origin === "invalid") {
         planet.invalidPlanetOrigin = true;
-        invalidPlanetOriginSamples.push({
-          type: "invalid_planet_origin",
+        planet.validProgressionOrigin = false;
+        const missingEvent = {
+          type: "planet_missing_creation_evidence",
           planetId: planet.id || planet._id || null,
           planetKind: getPlanetKind(planet),
+          mass: toNumber(planet.mass, null),
+          radius: toNumber(planet.r ?? planet.radius, null),
+          detectedAtFrame: toNumber(World.frame, null),
+          suspectedSource: planet.sourceFunction || null,
           sourcePath: planet.sourcePath || null,
           sourceFunction: planet.sourceFunction || null,
           allowedProgressionPath: planet.allowedProgressionPath === true,
-        });
+        };
+        invalidPlanetOriginSamples.push(Object.assign({ type: "invalid_planet_origin" }, missingEvent));
+        missingEvidenceSamples.push(missingEvent);
       }
     }
     if (invalidPlanetOriginSamples.length) {
@@ -498,6 +508,12 @@
       World.invalidPlanetOriginCount = invalidPlanetOriginSamples.length;
       World.lastInvalidPlanetOriginEvent = invalidPlanetOriginSamples[invalidPlanetOriginSamples.length - 1];
       window.HC?.logEvent?.("world", "invalid_planet_origin", World.lastInvalidPlanetOriginEvent, { source: "WorldRenderSnapshot.build", snapshot: true });
+    }
+    if (missingEvidenceSamples.length) {
+      World.planetMissingCreationEvidenceSamples = missingEvidenceSamples.slice(0, 8);
+      World.planetMissingCreationEvidenceCount = missingEvidenceSamples.length;
+      World.lastPlanetMissingCreationEvidenceEvent = missingEvidenceSamples[missingEvidenceSamples.length - 1];
+      window.HC?.logEvent?.("world", "planet_missing_creation_evidence", World.lastPlanetMissingCreationEvidenceEvent, { source: "WorldRenderSnapshot.build", snapshot: true });
     }
     const snapshotPlanets = mapCollection(sourcePlanets, "planet");
     const rockyPlanetCount = sourcePlanets.filter((planet) => getPlanetKind(planet) === "rocky").length;
@@ -638,7 +654,7 @@
         lastThresholdProgressionEvent: World.lastThresholdProgressionEvent ? Object.assign({}, World.lastThresholdProgressionEvent) : null,
         lastMoonToRockyPlanetThresholdEvent: World.lastMoonToRockyPlanetThresholdEvent ? Object.assign({}, World.lastMoonToRockyPlanetThresholdEvent) : null,
         lastMoonCreatedEvent: World.lastMoonCreatedEvent ? Object.assign({}, World.lastMoonCreatedEvent) : null,
-        asteroidTargetMassToMoon: toNumber(Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget), null),
+        asteroidTargetMassToMoon: toNumber(Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? 10), 10),
         moonTargetMassToRockyPlanet: toNumber(Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold), 20),
         moonsCount: pickArray(World.moons).length,
         freeMoonsCount: pickArray(World.moons).filter((moon) => moon && !moon._dead && moon.progressionMode !== "orbital" && moon.isOrbitalBody !== true).length,
@@ -652,9 +668,11 @@
           legacyAsteroidToPlanetBlockedCount: toNumber(World.legacyAsteroidToPlanetBlockedCount, 0),
         },
         planetCountByOrigin,
+        planetCreationPathCounts,
         invalidPlanetOriginCount: invalidPlanetOriginSamples.length || toNumber(World.invalidPlanetOriginCount, 0),
         invalidPlanetOriginSamples: invalidPlanetOriginSamples.length ? invalidPlanetOriginSamples.slice(0, 8) : (Array.isArray(World.invalidPlanetOriginSamples) ? World.invalidPlanetOriginSamples.slice(-8) : []),
         lastPlanetCreatedEvent: World.lastPlanetCreatedEvent ? Object.assign({}, World.lastPlanetCreatedEvent) : null,
+        lastPlanetMissingCreationEvidenceEvent: World.lastPlanetMissingCreationEvidenceEvent ? Object.assign({}, World.lastPlanetMissingCreationEvidenceEvent) : null,
         lastPlanetSpawnBlockedEvent: World.lastPlanetSpawnBlockedEvent ? Object.assign({}, World.lastPlanetSpawnBlockedEvent) : null,
         lastRockyPlanetCreatedEvent: World.lastRockyPlanetCreatedEvent ? Object.assign({}, World.lastRockyPlanetCreatedEvent) : null,
         lastRockyPlanetCreationFailedEvent: World.lastRockyPlanetCreationFailedEvent ? Object.assign({}, World.lastRockyPlanetCreationFailedEvent) : null,
@@ -726,7 +744,7 @@
     snapshot.physics = Object.assign({
       worldCounts: snapshot.diagnostics?.objectCounts || null,
       thresholds: {
-        asteroidToMoon: { current: toNumber(Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget), 10), source: World.spaceMechanics?.asteroidToMoonMassThreshold == null ? "legacy_alias" : "spaceMechanics" },
+        asteroidToMoon: { current: toNumber(Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? 10), 10), source: "spaceMechanics" },
         moonToRockyPlanet: { current: toNumber(Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold), 20), source: "spaceMechanics" },
       },
     }, snapshot.diagnostics || {});

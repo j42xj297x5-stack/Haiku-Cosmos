@@ -17,7 +17,7 @@ function buildContext() {
   context.massFromR = (r) => r * r;
   context.sidesFromColors = () => 7;
   context.hueFromName = () => 0;
-  context.World = { meteors: [], asteroids: [], moons: [], planets: [], impactFragments: [], harmonicDust: [], cosmicDust: [], meteorCollisionFudge: 1, asteroidDriftMul: 1, nowMs: 1000, spaceMechanics: {} };
+  context.World = { meteors: [], asteroids: [], moons: [], planets: [], impactFragments: [], harmonicDust: [], cosmicDust: [], meteorCollisionFudge: 1, asteroidDriftMul: 1, nowMs: 1000, spaceMechanics: { asteroidToMoonMassThreshold: 999, moonToRockyPlanetMassThreshold: 999 } };
   vm.createContext(context);
   const root = path.resolve(__dirname, '..');
   for (const file of ['hc.space_bodies.js', 'hc.collision_rules.js', 'hc.impact.js', 'hc.harmonic_dust.js', 'hc.cosmic_dust.js', 'hc.collisions.js', 'hc.asteroids.js', 'hc.world_render_snapshot.js']) {
