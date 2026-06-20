@@ -145,26 +145,42 @@
     const defaults = RADIUS_FROM_MASS_DEFAULTS[bodyKind] || RADIUS_FROM_MASS_DEFAULTS.body;
     const opts = options || {};
     const density = finitePositive(opts.density, defaults.density);
-    const minRadius = finitePositive(opts.minRadius, defaults.minRadius);
-    const maxRadius = finitePositive(opts.maxRadius, Infinity);
+    let minRadius = finitePositive(opts.minRadius, defaults.minRadius);
+    let maxRadius = finitePositive(opts.maxRadius, Infinity);
     const baseRadius = finitePositive(opts.baseRadius, 1);
     const safeMass = finitePositive(mass, DEFAULT_MASS);
     const rawRadiusFromMass = baseRadius * Math.sqrt(safeMass / density);
     const world = root.World || null;
     let clampMax = maxRadius;
-    let clampReason = null;
+    let maxClampSource = Number.isFinite(maxRadius) ? `maxRadius:${maxRadius}` : null;
     if (world?.spaceMechanics?.bodyRadiusClampEnabled !== false) {
-      const key = bodyKind === "asteroid" ? "maxAsteroidRadius" : bodyKind === "moon" ? "maxMoonRadius" : bodyKind === "planet" ? "maxRockyPlanetRadius" : null;
-      const configured = key ? Number(world.spaceMechanics[key]) : NaN;
-      if (Number.isFinite(configured) && configured > 0 && configured < clampMax) { clampMax = configured; clampReason = `${key}:${configured}`; }
+      const minKey = bodyKind === "asteroid" ? "minAsteroidRadius" : null;
+      const configuredMin = minKey ? Number(world.spaceMechanics[minKey]) : NaN;
+      if (Number.isFinite(configuredMin) && configuredMin > 0 && configuredMin > minRadius) minRadius = configuredMin;
+
+      // Asteroids must be allowed to grow with mass. The historic
+      // `maxAsteroidRadius:28` setting is treated as a legacy minimum floor for
+      // small asteroids, never as an upper clamp. Other body kinds retain their
+      // existing upper bounds.
+      if (bodyKind === "asteroid") {
+        const legacyMin = Number(world.spaceMechanics.maxAsteroidRadius);
+        if (!Number.isFinite(configuredMin) && Number.isFinite(legacyMin) && legacyMin > 0 && legacyMin > minRadius) minRadius = legacyMin;
+      } else {
+        const key = bodyKind === "moon" ? "maxMoonRadius" : bodyKind === "planet" ? "maxRockyPlanetRadius" : null;
+        const configured = key ? Number(world.spaceMechanics[key]) : NaN;
+        if (Number.isFinite(configured) && configured > 0 && configured < clampMax) { clampMax = configured; maxClampSource = `${key}:${configured}`; }
+      }
     }
-    const clampedRadius = Math.max(minRadius, Math.min(clampMax, rawRadiusFromMass));
-    const clampApplied = clampedRadius !== rawRadiusFromMass;
-    if (clampApplied && !clampReason) clampReason = rawRadiusFromMass < minRadius ? `minRadius:${minRadius}` : `maxRadius:${clampMax}`;
+    const minClampedRadius = Math.max(minRadius, rawRadiusFromMass);
+    const clampedRadius = Math.min(clampMax, minClampedRadius);
+    const minClampApplied = minClampedRadius !== rawRadiusFromMass;
+    const maxClampApplied = clampedRadius !== minClampedRadius;
+    const clampApplied = minClampApplied || maxClampApplied;
+    const clampReason = minClampApplied ? `minRadius:${minRadius}` : (maxClampApplied ? (maxClampSource || `maxRadius:${clampMax}`) : null);
     return {
       bodyId: opts.bodyId || null, bodyKind, mass: safeMass, rawRadiusFromMass,
       unclampedRadius: rawRadiusFromMass, clampedRadius, finalRadius: clampedRadius,
-      clampApplied, clampReason, minRadius, maxRadius: clampMax,
+      clampApplied, minClampApplied, maxClampApplied, clampReason, minRadius, maxRadius: clampMax,
       sourceFunction: opts.sourceFunction || "HC.SpaceBodies.radiusFromMass",
       caller: opts.sourceFunction || "HC.SpaceBodies.radiusFromMass",
       atFrame: Number(world?.frame) || 0,
@@ -200,6 +216,7 @@
       const world = root.World || null;
       if (world) {
         world.lastBodyRadiusClampEvent = radiusEvidence;
+        world.lastRadiusClampEvent = radiusEvidence;
         world.radiusClampCount = (Number(world.radiusClampCount) || 0) + 1;
       }
     }
@@ -221,6 +238,8 @@
     });
     body.massRadiusContractVersion = massRadiusContract.version;
     body.lastRadiusRefresh = Object.assign({}, radiusEvidence, { kind, radius });
+    const world = root.World || null;
+    if (world) world.lastRadiusRefreshEvent = body.lastRadiusRefresh;
     return body;
   }
 
