@@ -217,6 +217,7 @@
         world.radiusClampCount = (Number(world.radiusClampCount) || 0) + 1;
       }
     }
+    body.massRadiusContractRadius = radius;
     body.r = radius;
     body.radius = radius;
     body.collisionRadius = massRadiusContract.collisionRadiusFromMass(kind, mass, {
@@ -233,6 +234,22 @@
       density: body.density,
       recordClamp: false,
     });
+    body.renderBodyRadius = finitePositive(body.renderBodyRadiusOverride, body.viewRadius);
+    body.bodySurfaceRadius = body.renderBodyRadius;
+    body.renderRingRadius = finitePositive(body.renderRingRadiusOverride ?? body.ringRadius, Math.max(body.renderBodyRadius * 1.18, Number(body.ringRadius) || 0));
+    body.visualHaloRadius = finitePositive(body.visualHaloRadiusOverride ?? body.haloRadius, Math.max(body.renderBodyRadius, Number(body.haloRadius) || 0));
+    body.absorptionRadius = finitePositive(body.absorptionRadiusOverride, body.collisionRadius);
+    body.absorptionBufferRatio = body.bodySurfaceRadius > 0 ? body.absorptionRadius / body.bodySurfaceRadius : 1;
+    body.radiusContract = {
+      massRadiusContractRadius: body.massRadiusContractRadius,
+      collisionRadius: body.collisionRadius,
+      viewRadius: body.viewRadius,
+      renderBodyRadius: body.renderBodyRadius,
+      renderRingRadius: body.renderRingRadius,
+      visualHaloRadius: body.visualHaloRadius,
+      absorptionRadius: body.absorptionRadius,
+      absorptionBufferRatio: body.absorptionBufferRatio,
+    };
     body.massRadiusContractVersion = massRadiusContract.version;
     body.lastRadiusRefresh = Object.assign({}, radiusEvidence, { kind, radius });
     const world = root.World || null;

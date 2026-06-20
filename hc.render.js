@@ -136,7 +136,7 @@
 
 
     function drawMoon(moon) {
-      const r = Math.max(1, Number(moon.r || moon.radius || 0));
+      const r = Math.max(1, Number(moon.renderBodyRadius ?? moon.viewRadius ?? moon.r ?? moon.radius ?? 0));
       ctx.save();
       ctx.globalAlpha = 0.92;
       ctx.beginPath();

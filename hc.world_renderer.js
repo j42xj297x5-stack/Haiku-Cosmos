@@ -4956,7 +4956,10 @@
         visual.root.userData.glbAssetUrl = desiredAssetUrl;
         visual.glbStatus = "assigned";
       }
-      const renderRadius = applyRenderSpaceToRadius(Math.max(1, Number(moon.radius ?? moon.r ?? moon.scale) || 1));
+      const sourceRadius = Number(moon.renderBodyRadius ?? moon.viewRadius ?? moon.radius ?? moon.r ?? moon.scale) || 1;
+      const renderRadius = applyRenderSpaceToRadius(Math.max(1, sourceRadius));
+      moon.meshWorldRadius = sourceRadius;
+      moon.glbVisualScale = 1;
       const renderPosition = applyRenderSpaceToVector(Number(moon.x) || 0, Number(moon.y) || 0, -0.15);
       const hasGlbVisual = updateMoonGlbVisual(THREE, visual);
       visual.root.position.set(renderPosition.x, renderPosition.y, renderPosition.z);
@@ -5011,8 +5014,10 @@
         visual.root.userData.visualVariant = desiredVariant;
         visual.glbStatus = "assigned";
       }
-      const sourceRadius = Number(planet.radius ?? planet.r ?? planet.scale) || 1;
+      const sourceRadius = Number(planet.renderBodyRadius ?? planet.viewRadius ?? planet.radius ?? planet.r ?? planet.scale) || 1;
       const renderRadius = applyRenderSpaceToRadius(Math.max(1, sourceRadius));
+      planet.meshWorldRadius = sourceRadius;
+      planet.glbVisualScale = 1;
       const renderPosition = applyRenderSpaceToVector(Number(planet.x) || 0, Number(planet.y) || 0, -0.2);
       const hasGlbVisual = updatePlanetGlbVisual(THREE, visual);
       visual.root.position.set(renderPosition.x, renderPosition.y, renderPosition.z);
