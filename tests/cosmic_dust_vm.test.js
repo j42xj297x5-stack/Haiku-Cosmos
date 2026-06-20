@@ -31,7 +31,7 @@ function buildContext() {
 function meteor(id, colorName, mass = 10) { return { id, type: 'meteor', kind: 'meteor', colorName, x: 0, y: 0, vx: 0, vy: 0, r: 4, mass, age: 1 }; }
 function asteroid(id, mass, x = 0) { return { id, type: 'asteroid', kind: 'asteroid', x, y: 0, vx: 0, vy: 0, r: 8, baseR: 8, massOneRadius: 8, minR: 1, maxR: 999, mass }; }
 function moon(id, mass = 20) { return { id, type: 'moon', kind: 'moon', x: 0, y: 0, r: 10, radius: 10, mass, dustRings: [] }; }
-function planet(id, mass = 100) { return { id, type: 'planet', kind: 'planet', x: 0, y: 0, r: 20, mass, orbiters: [] }; }
+function planet(id, mass = 100) { return { id, type: 'planet', kind: 'planet', planetKind: 'rocky', isRocky: true, x: 0, y: 0, r: 20, mass, orbiters: [], createdObjectType: 'rocky_planet', createdObjectId: id, sourcePath: 'moon_threshold_to_rocky_planet', sourceFunction: 'test.validMoonEvidence', sourceBodyIds: ['moon:test'], sourceMassBefore: mass, sourceMassAfter: mass, allowedProgressionPath: true, blockedLegacyPath: false }; }
 function totalCosmic(world) { return world.cosmicDust.reduce((sum, d) => sum + d.mass, 0); }
 
 let c = buildContext();
@@ -132,6 +132,15 @@ assert.equal(pa.orbiterCandidate.sourceFunction, 'HC.CosmicDust.applySplitPolicy
 assert.equal(JSON.stringify(pa.orbiterCandidate.sourceBodyIds), JSON.stringify(['p', 'ast']), 'orbiter descriptor stores source body ids evidence');
 assert.equal(a._dead, true, 'planet+asteroid kills asteroid');
 assert.equal(p.orbiters.length, 0, 'planet+asteroid does not restore legacy capture/orbiters');
+
+const cInvalid = buildContext();
+p = { id: 'invalid-direct', type: 'planet', kind: 'planet', planetKind: 'rocky', isRocky: true, x: 0, y: 0, r: 20, mass: 100, orbiters: [] };
+m = meteor('met-invalid', 'red', 20);
+const blockedPlanetMeteor = cInvalid.HC.CosmicDust.applySplitPolicy(cInvalid.World, { kind: 'planet_meteor', planet: p, meteor: m });
+assert.equal(blockedPlanetMeteor.blocked, true, 'planet+meteor blocks planet without valid creation evidence');
+assert.equal(p.invalidPlanetOrigin, true, 'invalid direct rocky planet is marked');
+assert.equal(m._dead, undefined, 'blocked planet+meteor does not consume meteor');
+assert.equal(cInvalid.World.lastInvalidPlanetOriginEvent.type, 'invalid_planet_origin', 'invalid planet origin event is recorded');
 
 const snap = c.HC.WorldRenderSnapshot.build({ World: c.World });
 assert.ok(Array.isArray(snap.world.cosmicDust), 'snapshot exposes world.cosmicDust');

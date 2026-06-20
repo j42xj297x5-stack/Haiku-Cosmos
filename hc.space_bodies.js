@@ -178,7 +178,7 @@
     const clampApplied = minClampApplied || maxClampApplied;
     const clampReason = minClampApplied ? `minRadius:${minRadius}` : (maxClampApplied ? (maxClampSource || `maxRadius:${clampMax}`) : null);
     return {
-      bodyId: opts.bodyId || null, bodyKind, mass: safeMass, rawRadiusFromMass,
+      bodyId: opts.bodyId || null, bodyKind, kind: bodyKind, mass: safeMass, rawRadiusFromMass,
       unclampedRadius: rawRadiusFromMass, clampedRadius, finalRadius: clampedRadius,
       clampApplied, minClampApplied, maxClampApplied, clampReason, minRadius, maxRadius: clampMax,
       sourceFunction: opts.sourceFunction || "HC.SpaceBodies.radiusFromMass",

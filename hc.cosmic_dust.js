@@ -142,6 +142,40 @@
   function spawnFragments(World, mass, origin, kind) { const result = { kind: kind || "cosmicDustImpact", masses: { ejecta: Math.max(0, mass) } }; return window.HC?.Impact?.spawnEjecta ? window.HC.Impact.spawnEjecta(World, result, origin) : []; }
   function sourceEvidence(path, rule, fn, bodies, before, after) { return { sourcePath: path, sourceRuleId: rule?.id || path, sourceFunction: fn, sourceBodyIds: bodies.map(bodyId).filter(Boolean), sourceMassBefore: before, sourceMassAfter: after }; }
   function descriptor(kind, mass, target, incoming, rule, before, after) { return Object.assign({ kind, descriptorOnly: true, mass: Math.max(0, mass), targetId: bodyId(target), sourceBodyId: bodyId(incoming) }, sourceEvidence(kind, rule, "HC.CosmicDust.applySplitPolicy", [target, incoming], before, after)); }
+  function hasValidPlanetOrigin(planet) {
+    if (!planet || planet.kind !== "planet" && planet.type !== "planet") return false;
+    if (planet.debugSpawn === true && planet.sourcePath === "debug_bootstrap" && planet.allowedProgressionPath === false) return true;
+    if (planet.planetKind === "rocky" || planet.isRocky === true) {
+      return planet.sourcePath === "moon_threshold_to_rocky_planet"
+        && planet.allowedProgressionPath === true
+        && Array.isArray(planet.sourceBodyIds)
+        && planet.sourceBodyIds.length > 0;
+    }
+    return Boolean(planet.sourcePath && planet.sourceFunction);
+  }
+  function blockInvalidPlanetImpact(world, kind, planet) {
+    if (!planet) return false;
+    if (hasValidPlanetOrigin(planet)) return false;
+    planet.invalidPlanetOrigin = true;
+    world.invalidPlanetOriginCount = (Number(world.invalidPlanetOriginCount) || 0) + 1;
+    world.invalidPlanetOriginSamples = Array.isArray(world.invalidPlanetOriginSamples) ? world.invalidPlanetOriginSamples : [];
+    const event = {
+      type: "invalid_planet_origin",
+      collisionKind: kind,
+      planetId: bodyId(planet),
+      planetKind: planet.planetKind || null,
+      sourcePath: planet.sourcePath || null,
+      sourceFunction: planet.sourceFunction || null,
+      allowedProgressionPath: planet.allowedProgressionPath === true,
+      blockedSourceFunction: "HC.CosmicDust.applySplitPolicy",
+      blockedSourcePath: kind,
+    };
+    world.lastInvalidPlanetOriginEvent = event;
+    world.invalidPlanetOriginSamples.push(event);
+    while (world.invalidPlanetOriginSamples.length > 8) world.invalidPlanetOriginSamples.shift();
+    window.HC?.logEvent?.("world", "invalid_planet_origin", event, { source: "HC.CosmicDust.applySplitPolicy", snapshot: true });
+    return true;
+  }
   function applySplitPolicy(World, spec) {
     const world = ensureWorldState(World); if (!world) return null; const s = spec || {}; const kind = s.kind || s.collisionKind;
     const a = s.primary || s.a || s.target; const b = s.secondary || s.b || s.incoming; const source = kind || "collision";
@@ -168,8 +202,8 @@
     else if (kind === "asteroid_asteroid") { const primary = s.primary || (bodyMass(a) >= bodyMass(b) ? a : b); const secondary = s.secondary || (primary === a ? b : a); const m = bodyMass(secondary); evidence.sourceMass = m; dust(m * rulePct(world, rule, "dustPct", "cosmicDustSplitAsteroidAsteroidDustPct"), primary, secondary); evidence.absorbedMass = evidence.absorbMass = m * rulePct(world, rule, "absorbPct", "cosmicDustSplitAsteroidAsteroidAbsorbPct"); evidence.fragmentsMass = 0; evidence.orbiterMass = 0; addMass(primary, evidence.absorbedMass, "asteroid", "HC.CosmicDust.applySplitPolicy:asteroid_asteroid"); resizeAsteroid(world, primary); if (secondary) secondary._dead = true; }
     else if (kind === "moon_meteor") { const moon = s.moon || a; const meteor = s.meteor || b; const m = bodyMass(meteor); dust(m * rulePct(world, rule, "dustPct", "cosmicDustSplitMoonMeteorDustPct"), moon, meteor); evidence.absorbedMass = m * rulePct(world, rule, "absorbPct", "cosmicDustSplitMoonMeteorAbsorbPct"); addMass(moon, evidence.absorbedMass, "moon", "HC.CosmicDust.applySplitPolicy:moon_meteor"); resizeMoon(world, moon); if (meteor) meteor._dead = true; }
     else if (kind === "moon_asteroid") { const moon = s.moon || a; const asteroid = s.asteroid || b; const m = bodyMass(asteroid); dust(m * rulePct(world, rule, "dustPct", "cosmicDustSplitMoonAsteroidDustPct"), moon, asteroid); evidence.absorbedMass = m * rulePct(world, rule, "absorbPct", "cosmicDustSplitMoonAsteroidAbsorbPct"); evidence.fragmentMass = m * rulePct(world, rule, "fragmentsPct", "cosmicDustSplitMoonAsteroidFragmentsPct"); addMass(moon, evidence.absorbedMass, "moon", "HC.CosmicDust.applySplitPolicy:moon_asteroid"); resizeMoon(world, moon); evidence.fragments = spawnFragments(world, evidence.fragmentMass, moon, "moonAsteroidImpact"); if (asteroid) asteroid._dead = true; }
-    else if (kind === "planet_meteor") { const planet = s.planet || a; const meteor = s.meteor || b; const m = bodyMass(meteor); dust(m * rulePct(world, rule, "dustPct", "cosmicDustSplitPlanetMeteorDustPct"), planet, meteor); evidence.absorbedMass = m * rulePct(world, rule, "absorbPct", "cosmicDustSplitPlanetMeteorAbsorbPct"); evidence.fragmentMass = m * rulePct(world, rule, "fragmentsPct", "cosmicDustSplitPlanetMeteorFragmentsPct"); addMass(planet, evidence.absorbedMass, "planet", "HC.CosmicDust.applySplitPolicy:planet_meteor"); evidence.fragments = spawnFragments(world, evidence.fragmentMass, planet, "planetMeteorImpact"); if (meteor) meteor._dead = true; }
-    else if (kind === "planet_asteroid") { const planet = s.planet || a; const asteroid = s.asteroid || b; const m = bodyMass(asteroid); dust(m * rulePct(world, rule, "dustPct", "cosmicDustSplitPlanetAsteroidDustPct"), planet, asteroid); evidence.fragmentMass = m * rulePct(world, rule, "fragmentsPct", "cosmicDustSplitPlanetAsteroidFragmentsPct"); evidence.orbiterCandidate = descriptor("orbital_asteroid_candidate", m * rulePct(world, rule, "orbiterPct", "cosmicDustSplitPlanetAsteroidOrbiterPct"), planet, asteroid, rule, bodyMass(planet), bodyMass(planet)); evidence.fragments = spawnFragments(world, evidence.fragmentMass, planet, "planetAsteroidImpact"); if (asteroid) asteroid._dead = true; }
+    else if (kind === "planet_meteor") { const planet = s.planet || a; if (blockInvalidPlanetImpact(world, kind, planet)) return Object.assign(evidence, { blocked: true, invalidPlanetOrigin: true }); const meteor = s.meteor || b; const m = bodyMass(meteor); dust(m * rulePct(world, rule, "dustPct", "cosmicDustSplitPlanetMeteorDustPct"), planet, meteor); evidence.absorbedMass = m * rulePct(world, rule, "absorbPct", "cosmicDustSplitPlanetMeteorAbsorbPct"); evidence.fragmentMass = m * rulePct(world, rule, "fragmentsPct", "cosmicDustSplitPlanetMeteorFragmentsPct"); addMass(planet, evidence.absorbedMass, "planet", "HC.CosmicDust.applySplitPolicy:planet_meteor"); evidence.fragments = spawnFragments(world, evidence.fragmentMass, planet, "planetMeteorImpact"); if (meteor) meteor._dead = true; }
+    else if (kind === "planet_asteroid") { const planet = s.planet || a; if (blockInvalidPlanetImpact(world, kind, planet)) return Object.assign(evidence, { blocked: true, invalidPlanetOrigin: true }); const asteroid = s.asteroid || b; const m = bodyMass(asteroid); dust(m * rulePct(world, rule, "dustPct", "cosmicDustSplitPlanetAsteroidDustPct"), planet, asteroid); evidence.fragmentMass = m * rulePct(world, rule, "fragmentsPct", "cosmicDustSplitPlanetAsteroidFragmentsPct"); evidence.orbiterCandidate = descriptor("orbital_asteroid_candidate", m * rulePct(world, rule, "orbiterPct", "cosmicDustSplitPlanetAsteroidOrbiterPct"), planet, asteroid, rule, bodyMass(planet), bodyMass(planet)); evidence.fragments = spawnFragments(world, evidence.fragmentMass, planet, "planetAsteroidImpact"); if (asteroid) asteroid._dead = true; }
     else if (kind === "planet_moon") { const planet = s.planet || a; const moon = s.moon || b; const m = bodyMass(moon); dust(m * rulePct(world, rule, "dustPct", "cosmicDustSplitPlanetMoonDustPct"), planet, moon); evidence.fragmentMass = m * rulePct(world, rule, "fragmentsPct", "cosmicDustSplitPlanetMoonFragmentsPct"); evidence.orbiterCandidate = descriptor("orbital_moon_candidate", m * rulePct(world, rule, "orbiterPct", "cosmicDustSplitPlanetMoonOrbiterPct"), planet, moon, rule, bodyMass(planet), bodyMass(planet)); evidence.fragments = spawnFragments(world, evidence.fragmentMass, planet, "planetMoonImpact"); if (moon) moon._dead = true; }
     else if (kind === "planet_planet") { const m = bodyMass(a) + bodyMass(b); dust(m * rulePct(world, rule, "dustPct", "cosmicDustSplitPlanetPlanetDustPct"), a, b); evidence.fragmentMass = m * rulePct(world, rule, "fragmentsPct", "cosmicDustSplitPlanetPlanetFragmentsPct"); evidence.fragments = spawnFragments(world, evidence.fragmentMass, a, "planetPlanetImpact"); if (a) a._dead = true; if (b) b._dead = true; evidence.descriptorOnly = true; }
     recordMassSplit(world, evidence, (kind === "meteor_meteor" || kind === "planet_planet") ? bodyMass(a) + bodyMass(b) : bodyMass(s.meteor || s.asteroid || s.moon || s.secondary || s.b || s.incoming), kind === "meteor_meteor" ? ((evidence.resultMass || 0) + (evidence.cosmicDustMass || 0)) : undefined);

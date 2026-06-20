@@ -1499,6 +1499,16 @@
       cometHits: isRocky ? 1 : 0,
       rings: [],
     };
+    planet.createdObjectType = isRocky ? "rocky_planet" : "planet";
+    planet.createdObjectId = planet.id;
+    planet.sourcePath = "debug_bootstrap";
+    planet.sourceFunction = "DebugSession.createPlanetSeed";
+    planet.sourceBodyIds = [];
+    planet.sourceMassBefore = 0;
+    planet.sourceMassAfter = planet.mass;
+    planet.allowedProgressionPath = false;
+    planet.blockedLegacyPath = false;
+    planet.debugSpawn = true;
     return window.HC?.WorldVisualAssets?.assignPlanetVisual?.(planet) || planet;
   }
 
@@ -1666,7 +1676,9 @@
       for (let i = 0; i < rocky; i++) {
         const planet = createPlanetSeed(true);
         World.planets.push(planet);
-        this.emit("world", EVENT_TYPES.WORLD_OBJECT_SPAWNED, { objectType: "planet", planetKind: "rocky", source: "debug.session.bootstrap" }, { source: "Session.applyInitialWorldState" });
+        World.lastPlanetCreatedEvent = { type: "planet_created", createdObjectType: "rocky_planet", createdObjectId: planet.id, sourcePath: "debug_bootstrap", sourceFunction: "DebugSession.createPlanetSeed", sourceBodyIds: [], sourceMassBefore: 0, sourceMassAfter: planet.mass, allowedProgressionPath: false, blockedLegacyPath: false, debugSpawn: true };
+        this.emit("world", "planet_created", World.lastPlanetCreatedEvent, { source: "Session.applyInitialWorldState" });
+        this.emit("world", EVENT_TYPES.WORLD_OBJECT_SPAWNED, { objectType: "planet", planetKind: "rocky", source: "debug.session.bootstrap", sourcePath: "debug_bootstrap", debugSpawn: true }, { source: "Session.applyInitialWorldState" });
       }
       for (let i = 0; i < gas; i++) {
         const planet = createPlanetSeed(false);
