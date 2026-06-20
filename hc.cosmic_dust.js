@@ -146,7 +146,7 @@
     if (!planet || planet.kind !== "planet" && planet.type !== "planet") return false;
     if (planet.debugSpawn === true && planet.sourcePath === "debug_bootstrap" && planet.allowedProgressionPath === false) return true;
     if (planet.planetKind === "rocky" || planet.isRocky === true) {
-      return planet.sourcePath === "moon_threshold_to_rocky_planet"
+      return planet.sourcePath === "moon_to_rocky_planet"
         && planet.allowedProgressionPath === true
         && Array.isArray(planet.sourceBodyIds)
         && planet.sourceBodyIds.length > 0;

@@ -113,7 +113,7 @@
     if (body.debugSpawn === true && body.sourcePath === "debug_bootstrap" && body.allowedProgressionPath === false) return true;
     const kind = getPlanetKind(body);
     if (kind === "rocky") {
-      return body.sourcePath === "moon_threshold_to_rocky_planet"
+      return body.sourcePath === "moon_to_rocky_planet"
         && body.allowedProgressionPath === true
         && Array.isArray(body.sourceBodyIds)
         && body.sourceBodyIds.length > 0;
@@ -616,6 +616,19 @@
         asteroidOverThresholdSamples: Array.isArray(World.asteroidOverThresholdSamples) ? World.asteroidOverThresholdSamples.slice(-8) : [],
         lastThresholdProgressionEvent: World.lastThresholdProgressionEvent ? Object.assign({}, World.lastThresholdProgressionEvent) : null,
         lastMoonCreatedEvent: World.lastMoonCreatedEvent ? Object.assign({}, World.lastMoonCreatedEvent) : null,
+        asteroidTargetMassToMoon: toNumber(Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget), null),
+        moonTargetMassToRockyPlanet: toNumber(Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold), 34),
+        moonsCount: pickArray(World.moons).length,
+        freeMoonsCount: pickArray(World.moons).filter((moon) => moon && !moon._dead && moon.progressionMode !== "orbital" && moon.isOrbitalBody !== true).length,
+        orbitalMoonsCount: pickArray(World.moons).filter((moon) => moon && !moon._dead && (moon.progressionMode === "orbital" || moon.isOrbitalBody === true)).length,
+        lastLegacyAsteroidToPlanetBlockedEvent: World.lastLegacyAsteroidToPlanetBlockedEvent ? Object.assign({}, World.lastLegacyAsteroidToPlanetBlockedEvent) : null,
+        progressionChainSummary: {
+          target: "meteor -> asteroid -> moon -> rocky planet",
+          directAsteroidToRockyPlanetEnabled: false,
+          moonCreated: !!World.lastMoonCreatedEvent,
+          rockyPlanetCreatedFromMoon: World.lastRockyPlanetCreatedEvent?.sourcePath === "moon_to_rocky_planet",
+          legacyAsteroidToPlanetBlockedCount: toNumber(World.legacyAsteroidToPlanetBlockedCount, 0),
+        },
         planetCountByOrigin,
         invalidPlanetOriginCount: invalidPlanetOriginSamples.length || toNumber(World.invalidPlanetOriginCount, 0),
         invalidPlanetOriginSamples: invalidPlanetOriginSamples.length ? invalidPlanetOriginSamples.slice(0, 8) : (Array.isArray(World.invalidPlanetOriginSamples) ? World.invalidPlanetOriginSamples.slice(-8) : []),

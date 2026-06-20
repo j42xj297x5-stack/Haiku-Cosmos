@@ -223,7 +223,7 @@
   const EVIDENCE_EVENT_FILTERS = Object.freeze({
     minimal: ["debug.issue*", "error.*"],
     gameplay: ["sequence.*", "card.*", "cards.*", "economy.*", "rp.*", "world.collision*", "world.body*", "world.meteor*", "world.asteroid*", "world.moon*", "world.planet*", "world.dust*", "world.impact*", "world.orbit*", "run.*", "input.decision*", "debug.issue*", "error.*"],
-    collisions: ["COSMIC_DUST_CREATED", "world.threshold_progress", "radius_refresh", "radius_clamp", "mass_split", "live_collision_probe", "moon_created", "rocky_planet_created", "session.ended", "session.aborted"],
+    collisions: ["COSMIC_DUST_CREATED", "world.threshold_progress", "radius_refresh", "radius_clamp", "mass_split", "live_collision_probe", "moon_created", "rocky_planet_created", "legacy_asteroid_to_planet_blocked", "session.ended", "session.aborted"],
     renderer: ["world.glb*", "world.three*", "world.renderer*", "world.material*", "world.light*", "world.asset*", "world.texture*", "renderer.*", "three.*", "glb.*", "asset.*", "material.*", "light.*", "debug.issue*", "error.*"],
   });
 
@@ -348,6 +348,7 @@
       lastThresholdProgressionEvent: physics.lastThresholdProgressionEvent || null,
       lastMoonCreatedEvent: physics.lastMoonCreatedEvent || null,
       lastRockyPlanetCreatedEvent: physics.lastRockyPlanetCreatedEvent || null,
+      lastLegacyAsteroidToPlanetBlockedEvent: physics.lastLegacyAsteroidToPlanetBlockedEvent || null,
     };
     result.physicsDiagnosticsMissingFields = [
       "collisionRulesProfile", "collisionRulesSource", "activeCollisionRulesProfile",
@@ -355,7 +356,7 @@
       "activeAsteroidAsteroidRule", "massRadiusContractVersion", "lastMassSplitEvent",
       "lastLiveCollisionProbe", "lastRadiusRefreshEvent", "lastRadiusClampEvent",
       "radiusClampCount", "asteroidOverThresholdCount", "asteroidOverThresholdSamples",
-      "lastThresholdProgressionEvent", "lastMoonCreatedEvent", "lastRockyPlanetCreatedEvent",
+      "lastThresholdProgressionEvent", "lastMoonCreatedEvent", "lastRockyPlanetCreatedEvent", "lastLegacyAsteroidToPlanetBlockedEvent",
     ].filter((key) => result[key] == null);
     return result;
   }
@@ -1566,6 +1567,7 @@
     ensureBaseThresholds(World) {
       if (this.baseThresholds || !World) return;
       this.baseThresholds = {
+        asteroidToMoon: Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 13),
         asteroidToPlanet: Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 13),
         planetToStar: {
           blue: Number(World.STAR_REQ_BLUE || 30),
@@ -2181,7 +2183,8 @@
           asteroids: Array.isArray(World?.asteroids) ? World.asteroids.length : 0,
           asteroidMassTotal: Array.isArray(World?.asteroids) ? World.asteroids.reduce((sum, a) => sum + (Number.isFinite(Number(a?.mass)) ? Number(a.mass) : 0), 0) : 0,
           asteroidMassMax: Array.isArray(World?.asteroids) ? World.asteroids.reduce((max, a) => Math.max(max, Number.isFinite(Number(a?.mass)) ? Number(a.mass) : 0), 0) : 0,
-          asteroidTargetMassToPlanet: Number(World?.asteroidGrowthTarget ?? World?.planetCaptureTarget ?? 0),
+          asteroidTargetMassToMoon: Number(World?.spaceMechanics?.asteroidToMoonMassThreshold ?? World?.asteroidGrowthTarget ?? World?.planetCaptureTarget ?? 0),
+          moonTargetMassToRockyPlanet: Number(World?.spaceMechanics?.moonToRockyPlanetMassThreshold ?? 34),
           rockyPlanets: Array.isArray(World?.planets) ? World.planets.filter((p) => p && p.isRocky).length : 0,
           gasPlanets: Array.isArray(World?.planets) ? World.planets.filter((p) => p && !p.isRocky).length : 0,
           stars: Array.isArray(World?.stars) ? World.stars.length : 0,
@@ -2192,8 +2195,8 @@
           activeImpactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.filter((fragment) => fragment && !fragment._dead).length : 0,
         },
         thresholds: {
-          asteroidToPlanet: {
-            current: Number(World?.asteroidGrowthTarget ?? World?.planetCaptureTarget ?? 0),
+          asteroidToMoon: {
+            current: Number(World?.spaceMechanics?.asteroidToMoonMassThreshold ?? World?.asteroidGrowthTarget ?? World?.planetCaptureTarget ?? 0),
             source: World?.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "override",
           },
           planetToStar: {

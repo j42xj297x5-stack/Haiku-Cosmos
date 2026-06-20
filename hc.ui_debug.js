@@ -1423,7 +1423,7 @@
       ["live A+A collisions", window.World?.liveAsteroidAsteroidCollisionCount ?? 0],
       ["split bypass / radius no-change", `${window.World?.splitPolicyBypassCount ?? 0}/${window.World?.radiusNoChangeCount ?? 0}`],
       ["last live collision", window.World?.lastLiveCollisionProbe ? JSON.stringify(window.World.lastLiveCollisionProbe) : "-"],
-      ["target mass → planet", wc.asteroidTargetMassToPlanet ?? thr.asteroidToPlanet?.current ?? 0],
+      ["target mass → moon", wc.asteroidTargetMassToMoon ?? thr.asteroidToMoon?.current ?? thr.asteroidToPlanet?.current ?? 0],
       ["planets", `${wc.rockyPlanets ?? 0} rocky / ${wc.gasPlanets ?? 0} gas`],
       ["stars", wc.stars ?? 0],
       ["cosmic dust", wc.cosmicDustCount ?? 0],
@@ -1451,7 +1451,7 @@
       ["Dust Reservoir", `${window.World?.harmonicDustReservoir?.isMixedGray ? "GRAY" : (window.World?.harmonicDustReservoir?.activeColorName || "EMPTY")} ${Math.floor(Number(window.World?.harmonicDustReservoir?.fillPercent || 0))}%`],
       ["Dust Deposits", `RED ${window.World?.harmonicDustDeposits?.RED || 0} / YELLOW ${window.World?.harmonicDustDeposits?.YELLOW || 0} / GREEN ${window.World?.harmonicDustDeposits?.GREEN || 0} / BLUE ${window.World?.harmonicDustDeposits?.BLUE || 0} / GRAY ${window.World?.harmonicDustDeposits?.GRAY || 0}`],
       ["harmonic collected", JSON.stringify(window.World?.harmonicDustCollected || {})],
-      ["A→P mass threshold", `${thr.asteroidToPlanet?.current ?? 0} (${thr.asteroidToPlanet?.source || "-"})`],
+      ["A→M mass threshold", `${thr.asteroidToMoon?.current ?? thr.asteroidToPlanet?.current ?? 0} (${thr.asteroidToMoon?.source || thr.asteroidToPlanet?.source || "-"})`],
       ["P→S threshold", `${thr.planetToStar?.current ?? 0} (${thr.planetToStar?.source || "-"})`],
     ], "", { open: false }));
 
