@@ -163,12 +163,17 @@
 
     function attachSourceEvidence(target, sourcePath, sourceRuleId, sourceFunction, bodies, before, after) {
       if (!target) return target;
+      const objectType = target.planetKind === "rocky" ? "rocky_planet" : (target.kind || target.type || "object");
       target.sourcePath = sourcePath;
       target.sourceRuleId = sourceRuleId || sourcePath;
       target.sourceFunction = sourceFunction;
       target.sourceBodyIds = (bodies || []).map((body) => body?.id || body?._id).filter(Boolean);
       target.sourceMassBefore = before;
       target.sourceMassAfter = after;
+      target.createdObjectType = objectType;
+      target.createdObjectId = target.id || target._id || null;
+      target.allowedProgressionPath = sourcePath === "asteroid_threshold_to_moon" || sourcePath === "moon_threshold_to_rocky_planet";
+      target.blockedLegacyPath = false;
       return target;
     }
 
@@ -292,6 +297,15 @@
       a._dead = true;
       World.lastMoonCreatedEvent = {
         type: "moon_created",
+        createdObjectType: "moon",
+        createdObjectId: moon.id,
+        sourcePath: moon.sourcePath,
+        sourceFunction: moon.sourceFunction,
+        sourceBodyIds: moon.sourceBodyIds,
+        sourceMassBefore: moon.sourceMassBefore,
+        sourceMassAfter: moon.sourceMassAfter,
+        allowedProgressionPath: true,
+        blockedLegacyPath: false,
         sourceType: "asteroid",
         sourceId: a._id || a.id || null,
         resultingObjectType: "moon",
@@ -299,6 +313,7 @@
         mass: moon.mass,
         radius: moon.r,
       };
+      window.HC?.logEvent?.("world", "moon_created", World.lastMoonCreatedEvent, { source: source || "Asteroids.transformAsteroidToMoon", snapshot: true });
       if (World.lastThresholdProgressionEvent?.sourceId === (a._id || a.id || null)) {
         World.lastThresholdProgressionEvent.resultingObjectId = moon.id;
       }
@@ -656,6 +671,18 @@
     function finishCollapseToPlanet(a) {
       if (a) { a.legacyPlanetCollapseBlocked = true; }
       World.legacyPlanetCollapseBlockedCount = (Number(World.legacyPlanetCollapseBlockedCount) || 0) + 1;
+      World.lastPlanetSpawnBlockedEvent = {
+        type: "planet_spawn_blocked",
+        legacyPlanetSpawnBlocked: true,
+        blockedLegacyPath: true,
+        blockedSourceFunction: "Asteroids.finishCollapseToPlanet",
+        blockedSourcePath: "legacy_asteroid_collapse_to_planet",
+        sourceBodyIds: [a?._id || a?.id].filter(Boolean),
+        sourceMassBefore: asteroidMassValue(a),
+        sourceMassAfter: asteroidMassValue(a),
+        allowedProgressionPath: false,
+      };
+      window.HC?.logEvent?.("world", "planet_spawn_blocked", World.lastPlanetSpawnBlockedEvent, { source: "Asteroids.finishCollapseToPlanet", snapshot: true });
       return null;
       const entries = Object.entries(a.liveColorCounts || a.captureColorCounts);
       entries.sort((p, q) => (q[1] - p[1]));
@@ -920,6 +947,8 @@
       window.HC?.WorldVisualAssets?.assignPlanetVisual?.(planet);
       planet.asset = planet.assetId;
       attachSourceEvidence(planet, "moon_threshold_to_rocky_planet", "moon_to_rocky_planet_mass", "Asteroids.transformMoonToRockyPlanet", [moon], moonMassValue(moon), mass);
+      planet.sourceMoonEvidence = moon.sourcePath === "asteroid_threshold_to_moon" && moon.allowedProgressionPath === true;
+      planet.allowedProgressionPath = planet.sourceMoonEvidence === true;
       refreshRadius(planet, "planet", "Asteroids.createRockyPlanetFromMoon");
       planet.fixedR = planet.r;
       return planet;
@@ -934,6 +963,15 @@
       moon._dead = true;
       World.lastRockyPlanetCreatedEvent = {
         type: "rocky_planet_created",
+        createdObjectType: "rocky_planet",
+        createdObjectId: planet.id,
+        sourcePath: planet.sourcePath,
+        sourceFunction: planet.sourceFunction,
+        sourceBodyIds: planet.sourceBodyIds,
+        sourceMassBefore: planet.sourceMassBefore,
+        sourceMassAfter: planet.sourceMassAfter,
+        allowedProgressionPath: planet.allowedProgressionPath === true,
+        blockedLegacyPath: false,
         sourceType: "moon",
         sourceId: moon.id || moon._id || null,
         resultingObjectType: "rocky_planet",
@@ -941,6 +979,9 @@
         mass: planet.mass,
         radius: planet.r,
       };
+      World.lastPlanetCreatedEvent = Object.assign({ type: "planet_created" }, World.lastRockyPlanetCreatedEvent);
+      window.HC?.logEvent?.("world", "planet_created", World.lastPlanetCreatedEvent, { source: reason || "Asteroids.transformMoonToRockyPlanet", snapshot: true });
+      window.HC?.logEvent?.("world", "rocky_planet_created", World.lastRockyPlanetCreatedEvent, { source: reason || "Asteroids.transformMoonToRockyPlanet", snapshot: true });
       window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_TRANSFORMED, {
         event: "MOON_TO_ROCKY_PLANET_CREATED",
         fromType: "moon",
