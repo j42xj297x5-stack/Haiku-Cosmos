@@ -96,8 +96,7 @@ context.HC.Impact.updateFragments(context.World, 101, 0.101);
 assert.equal(context.World.impactFragments.length, 0, 'expired impact fragments are cleaned up');
 
 
-const blockedLegacyPlanet = context.HC.Planets.createRockyPlanetFromMoon({ id: 'moon:block', type: 'moon', kind: 'moon', mass: 99, r: 2 }, 'vm_block', { sourcePath: 'asteroid_to_rocky_planet', sourceFunction: 'vm.direct' });
-assert.equal(blockedLegacyPlanet, null, 'direct asteroid -> rocky planet helper call is blocked');
+assert.throws(() => context.HC.Planets.createRockyPlanetFromMoon({ id: 'moon:block', type: 'moon', kind: 'moon', mass: 99, r: 2 }, 'vm_block', { sourcePath: 'asteroid_to_rocky_planet', sourceFunction: 'vm.direct' }), /LEGACY_ASTEROID_TO_PLANET_DISABLED/, 'direct asteroid -> rocky planet helper call hard-fails');
 assert.ok(context.World.lastLegacyPlanetSpawnBlockedEvent, 'blocked legacy planet spawn is logged');
 
 context.World.planets = [{ id: 'planet:legacy', type: 'planet', kind: 'planet', planetKind: 'rocky', isRocky: true, x: 0, y: 0, r: 4, mass: 9 }];

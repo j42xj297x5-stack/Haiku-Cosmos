@@ -133,5 +133,6 @@ assert.equal(c.HC.CollisionRules.getDraftRuleset(c.World).profile, 'baseline_saf
 
 const sources = ['hc.cosmic_dust.js', 'hc.collision_rules.js'].map((f) => fs.readFileSync(path.join(root, f), 'utf8')).join('\n');
 assert.doesNotMatch(sources, /gas planet condensation/i);
-assert.equal(fs.readFileSync(path.join(root, 'hc.comets.js'), 'utf8').length > 0, true, 'comet runtime exists but collision rules test does not load or change it');
+assert.equal(fs.existsSync(path.join(root, 'hc.comets.js')), false, 'active comet runtime is removed');
+assert.equal(fs.existsSync(path.join(root, 'legacy/runtime/hc.comets.legacy.js')), true, 'legacy comet runtime is preserved outside active runtime');
 console.log('collision rules vm ok');
