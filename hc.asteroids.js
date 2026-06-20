@@ -161,6 +161,26 @@
       return body;
     }
 
+
+    function radiusEvidenceFor(body) {
+      const ev = body?.lastRadiusRefresh || {};
+      return {
+        rawRadiusFromMass: Number(ev.rawRadiusFromMass ?? ev.unclampedRadius) || null,
+        finalRadius: Number(ev.finalRadius ?? ev.radius ?? body?.r ?? body?.radius) || null,
+        clampApplied: ev.clampApplied === true,
+        clampReason: ev.clampReason || null,
+      };
+    }
+
+    function recordRadiusContinuity(kind, event) {
+      const ratio = Number(event?.radiusContinuityRatio);
+      if (!Number.isFinite(ratio) || ratio >= 0.75) return;
+      const key = kind === "rocky_planet" ? "rockyPlanetRadiusContinuityWarnings" : "moonRadiusContinuityWarnings";
+      World[key] = Array.isArray(World[key]) ? World[key] : [];
+      World[key].push(Object.assign({ type: `${kind}_radius_continuity_warning`, threshold: 0.75 }, event));
+      if (World[key].length > 8) World[key].shift();
+    }
+
     function attachSourceEvidence(target, sourcePath, sourceRuleId, sourceFunction, bodies, before, after) {
       if (!target) return target;
       const objectType = target.planetKind === "rocky" ? "rocky_planet" : (target.kind || target.type || "object");
@@ -295,15 +315,25 @@
       World.moons = Array.isArray(World.moons) ? World.moons : [];
       World.moons.push(moon);
       a._dead = true;
+      const moonRadiusEvidence = radiusEvidenceFor(moon);
+      const sourceAsteroidRadius = Number(a.r ?? a.radius) || null;
+      const moonContinuityRatio = sourceAsteroidRadius ? moonRadiusEvidence.finalRadius / sourceAsteroidRadius : null;
       World.lastMoonCreatedEvent = {
         type: "moon_created",
         sourcePath: "asteroid_to_moon",
         sourceFunction: moon.sourceFunction,
         sourceAsteroidId: a._id || a.id || null,
+        sourceAsteroidMass: asteroidMassValue(a),
+        sourceAsteroidRadius,
         sourceMassBefore: moon.sourceMassBefore,
         sourceMassAfter: moon.sourceMassAfter,
         createdMoonId: moon.id,
         createdMoonMass: moon.mass,
+        createdMoonRawRadiusFromMass: moonRadiusEvidence.rawRadiusFromMass,
+        createdMoonFinalRadius: moonRadiusEvidence.finalRadius,
+        radiusContinuityRatio: moonContinuityRatio,
+        clampApplied: moonRadiusEvidence.clampApplied,
+        clampReason: moonRadiusEvidence.clampReason,
         createdMoonRadius: moon.r,
         progressionMode: "free",
         canBecomePlanet: true,
@@ -319,6 +349,7 @@
         mass: moon.mass,
         radius: moon.r,
       };
+      recordRadiusContinuity("moon", World.lastMoonCreatedEvent);
       window.HC?.logEvent?.("world", "moon_created", World.lastMoonCreatedEvent, { source: source || "Asteroids.transformAsteroidToMoon", snapshot: true });
       if (World.lastThresholdProgressionEvent?.sourceId === (a._id || a.id || null)) {
         World.lastThresholdProgressionEvent.resultingObjectId = moon.id;
@@ -932,7 +963,7 @@
 
     function createRockyPlanetFromMoon(moon, reason) {
       const mass = moonMassValue(moon);
-      const radius = SpaceBodies?.radiusFromMass?.("planet", mass, { baseRadius: Number(moon.massOneRadius || moon.baseR) || 1, minRadius: Number(moon.r) || 1, maxRadius: Number(World.spaceMechanics?.maxRockyPlanetRadius) || Infinity }) || Number(moon.r) || 1;
+      const radius = SpaceBodies?.radiusFromMass?.("planet", mass, { baseRadius: Number(moon.massOneRadius || moon.baseR) || 1, minRadius: Number(moon.r) || 1 }) || Number(moon.r) || 1;
       const planet = {
         id: `rocky_planet:${moon.id || Date.now()}:${World.planets.length + 1}`,
         type: "planet",
@@ -975,15 +1006,25 @@
       World.planets = Array.isArray(World.planets) ? World.planets : [];
       World.planets.push(planet);
       moon._dead = true;
+      const planetRadiusEvidence = radiusEvidenceFor(planet);
+      const sourceMoonRadius = Number(moon.r ?? moon.radius) || null;
+      const planetContinuityRatio = sourceMoonRadius ? planetRadiusEvidence.finalRadius / sourceMoonRadius : null;
       World.lastRockyPlanetCreatedEvent = {
         type: "rocky_planet_created",
         sourcePath: "moon_to_rocky_planet",
         sourceFunction: planet.sourceFunction,
         sourceMoonId: moon.id || moon._id || null,
+        sourceMoonMass: moonMassValue(moon),
+        sourceMoonRadius,
         sourceMassBefore: planet.sourceMassBefore,
         sourceMassAfter: planet.sourceMassAfter,
         createdPlanetId: planet.id,
         createdPlanetMass: planet.mass,
+        createdPlanetRawRadiusFromMass: planetRadiusEvidence.rawRadiusFromMass,
+        createdPlanetFinalRadius: planetRadiusEvidence.finalRadius,
+        radiusContinuityRatio: planetContinuityRatio,
+        clampApplied: planetRadiusEvidence.clampApplied,
+        clampReason: planetRadiusEvidence.clampReason,
         createdPlanetRadius: planet.r,
         createdObjectType: "rocky_planet",
         createdObjectId: planet.id,
@@ -997,6 +1038,7 @@
         mass: planet.mass,
         radius: planet.r,
       };
+      recordRadiusContinuity("rocky_planet", World.lastRockyPlanetCreatedEvent);
       World.lastPlanetCreatedEvent = Object.assign({ type: "planet_created" }, World.lastRockyPlanetCreatedEvent);
       window.HC?.logEvent?.("world", "planet_created", World.lastPlanetCreatedEvent, { source: reason || "Asteroids.transformMoonToRockyPlanet", snapshot: true });
       window.HC?.logEvent?.("world", "rocky_planet_created", World.lastRockyPlanetCreatedEvent, { source: reason || "Asteroids.transformMoonToRockyPlanet", snapshot: true });

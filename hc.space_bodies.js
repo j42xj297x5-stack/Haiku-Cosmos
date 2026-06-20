@@ -158,17 +158,14 @@
       const configuredMin = minKey ? Number(world.spaceMechanics[minKey]) : NaN;
       if (Number.isFinite(configuredMin) && configuredMin > 0 && configuredMin > minRadius) minRadius = configuredMin;
 
-      // Asteroids must be allowed to grow with mass. The historic
-      // `maxAsteroidRadius:28` setting is treated as a legacy minimum floor for
-      // small asteroids, never as an upper clamp. Other body kinds retain their
-      // existing upper bounds.
+      // Asteroids, moons and rocky planets must remain visually continuous as
+      // mass progresses through asteroid -> moon -> rocky planet. Historic small
+      // max clamps such as maxMoonRadius:48 and maxRockyPlanetRadius:72 are
+      // therefore ignored by the MassRadiusContract; explicit per-body maxRadius
+      // may still be supplied for non-normal ranges.
       if (bodyKind === "asteroid") {
         const legacyMin = Number(world.spaceMechanics.maxAsteroidRadius);
         if (!Number.isFinite(configuredMin) && Number.isFinite(legacyMin) && legacyMin > 0 && legacyMin > minRadius) minRadius = legacyMin;
-      } else {
-        const key = bodyKind === "moon" ? "maxMoonRadius" : bodyKind === "planet" ? "maxRockyPlanetRadius" : null;
-        const configured = key ? Number(world.spaceMechanics[key]) : NaN;
-        if (Number.isFinite(configured) && configured > 0 && configured < clampMax) { clampMax = configured; maxClampSource = `${key}:${configured}`; }
       }
     }
     const minClampedRadius = Math.max(minRadius, rawRadiusFromMass);
@@ -239,7 +236,13 @@
     body.massRadiusContractVersion = massRadiusContract.version;
     body.lastRadiusRefresh = Object.assign({}, radiusEvidence, { kind, radius });
     const world = root.World || null;
-    if (world) world.lastRadiusRefreshEvent = body.lastRadiusRefresh;
+    if (world) {
+      world.lastRadiusRefreshEvent = body.lastRadiusRefresh;
+      if (kind === "moon") world.lastMoonRadiusRefreshEvent = body.lastRadiusRefresh;
+      if (kind === "planet" && (body.planetKind === "rocky" || body.isRocky === true)) world.lastRockyPlanetRadiusRefreshEvent = body.lastRadiusRefresh;
+      if (kind === "moon" && radiusEvidence.clampApplied) world.moonRadiusClampCount = (Number(world.moonRadiusClampCount) || 0) + 1;
+      if (kind === "planet" && (body.planetKind === "rocky" || body.isRocky === true) && radiusEvidence.clampApplied) world.rockyPlanetRadiusClampCount = (Number(world.rockyPlanetRadiusClampCount) || 0) + 1;
+    }
     return body;
   }
 

@@ -88,9 +88,12 @@ assert.equal(snapshot.world.moons[0].isOrbitalBody, false);
 assert.equal(snapshot.world.moons[0].canBecomePlanet, true);
 context.World.spaceMechanics.bodyRadiusClampEnabled = true;
 context.World.spaceMechanics.maxMoonRadius = 10;
-const clampedRadius = context.HC.SpaceBodies.radiusFromMass('moon', 10000, { baseRadius: 1, minRadius: 1 });
-assert.equal(clampedRadius, 10, 'large moon radius is clamped');
-assert.equal(context.World.lastBodyRadiusClampEvent.kind, 'moon');
+const unclampedMoonRadius = context.HC.SpaceBodies.radiusFromMass('moon', 10000, { baseRadius: 1, minRadius: 1 });
+assert.equal(unclampedMoonRadius, 100, 'moon radius follows mass/radius contract instead of legacy maxMoonRadius');
+assert.notEqual(context.World.lastBodyRadiusClampEvent?.clampReason, 'maxMoonRadius:10');
+assert.ok(context.World.lastMoonCreatedEvent.createdMoonRawRadiusFromMass > 0, 'moon_created stores raw radius evidence');
+assert.equal(context.World.lastMoonCreatedEvent.createdMoonFinalRadius, context.World.lastMoonCreatedEvent.createdMoonRadius, 'moon_created stores final radius evidence');
+assert.ok(context.World.lastMoonCreatedEvent.radiusContinuityRatio >= 0.75, 'moon creation is visually continuous');
 assert.equal(snapshot.world.moons[0].parentPlanetId, null);
 assert.equal(snapshot.diagnostics.objectCounts.moons, 1);
 
