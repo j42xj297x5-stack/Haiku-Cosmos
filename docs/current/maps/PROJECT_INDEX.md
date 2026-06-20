@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa projektu / indeks dokumentacji aktualnej
 > Źródło prawdy: TAK
-> Ostatnia aktualizacja: 2026-06-19
+> Ostatnia aktualizacja: 2026-06-20
 > Powiązane dokumenty: ../../README.md, ../README.md, DEPENDENCY_MAP.md
 
 ## Rola dokumentu
@@ -28,9 +28,10 @@ Kanon jest mapowany warstwowo przez:
 ## Systemy gry
 
 - `docs/current/systems/CARDS_SYSTEM.md` (KANON)
+- `docs/current/systems/SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md` (**CURRENT RUNTIME BASELINE / POST-LEGACY-CUT / SOURCE OF TRUTH FOR NEXT PATCHES**) - aktywny punkt startu mechaniki kosmosu po legacy-cut: `meteor -> asteroid -> moon -> rocky planet`, progi implemented `10/20`, next design target `5/10`, znany blocker moon -> rocky planet, legacy-disabled comets/stars/gas/capture/orbit.
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU) - roboczy system sieci slotów kart, wzmocnień, trwałości, pyłu, napięć, blizn i naprawy slotów.
-- `docs/current/systems/COMETS_SYSTEM.md` (ROBOCZY / SYSTEM ŚWIATA) - osobny future system czterech docelowych typów komet; nie jest wymagany do pierwszych patchy `cosmic dust`, a reakcje komet z pyłem są etapem po podstawowym `cosmic dust` foundation.
-- `docs/current/systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` (ROBOCZY / KONTRAKT PROJEKTOWY / PRZED RUNTIME) - kontrakt impact/orbit oraz rozróżnienia `harmonicDust` / `GRAY/mixed reservoir` / gray-shifted `harmonicDust` / future `cosmic dust`; nie zastępuje COMETS ani kart.
+- `docs/current/systems/COMETS_SYSTEM.md` (FUTURE DESIGN / NOT ACTIVE RUNTIME) - osobny przyszły system czterech docelowych typów komet; stary runtime komet jest w `legacy/runtime/hc.comets.legacy.js` i nie jest aktywnym gameplay.
+- `docs/current/systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` (FUTURE DESIGN / KONTRAKT PROJEKTOWY) - active runtime po legacy-cut ma tylko descriptor-only orbiter candidates; capture/orbit/gas/star pozostają legacy-disabled i wymagają nowego projektu przed powrotem.
 - `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - lista decyzji i zależności do zamknięcia przed pierwszym runtime pass CARD SLOT NETWORK.
 - `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - source dla `harmonicDust` / HUD / PRG / reservoir: jeden wysokoenergetyczny zbieralny kolorowy pył trafia ręcznie przez PRG do HUD reservoir/stosiku/depozytu, działa przez `10/20/50`, definiuje elastic gray shift oraz rozdziela `GRAY/mixed reservoir` od przyszłego `cosmic dust`.
 - `docs/current/systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
@@ -39,6 +40,14 @@ Kanon jest mapowany warstwowo przez:
 - `docs/current/systems/PRG_SYSTEM.md` (KANON STRUKTURALNY / DO STROJENIA)
 - `docs/current/systems/I18N_SYSTEM.md` (KANON STRUKTURALNY / DO WDROŻENIA)
 - `docs/current/systems/ROADMAP.md` (ROBOCZY)
+
+## Space runtime after legacy-cut
+
+- Current source-of-truth for active space mechanics: `docs/current/systems/SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md`.
+- Active implemented baseline: `meteor + meteor different colors -> asteroid`, `asteroid >= 10 -> moon`, `moon >= 20 -> rocky planet` only through `sourcePath: "moon_to_rocky_planet"`, `sourceMoonId`, `allowedProgressionPath: true`, `validProgressionOrigin: true`.
+- Next canonical design target, not yet implemented: `asteroid >= 5 -> moon`, `moon >= 10 -> rocky planet`.
+- Legacy-disabled/not active runtime: comets, stars/epoch, gas planets, planet capture/orbit, direct asteroid -> planet, asteroid collapse -> planet, planet -> star.
+- `legacy/runtime/*` is forensic/reference only and is not source-of-truth for active runtime.
 
 ## UI / flow
 

@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa zależności projektu
 > Źródło prawdy: TAK, dla relacji między dokumentami/systemami
-> Ostatnia aktualizacja: 2026-06-19
+> Ostatnia aktualizacja: 2026-06-20
 > Powiązane dokumenty: PROJECT_INDEX.md, ../README.md, ../../../AGENTS.md
 
 ## 1. Cel dokumentu
@@ -23,6 +23,18 @@
 
 
 ## 2A. Szybkie ścieżki czytania wg typu zadania
+
+### A0) Zadania mechaniki kosmosu po legacy-cut
+1. `README.md`
+2. `docs/README.md`
+3. `docs/current/README.md`
+4. `docs/current/README_ARCHITECT.md`
+5. `docs/current/systems/SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md`
+6. `docs/current/systems/COSMIC_IMPACT_ORBIT_SYSTEM.md`
+7. `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`
+8. `docs/current/systems/COMETS_SYSTEM.md` tylko jako FUTURE DESIGN / NOT ACTIVE RUNTIME
+
+Ta ścieżka ma pierwszeństwo dla prac nad aktywnym kosmosem. Nie wolno przywracać legacy `hc.comets`, `hc.stars_epoch`, starego `hc.planets`, capture/orbit ani direct asteroid -> planet jako skrótu implementacyjnego.
 
 ### A) Zadania systemowe / mechaniczne
 1. `README.md`
@@ -103,7 +115,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 - `docs/current/systems/ROADMAP.md`
 - `docs/current/systems/CARD_SLOT_NETWORK_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU)
-- `docs/current/systems/COMETS_SYSTEM.md` (ROBOCZY / SYSTEM ŚWIATA) - osobny future system czterech typów komet; nie jest wymagany do pierwszych patchy `cosmic dust`, a reakcje komet z `harmonicDust`/`cosmic dust` są późniejszym etapem po fundamencie cosmic dust.
+- `docs/current/systems/COMETS_SYSTEM.md` (FUTURE DESIGN / NOT ACTIVE RUNTIME) - osobny przyszły system czterech typów komet; stary runtime jest w `legacy/runtime/hc.comets.legacy.js` wyłącznie jako forensic/reference i nie może być aktywnym gameplay.
 - `docs/current/systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` (ROBOCZY / KONTRAKT PROJEKTOWY / PRZED RUNTIME) - zależy od `WORLD_FUNCTION_MAP.md`, `SPACE_MECHANICS_CONTRACT.md`, fundamentu `HC.SpaceBodies` i progresji moon/planet; jest kontraktem rozróżnienia `harmonicDust` / `GRAY/mixed reservoir` / gray-shifted `harmonicDust` / future `cosmic dust`; nie zastępuje `COMETS_SYSTEM.md` ani `CARDS_SYSTEM.md`.
 - `docs/current/systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` (ROBOCZY / CHECKLISTA MIGRACYJNA) - nie jest kanonem mechaniki, tylko listą decyzji przed runtime dla `CARD_SLOT_NETWORK_SYSTEM.md`.
 - `docs/current/systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` (ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME) - jest source dla `harmonicDust` / HUD / PRG / reservoir: ręczne PRG collection, model `10/20/50`, `GRAY/mixed reservoir` jako stan zasobnika oraz elastic gray shift chmury świata; dokument synchronizuje `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md` i `UI_WORLD.md`.
@@ -147,7 +159,8 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 - `CARDS_SYSTEM.md` definiuje typy kart, ID i sekwencje RUN.
 - `COMETS_SYSTEM.md` definiuje roboczy kontrakt systemu komet jako rzadkich zdarzeń przemiany świata; synchronizuje przyszłe efekty świata z `CARDS_SYSTEM.md` (karty specjalne/eventowe, bez zmiany R1–R4), `SUB_META_SYSTEM.md` (sloty ŚWIAT i Kuźnia dla mieszania pyłów), `PRG_SYSTEM.md` (ograniczone nakierowywanie komety życia), `ROADMAP.md` (kolejność wdrożeń) oraz `WORLD_FUNCTION_MAP.md` (audyt przyszłych punktów runtime).
-- `COSMIC_IMPACT_ORBIT_SYSTEM.md` definiuje kontrakt zwykłych impactów planet/księżyców i progresji orbiterów: zależy od `WORLD_FUNCTION_MAP.md`, `SPACE_MECHANICS_CONTRACT.md`, fundamentu `HC.SpaceBodies` oraz obecnego łańcucha moon/planet; powiązany z `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`, harmonic dust reservoir, przyszłym `cosmicGrayDust` i `COMETS_SYSTEM.md`, ale nie zastępuje komet ani systemu kart.
+- `SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md` definiuje aktywny baseline po legacy-cut: meteor -> asteroid -> moon -> rocky planet, implemented thresholds 10/20, next target 5/10, passive planet validator, known moon -> rocky planet blocker oraz zakaz reintrodukcji legacy runtime.
+- `COSMIC_IMPACT_ORBIT_SYSTEM.md` definiuje kontrakt future impact/orbit i progresji orbiterów: zależy od `WORLD_FUNCTION_MAP.md`, `SPACE_MECHANICS_CONTRACT.md`, fundamentu `HC.SpaceBodies` oraz obecnego łańcucha moon/planet; powiązany z `DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md`, harmonic dust reservoir, przyszłym `cosmicGrayDust` i `COMETS_SYSTEM.md`, ale nie zastępuje komet ani systemu kart.
 - `CARD_SLOT_NETWORK_SYSTEM.md` definiuje osadzanie kart w slotach, sieć wzmocnień, trwałość, pył, napięcie, blizny i naprawę slotów; status: ROBOCZY / KANDYDAT DO KANONU.
 - `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` rozszerza `CARD_SLOT_NETWORK_SYSTEM.md` o strukturę slotu, DS jako kartę naprawczą, karty specjalne, artefakty i pamięć eonów.
 - `SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md` jest checklistą UI/visual dla `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` i `CARD_SLOT_NETWORK_SYSTEM.md`; nie jest kanonem mechaniki ani layout tokens.

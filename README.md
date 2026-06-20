@@ -32,6 +32,7 @@ Haiku Cosmos to kontemplacyjna gra-system, w której decyzje gracza wpływają n
 
 ## Ostatnia większa aktualizacja dokumentacji
 
+- **2026-06-20** — post-legacy-cut baseline mechaniki kosmosu zapisany w `docs/current/systems/SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md`: aktywny flow `meteor -> asteroid -> moon -> rocky planet`, implemented thresholds `10/20`, next target `5/10`, legacy-disabled comets/stars/gas/capture/orbit i znany blocker moon -> rocky planet.
 - **2026-06-05** — snapshot dokumentacyjny Three GLB + external meteor textures: `GLTFLoader` jest aktywną ścieżką GLB dla meteorów i asteroid, GLB templates są cache’owane/klonowane, czerwone i żółte palety PNG `map`/`emissiveMap` są cache’owane przez `TextureLoader`, a zewnętrzne mapy uzupełniają tylko brakujące sloty materiałów GLB.
 - **2026-06-04** — snapshot dokumentacyjny Three GLB/PBR material pipeline po naprawie: runtime zachowuje PBR/`MeshStandardMaterial`, a aktualne `public/glb/*.glb` miały wtedy 21 materiałów, 12 z metalicznością, 0 tekstur i 0 normalMap; kolejny pass Blendera powinien eksportować mapy.
 - **2026-04-27** — reset visual SVG pipeline dla SUB-META/HUD: obecny pass `style_correction` przeniesiony do legacy/evidence, aktywny manifest SVG wyczyszczony, dodany prompt pod nowy modular frame kit Figma.

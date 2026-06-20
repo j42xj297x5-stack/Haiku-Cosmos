@@ -1,11 +1,22 @@
 # Haiku Cosmos — DUST COLLECTION AND REFINEMENT SYSTEM
 
-> Status: ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME
+> Status: ROBOCZY / KANDYDAT DO KANONU / PARTIAL ACTIVE RUNTIME FOR HARMONIC DUST + COSMIC DUST SPLIT
 > Obszar: pył / HUD collection / Magazyn / Kuźnia / stabilizatory slotów
 > Źródło prawdy: TAK ROBOCZO, dla kontraktu jednego zbieralnego kolorowego pyłu; NIE dla kompletności runtime
 > Powiązane dokumenty: `CARD_SLOT_NETWORK_SYSTEM.md`, `SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md`, `ECONOMY_SYSTEM.md`, `SUB_META_SYSTEM.md`, `../ui/UI_WORLD.md`, `../ui/SLOT_LOADOUT_VISUAL_UI_CHECKLIST.md`, `../ui/SUB_META_V2_MASTER_SPEC.md`, `../maps/PROJECT_INDEX.md`, `../maps/DEPENDENCY_MAP.md`
 
 ---
+
+
+## 0. Runtime status after legacy-cut (2026-06-20)
+
+Active space runtime source-of-truth is `SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md`. For dust specifically:
+
+- `harmonicDust` is active runtime.
+- Cosmic dust creation/split foundation is active runtime.
+- Cosmic dust drag/stop is not active gameplay baseline and must be treated as future/disabled unless a later patch explicitly enables and documents it.
+- `GRAY/mixed reservoir` remains HUD/resource state and must not be confused with physical `cosmic dust`.
+- Dust docs do not reactivate comets, capture/orbit, gas planets, stars, or direct asteroid -> planet.
 
 ## A. Cel dokumentu
 
@@ -161,7 +172,7 @@ Nie mieszać pojęć:
 * `cosmic dust` wpływa tylko na obiekty świata, np. przez spowolnienie, kondensację albo inne przyszłe efekty fizyczne.
 * `cosmic dust` nie jest `GRAY/mixed reservoir`.
 * `cosmic dust` nie jest kolorowym pyłem / `harmonicDust` zbieranym ręcznie przez PRG.
-* Fundament `cosmic dust` wymaga osobnego przyszłego patcha runtime.
+* Fundament `cosmic dust` creation/split istnieje w aktywnym runtime po legacy-cut, ale drag/stop i pełne fizyczne oddziaływanie nie są aktywnym gameplay baseline bez osobnego przyszłego patcha.
 
 ## L. Karty specjalne a zbieranie pyłu
 
