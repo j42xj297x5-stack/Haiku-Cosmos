@@ -1602,8 +1602,8 @@
     ensureBaseThresholds(World) {
       if (this.baseThresholds || !World) return;
       this.baseThresholds = {
-        asteroidToMoon: Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 13),
-        asteroidToPlanet: Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 13),
+        asteroidToMoon: Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 10),
+        asteroidToPlanet: Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget ?? 10),
         planetToStar: {
           blue: Number(World.STAR_REQ_BLUE || 30),
           green: Number(World.STAR_REQ_GREEN || 30),
@@ -1713,7 +1713,11 @@
       for (let i = 0; i < rocky; i++) {
         const planet = createPlanetSeed(true);
         World.planets.push(planet);
-        World.lastPlanetCreatedEvent = { type: "planet_created", createdObjectType: "rocky_planet", createdObjectId: planet.id, sourcePath: "debug_bootstrap", sourceFunction: "DebugSession.createPlanetSeed", sourceBodyIds: [], sourceMassBefore: 0, sourceMassAfter: planet.mass, allowedProgressionPath: false, blockedLegacyPath: false, debugSpawn: true };
+        planet.debugSpawn = true;
+        planet.sourcePath = "debug_bootstrap";
+        planet.validProgressionOrigin = false;
+        planet.allowedProgressionPath = false;
+        World.lastPlanetCreatedEvent = { type: "planet_created", createdObjectType: "rocky_planet", createdObjectId: planet.id, sourcePath: "debug_bootstrap", sourceFunction: "DebugSession.createPlanetSeed", sourceBodyIds: [], sourceMassBefore: 0, sourceMassAfter: planet.mass, allowedProgressionPath: false, validProgressionOrigin: false, blockedLegacyPath: false, debugSpawn: true };
         this.emit("world", "planet_created", World.lastPlanetCreatedEvent, { source: "Session.applyInitialWorldState" });
         this.emit("world", EVENT_TYPES.WORLD_OBJECT_SPAWNED, { objectType: "planet", planetKind: "rocky", source: "debug.session.bootstrap", sourcePath: "debug_bootstrap", debugSpawn: true }, { source: "Session.applyInitialWorldState" });
       }

@@ -95,5 +95,16 @@ context.World.impactFragments = [{ type: 'impactFragment', kind: 'impactFragment
 context.HC.Impact.updateFragments(context.World, 101, 0.101);
 assert.equal(context.World.impactFragments.length, 0, 'expired impact fragments are cleaned up');
 
+
+const blockedLegacyPlanet = context.HC.Planets.createRockyPlanetFromMoon({ id: 'moon:block', type: 'moon', kind: 'moon', mass: 99, r: 2 }, 'vm_block', { sourcePath: 'asteroid_to_rocky_planet', sourceFunction: 'vm.direct' });
+assert.equal(blockedLegacyPlanet, null, 'direct asteroid -> rocky planet helper call is blocked');
+assert.ok(context.World.lastLegacyPlanetSpawnBlockedEvent, 'blocked legacy planet spawn is logged');
+
+context.World.planets = [{ id: 'planet:legacy', type: 'planet', kind: 'planet', planetKind: 'rocky', isRocky: true, x: 0, y: 0, r: 4, mass: 9 }];
+const invalidSnapshot = context.HC.WorldRenderSnapshot.build({ World: context.World, Camera: context.Camera, View: context.View, nowMs: 1032, dt: 0.016 });
+assert.equal(invalidSnapshot.physics.planetMissingCreationEvidenceCount, 1, 'snapshot records missing rocky planet creation evidence');
+assert.equal(context.World.planets[0].invalidPlanetOrigin, true, 'snapshot marks invalid direct rocky planet origin');
+assert.ok(context.HC.events.some((evt) => evt.event === 'planet_missing_creation_evidence'), 'missing evidence is logged for export');
+
 assert.equal(typeof context.HC.WorldRenderer?.getDiagnostics, 'function', 'Three renderer module loads with moon support');
 console.log('Patch 3 VM assertions passed');

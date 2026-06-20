@@ -144,9 +144,9 @@ if (window?.HC_DEBUG_BOOT_LOGS === true) console.log("[HC] game.boot.js loaded")
 
     // Space mechanics runtime contract: direct HC.Impact contact is the live planet impact path.
     spaceMechanics: {
-      asteroidToMoonMassThreshold: 13,
+      asteroidToMoonMassThreshold: 10,
       asteroidToMoonEnabled: true,
-      moonToRockyPlanetMassThreshold: 34,
+      moonToRockyPlanetMassThreshold: 20,
       moonToRockyPlanetEnabled: true,
       dustCloudToGasPlanetMassThreshold: 55,
       dustDragStrength: 0.15,
@@ -287,8 +287,8 @@ meteorBaseScale: METEOR_BASE_SCALE,
 
     // Legacy aliases for asteroid mass progression. The active Patch 2 path reads
     // World.spaceMechanics.asteroidToMoonMassThreshold and transforms into a moon.
-    asteroidGrowthTarget: 13,
-    planetCaptureTarget: 13,
+    asteroidGrowthTarget: 10,
+    planetCaptureTarget: 10,
 
     // Star size thresholds (cards can tune)
     STAR_SIZE_SMALL_MAX_ORBITERS: 23,
@@ -693,9 +693,9 @@ meteorBaseScale: METEOR_BASE_SCALE,
     World.planets = [];
     World.moons = [];
     World.spaceMechanics = Object.assign({}, World.spaceMechanics, {
-      asteroidToMoonMassThreshold: Number(World.spaceMechanics?.asteroidToMoonMassThreshold) || 13,
+      asteroidToMoonMassThreshold: Number(World.spaceMechanics?.asteroidToMoonMassThreshold) || 10,
       asteroidToMoonEnabled: World.spaceMechanics?.asteroidToMoonEnabled !== false,
-      moonToRockyPlanetMassThreshold: Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold) || 34,
+      moonToRockyPlanetMassThreshold: Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold) || 20,
       moonToRockyPlanetEnabled: World.spaceMechanics?.moonToRockyPlanetEnabled !== false,
       harmonicDustMergeRadiusMul: Number(World.spaceMechanics?.harmonicDustMergeRadiusMul) || 2.0,
       harmonicDustStepPercents: Array.isArray(World.spaceMechanics?.harmonicDustStepPercents) ? World.spaceMechanics.harmonicDustStepPercents.slice(0, 3) : [10, 20, 50],
