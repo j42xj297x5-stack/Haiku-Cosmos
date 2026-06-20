@@ -218,6 +218,84 @@
       .filter(Boolean);
   }
 
+
+  const EVIDENCE_EXPORT_PROFILES = Object.freeze(["minimal", "gameplay", "renderer", "full"]);
+  const EVIDENCE_EVENT_FILTERS = Object.freeze({
+    minimal: ["debug.issue*", "error.*"],
+    gameplay: ["sequence.*", "card.*", "cards.*", "economy.*", "rp.*", "world.collision*", "world.body*", "world.meteor*", "world.asteroid*", "world.moon*", "world.planet*", "world.dust*", "world.impact*", "world.orbit*", "run.*", "input.decision*", "debug.issue*", "error.*"],
+    renderer: ["world.glb*", "world.three*", "world.renderer*", "world.material*", "world.light*", "world.asset*", "world.texture*", "renderer.*", "three.*", "glb.*", "asset.*", "material.*", "light.*", "debug.issue*", "error.*"],
+  });
+
+  function normalizeEvidenceExportProfile(profile) {
+    return EVIDENCE_EXPORT_PROFILES.includes(String(profile)) ? String(profile) : "gameplay";
+  }
+
+  function eventMatchesEvidencePattern(event, pattern) {
+    const p = String(pattern || "");
+    const values = [event?.type, event?.category, `${event?.category || ""}.${event?.type || ""}`].map((v) => String(v || ""));
+    if (p.endsWith("*")) {
+      const prefix = p.slice(0, -1);
+      return values.some((value) => value.startsWith(prefix));
+    }
+    return values.includes(p);
+  }
+
+  function isCriticalEvidenceEvent(event) {
+    const severity = String(event?.severity || "").toLowerCase();
+    return severity === "critical" || severity === "error" || eventMatchesEvidencePattern(event, "error.*") || eventMatchesEvidencePattern(event, "debug.issue*");
+  }
+
+  function filterEvidenceEvents(events, profile) {
+    const rawEvents = Array.isArray(events) ? events : [];
+    const normalized = normalizeEvidenceExportProfile(profile);
+    if (normalized === "full") return rawEvents.slice();
+    const patterns = EVIDENCE_EVENT_FILTERS[normalized] || EVIDENCE_EVENT_FILTERS.gameplay;
+    return rawEvents.filter((event) => isCriticalEvidenceEvent(event) || patterns.some((pattern) => eventMatchesEvidencePattern(event, pattern)));
+  }
+
+  function compactEvidenceSnapshot(snapshot, profile) {
+    const normalized = normalizeEvidenceExportProfile(profile);
+    if (normalized === "full") return snapshot || {};
+    if (normalized === "minimal") return null;
+    const base = snapshot || {};
+    const compact = {
+      sequence: base.sequence || null,
+      economy: base.economy || null,
+      worldCounts: base.worldCounts || null,
+      thresholds: base.thresholds || null,
+      lastByCategory: base.lastByCategory || null,
+      recentEvents: Array.isArray(base.recentEvents) ? base.recentEvents.slice(-10) : [],
+    };
+    if (normalized === "renderer") {
+      const three = base.visual?.three || base.visual?.renderer || base.visual || null;
+      compact.visual = {
+        three: three ? {
+          rendererMode: three.rendererMode || three.worldRendererMode || three.requestedMode || null,
+          effectiveMode: three.effectiveMode || null,
+          cameraModel: three.cameraModel || three.threeCameraModel || null,
+          lightingModelVersion: three.lightingModelVersion || three.stageLighting?.lightingModelVersion || null,
+          stageLighting: three.stageLighting ? {
+            enabled: three.stageLighting.enabled,
+            model: three.stageLighting.model,
+            lightingModelVersion: three.stageLighting.lightingModelVersion,
+          } : null,
+          cacheStats: three.meteorGlbCacheStats || three.glbCacheStats || null,
+          error: three.error || three.lastError || three.meteorTextureLastError || null,
+        } : null,
+      };
+    }
+    return compact;
+  }
+
+  function estimateEvidenceBytes(value) {
+    try { return new Blob([typeof value === "string" ? value : JSON.stringify(value || "")]).size; } catch (_e) { return String(value || "").length; }
+  }
+
+  function buildTimelineStatus(events, loggingEnabled) {
+    if (Array.isArray(events) && events.length) return "available";
+    return loggingEnabled === false ? "empty_logging_disabled" : "empty_no_events";
+  }
+
   function createDefaultPrgFrameProbeConfig() {
     return {
       enabled: false,
@@ -250,6 +328,7 @@
       scenarioLabel: String(partial.scenarioLabel || "manual_session"),
       loggingEnabled: isDebug,
       loggingMode: partial.loggingMode === "verbose" ? "verbose" : "compact",
+      exportProfile: ["minimal", "gameplay", "renderer", "full"].includes(String(partial.exportProfile)) ? String(partial.exportProfile) : "gameplay",
       verboseDiagnostics: partial.verboseDiagnostics === true,
       heartbeatIntervalMs: clampInt(partial.heartbeatIntervalMs, 5000),
       fullEvidenceOnFinalize: partial.fullEvidenceOnFinalize !== false,
@@ -698,6 +777,10 @@
 
     async finalize(artifacts) {
       await this.queue;
+      const exportPack = artifacts.exportPack || null;
+      const finalSnapshotArtifact = exportPack ? exportPack.final_snapshot : (artifacts.finalSnapshot || {});
+      const summaryArtifact = exportPack ? exportPack.summary : (artifacts.summary || {});
+      const issuesArtifact = exportPack ? exportPack.issues : (Array.isArray(artifacts.issues) ? artifacts.issues : []);
       const sessionMeta = {
         sessionId: this.sessionInfo.sessionId,
         mode: this.sessionInfo.mode,
@@ -708,19 +791,21 @@
         backendMessage: this.message,
         mainLogFile: this.mode === "physical" ? "events.jsonl" : this.key,
       };
-      await this.writeJsonFile("session_meta.json", { ...sessionMeta, config: artifacts.config || {} });
-      await this.writeJsonFile("final_snapshot.json", artifacts.finalSnapshot || {});
-      await this.writeJsonFile("summary.json", artifacts.summary || {});
-      await this.writeJsonFile("issues.json", { issues: Array.isArray(artifacts.issues) ? artifacts.issues : [] });
+      await this.writeJsonFile("session_meta.json", { ...sessionMeta, config: artifacts.config || {}, exportProfile: exportPack?.exportProfile || artifacts.exportProfile || "full" });
+      await this.writeJsonFile("final_snapshot.json", finalSnapshotArtifact || {});
+      await this.writeJsonFile("summary.json", summaryArtifact || {});
+      await this.writeJsonFile("issues.json", { issues: issuesArtifact });
 
       if (this.mode !== "physical") {
         const blob = new Blob([
           JSON.stringify({
             session_meta: { ...sessionMeta, note: "Fallback bundle generated because physical backend is unavailable." },
-            summary: artifacts.summary || {},
-            final_snapshot: artifacts.finalSnapshot || {},
-            issues: Array.isArray(artifacts.issues) ? artifacts.issues : [],
-            events_jsonl: this.eventsBuffer || this.inMemoryFallback,
+            ...(exportPack || {
+              summary: summaryArtifact || {},
+              final_snapshot: finalSnapshotArtifact || {},
+              issues: issuesArtifact,
+              events_jsonl: this.eventsBuffer || this.inMemoryFallback,
+            }),
           }, null, 2)
         ], { type: "application/json" });
         const a = document.createElement("a");
@@ -1117,6 +1202,16 @@
       this.config.loggingMode = this.loggingMode;
       this.config.verboseDiagnostics = this.verboseDiagnostics;
       return this.loggingMode;
+    }
+
+    setEvidenceExportProfile(profile) {
+      const next = normalizeEvidenceExportProfile(profile);
+      if (this.config) this.config.exportProfile = next;
+      return next;
+    }
+
+    getEvidenceExportProfile() {
+      return normalizeEvidenceExportProfile(this.config?.exportProfile);
     }
 
     setHeartbeatIntervalMs(value) {
@@ -1518,8 +1613,12 @@
       return Math.max(0, ended - started);
     },
 
-    buildSessionSummary(events, finalSnapshot) {
+    buildSessionSummary(events, finalSnapshot, options = {}) {
       const summary = {
+        exportProfile: normalizeEvidenceExportProfile(options.exportProfile || this.debugConfig?.exportProfile),
+        loggingEnabled: this.debugConfig?.loggingEnabled !== false,
+        loggingStatus: this.logger?.backend?.getStatus ? this.logger.backend.getStatus() : null,
+        timelineStatus: buildTimelineStatus(events, this.debugConfig?.loggingEnabled !== false),
         sequenceStarted: 0,
         stepCompleted: 0,
         failDetected: 0,
@@ -1572,10 +1671,15 @@
       return summary;
     },
 
-    buildEvidencePack(note = "") {
+    buildEvidencePack(note = "", profile = null) {
       this.flush("evidence_pack");
-      const finalSnapshot = this.getRuntimeSnapshot();
+      const exportProfile = normalizeEvidenceExportProfile(profile || this.debugConfig?.exportProfile);
+      const rawFinalSnapshot = this.getRuntimeSnapshot();
       const events = this.getSessionEvents();
+      const filteredEvents = filterEvidenceEvents(events, exportProfile);
+      const finalSnapshot = compactEvidenceSnapshot(rawFinalSnapshot, exportProfile);
+      const rawEventsJsonl = events.map((event) => JSON.stringify(event)).join("\n");
+      const exportedEventsJsonl = filteredEvents.map((event) => JSON.stringify(event)).join("\n");
       const sessionMeta = {
         sessionId: this.sessionId,
         mode: this.mode,
@@ -1588,13 +1692,24 @@
         debugConfig: this.debugConfig,
         logKey: this.getSessionLogKey(),
       };
-      const summary = this.buildSessionSummary(events, finalSnapshot);
+      const summary = this.buildSessionSummary(filteredEvents, finalSnapshot, { exportProfile });
+      const exportCounters = {
+        rawEventsCount: events.length,
+        exportedEventsCount: filteredEvents.length,
+        suppressedEventsCount: Math.max(0, events.length - filteredEvents.length),
+        rawApproxBytes: estimateEvidenceBytes(rawEventsJsonl) + estimateEvidenceBytes(rawFinalSnapshot),
+        exportedApproxBytes: estimateEvidenceBytes(exportedEventsJsonl) + estimateEvidenceBytes(finalSnapshot),
+      };
+      Object.assign(summary, exportCounters, { timelineStatus: buildTimelineStatus(filteredEvents, this.debugConfig?.loggingEnabled !== false) });
       return {
+        exportProfile,
         session_meta: sessionMeta,
-        final_snapshot: finalSnapshot,
+        ...(finalSnapshot == null ? {} : { final_snapshot: finalSnapshot }),
         summary,
+        loggingStatus: rawFinalSnapshot?.loggingStatus || null,
+        loggingCounters: rawFinalSnapshot?.loggingCounters || null,
         notes: String(note || this.evidenceNote || "").trim(),
-        events_jsonl: events.map((event) => JSON.stringify(event)).join("\n"),
+        events_jsonl: exportedEventsJsonl,
         issues: this.issueLedger.filter((issue) => issue.sessionId === this.sessionId),
       };
     },
@@ -1611,12 +1726,13 @@
       setTimeout(() => URL.revokeObjectURL(url), 1500);
     },
 
-    exportEvidence(note = "") {
+    exportEvidence(note = "", profile = null) {
       if (!this.sessionId) return null;
-      const pack = this.buildEvidencePack(note);
+      const pack = this.buildEvidencePack(note, profile);
+      if (this.debugConfig) this.debugConfig.exportProfile = pack.exportProfile;
       const safeId = String(this.sessionId).replace(/[^a-zA-Z0-9._-]+/g, "_");
       this.downloadTextFile(`hc_evidence_${safeId}.json`, JSON.stringify(pack, null, 2));
-      this.downloadTextFile(`hc_evidence_${safeId}.events.jsonl`, pack.events_jsonl || "", "text/plain");
+      if (pack.exportProfile === "full" || pack.events_jsonl) this.downloadTextFile(`hc_evidence_${safeId}.events.jsonl`, pack.events_jsonl || "", "text/plain");
       try {
         localStorage.setItem(`hc_evidence_pack_${this.sessionId}`, JSON.stringify(pack));
       } catch (_e) {}
@@ -1737,7 +1853,13 @@
       const endingType = aborted ? EVENT_TYPES.SESSION_ABORTED : EVENT_TYPES.SESSION_ENDED;
       this.emit("session", endingType, { reason }, { source: "Session", snapshot: true, fullSnapshot: true, severity: aborted ? "warn" : "info" });
       const finalSnapshot = this.getRuntimeSnapshot();
+      const exportPack = this.buildEvidencePack(this.evidenceNote || "", this.debugConfig?.exportProfile);
       const summary = {
+        exportProfile: exportPack.exportProfile,
+        timelineStatus: exportPack.summary?.timelineStatus || "empty_no_events",
+        loggingEnabled: this.debugConfig?.loggingEnabled !== false,
+        loggingStatus: finalSnapshot?.loggingStatus || null,
+        loggingCounters: finalSnapshot?.loggingCounters || null,
         sessionId: this.sessionId,
         mode: this.mode,
         endedAt: this.endedAtIso,
@@ -1753,7 +1875,9 @@
       const status = await this.logger?.shutdown(reason, {
         config: this.debugConfig,
         finalSnapshot,
-        summary,
+        exportProfile: exportPack.exportProfile,
+        exportPack,
+        summary: Object.assign({}, summary, exportPack.summary || {}),
         issues: this.issueLedger.slice(),
       });
       this.started = false;
@@ -1802,6 +1926,17 @@
         this.debugConfig.verboseDiagnostics = next === "verbose";
       }
       return next;
+    },
+
+    setEvidenceExportProfile(profile) {
+      const next = normalizeEvidenceExportProfile(profile);
+      if (this.debugConfig) this.debugConfig.exportProfile = next;
+      this.logger?.setEvidenceExportProfile?.(next);
+      return next;
+    },
+
+    getEvidenceExportProfile() {
+      return normalizeEvidenceExportProfile(this.debugConfig?.exportProfile);
     },
 
     setHeartbeatIntervalMs(value) {
@@ -1864,6 +1999,7 @@
         loggingStatus: this.logger?.backend?.getStatus ? this.logger.backend.getStatus() : null,
         pendingLogBufferSize: logger?.buffer?.length || 0,
         loggingMode: logger?.loggingMode || this.debugConfig?.loggingMode || "compact",
+        exportProfile: normalizeEvidenceExportProfile(this.debugConfig?.exportProfile),
         heartbeatIntervalMs: logger?.heartbeatIntervalMs || this.debugConfig?.heartbeatIntervalMs || 5000,
         verboseDiagnostics: logger?.verboseDiagnostics === true || this.debugConfig?.verboseDiagnostics === true,
         loggingCounters: logger?.counters ? Object.assign({}, logger.counters) : null,
