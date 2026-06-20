@@ -223,7 +223,7 @@
   const EVIDENCE_EVENT_FILTERS = Object.freeze({
     minimal: ["debug.issue*", "error.*"],
     gameplay: ["sequence.*", "card.*", "cards.*", "economy.*", "rp.*", "world.collision*", "world.body*", "world.meteor*", "world.asteroid*", "world.moon*", "world.planet*", "world.dust*", "world.impact*", "world.orbit*", "run.*", "input.decision*", "debug.issue*", "error.*"],
-    collisions: ["COSMIC_DUST_CREATED", "meteor_asteroid", "meteor_meteor", "asteroid_asteroid", "world.threshold_progress", "asteroid_to_moon", "moon_created", "rocky_planet_created", "radius_refresh", "radius_clamp", "mass_split", "live_collision_probe", "session.ended", "session.aborted"],
+    collisions: ["COSMIC_DUST_CREATED", "world.threshold_progress", "radius_refresh", "radius_clamp", "mass_split", "live_collision_probe", "moon_created", "rocky_planet_created", "session.ended", "session.aborted"],
     renderer: ["world.glb*", "world.three*", "world.renderer*", "world.material*", "world.light*", "world.asset*", "world.texture*", "renderer.*", "three.*", "glb.*", "asset.*", "material.*", "light.*", "debug.issue*", "error.*"],
   });
 
@@ -257,11 +257,17 @@
 
   const COLLISION_SPAWN_TYPES = Object.freeze(["asteroid", "moon", "rockyPlanet", "cosmicDust", "impactFragment"]);
   const COLLISION_COMPACT_KEYS = Object.freeze([
-    "frame", "sessionTimeMs", "sourceFunction", "ruleId", "sourceBodyIds", "sourceMass",
+    "frame", "sessionTimeMs", "source", "id", "mass", "sourceFunction", "ruleId", "sourceBodyIds",
+    "sourceMassPolicy", "sourceMass",
+    "dustMass", "absorbMass", "fragmentsMass", "orbiterMass",
+    "conservationInputMass", "conservationOutputMass", "conservationDelta",
     "targetId", "targetKind", "targetMassBefore", "targetMassAfter", "targetRadiusBefore",
     "targetRadiusAfter", "targetCollisionRadiusBefore", "targetCollisionRadiusAfter",
-    "targetViewRadiusBefore", "targetViewRadiusAfter", "dustMass", "absorbMass",
-    "fragmentsMass", "orbiterMass", "conservationDelta", "clampApplied", "clampReason",
+    "targetViewRadiusBefore", "targetViewRadiusAfter", "clampApplied", "clampReason",
+    "sourceType", "sourceId", "thresholdType", "current", "target", "thresholdSource",
+    "sourceRadius", "overThreshold", "triggeredProgression", "resultingObjectType", "resultingObjectId",
+    "bodyAId", "bodyAKind", "bodyAMassBefore", "bodyBId", "bodyBKind", "bodyBMassBefore",
+    "targetKind", "usedCollisionRules", "usedMassRadiusContract",
   ]);
 
   function collisionEventName(event) {
@@ -284,7 +290,7 @@
     const out = {};
     for (const key of COLLISION_COMPACT_KEYS) {
       const value = source?.[key] ?? payload?.[key] ?? event?.[key];
-      if (value !== undefined) out[key] = Array.isArray(value) ? value.slice(0, 8) : value;
+      out[key] = value !== undefined ? (Array.isArray(value) ? value.slice(0, 8) : value) : null;
     }
     out.frame = out.frame ?? event?.frame ?? null;
     out.sessionTimeMs = out.sessionTimeMs ?? event?.sessionTimeMs ?? null;
@@ -317,7 +323,7 @@
   function compactPhysicsSnapshot(snapshot) {
     const base = snapshot || {};
     const physics = base.physics || base.diagnostics || {};
-    return {
+    const result = {
       worldCounts: base.worldCounts || physics.objectCounts || physics.worldCounts || null,
       thresholds: base.thresholds || physics.thresholds || null,
       collisionRulesProfile: physics.collisionRulesProfile || physics.activeCollisionRulesProfile || null,
@@ -339,6 +345,15 @@
       lastMoonCreatedEvent: physics.lastMoonCreatedEvent || null,
       lastRockyPlanetCreatedEvent: physics.lastRockyPlanetCreatedEvent || null,
     };
+    result.physicsDiagnosticsMissingFields = [
+      "collisionRulesProfile", "collisionRulesSource", "activeCollisionRulesProfile",
+      "activeCollisionRulesVersion", "activeMeteorMeteorDifferentRule", "activeMeteorAsteroidRule",
+      "activeAsteroidAsteroidRule", "massRadiusContractVersion", "lastMassSplitEvent",
+      "lastLiveCollisionProbe", "lastRadiusRefreshEvent", "lastRadiusClampEvent",
+      "radiusClampCount", "asteroidOverThresholdCount", "asteroidOverThresholdSamples",
+      "lastThresholdProgressionEvent", "lastMoonCreatedEvent", "lastRockyPlanetCreatedEvent",
+    ].filter((key) => result[key] == null);
+    return result;
   }
 
   function compactEvidenceSnapshot(snapshot, profile) {
