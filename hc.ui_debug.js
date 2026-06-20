@@ -846,7 +846,7 @@
             return;
           }
           if (target.id === "dbgEvidenceExportProfile") {
-            const profile = ["minimal", "gameplay", "renderer", "full"].includes(target.value) ? target.value : "gameplay";
+            const profile = ["minimal", "gameplay", "collisions", "renderer", "full"].includes(target.value) ? target.value : "gameplay";
             window.HC?.Session?.setEvidenceExportProfile?.(profile);
             emitThreeDebugControlEvent("debug.evidence_export_profile_changed", { after: profile });
             return;
@@ -1589,7 +1589,7 @@
     ], `
       <label class="overlay-select-row" for="dbgEvidenceExportProfile">Evidence export mode
         <select id="dbgEvidenceExportProfile">
-          ${["minimal", "gameplay", "renderer", "full"].map((profile) => `<option value="${profile}"${(snap.exportProfile || "gameplay") === profile ? " selected" : ""}>${profile}</option>`).join("")}
+          ${["minimal", "gameplay", "collisions", "renderer", "full"].map((profile) => `<option value="${profile}"${(snap.exportProfile || "gameplay") === profile ? " selected" : ""}>${profile}</option>`).join("")}
         </select>
       </label>
       <label class="overlay-select-row" for="dbgVerboseDiagnostics">Verbose diagnostics

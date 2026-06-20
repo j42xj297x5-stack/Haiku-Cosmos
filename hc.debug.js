@@ -219,10 +219,11 @@
   }
 
 
-  const EVIDENCE_EXPORT_PROFILES = Object.freeze(["minimal", "gameplay", "renderer", "full"]);
+  const EVIDENCE_EXPORT_PROFILES = Object.freeze(["minimal", "gameplay", "collisions", "renderer", "full"]);
   const EVIDENCE_EVENT_FILTERS = Object.freeze({
     minimal: ["debug.issue*", "error.*"],
     gameplay: ["sequence.*", "card.*", "cards.*", "economy.*", "rp.*", "world.collision*", "world.body*", "world.meteor*", "world.asteroid*", "world.moon*", "world.planet*", "world.dust*", "world.impact*", "world.orbit*", "run.*", "input.decision*", "debug.issue*", "error.*"],
+    collisions: ["COSMIC_DUST_CREATED", "meteor_asteroid", "meteor_meteor", "asteroid_asteroid", "world.threshold_progress", "asteroid_to_moon", "moon_created", "rocky_planet_created", "radius_refresh", "radius_clamp", "mass_split", "live_collision_probe", "session.ended", "session.aborted"],
     renderer: ["world.glb*", "world.three*", "world.renderer*", "world.material*", "world.light*", "world.asset*", "world.texture*", "renderer.*", "three.*", "glb.*", "asset.*", "material.*", "light.*", "debug.issue*", "error.*"],
   });
 
@@ -249,8 +250,95 @@
     const rawEvents = Array.isArray(events) ? events : [];
     const normalized = normalizeEvidenceExportProfile(profile);
     if (normalized === "full") return rawEvents.slice();
+    if (normalized === "collisions") return rawEvents.filter(isCollisionEvidenceEvent);
     const patterns = EVIDENCE_EVENT_FILTERS[normalized] || EVIDENCE_EVENT_FILTERS.gameplay;
     return rawEvents.filter((event) => isCriticalEvidenceEvent(event) || patterns.some((pattern) => eventMatchesEvidencePattern(event, pattern)));
+  }
+
+  const COLLISION_SPAWN_TYPES = Object.freeze(["asteroid", "moon", "rockyPlanet", "cosmicDust", "impactFragment"]);
+  const COLLISION_COMPACT_KEYS = Object.freeze([
+    "frame", "sessionTimeMs", "sourceFunction", "ruleId", "sourceBodyIds", "sourceMass",
+    "targetId", "targetKind", "targetMassBefore", "targetMassAfter", "targetRadiusBefore",
+    "targetRadiusAfter", "targetCollisionRadiusBefore", "targetCollisionRadiusAfter",
+    "targetViewRadiusBefore", "targetViewRadiusAfter", "dustMass", "absorbMass",
+    "fragmentsMass", "orbiterMass", "conservationDelta", "clampApplied", "clampReason",
+  ]);
+
+  function collisionEventName(event) {
+    return String(event?.type || event?.payload?.type || event?.payload?.kind || event?.payload?.eventType || "");
+  }
+
+  function isCollisionEvidenceEvent(event) {
+    if (isCriticalEvidenceEvent(event)) return true;
+    const type = collisionEventName(event);
+    if (type === EVENT_TYPES.SESSION_ENDED || type === EVENT_TYPES.SESSION_ABORTED) return true;
+    if (type === EVENT_TYPES.WORLD_OBJECT_SPAWNED) {
+      const objectType = String(event?.payload?.objectType || event?.payload?.kind || event?.payload?.bodyKind || "");
+      return COLLISION_SPAWN_TYPES.includes(objectType);
+    }
+    return (EVIDENCE_EVENT_FILTERS.collisions || []).some((pattern) => eventMatchesEvidencePattern(event, pattern));
+  }
+
+  function compactCollisionProbe(source, event) {
+    const payload = event?.payload || {};
+    const out = {};
+    for (const key of COLLISION_COMPACT_KEYS) {
+      const value = source?.[key] ?? payload?.[key] ?? event?.[key];
+      if (value !== undefined) out[key] = Array.isArray(value) ? value.slice(0, 8) : value;
+    }
+    out.frame = out.frame ?? event?.frame ?? null;
+    out.sessionTimeMs = out.sessionTimeMs ?? event?.sessionTimeMs ?? null;
+    return out;
+  }
+
+  function compactCollisionEvent(event) {
+    const payload = event?.payload || {};
+    const compact = {
+      id: event?.id || null,
+      ts: event?.ts || null,
+      frame: event?.frame ?? null,
+      sessionTimeMs: event?.sessionTimeMs ?? null,
+      category: event?.category || null,
+      type: event?.type || null,
+      source: event?.source || null,
+      severity: event?.severity || null,
+      payload: compactCollisionProbe(payload, event),
+    };
+    const probeSource = event?.snapshot?.physics || event?.snapshot?.diagnostics || event?.snapshot || null;
+    compact.snapshot = probeSource ? compactCollisionProbe(probeSource, event) : null;
+    return compact;
+  }
+
+  function pickActiveCollisionRule(physics, ruleId) {
+    const rules = Array.isArray(physics?.activeCollisionRulesSummary) ? physics.activeCollisionRulesSummary : [];
+    return rules.find((rule) => String(rule?.id || rule?.ruleId || rule?.kind || "") === ruleId) || null;
+  }
+
+  function compactPhysicsSnapshot(snapshot) {
+    const base = snapshot || {};
+    const physics = base.physics || base.diagnostics || {};
+    return {
+      worldCounts: base.worldCounts || physics.objectCounts || physics.worldCounts || null,
+      thresholds: base.thresholds || physics.thresholds || null,
+      collisionRulesProfile: physics.collisionRulesProfile || physics.activeCollisionRulesProfile || null,
+      collisionRulesSource: physics.collisionRulesSource || null,
+      activeCollisionRulesProfile: physics.activeCollisionRulesProfile || physics.collisionRulesProfile || null,
+      activeCollisionRulesVersion: physics.collisionRulesVersion ?? physics.activeCollisionRulesVersion ?? null,
+      activeMeteorMeteorDifferentRule: pickActiveCollisionRule(physics, "meteor_meteor_different"),
+      activeMeteorAsteroidRule: pickActiveCollisionRule(physics, "meteor_asteroid"),
+      activeAsteroidAsteroidRule: pickActiveCollisionRule(physics, "asteroid_asteroid"),
+      massRadiusContractVersion: physics.massRadiusContractVersion || null,
+      lastMassSplitEvent: physics.lastMassSplitEventCompact || physics.lastMassSplitEvent || null,
+      lastLiveCollisionProbe: physics.lastLiveCollisionProbe || null,
+      lastRadiusRefreshEvent: physics.lastRadiusRefreshEvent || null,
+      lastRadiusClampEvent: physics.lastRadiusClampEvent || physics.lastBodyRadiusClampEvent || null,
+      radiusClampCount: Number(physics.radiusClampCount || 0),
+      asteroidOverThresholdCount: Number(physics.asteroidOverThresholdCount || 0),
+      asteroidOverThresholdSamples: Array.isArray(physics.asteroidOverThresholdSamples) ? physics.asteroidOverThresholdSamples.slice(0, 8) : [],
+      lastThresholdProgressionEvent: physics.lastThresholdProgressionEvent || null,
+      lastMoonCreatedEvent: physics.lastMoonCreatedEvent || null,
+      lastRockyPlanetCreatedEvent: physics.lastRockyPlanetCreatedEvent || null,
+    };
   }
 
   function compactEvidenceSnapshot(snapshot, profile) {
@@ -258,6 +346,19 @@
     if (normalized === "full") return snapshot || {};
     if (normalized === "minimal") return null;
     const base = snapshot || {};
+    if (normalized === "collisions") {
+      return {
+        physics: compactPhysicsSnapshot(base),
+        worldCounts: base.worldCounts || base.physics?.worldCounts || base.diagnostics?.objectCounts || null,
+        thresholds: base.thresholds || null,
+        finalRp: base.rp ?? base.economy?.rp ?? null,
+        finalSequenceState: base.sequence ? {
+          status: base.sequence.status || base.sequence.state || null,
+          active: base.sequence.active === true,
+          step: base.sequence.step ?? null,
+        } : null,
+      };
+    }
     const compact = {
       sequence: base.sequence || null,
       economy: base.economy || null,
@@ -328,7 +429,7 @@
       scenarioLabel: String(partial.scenarioLabel || "manual_session"),
       loggingEnabled: isDebug,
       loggingMode: partial.loggingMode === "verbose" ? "verbose" : "compact",
-      exportProfile: ["minimal", "gameplay", "renderer", "full"].includes(String(partial.exportProfile)) ? String(partial.exportProfile) : "gameplay",
+      exportProfile: ["minimal", "gameplay", "collisions", "renderer", "full"].includes(String(partial.exportProfile)) ? String(partial.exportProfile) : "gameplay",
       verboseDiagnostics: partial.verboseDiagnostics === true,
       heartbeatIntervalMs: clampInt(partial.heartbeatIntervalMs, 5000),
       fullEvidenceOnFinalize: partial.fullEvidenceOnFinalize !== false,
@@ -1684,13 +1785,16 @@
         sessionId: this.sessionId,
         mode: this.mode,
         scenarioLabel: this.scenarioLabel,
-        scenarioPresetId: this.scenarioPresetId,
         startedAt: this.startedAtIso,
         endedAt: this.endedAtIso || new Date().toISOString(),
         durationMs: this.getSessionDurationMs(),
-        build: window.HC_BUILD_VERSION || null,
-        debugConfig: this.debugConfig,
-        logKey: this.getSessionLogKey(),
+        exportProfile,
+        ...(exportProfile === "collisions" ? {} : {
+          scenarioPresetId: this.scenarioPresetId,
+          build: window.HC_BUILD_VERSION || null,
+          debugConfig: this.debugConfig,
+          logKey: this.getSessionLogKey(),
+        }),
       };
       const summary = this.buildSessionSummary(filteredEvents, finalSnapshot, { exportProfile });
       const exportCounters = {
@@ -1700,16 +1804,36 @@
         rawApproxBytes: estimateEvidenceBytes(rawEventsJsonl) + estimateEvidenceBytes(rawFinalSnapshot),
         exportedApproxBytes: estimateEvidenceBytes(exportedEventsJsonl) + estimateEvidenceBytes(finalSnapshot),
       };
-      Object.assign(summary, exportCounters, { timelineStatus: buildTimelineStatus(filteredEvents, this.debugConfig?.loggingEnabled !== false) });
+      if (exportProfile === "collisions") {
+        Object.assign(summary, {
+          rawEventsCount: events.length,
+          exportedEventsCount: filteredEvents.length,
+          suppressedEventsCount: Math.max(0, events.length - filteredEvents.length),
+          worldEventsExportedCount: filteredEvents.filter((event) => String(event?.category || "").startsWith("world") || String(event?.type || "").startsWith("world.")).length,
+          collisionEventsExportedCount: filteredEvents.filter(isCollisionEvidenceEvent).length,
+          physicsDiagnosticsIncluded: true,
+          finalWorldCounts: finalSnapshot?.physics?.worldCounts || finalSnapshot?.worldCounts || null,
+          finalRp: finalSnapshot?.finalRp ?? null,
+          timelineStatus: buildTimelineStatus(filteredEvents, this.debugConfig?.loggingEnabled !== false),
+        });
+        delete summary.finalCardCounts;
+        delete summary.loggingStatus;
+      } else {
+        Object.assign(summary, exportCounters, { timelineStatus: buildTimelineStatus(filteredEvents, this.debugConfig?.loggingEnabled !== false) });
+      }
+      const collisionEvents = exportProfile === "collisions" ? filteredEvents.map(compactCollisionEvent) : null;
+      const eventsJsonl = exportProfile === "collisions" ? "" : exportedEventsJsonl;
       return {
         exportProfile,
         session_meta: sessionMeta,
         ...(finalSnapshot == null ? {} : { final_snapshot: finalSnapshot }),
         summary,
-        loggingStatus: rawFinalSnapshot?.loggingStatus || null,
-        loggingCounters: rawFinalSnapshot?.loggingCounters || null,
+        ...(exportProfile === "collisions" ? { collision_events: collisionEvents } : {
+          loggingStatus: rawFinalSnapshot?.loggingStatus || null,
+          loggingCounters: rawFinalSnapshot?.loggingCounters || null,
+        }),
         notes: String(note || this.evidenceNote || "").trim(),
-        events_jsonl: exportedEventsJsonl,
+        events_jsonl: eventsJsonl,
         issues: this.issueLedger.filter((issue) => issue.sessionId === this.sessionId),
       };
     },
