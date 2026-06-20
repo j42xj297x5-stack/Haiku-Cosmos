@@ -610,6 +610,13 @@
       },
     };
 
+    // Compact physics alias for filtered debug exports. It deliberately reuses
+    // existing diagnostics data and does not change mechanics or collision rules.
+    snapshot.physics = Object.assign({
+      worldCounts: snapshot.diagnostics?.objectCounts || null,
+      thresholds: World.thresholds || World.spaceThresholds || null,
+    }, snapshot.diagnostics || {});
+
     return snapshot;
   }
 
