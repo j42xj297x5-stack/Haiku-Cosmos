@@ -1,10 +1,26 @@
 # COSMIC_IMPACT_ORBIT_SYSTEM — kontrakt impact/orbit
 
-> Status: ROBOCZY / KONTRAKT PROJEKTOWY / PRZED RUNTIME
+> Status: FUTURE DESIGN / KONTRAKT PROJEKTOWY / ACTIVE RUNTIME HAS DESCRIPTOR-ONLY ORBITERS
 > Obszar: impact planetarny / impact księżycowy / orbity / pyły impactowe
 > Źródło prawdy: TAK, dla zasad projektowych opisanych w tym dokumencie; NIE jest opisem istniejącej implementacji runtime
-> Ostatnia aktualizacja: 2026-06-19
+> Ostatnia aktualizacja: 2026-06-20
 > Powiązane dokumenty: ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md, ../technical/WORLD_FUNCTION_MAP.md, COMETS_SYSTEM.md, DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md, PRG_SYSTEM.md, CARDS_SYSTEM.md, SUB_META_SYSTEM.md
+
+
+## 0. Runtime status after legacy-cut (2026-06-20)
+
+Active space runtime source-of-truth is `SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md`. This document remains a future design contract for impact/orbit behavior. It is not evidence that capture/orbit is active.
+
+Current active baseline:
+
+- Rocky planets can only be created by canonical `moon_to_rocky_planet`.
+- Planet capture/orbit runtime is legacy-disabled.
+- Runtime orbiters are not implemented; orbiter candidates are descriptor-only evidence.
+- Live orbital movement is not active gameplay.
+- Direct asteroid -> planet and asteroid collapse -> planet are hard-blocked.
+- Planet impacts/capture/orbit require a new design/implementation pass before returning.
+
+Do not restore `legacy/runtime/hc.planets.legacy.js`, comet legacy runtime, star/epoch legacy runtime, or capture/orbit code to satisfy this document.
 
 ## 1. Cel i granice dokumentu
 

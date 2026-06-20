@@ -3,7 +3,7 @@
 > Status: KANON
 > Obszar: mapa aktualnej dokumentacji
 > Źródło prawdy: TAK, dla struktury i statusów dokumentów w `docs/current/`
-> Ostatnia aktualizacja: 2026-05-01
+> Ostatnia aktualizacja: 2026-06-20
 > Powiązane dokumenty: maps/PROJECT_INDEX.md, maps/DEPENDENCY_MAP.md, ../README.md, ../../README.md
 
 Ten katalog zawiera aktualną dokumentację projektu.
@@ -16,12 +16,13 @@ Ten katalog zawiera aktualną dokumentację projektu.
 - `README_ARCHITECT.md` - **ARCHITECT MEMORY / CURRENT** - skondensowany start rozmowy dla ChatGPT-architekta (entrypoint pamięci, nie zastępuje pełnego SoT).
 
 ### 2) systems
+- `systems/SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md` - **CURRENT RUNTIME BASELINE / POST-LEGACY-CUT / SOURCE OF TRUTH FOR NEXT PATCHES** - aktywny baseline kosmosu po legacy-cut: `meteor -> asteroid -> moon -> rocky planet`, implemented thresholds `10/20`, next target `5/10`, znane problemy moon progression/radius/debug export oraz legacy-disabled comets/stars/gas/capture/orbit.
 - `systems/CARDS_SYSTEM.md` - **KANON** - system kart, sekwencji i DS.
 - `systems/CARD_SLOT_NETWORK_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU** - sieć slotów kart: aktywacja R1→R4, lokalne R2, globalne R3/R4, trwałość, pył, napięcie, blizny i karta naprawcza; wymaga synchronizacji z CARDS/SUB_META/ECONOMY/PRG/UI.
-- `systems/COMETS_SYSTEM.md` - **ROBOCZY / SYSTEM ŚWIATA** - osobny future system czterech typów komet, przemian świata i relacji z pyłem; nie jest wymagany do pierwszych patchy `cosmic dust` foundation.
-- `systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` - **ROBOCZY / KONTRAKT PROJEKTOWY / PRZED RUNTIME** - kontrakt impactu planetarnego i księżycowego, powstawania orbiterów, blokady orbital moon → planet oraz rozróżnienia `harmonicDust` / `GRAY/mixed reservoir` / gray-shifted `harmonicDust` / future `cosmic dust`.
+- `systems/COMETS_SYSTEM.md` - **FUTURE DESIGN / NOT ACTIVE RUNTIME** - przyszły system czterech typów komet; stary runtime komet jest w `legacy/runtime/` i nie jest aktywnym gameplay.
+- `systems/COSMIC_IMPACT_ORBIT_SYSTEM.md` - **FUTURE DESIGN / KONTRAKT PROJEKTOWY / ACTIVE RUNTIME HAS DESCRIPTOR-ONLY ORBITERS** - kontrakt impact/orbit; active runtime po legacy-cut ma descriptor-only orbiter candidates, a capture/orbit/gas/star są legacy-disabled.
 - `systems/CARD_SLOT_NETWORK_MIGRATION_CHECKLIST.md` - **ROBOCZY / CHECKLISTA MIGRACYJNA** - lista decyzji i zależności do zamknięcia przed pierwszym runtime pass `CARD_SLOT_NETWORK_SYSTEM.md`.
-- `systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME** - source dla `harmonicDust` / HUD / PRG / reservoir: jeden zbieralny wysokoenergetyczny kolorowy pył (`harmonicDust`) trafia ręcznie przez PRG do HUD reservoir/stosiku/depozytu, działa przez `10/20/50`, a `GRAY/mixed reservoir` jest wyłącznie stanem zasobnika; dokument definiuje też elastic gray shift i `gray_locked` / `futureCosmicCandidate` jako stan chmury świata, nie `cosmic dust`.
+- `systems/DUST_COLLECTION_AND_REFINEMENT_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU / PARTIAL ACTIVE RUNTIME FOR HARMONIC DUST + COSMIC DUST SPLIT** - source dla `harmonicDust` / HUD / PRG / reservoir; harmonic dust i cosmic dust creation/split są aktywne, ale cosmic dust drag/stop nie jest aktywnym gameplay baseline.
 - `systems/SLOT_LOADOUT_AND_EON_MEMORY_SYSTEM.md` - **ROBOCZY / KANDYDAT DO KANONU / PRZED RUNTIME** - roboczy system struktury slotu, DS jako karty naprawczej, kart specjalnych, artefaktów i pamięci eonów.
 - `systems/ECONOMY_SYSTEM.md` - **KANON** - ekonomia RP i koszty działań.
 - `systems/SUB_META_SYSTEM.md` - **KANON** - logika SUB-META i konfiguracja gałęzi.

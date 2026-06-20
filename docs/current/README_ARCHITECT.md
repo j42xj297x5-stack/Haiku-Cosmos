@@ -7,7 +7,7 @@
 > - NIE, jako zastępstwo pełnych dokumentów kanonicznych,  
 > - NIE, jako runtime spec,  
 > - NIE, jako dokument historyczny.  
-> Ostatnia aktualizacja: 2026-06-12
+> Ostatnia aktualizacja: 2026-06-20
 > Powiązane: `../../README.md`, `../README.md`, `README.md`, `maps/PROJECT_INDEX.md`, `maps/DEPENDENCY_MAP.md`
 
 ## 1) Cel dokumentu
@@ -21,6 +21,29 @@ Nie zastępuje dokumentów źródłowych — wskazuje, co doładować warunkowo.
 Aktywną ścieżką runtime SUB-META jest statyczny overlay PNG/CSS + settings z `public/settings/` + gameplayowe placeholdery + panele robocze + render kart SVG/PNG + debug Import/Export JSON. Pełny bieżący kontrakt: `ui/SUB_META_RUNTIME_SNAPSHOT.md`.
 
 Stare canvasowe SUB-META, FrameComposer, Figma oraz wcześniejsze specyfikacje/wireframe’y mają status legacy/reference dla SUB-META. Nie są źródłem prawdy bieżącego layoutu ani aktywnym systemem wdrożeniowym. Default po odświeżeniu pochodzi z plików settings; localStorage nie może mieć pierwszeństwa nad JSON.
+
+## SPACE runtime baseline after legacy-cut (2026-06-20)
+
+Aktywny source-of-truth dla mechaniki kosmosu po legacy-cut: `systems/SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md`.
+
+Current implemented baseline:
+- active flow: `meteor + meteor różnych kolorów -> asteroid -> moon -> rocky planet`;
+- implemented thresholds/fallbacks: asteroid -> moon `10`, moon -> rocky planet `20`;
+- next design target, not implemented yet: asteroid -> moon `5`, moon -> rocky planet `10`;
+- rocky planet is legal only through `sourcePath: "moon_to_rocky_planet"`, `sourceMoonId`, `allowedProgressionPath: true`, `validProgressionOrigin: true`;
+- `HC.Planets.update()` is a passive canonical validator, not a creation system;
+- Canvas2D/Three use the same World/snapshot/radius contract, and renderer must not mutate gameplay.
+
+Legacy-disabled/not active runtime:
+- comets, stars/epoch, gas planets, planet capture/orbit, direct asteroid -> rocky planet, asteroid collapse -> planet, planet -> star;
+- `legacy/runtime/*` is forensic/reference only and must not be restored as active gameplay.
+
+Known blockers:
+- moon -> rocky planet can fail after threshold because cooldown/same-frame lock can block `canMoonBecomeRockyPlanet()` while `absorbBodyIntoMoon()` logs threshold progress optimistically;
+- radius scale is too aggressive because asteroid baseR is large and moon inherits it;
+- full/collisions debug export can still carry heavy snapshots.
+
+Next patch list: fix moon -> rocky planet cooldown/failure semantics, then thresholds `5/10`, then radius scale, then compact mechanics export, then debug `asteroidToPlanet` naming cleanup.
 
 ## 2) Jak używać
 
@@ -149,6 +172,7 @@ Stare canvasowe SUB-META, FrameComposer, Figma oraz wcześniejsze specyfikacje/w
 
 ### A) Mechanika
 - `README_ARCHITECT.md`
+- for active space runtime: `systems/SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md` first
 - `systems/CARDS_SYSTEM.md`
 - `systems/ECONOMY_SYSTEM.md`
 - `systems/SUB_META_SYSTEM.md`

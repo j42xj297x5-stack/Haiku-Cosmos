@@ -1,10 +1,23 @@
-> Status: ROBOCZY / SYSTEM ŚWIATA
+> Status: FUTURE DESIGN / NOT ACTIVE RUNTIME
 > Obszar: komety / przemiany świata / stany obiektów
 > Źródło prawdy: TAK ROBOCZO, dla projektowego kontraktu systemu komet; NIE dla finalnych wartości balansu; NIE dla gotowej implementacji runtime
-> Ostatnia aktualizacja: 2026-06-19
+> Ostatnia aktualizacja: 2026-06-20
 > Powiązane dokumenty: ../maps/PROJECT_INDEX.md, ../maps/DEPENDENCY_MAP.md, CARDS_SYSTEM.md, SUB_META_SYSTEM.md, PRG_SYSTEM.md, ROADMAP.md, ../technical/WORLD_FUNCTION_MAP.md, ../visual/ART_DIRECTION.md, ../visual/KOSMOLOGIA_WIZUALNA.md, ../visual/BIBLIOTEKA_MATERIALOW.md
 
 # Haiku Cosmos — COMETS SYSTEM
+
+
+## 0. Runtime status after legacy-cut (2026-06-20)
+
+This document is FUTURE DESIGN / NOT ACTIVE RUNTIME. The active space runtime source-of-truth is `SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md`.
+
+Current status:
+
+- Comets runtime is legacy-disabled.
+- Old `hc.comets.js` is preserved as `legacy/runtime/hc.comets.legacy.js` for forensic/reference purposes only.
+- The legacy comet file must not be restored or wired into `game.boot.js` as active gameplay.
+- The four comet concepts in this document remain future design direction and require a new runtime implementation after post-legacy-cut stabilization.
+- Comets must not reintroduce stars/epoch, gas planets, capture/orbit, direct asteroid -> planet, or renderer-side gameplay mutation.
 
 ## 1. Cel i granice dokumentu
 
@@ -22,7 +35,7 @@ Ten dokument nie jest:
 - gotową specyfikacją implementacji runtime,
 - zmianą systemu kart R1–R4,
 - zmianą ekonomii RP,
-- poleceniem do edycji `hc.comets.js`.
+- poleceniem do edycji albo przywracania legacy `hc.comets.js` / `legacy/runtime/hc.comets.legacy.js`.
 
 ## 2. Zasada nadrzędna
 

@@ -1,10 +1,26 @@
 > Status: ROBOCZY
 > Obszar: Roadmapa / planowanie
 > Źródło prawdy: NIE
-> Ostatnia aktualizacja: 2026-04-24
+> Ostatnia aktualizacja: 2026-06-20
 > Powiązane dokumenty: ../maps/PROJECT_INDEX.md, CARDS_SYSTEM.md, ECONOMY_SYSTEM.md, SUB_META_SYSTEM.md, ../ui/UI_WORLD.md
 
 # Haiku Cosmos — TODO / ROADMAP
+
+## Post-legacy-cut stabilization — SPACE runtime baseline
+
+Status: NEXT MECHANICS PATCH SEQUENCE / po `SPACE_RUNTIME_BASELINE_AFTER_LEGACY_CUT.md`.
+
+Cel: ustabilizować aktywny kosmos po wycięciu legacy runtime, bez przywracania starych komet, stars/epoch, gas planets ani capture/orbit.
+
+Kolejność:
+
+1. Fix moon -> rocky planet cooldown/failure semantics: rozróżnić temporary progression block od real creation failure i nie logować optymistycznego threshold success przed faktycznym creation.
+2. Threshold pass: zmienić implemented baseline `10/20` na design target `5/10` dopiero po naprawie moon progression.
+3. Radius scale pass: zmniejszyć asteroid baseR / moon inherited base / rocky start scale bez zmiany renderer-side gameplay.
+4. Compact mechanics export: odchudzić full/collisions evidence dla testów progression.
+5. Debug naming cleanup: historyczne `asteroidToPlanet` przemianować lub oznaczyć jako deprecated alias dla `asteroidToMoon`.
+6. Future systems only after stabilization: comets/orbits/stars/gas planets wracają wyłącznie jako nowe systemy z nowymi kontraktami, nie przez restore `legacy/runtime/*`.
+
 ## Eventy, systemy specjalne, progresja (WIP)
 
 Statusy:
