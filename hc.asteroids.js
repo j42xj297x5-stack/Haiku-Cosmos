@@ -198,14 +198,28 @@
       if (!isAsteroidToMoonEnabled()) return;
       const target = asteroidToMoonMassThreshold();
       const currentMass = asteroidMassValue(a);
-      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, {
+      const progressEvent = {
         sourceType: "asteroid",
         sourceId: a._id || a.id || null,
         thresholdType: "asteroid_to_moon_mass",
         current: currentMass,
         target: Number.isFinite(target) ? target : 0,
         thresholdSource: World.spaceMechanics?.asteroidToMoonMassThreshold == null ? "legacy_alias" : "spaceMechanics",
-      }, { source });
+        sourceMass: currentMass,
+        sourceRadius: Number(a.r ?? a.radius) || null,
+        overThreshold: currentMass >= target,
+        triggeredProgression: currentMass >= target,
+        resultingObjectType: currentMass >= target ? "moon" : null,
+        resultingObjectId: null,
+      };
+      World.lastThresholdProgressionEvent = progressEvent;
+      if (progressEvent.overThreshold) {
+        World.asteroidOverThresholdCount = (Number(World.asteroidOverThresholdCount) || 0) + 1;
+        World.asteroidOverThresholdSamples = Array.isArray(World.asteroidOverThresholdSamples) ? World.asteroidOverThresholdSamples : [];
+        World.asteroidOverThresholdSamples.push(Object.assign({}, progressEvent));
+        if (World.asteroidOverThresholdSamples.length > 8) World.asteroidOverThresholdSamples.shift();
+      }
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, progressEvent, { source });
 
       if (currentMass >= target) {
         window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_REACHED, {
@@ -276,6 +290,18 @@
       World.moons = Array.isArray(World.moons) ? World.moons : [];
       World.moons.push(moon);
       a._dead = true;
+      World.lastMoonCreatedEvent = {
+        type: "moon_created",
+        sourceType: "asteroid",
+        sourceId: a._id || a.id || null,
+        resultingObjectType: "moon",
+        resultingObjectId: moon.id,
+        mass: moon.mass,
+        radius: moon.r,
+      };
+      if (World.lastThresholdProgressionEvent?.sourceId === (a._id || a.id || null)) {
+        World.lastThresholdProgressionEvent.resultingObjectId = moon.id;
+      }
       window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_TRANSFORMED, {
         fromType: "asteroid",
         toType: "moon",
@@ -432,13 +458,17 @@
         sourceFunction: options.sourceFunction || "Asteroids.unknown",
         frame: liveCollisionFrame(),
         timeMs: liveCollisionNowMs(),
+        sessionTimeMs: liveCollisionNowMs(),
         bodyAType: bodyA?.type || bodyA?.kind || null,
         bodyBType: bodyB?.type || bodyB?.kind || null,
+        bodyAKind: bodyA?.kind || bodyA?.type || null,
+        bodyBKind: bodyB?.kind || bodyB?.type || null,
         bodyAId: liveCollisionBodyId(bodyA),
         bodyBId: liveCollisionBodyId(bodyB),
         bodyAMassBefore: Number(options.bodyAMassBefore ?? liveCollisionMass(bodyA)) || 0,
         bodyBMassBefore: Number(options.bodyBMassBefore ?? liveCollisionMass(bodyB)) || 0,
         targetId: liveCollisionBodyId(target),
+        targetKind: target?.kind || target?.type || kind || null,
         targetMassBefore: beforeTarget.mass,
         targetMassAfter: afterTarget.mass,
         targetRadiusBefore: beforeTarget.radius,
@@ -450,6 +480,7 @@
         dustMass: Number(evidence?.dustMass ?? evidence?.cosmicDustMass) || 0,
         absorbMass: Number(evidence?.absorbMass ?? evidence?.absorbedMass) || 0,
         fragmentsMass: Number(evidence?.fragmentsMass ?? evidence?.fragmentMass) || 0,
+        orbiterMass: Number(evidence?.orbiterMass ?? evidence?.orbiterCandidate?.mass) || 0,
         conservationDelta: Number(evidence?.conservationDelta ?? evidence?.delta) || 0,
         rawRadiusFromMass: Number(target?.lastRadiusRefresh?.rawRadiusFromMass ?? target?.lastRadiusRefresh?.unclampedRadius) || null,
         clampApplied: target?.lastRadiusRefresh?.clampApplied === true,
@@ -897,6 +928,15 @@
       World.planets = Array.isArray(World.planets) ? World.planets : [];
       World.planets.push(planet);
       moon._dead = true;
+      World.lastRockyPlanetCreatedEvent = {
+        type: "rocky_planet_created",
+        sourceType: "moon",
+        sourceId: moon.id || moon._id || null,
+        resultingObjectType: "rocky_planet",
+        resultingObjectId: planet.id,
+        mass: planet.mass,
+        radius: planet.r,
+      };
       window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_TRANSFORMED, {
         event: "MOON_TO_ROCKY_PLANET_CREATED",
         fromType: "moon",
@@ -957,7 +997,7 @@
       moon.lastImpact = impact || null;
       if (!split) { moon.mass = moonMassValue(moon) + absorbedMass; updateMoonRadius(moon); if (impact && window.HC?.Impact?.spawnEjecta) window.HC.Impact.spawnEjecta(World, impact, moon); body._dead = true; }
       if (impact && window.HC?.Impact?.logImpactEvidence) window.HC.Impact.logImpactEvidence(World, impact, "Asteroids.absorbBodyIntoMoon");
-      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, {
+      const moonProgressEvent = {
         sourceType: "moon",
         sourceId: moon.id || moon._id || null,
         absorbedType: body.kind || body.type || source,
@@ -967,7 +1007,16 @@
         current: moon.mass,
         target: moonToRockyPlanetMassThreshold(),
         thresholdType: "moon_to_rocky_planet_mass",
-      }, { source: "Asteroids.absorbBodyIntoMoon", snapshot: true });
+        thresholdSource: "spaceMechanics",
+        sourceMass: moon.mass,
+        sourceRadius: Number(moon.r ?? moon.radius) || null,
+        overThreshold: moon.mass >= moonToRockyPlanetMassThreshold(),
+        triggeredProgression: moon.mass >= moonToRockyPlanetMassThreshold(),
+        resultingObjectType: moon.mass >= moonToRockyPlanetMassThreshold() ? "rocky_planet" : null,
+        resultingObjectId: null,
+      };
+      World.lastThresholdProgressionEvent = moonProgressEvent;
+      window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_THRESHOLD_PROGRESS, moonProgressEvent, { source: "Asteroids.absorbBodyIntoMoon", snapshot: true });
       checkMoonRockyPlanetThreshold(moon, "moon_absorb_contact");
     }
 
