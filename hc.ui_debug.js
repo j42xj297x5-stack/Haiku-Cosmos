@@ -845,6 +845,12 @@
             window.HC?.forceFullDiagnostics?.("ui_debug_button");
             return;
           }
+          if (target.id === "dbgEvidenceExportProfile") {
+            const profile = ["minimal", "gameplay", "renderer", "full"].includes(target.value) ? target.value : "gameplay";
+            window.HC?.Session?.setEvidenceExportProfile?.(profile);
+            emitThreeDebugControlEvent("debug.evidence_export_profile_changed", { after: profile });
+            return;
+          }
           if (target.id === "dbgVerboseDiagnostics") {
             const nextMode = window.HC?.Session?.setLoggingMode
               ? window.HC.Session.setLoggingMode(target.checked ? "verbose" : "compact")
@@ -996,7 +1002,8 @@
       if (btnExportEvidence) {
         btnExportEvidence.addEventListener("click", () => {
           const note = String(debugSessionNote?.value || "").trim();
-          window.HC?.Session?.exportEvidence?.(note);
+          const profile = document.getElementById("dbgEvidenceExportProfile")?.value || window.HC?.Session?.getEvidenceExportProfile?.() || "gameplay";
+          window.HC?.Session?.exportEvidence?.(note, profile);
         });
       }
       if (btnMarkIssue) {
@@ -1569,6 +1576,7 @@
     ], "", { open: true, extra: subMetaPngDebugHtml + subMetaPlaceholderDebugHtml + subMetaPanelsDebugHtml }));
 
     sections.push(renderSection("logging-evidence", "Logging / Evidence", [
+      ["Evidence export mode", snap.exportProfile || window.HC?.Session?.getEvidenceExportProfile?.() || "gameplay"],
       ["logging mode", snap.loggingMode || "compact"],
       ["heartbeat interval", `${snap.heartbeatIntervalMs || 5000} ms`],
       ["compact/verbose", snap.verboseDiagnostics ? "verbose" : "compact"],
@@ -1579,6 +1587,11 @@
       ["backend", ls.mode || "-"],
       ["files", ls.filesSavedTo || fs.filesSavedTo || "fallback/localStorage"],
     ], `
+      <label class="overlay-select-row" for="dbgEvidenceExportProfile">Evidence export mode
+        <select id="dbgEvidenceExportProfile">
+          ${["minimal", "gameplay", "renderer", "full"].map((profile) => `<option value="${profile}"${(snap.exportProfile || "gameplay") === profile ? " selected" : ""}>${profile}</option>`).join("")}
+        </select>
+      </label>
       <label class="overlay-select-row" for="dbgVerboseDiagnostics">Verbose diagnostics
         <input id="dbgVerboseDiagnostics" type="checkbox"${snap.verboseDiagnostics ? " checked" : ""}>
       </label>
