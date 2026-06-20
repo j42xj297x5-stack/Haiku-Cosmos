@@ -922,7 +922,7 @@
       try {
         planet = createRockyPlanetFromMoon(moon, reason);
       } catch (error) {
-        World.lastRockyPlanetCreationFailedEvent = { type: "rocky_planet_creation_failed", sourceMoonId: moon.id || moon._id || null, sourceMoonMass: moonMassValue(moon), reason: error?.message || String(error || "creation_failed"), stack: error?.stack || null, sourceFunction: "Asteroids.transformMoonToRockyPlanet" };
+        World.lastRockyPlanetCreationFailedEvent = { type: "rocky_planet_creation_failed", sourceMoonId: moon.id || moon._id || null, sourceMoonMass: moonMassValue(moon), reason: `helper_exception:${error?.message || String(error || "unknown")}`, stack: error?.stack || null, sourceFunction: "Asteroids.transformMoonToRockyPlanet" };
         window.HC?.logEvent?.("world", "rocky_planet_creation_failed", World.lastRockyPlanetCreationFailedEvent, { source: reason || "Asteroids.transformMoonToRockyPlanet", snapshot: true });
         moon.__transformationInProgress = false;
         return null;
@@ -935,7 +935,10 @@
       }
       World.planets = Array.isArray(World.planets) ? World.planets : [];
       if (!planet || planet.sourcePath !== "moon_to_rocky_planet" || planet.allowedProgressionPath !== true || planet.validProgressionOrigin !== true || !planet.sourceMoonId) {
-        throw new Error("LEGACY_ASTEROID_TO_PLANET_DISABLED");
+        World.lastRockyPlanetCreationFailedEvent = { type: "rocky_planet_creation_failed", sourceMoonId: moon.id || moon._id || null, sourceMoonMass: moonMassValue(moon), reason: "planet_origin_guard_failed", sourceFunction: "Asteroids.transformMoonToRockyPlanet" };
+        window.HC?.logEvent?.("world", "rocky_planet_creation_failed", World.lastRockyPlanetCreationFailedEvent, { source: reason || "Asteroids.transformMoonToRockyPlanet", snapshot: true });
+        moon.__transformationInProgress = false;
+        return null;
       }
       World.planets.push(planet);
       moon._dead = true;
@@ -1001,59 +1004,89 @@
       return planet;
     }
 
-    function canMoonBecomeRockyPlanet(moon) {
-      if (!moon || moon._dead) return false;
+    function getMoonToRockyPlanetBlockReason(moon) {
+      if (!moon) return "invalid_moon";
+      if (moon._dead) return "moon_dead";
       const currentFrame = Number(World.frame) || 0;
+      if (moon.progressionLockFrame === currentFrame) return "progression_same_frame";
       const cooldownUntil = Number(moon.progressionCooldownUntilFrame);
-      if (Number.isFinite(cooldownUntil) && currentFrame < cooldownUntil) {
-        World.progressionBlockedSameFrameCount = (Number(World.progressionBlockedSameFrameCount) || 0) + 1;
-        World.lastProgressionBlockedEvent = { type: "moon_to_planet_cooldown", moonId: moon.id || moon._id || null, currentFrame, cooldownUntil };
-        return false;
-      }
-      if (moon.progressionLockFrame === currentFrame) {
-        World.progressionBlockedSameFrameCount = (Number(World.progressionBlockedSameFrameCount) || 0) + 1;
-        World.lastProgressionBlockedEvent = { type: "moon_to_planet_same_frame", moonId: moon.id || moon._id || null, currentFrame };
-        return false;
-      }
-      if (moon.canBecomePlanet === false) return false;
-      if (moon.progressionMode === "orbital") return false;
-      if (moon.isOrbitalBody === true) return false;
-      if (moon.parentPlanetId) return false;
-      if (moon.parentKind) return false;
-      if (moon.parentRef) return false;
-      return true;
+      if (Number.isFinite(cooldownUntil) && currentFrame < cooldownUntil) return "progression_cooldown";
+      if (moon.progressionMode === "orbital" || moon.isOrbitalBody === true) return "orbital_moon";
+      if (moon.parentPlanetId || moon.parentKind || moon.parentRef) return "parented_moon";
+      if (moon.canBecomePlanet === false) return "can_become_planet_false";
+      return null;
+    }
+
+    function recordMoonToRockyPlanetBlocked(moon, reason, source) {
+      const current = moon ? moonMassValue(moon) : 0;
+      const target = moonToRockyPlanetMassThreshold();
+      const event = {
+        sourceId: moon?.id || moon?._id || null,
+        current,
+        target,
+        reason: reason || "invalid_moon",
+        frame: Number(World.frame) || 0,
+        sourceFunction: source || "Asteroids.checkMoonRockyPlanetThreshold",
+      };
+      World.progressionBlockedSameFrameCount = (Number(World.progressionBlockedSameFrameCount) || 0) + 1;
+      World.lastMoonToRockyPlanetBlockedEvent = event;
+      World.lastProgressionBlockedEvent = event;
+      if (moon && current >= target) moon.pendingMoonToRockyPlanetProgression = true;
+      return event;
+    }
+
+    function canMoonBecomeRockyPlanet(moon) {
+      return getMoonToRockyPlanetBlockReason(moon) === null;
     }
 
     function checkMoonRockyPlanetThreshold(moon, source) {
-      if (!isMoonToRockyPlanetEnabled() || moon?._dead) return null;
-      if (!canMoonBecomeRockyPlanet(moon)) return null;
+      if (!isMoonToRockyPlanetEnabled()) return null;
       const target = moonToRockyPlanetMassThreshold();
-      const current = moonMassValue(moon);
+      const current = moon ? moonMassValue(moon) : 0;
+      const overThreshold = !!moon && current >= target;
       const progressEvent = {
         sourceType: "moon",
-        sourceId: moon.id || moon._id || null,
+        sourceId: moon?.id || moon?._id || null,
         thresholdType: "moon_to_rocky_planet_mass",
         current,
         target,
         thresholdSource: "spaceMechanics",
         sourceMass: current,
-        sourceRadius: Number(moon.r ?? moon.radius) || null,
-        overThreshold: current >= target,
-        triggeredProgression: current >= target,
-        resultingObjectType: current >= target ? "rocky_planet" : null,
+        sourceRadius: Number(moon?.r ?? moon?.radius) || null,
+        overThreshold,
+        triggeredProgression: false,
+        resultingObjectType: overThreshold ? "rocky_planet" : null,
         resultingObjectId: null,
       };
       World.lastThresholdProgressionEvent = progressEvent;
-      if (current >= target) {
-        const planet = transformMoonToRockyPlanet(moon, source || "moon_mass_threshold");
-        if (planet) progressEvent.resultingObjectId = planet.id || planet._id || null;
-        else { progressEvent.triggeredProgression = false; progressEvent.creationFailed = true; progressEvent.failureReason = World.lastRockyPlanetCreationFailedEvent?.reason || "creation_failed"; }
+      if (!overThreshold) {
+        window.HC?.logEvent?.("world", (window.HC.DebugEventTypes?.WORLD_THRESHOLD_PROGRESS || "world.threshold_progress"), progressEvent, { source: source || "Asteroids.checkMoonRockyPlanetThreshold", snapshot: true });
+        return null;
+      }
+      const blockReason = getMoonToRockyPlanetBlockReason(moon);
+      if (blockReason) {
+        const blockedEvent = recordMoonToRockyPlanetBlocked(moon, blockReason, source || "Asteroids.checkMoonRockyPlanetThreshold");
+        progressEvent.progressionBlocked = true;
+        progressEvent.creationBlocked = true;
+        progressEvent.failureReason = blockReason;
+        progressEvent.blockReason = blockReason;
+        progressEvent.blockedEvent = blockedEvent;
         World.lastMoonToRockyPlanetThresholdEvent = Object.assign({ type: "moon_to_rocky_planet_threshold" }, progressEvent);
         window.HC?.logEvent?.("world", (window.HC.DebugEventTypes?.WORLD_THRESHOLD_PROGRESS || "world.threshold_progress"), progressEvent, { source: source || "Asteroids.checkMoonRockyPlanetThreshold", snapshot: true });
-        return planet;
+        return null;
       }
+      const planet = transformMoonToRockyPlanet(moon, source || "moon_mass_threshold");
+      if (planet && (planet.id || planet._id)) {
+        progressEvent.triggeredProgression = true;
+        progressEvent.resultingObjectId = planet.id || planet._id || null;
+        moon.pendingMoonToRockyPlanetProgression = false;
+      } else {
+        progressEvent.creationFailed = true;
+        progressEvent.failureReason = World.lastRockyPlanetCreationFailedEvent?.reason || "missing_created_planet_id";
+      }
+      World.lastMoonToRockyPlanetThresholdEvent = Object.assign({ type: "moon_to_rocky_planet_threshold" }, progressEvent);
       window.HC?.logEvent?.("world", (window.HC.DebugEventTypes?.WORLD_THRESHOLD_PROGRESS || "world.threshold_progress"), progressEvent, { source: source || "Asteroids.checkMoonRockyPlanetThreshold", snapshot: true });
-      return null;
+      return planet;
     }
 
     function absorbBodyIntoMoon(moon, body, source) {
@@ -1082,16 +1115,30 @@
         sourceMass: moon.mass,
         sourceRadius: Number(moon.r ?? moon.radius) || null,
         overThreshold: moon.mass >= moonToRockyPlanetMassThreshold(),
-        triggeredProgression: moon.mass >= moonToRockyPlanetMassThreshold(),
+        triggeredProgression: false,
         resultingObjectType: moon.mass >= moonToRockyPlanetMassThreshold() ? "rocky_planet" : null,
         resultingObjectId: null,
       };
       World.lastThresholdProgressionEvent = moonProgressEvent;
-      window.HC?.logEvent?.("world", (window.HC.DebugEventTypes?.WORLD_THRESHOLD_PROGRESS || "world.threshold_progress"), moonProgressEvent, { source: "Asteroids.absorbBodyIntoMoon", snapshot: true });
       const createdPlanet = checkMoonRockyPlanetThreshold(moon, "moon_absorb_contact");
-      if (createdPlanet) moonProgressEvent.resultingObjectId = createdPlanet.id || createdPlanet._id || null;
-      else if (moonProgressEvent.triggeredProgression) { moonProgressEvent.triggeredProgression = false; moonProgressEvent.creationFailed = true; moonProgressEvent.failureReason = World.lastRockyPlanetCreationFailedEvent?.reason || "creation_failed"; }
+      if (createdPlanet && (createdPlanet.id || createdPlanet._id)) {
+        moonProgressEvent.triggeredProgression = true;
+        moonProgressEvent.resultingObjectId = createdPlanet.id || createdPlanet._id || null;
+      } else if (moonProgressEvent.overThreshold) {
+        const thresholdEvent = World.lastMoonToRockyPlanetThresholdEvent || null;
+        const blockReason = thresholdEvent?.blockReason || thresholdEvent?.failureReason || World.lastProgressionBlockedEvent?.reason || null;
+        if (blockReason && (thresholdEvent?.progressionBlocked || thresholdEvent?.creationBlocked)) {
+          moonProgressEvent.progressionBlocked = true;
+          moonProgressEvent.creationBlocked = true;
+          moonProgressEvent.failureReason = blockReason;
+          moonProgressEvent.blockReason = blockReason;
+        } else {
+          moonProgressEvent.creationFailed = true;
+          moonProgressEvent.failureReason = World.lastRockyPlanetCreationFailedEvent?.reason || "missing_created_planet_id";
+        }
+      }
       World.lastMoonToRockyPlanetThresholdEvent = Object.assign({ type: "moon_to_rocky_planet_threshold" }, moonProgressEvent);
+      window.HC?.logEvent?.("world", (window.HC.DebugEventTypes?.WORLD_THRESHOLD_PROGRESS || "world.threshold_progress"), moonProgressEvent, { source: "Asteroids.absorbBodyIntoMoon", snapshot: true });
     }
 
     function resolveMoonDirectAbsorptions() {
@@ -1183,6 +1230,7 @@
       transformMoonToRockyPlanet,
       resolveMoonDirectAbsorptions,
       canMoonBecomeRockyPlanet,
+      getMoonToRockyPlanetBlockReason,
       checkAsteroidMoonThreshold,
       checkMoonRockyPlanetThreshold,
     };

@@ -91,6 +91,60 @@ context.HC.Asteroids.resolveMoonDirectAbsorptions();
 assert.equal(context.World.planets.length, 0, 'orbital moon cannot become rocky planet');
 assert.equal(context.World.moons[0]._dead, undefined, 'orbital moon is not consumed by threshold guard');
 
+
+// Scenario A — cooldown/same-frame block stores pending progression and retries after cooldown.
+context.World.planets = [];
+context.World.moons = [];
+context.HC.events = [];
+context.Events.emitted = [];
+context.World.frame = 10;
+const pendingMoon = { id: 'moon:pending', type: 'moon', kind: 'moon', x: 3, y: 0, r: 2, mass: 8, progressionMode: 'free', isOrbitalBody: false, canBecomePlanet: true, progressionLockFrame: 10, progressionCooldownUntilFrame: 12, sourcePath: 'asteroid_to_moon', allowedProgressionPath: true };
+context.World.moons.push(pendingMoon);
+let pendingPlanet = context.HC.Asteroids.checkMoonRockyPlanetThreshold(pendingMoon, 'vm_pending_same_frame');
+assert.equal(pendingPlanet, null, 'same-frame/cooldown check does not create a planet immediately');
+assert.equal(context.World.planets.length, 0, 'blocked pending moon leaves planets unchanged');
+assert.notEqual(context.World.lastMoonToRockyPlanetThresholdEvent.failureReason, 'creation_failed', 'blocked progression is not a creation_failed event');
+assert.equal(context.World.lastMoonToRockyPlanetThresholdEvent.creationFailed, undefined, 'blocked progression does not set creationFailed');
+assert.ok(['progression_same_frame', 'progression_cooldown'].includes(context.World.lastMoonToRockyPlanetBlockedEvent.reason), 'blocked event stores concrete same-frame/cooldown reason');
+assert.equal(pendingMoon.pendingMoonToRockyPlanetProgression, true, 'blocked over-threshold moon stores pending progression');
+context.World.frame = 13;
+context.HC.Asteroids.resolveMoonDirectAbsorptions();
+assert.equal(context.World.planets.length, 1, 'pending over-threshold moon creates planet after cooldown');
+assert.equal(context.World.planets[0].sourcePath, 'moon_to_rocky_planet');
+assert.equal(context.World.planets[0].sourceMoonId, 'moon:pending');
+assert.equal(context.World.lastMoonToRockyPlanetThresholdEvent.triggeredProgression, true, 'successful threshold event triggers only after creation');
+assert.ok(context.World.lastMoonToRockyPlanetThresholdEvent.resultingObjectId, 'successful threshold event stores resultingObjectId');
+assert.ok(context.HC.events.some((evt) => evt.event === 'rocky_planet_created'), 'rocky_planet_created exists after pending retry');
+
+// Scenario B — legal free moon over threshold transforms immediately and remains canonical.
+context.World.planets = [];
+context.World.moons = [];
+context.World.frame = 20;
+const freeMoon = { id: 'moon:free', type: 'moon', kind: 'moon', x: -3, y: 0, r: 2, mass: 7, progressionMode: 'free', isOrbitalBody: false, canBecomePlanet: true, sourcePath: 'asteroid_to_moon', allowedProgressionPath: true };
+context.World.moons.push(freeMoon);
+const freePlanet = context.HC.Asteroids.checkMoonRockyPlanetThreshold(freeMoon, 'vm_free_threshold');
+assert.ok(freePlanet, 'free over-threshold moon creates rocky planet immediately');
+assert.equal(freePlanet.sourcePath, 'moon_to_rocky_planet');
+assert.equal(freePlanet.allowedProgressionPath, true);
+assert.equal(freePlanet.validProgressionOrigin, true);
+assert.equal(freePlanet.sourceMoonId, 'moon:free');
+assert.equal(context.World.lastMoonToRockyPlanetThresholdEvent.triggeredProgression, true);
+assert.equal(context.World.lastMoonToRockyPlanetThresholdEvent.resultingObjectId, freePlanet.id);
+
+// Scenario C/D — orbital over-threshold moon is blocked, not failed, and never reports triggered progression.
+context.World.planets = [];
+context.World.moons = [];
+context.World.frame = 30;
+const blockedOrbitalMoon = { id: 'moon:orbital-threshold', type: 'moon', kind: 'moon', x: 0, y: 0, r: 2, mass: 8, progressionMode: 'orbital', isOrbitalBody: true, canBecomePlanet: true, sourcePath: 'asteroid_to_moon', allowedProgressionPath: true };
+context.World.moons.push(blockedOrbitalMoon);
+const orbitalPlanet = context.HC.Asteroids.checkMoonRockyPlanetThreshold(blockedOrbitalMoon, 'vm_orbital_threshold');
+assert.equal(orbitalPlanet, null, 'orbital moon does not create rocky planet');
+assert.equal(context.World.planets.length, 0);
+assert.equal(context.World.lastMoonToRockyPlanetBlockedEvent.reason, 'orbital_moon');
+assert.equal(context.World.lastMoonToRockyPlanetThresholdEvent.triggeredProgression, false, 'blocked threshold does not report triggered progression');
+assert.equal(context.World.lastMoonToRockyPlanetThresholdEvent.creationFailed, undefined, 'blocked orbital moon is not a creation failure');
+assert.equal(context.World.lastMoonToRockyPlanetThresholdEvent.progressionBlocked, true);
+
 context.World.impactFragments = [{ type: 'impactFragment', kind: 'impactFragment', createdAt: 0, ttlMs: 100, age: 0 }];
 context.HC.Impact.updateFragments(context.World, 101, 0.101);
 assert.equal(context.World.impactFragments.length, 0, 'expired impact fragments are cleaned up');

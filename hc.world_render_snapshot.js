@@ -653,6 +653,8 @@
         asteroidOverThresholdSamples: Array.isArray(World.asteroidOverThresholdSamples) ? World.asteroidOverThresholdSamples.slice(-8) : [],
         lastThresholdProgressionEvent: World.lastThresholdProgressionEvent ? Object.assign({}, World.lastThresholdProgressionEvent) : null,
         lastMoonToRockyPlanetThresholdEvent: World.lastMoonToRockyPlanetThresholdEvent ? Object.assign({}, World.lastMoonToRockyPlanetThresholdEvent) : null,
+        lastMoonToRockyPlanetBlockedEvent: World.lastMoonToRockyPlanetBlockedEvent ? Object.assign({}, World.lastMoonToRockyPlanetBlockedEvent) : null,
+        lastProgressionBlockedEvent: World.lastProgressionBlockedEvent ? Object.assign({}, World.lastProgressionBlockedEvent) : null,
         lastMoonCreatedEvent: World.lastMoonCreatedEvent ? Object.assign({}, World.lastMoonCreatedEvent) : null,
         asteroidTargetMassToMoon: toNumber(Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? 10), 10),
         moonTargetMassToRockyPlanet: toNumber(Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold), 20),
