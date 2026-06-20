@@ -223,7 +223,7 @@
   const EVIDENCE_EVENT_FILTERS = Object.freeze({
     minimal: ["debug.issue*", "error.*"],
     gameplay: ["sequence.*", "card.*", "cards.*", "economy.*", "rp.*", "world.collision*", "world.body*", "world.meteor*", "world.asteroid*", "world.moon*", "world.planet*", "world.dust*", "world.impact*", "world.orbit*", "run.*", "input.decision*", "debug.issue*", "error.*"],
-    collisions: ["COSMIC_DUST_CREATED", "world.threshold_progress", "moon_to_rocky_planet_threshold", "rocky_planet_created", "rocky_planet_creation_failed", "render_radius_evidence", "render_collision_radius_mismatch", "radius_refresh", "radius_clamp", "mass_split", "live_collision_probe", "moon_created", "legacy_asteroid_to_planet_blocked", "session.ended", "session.aborted"],
+    collisions: ["COSMIC_DUST_CREATED", "world.threshold_progress", "moon_to_rocky_planet_threshold", "rocky_planet_created", "rocky_planet_creation_failed", "legacy_planet_spawn_blocked", "planet_missing_creation_evidence", "impact_fragment_descriptor_created", "orbiter_candidate_descriptor_created", "render_radius_evidence", "render_collision_radius_mismatch", "radius_refresh", "radius_clamp", "mass_split", "live_collision_probe", "moon_created", "legacy_asteroid_to_planet_blocked", "session.ended", "session.aborted"],
     renderer: ["world.glb*", "world.three*", "world.renderer*", "world.material*", "world.light*", "world.asset*", "world.texture*", "renderer.*", "three.*", "glb.*", "asset.*", "material.*", "light.*", "debug.issue*", "error.*"],
   });
 
@@ -302,7 +302,7 @@
 
   function limitCollisionEvents(events, options = {}) {
     const maxByType = options.maxEventsPerType || { COSMIC_DUST_CREATED: 80, mass_split: 80, live_collision_probe: 80, [EVENT_TYPES.WORLD_THRESHOLD_PROGRESS]: 20 };
-    const keepAll = new Set(["rocky_planet_created", "rocky_planet_creation_failed", "moon_created"]);
+    const keepAll = new Set(["rocky_planet_created", "rocky_planet_creation_failed", "moon_created", "legacy_planet_spawn_blocked", "planet_missing_creation_evidence", "impact_fragment_descriptor_created", "orbiter_candidate_descriptor_created"]);
     const grouped = new Map();
     for (const event of Array.isArray(events) ? events : []) {
       const name = collisionEventName(event) || event?.type || "unknown";
@@ -1028,6 +1028,8 @@
           dustParticlesCount: Array.isArray(World?.dustParticles) ? World.dustParticles.length : 0,
           impactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.length : 0,
           activeImpactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.filter((fragment) => fragment && !fragment._dead).length : 0,
+          impactFragmentDescriptorsCount: Array.isArray(World?.impactFragmentDescriptors) ? World.impactFragmentDescriptors.length : 0,
+          orbiterCandidateDescriptorCount: Array.isArray(World?.orbiterCandidateDescriptors) ? World.orbiterCandidateDescriptors.length : 0,
           cosmicDustCount: Array.isArray(World?.cosmicDust) ? World.cosmicDust.length : 0,
           cosmicDustTotalMass: Array.isArray(World?.cosmicDust) ? World.cosmicDust.reduce((sum, dust) => sum + (Number(dust?.mass) || 0), 0) : 0,
           cosmicDustAffectedBodiesCount: Number(World?.cosmicDustAffectedBodiesCount || 0),
@@ -2218,7 +2220,7 @@
           asteroidMassTotal: Array.isArray(World?.asteroids) ? World.asteroids.reduce((sum, a) => sum + (Number.isFinite(Number(a?.mass)) ? Number(a.mass) : 0), 0) : 0,
           asteroidMassMax: Array.isArray(World?.asteroids) ? World.asteroids.reduce((max, a) => Math.max(max, Number.isFinite(Number(a?.mass)) ? Number(a.mass) : 0), 0) : 0,
           asteroidTargetMassToMoon: Number(World?.spaceMechanics?.asteroidToMoonMassThreshold ?? World?.asteroidGrowthTarget ?? World?.planetCaptureTarget ?? 0),
-          moonTargetMassToRockyPlanet: Number(World?.spaceMechanics?.moonToRockyPlanetMassThreshold ?? 34),
+          moonTargetMassToRockyPlanet: Number(World?.spaceMechanics?.moonToRockyPlanetMassThreshold ?? 20),
           rockyPlanets: Array.isArray(World?.planets) ? World.planets.filter((p) => p && p.isRocky).length : 0,
           gasPlanets: Array.isArray(World?.planets) ? World.planets.filter((p) => p && !p.isRocky).length : 0,
           stars: Array.isArray(World?.stars) ? World.stars.length : 0,
@@ -2227,15 +2229,17 @@
           dustParticlesCount: Array.isArray(World?.dustParticles) ? World.dustParticles.length : 0,
           impactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.length : 0,
           activeImpactFragmentsCount: Array.isArray(World?.impactFragments) ? World.impactFragments.filter((fragment) => fragment && !fragment._dead).length : 0,
+          impactFragmentDescriptorsCount: Array.isArray(World?.impactFragmentDescriptors) ? World.impactFragmentDescriptors.length : 0,
+          orbiterCandidateDescriptorCount: Array.isArray(World?.orbiterCandidateDescriptors) ? World.orbiterCandidateDescriptors.length : 0,
         },
         thresholds: {
           asteroidToMoon: {
             current: Number(World?.spaceMechanics?.asteroidToMoonMassThreshold ?? World?.asteroidGrowthTarget ?? World?.planetCaptureTarget ?? 0),
             source: World?.__debugThresholdOverrides?.asteroidToPlanet == null ? "default" : "override",
           },
-          planetToStar: {
-            current: Number(World?.STAR_REQ_BLUE || 0),
-            source: World?.__debugThresholdOverrides?.planetToStar == null ? "default" : "override",
+          moonToRockyPlanet: {
+            current: Number(World?.spaceMechanics?.moonToRockyPlanetMassThreshold ?? 20),
+            source: World?.__debugThresholdOverrides?.moonToRockyPlanet == null ? "default" : "override",
           },
         },
         lastByCategory,

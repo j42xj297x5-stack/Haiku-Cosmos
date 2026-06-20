@@ -579,6 +579,10 @@
           dustParticles: pickArray(World.dustParticles).length,
           impactFragments: pickArray(World.impactFragments).length,
           activeImpactFragments: pickArray(World.impactFragments).filter((fragment) => fragment && !fragment._dead).length,
+          impactFragmentsCount: pickArray(World.impactFragments).length,
+          activeImpactFragmentsCount: pickArray(World.impactFragments).filter((fragment) => fragment && !fragment._dead).length,
+          impactFragmentDescriptorsCount: pickArray(World.impactFragmentDescriptors).length,
+          orbiterCandidateDescriptorCount: pickArray(World.orbiterCandidateDescriptors).length,
           cosmicDust: pickArray(World.cosmicDust).length,
           harmonicDust: pickArray(World.harmonicDust).length,
           harmonicDustGrayShifting: pickArray(World.harmonicDust).filter((dust) => dust && !dust._dead && dust.transformState === "gray_shifting").length,
@@ -635,7 +639,7 @@
         lastMoonToRockyPlanetThresholdEvent: World.lastMoonToRockyPlanetThresholdEvent ? Object.assign({}, World.lastMoonToRockyPlanetThresholdEvent) : null,
         lastMoonCreatedEvent: World.lastMoonCreatedEvent ? Object.assign({}, World.lastMoonCreatedEvent) : null,
         asteroidTargetMassToMoon: toNumber(Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget), null),
-        moonTargetMassToRockyPlanet: toNumber(Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold), 34),
+        moonTargetMassToRockyPlanet: toNumber(Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold), 20),
         moonsCount: pickArray(World.moons).length,
         freeMoonsCount: pickArray(World.moons).filter((moon) => moon && !moon._dead && moon.progressionMode !== "orbital" && moon.isOrbitalBody !== true).length,
         orbitalMoonsCount: pickArray(World.moons).filter((moon) => moon && !moon._dead && (moon.progressionMode === "orbital" || moon.isOrbitalBody === true)).length,
@@ -654,6 +658,14 @@
         lastPlanetSpawnBlockedEvent: World.lastPlanetSpawnBlockedEvent ? Object.assign({}, World.lastPlanetSpawnBlockedEvent) : null,
         lastRockyPlanetCreatedEvent: World.lastRockyPlanetCreatedEvent ? Object.assign({}, World.lastRockyPlanetCreatedEvent) : null,
         lastRockyPlanetCreationFailedEvent: World.lastRockyPlanetCreationFailedEvent ? Object.assign({}, World.lastRockyPlanetCreationFailedEvent) : null,
+        lastLegacyPlanetSpawnBlockedEvent: World.lastLegacyPlanetSpawnBlockedEvent ? Object.assign({}, World.lastLegacyPlanetSpawnBlockedEvent) : null,
+        legacyPlanetSpawnBlockedCount: toNumber(World.legacyPlanetSpawnBlockedCount, 0),
+        lastImpactFragmentDescriptor: World.lastImpactFragmentDescriptor ? Object.assign({}, World.lastImpactFragmentDescriptor) : null,
+        impactFragmentDescriptorCount: pickArray(World.impactFragmentDescriptors).length,
+        lastOrbiterCandidateDescriptor: World.lastOrbiterCandidateDescriptor ? Object.assign({}, World.lastOrbiterCandidateDescriptor) : null,
+        orbiterCandidateDescriptorCount: pickArray(World.orbiterCandidateDescriptors).length,
+        planetMissingCreationEvidenceCount: toNumber(World.planetMissingCreationEvidenceCount, 0),
+        planetMissingCreationEvidenceSamples: Array.isArray(World.planetMissingCreationEvidenceSamples) ? World.planetMissingCreationEvidenceSamples.slice(-8) : [],
         lastMoonMeteorSplitEvent: World.lastMoonMeteorSplitEvent ? Object.assign({}, World.lastMoonMeteorSplitEvent) : null,
         lastMoonRenderRadiusEvidence: snapshotMoons[0] ? { type: "render_radius_evidence", bodyKind: "moon", bodyId: snapshotMoons[0].id, massRadiusContractRadius: snapshotMoons[0].massRadiusContractRadius, collisionRadius: snapshotMoons[0].collisionRadius, viewRadius: snapshotMoons[0].viewRadius, renderBodyRadius: snapshotMoons[0].renderBodyRadius, renderRingRadius: snapshotMoons[0].renderRingRadius, visualHaloRadius: snapshotMoons[0].visualHaloRadius, bodySurfaceRadius: snapshotMoons[0].bodySurfaceRadius, absorptionRadius: snapshotMoons[0].absorptionRadius, absorptionBufferRatio: snapshotMoons[0].absorptionBufferRatio, meshWorldRadius: snapshotMoons[0].meshWorldRadius, glbVisualScale: snapshotMoons[0].glbVisualScale } : null,
         lastRockyPlanetRenderRadiusEvidence: snapshotPlanets.find((p) => p && p.planetKind === "rocky") ? (() => { const rp = snapshotPlanets.find((p) => p && p.planetKind === "rocky"); return { type: "render_radius_evidence", bodyKind: "rocky_planet", bodyId: rp.id, massRadiusContractRadius: rp.massRadiusContractRadius, collisionRadius: rp.collisionRadius, viewRadius: rp.viewRadius, renderBodyRadius: rp.renderBodyRadius, renderRingRadius: rp.renderRingRadius, visualHaloRadius: rp.visualHaloRadius, bodySurfaceRadius: rp.bodySurfaceRadius, absorptionRadius: rp.absorptionRadius, absorptionBufferRatio: rp.absorptionBufferRatio, meshWorldRadius: rp.meshWorldRadius, glbVisualScale: rp.glbVisualScale }; })() : null,
@@ -713,7 +725,10 @@
     // existing diagnostics data and does not change mechanics or collision rules.
     snapshot.physics = Object.assign({
       worldCounts: snapshot.diagnostics?.objectCounts || null,
-      thresholds: World.thresholds || World.spaceThresholds || null,
+      thresholds: {
+        asteroidToMoon: { current: toNumber(Number(World.spaceMechanics?.asteroidToMoonMassThreshold ?? World.asteroidGrowthTarget ?? World.planetCaptureTarget), 10), source: World.spaceMechanics?.asteroidToMoonMassThreshold == null ? "legacy_alias" : "spaceMechanics" },
+        moonToRockyPlanet: { current: toNumber(Number(World.spaceMechanics?.moonToRockyPlanetMassThreshold), 20), source: "spaceMechanics" },
+      },
     }, snapshot.diagnostics || {});
 
     return snapshot;
