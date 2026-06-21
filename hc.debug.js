@@ -473,7 +473,7 @@
     const prgProbePartial = visualCfg.prgFrameProbe || {};
     const meteorGlbVisualScale = Number(visualCfg.meteorGlbVisualScale);
     const meteorGlbDepthScale = Number(visualCfg.meteorGlbDepthScale);
-    const cameraModel = ["absolute_bounds", "stage_normalized"].includes(String(visualCfg.cameraModel)) ? String(visualCfg.cameraModel) : "stage_normalized";
+    const cameraModel = "absolute_bounds";
     const materialCfg = visualCfg.threeMaterials || {};
     const lightsCfg = visualCfg.threeLights || {};
     return {
@@ -519,24 +519,17 @@
         },
         threeLights: {
           enabled: lightsCfg.enabled !== false,
-          ambientIntensity: Number.isFinite(Number(lightsCfg.ambientIntensity)) ? Math.max(0, Math.min(0.75, Number(lightsCfg.ambientIntensity))) : 0.13,
+          ambientIntensity: Number.isFinite(Number(lightsCfg.ambientIntensity)) ? Math.max(0, Math.min(0.75, Number(lightsCfg.ambientIntensity))) : 0.10,
           ambientIsolate: lightsCfg.ambientIsolate === true,
-          debugKeyLightEnabled: lightsCfg.debugKeyLightEnabled === true,
-          debugKeyLightIntensity: Number.isFinite(Number(lightsCfg.debugKeyLightIntensity)) ? Math.max(0, Math.min(5.0, Number(lightsCfg.debugKeyLightIntensity))) : 2.2,
-          debugRimLightEnabled: lightsCfg.debugRimLightEnabled === true,
-          debugRimLightIntensity: Number.isFinite(Number(lightsCfg.debugRimLightIntensity)) ? Math.max(0, Math.min(2.5, Number(lightsCfg.debugRimLightIntensity))) : 0.65,
-          forceHeadlightEnabled: lightsCfg.forceHeadlightEnabled === true,
-          forceHeadlightIntensity: Number.isFinite(Number(lightsCfg.forceHeadlightIntensity)) ? Math.max(0, Math.min(8.0, Number(lightsCfg.forceHeadlightIntensity))) : 4.5,
           mainStageSpotEnabled: (lightsCfg.mainStageSpotEnabled ?? true) !== false,
-          mainStageSpotIntensity: Number.isFinite(Number(lightsCfg.mainStageSpotIntensity)) ? Math.max(0, Math.min(25.0, Number(lightsCfg.mainStageSpotIntensity))) : 3.9,
+          mainStageSpotIntensity: Number.isFinite(Number(lightsCfg.mainStageSpotIntensity)) ? Math.max(0, Math.min(25.0, Number(lightsCfg.mainStageSpotIntensity))) : 4.2,
           mainStageSpotAngle: Number.isFinite(Number(lightsCfg.mainStageSpotAngle)) ? Math.max(Math.PI / 24, Math.min(Math.PI / 2, Number(lightsCfg.mainStageSpotAngle))) : Math.PI / 2.8,
           mainStageSpotPenumbra: Number.isFinite(Number(lightsCfg.mainStageSpotPenumbra)) ? Math.max(0, Math.min(1, Number(lightsCfg.mainStageSpotPenumbra))) : 0.72,
           mainStageSpotDistance: Number.isFinite(Number(lightsCfg.mainStageSpotDistance)) ? Math.max(0, Math.min(100000, Number(lightsCfg.mainStageSpotDistance))) : 0,
           mainStageSpotDecay: Number.isFinite(Number(lightsCfg.mainStageSpotDecay)) ? Math.max(0, Math.min(3, Number(lightsCfg.mainStageSpotDecay))) : 0,
-          mainStageSpotXOffset: Number.isFinite(Number(lightsCfg.mainStageSpotXOffset)) ? Math.max(-2, Math.min(2, Number(lightsCfg.mainStageSpotXOffset))) : -0.25,
-          mainStageSpotYOffset: Number.isFinite(Number(lightsCfg.mainStageSpotYOffset)) ? Math.max(-2, Math.min(2, Number(lightsCfg.mainStageSpotYOffset))) : 0.18,
-          mainStageSpotZHeight: Number.isFinite(Number(lightsCfg.mainStageSpotZHeight)) ? Math.max(0.25, Math.min(8, Number(lightsCfg.mainStageSpotZHeight))) : 2.2,
-          mainStageSpotTargetMode: ["center", "sampleObject"].includes(String(lightsCfg.mainStageSpotTargetMode)) ? String(lightsCfg.mainStageSpotTargetMode) : "center",
+          mainStageSpotXOffset: Number.isFinite(Number(lightsCfg.mainStageSpotXOffset)) ? Math.max(-1.5, Math.min(1.5, Number(lightsCfg.mainStageSpotXOffset))) : -0.35,
+          mainStageSpotYOffset: Number.isFinite(Number(lightsCfg.mainStageSpotYOffset)) ? Math.max(-1.5, Math.min(1.5, Number(lightsCfg.mainStageSpotYOffset))) : 0.35,
+          mainStageSpotZHeight: Number.isFinite(Number(lightsCfg.mainStageSpotZHeight)) ? Math.max(0.10, Math.min(3.0, Number(lightsCfg.mainStageSpotZHeight))) : 0.75,
           showLightHelpers: lightsCfg.showLightHelpers === true,
           showSceneFrame: lightsCfg.showSceneFrame === true,
         },
@@ -581,8 +574,8 @@
     const helper = diagnostics?.threeLightHelpers || {};
     const activeMaterialMode = materials.materialMode || materialOverride.currentMaterialMode || "imported";
     const mainStageSpotEnabled = (diagnostics?.mainStageSpot?.enabled ?? lights.mainStageSpotEnabled) === true;
-    const lightingModelVersion = diagnostics?.lightingModelVersion || "stage_spot_v1";
-    const stageLightingEnabled = lightingModelVersion === "stage_spot_v1" && mainStageSpotEnabled;
+    const lightingModelVersion = diagnostics?.lightingModelVersion || "stage_spot_v1_absolute";
+    const stageLightingEnabled = lightingModelVersion === "stage_spot_v1_absolute" && mainStageSpotEnabled;
     const totalLightObjects = Number.isFinite(Number(diagnostics?.totalLightObjects))
       ? Number(diagnostics.totalLightObjects)
       : (Number.isFinite(Number(diagnostics?.threeLightCount)) ? Number(diagnostics.threeLightCount) : null);
@@ -669,7 +662,7 @@
       stageLighting: {
         enabled: stageLightingEnabled,
         stageLightingEnabled,
-        model: "stage_spot",
+        model: "stage_spot_v1_absolute",
         lightingModelVersion,
         ambientEffectiveIntensity: lightDiagnostics?.effectiveAmbientIntensity ?? null,
         mainStageSpot: lightDiagnostics?.mainStageSpot || diagnostics?.mainStageSpot || null,
@@ -679,40 +672,18 @@
         deprecatedEnabledSemantics: "stageLightingEnabled",
         ambientIntensity: pickThreeLightSetting(lights, "ambientIntensity"),
         ambientIsolate: lights.ambientIsolate === true,
-        debugKeyLightEnabled: lights.debugKeyLightEnabled === true,
-        debugKeyLightIntensity: pickThreeLightSetting(lights, "debugKeyLightIntensity"),
-        debugRimLightEnabled: lights.debugRimLightEnabled === true,
-        debugRimLightIntensity: pickThreeLightSetting(lights, "debugRimLightIntensity"),
-        forceHeadlightEnabled: lights.forceHeadlightEnabled === true,
-        forceHeadlightIntensity: pickThreeLightSetting(lights, "forceHeadlightIntensity"),
         mainStageSpotEnabled,
         mainStageSpotIntensity: pickThreeLightSetting(lights, "mainStageSpotIntensity"),
         mainStageSpotAngle: pickThreeLightSetting(lights, "mainStageSpotAngle"),
         mainStageSpotPenumbra: pickThreeLightSetting(lights, "mainStageSpotPenumbra"),
         mainStageSpotDistance: pickThreeLightSetting(lights, "mainStageSpotDistance"),
         mainStageSpotDecay: pickThreeLightSetting(lights, "mainStageSpotDecay"),
-        mainStageSpotTargetMode: pickThreeLightSetting(lights, "mainStageSpotTargetMode", "center"),
         mainStageSpotXOffset: pickThreeLightSetting(lights, "mainStageSpotXOffset"),
         mainStageSpotYOffset: pickThreeLightSetting(lights, "mainStageSpotYOffset"),
         mainStageSpotZHeight: pickThreeLightSetting(lights, "mainStageSpotZHeight"),
         showLightHelpers: lights.showLightHelpers === true,
         showSceneFrame: lights.showSceneFrame === true,
         globalHelpersEnabled: globalHelpersEnabled !== false,
-      },
-      debugKeyLight: {
-        enabled: lights.debugKeyLightEnabled === true,
-        intensity: pickThreeLightSetting(lights, "debugKeyLightIntensity"),
-        position: lightDiagnostics?.debugKeyLight?.position || null,
-      },
-      debugRimLight: {
-        enabled: lights.debugRimLightEnabled === true,
-        intensity: pickThreeLightSetting(lights, "debugRimLightIntensity"),
-        position: lightDiagnostics?.debugRimLight?.position || null,
-      },
-      forceHeadlight: {
-        enabled: lights.forceHeadlightEnabled === true,
-        intensity: pickThreeLightSetting(lights, "forceHeadlightIntensity"),
-        position: lightDiagnostics?.forceHeadlight?.position || null,
       },
       mainStageSpot: {
         enabled: mainStageSpotEnabled,
@@ -721,14 +692,11 @@
         penumbra: pickThreeLightSetting(lights, "mainStageSpotPenumbra"),
         distance: pickThreeLightSetting(lights, "mainStageSpotDistance"),
         decay: pickThreeLightSetting(lights, "mainStageSpotDecay"),
-        targetMode: pickThreeLightSetting(lights, "mainStageSpotTargetMode", "center"),
         position: diagnostics?.mainStageSpot?.position || lightDiagnostics?.mainStageSpot?.position || null,
         targetPosition: diagnostics?.mainStageSpot?.targetPosition || lightDiagnostics?.mainStageSpot?.targetPosition || null,
         helperVisible: diagnostics?.mainStageSpot?.helperVisible === true || lightDiagnostics?.mainStageSpotHelperVisible === true,
         targetInScene: diagnostics?.mainStageSpot?.targetInScene === true,
         castShadow: diagnostics?.mainStageSpot?.castShadow === true,
-        sampleObjectProjected: lightDiagnostics?.sampleObjectProjected || diagnostics?.firstMeteorScreenEstimate || null,
-        sampleObjectFrustumVisible: lightDiagnostics?.sampleObjectFrustumVisible ?? diagnostics?.firstMeteorInCameraBounds ?? null,
       },
       showLightHelpers: lights.showLightHelpers === true,
       helper: {
@@ -750,14 +718,7 @@
         auditEntries: materialAuditEntries,
       },
       lights: {
-        sampleObject: lightDiagnostics?.sampleObject || null,
-        debugKeyLight: lightDiagnostics?.debugKeyLight || null,
-        debugRimLight: lightDiagnostics?.debugRimLight || null,
-        forceHeadlight: lightDiagnostics?.forceHeadlight || null,
         mainStageSpot: lightDiagnostics?.mainStageSpot || diagnostics?.mainStageSpot || null,
-        mainStageSpotTargetMode: lightDiagnostics?.mainStageSpotTargetMode || lights.mainStageSpotTargetMode || "center",
-        sampleObjectProjected: lightDiagnostics?.sampleObjectProjected || diagnostics?.firstMeteorScreenEstimate || null,
-        sampleObjectFrustumVisible: lightDiagnostics?.sampleObjectFrustumVisible ?? diagnostics?.firstMeteorInCameraBounds ?? null,
         distanceDiagnostics: lightDiagnostics || null,
       },
       worldRendererDiagnostics: diagnostics,

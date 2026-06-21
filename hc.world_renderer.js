@@ -128,17 +128,17 @@
   });
   const THREE_LIGHTS_DEFAULTS = Object.freeze({
     enabled: true,
-    ambientIntensity: 0.13,
+    ambientIntensity: 0.10,
     ambientIsolate: false,
     mainStageSpotEnabled: true,
-    mainStageSpotIntensity: 3.9,
+    mainStageSpotIntensity: 4.2,
     mainStageSpotAngle: Math.PI / 2.8,
     mainStageSpotPenumbra: 0.72,
     mainStageSpotDistance: 0,
     mainStageSpotDecay: 0,
-    mainStageSpotXOffset: -0.25,
-    mainStageSpotYOffset: 0.18,
-    mainStageSpotZHeight: 2.2,
+    mainStageSpotXOffset: -0.35,
+    mainStageSpotYOffset: 0.35,
+    mainStageSpotZHeight: 0.75,
     showLightHelpers: false,
     showSceneFrame: false,
   });
@@ -149,9 +149,9 @@
     mainStageSpotPenumbra: { min: 0, max: 1 },
     mainStageSpotDistance: { min: 0, max: 100000 },
     mainStageSpotDecay: { min: 0, max: 3 },
-    mainStageSpotXOffset: { min: -2, max: 2 },
-    mainStageSpotYOffset: { min: -2, max: 2 },
-    mainStageSpotZHeight: { min: 0.25, max: 8 },
+    mainStageSpotXOffset: { min: -1.5, max: 1.5 },
+    mainStageSpotYOffset: { min: -1.5, max: 1.5 },
+    mainStageSpotZHeight: { min: 0.10, max: 3.0 },
   });
   const THREE_MATERIAL_DEBUG_DEFAULTS = Object.freeze({
     enabled: false,
@@ -244,9 +244,6 @@
     prgIndicatorMaterial: null,
     lightsGroup: null,
     ambientLight: null,
-    debugKeyLight: null,
-    debugRimLight: null,
-    forceHeadlight: null,
     mainStageSpot: null,
     mainStageSpotTarget: null,
     lightHelpersGroup: null,
@@ -337,7 +334,7 @@
     cameraSnapshotZoom: null,
     cameraSnapshotWorldBounds: null,
     cameraPosition: null,
-    absoluteStageLightBounds: null,
+    stageSpotSceneRect: null,
     worldBoundsSource: "unknown",
     meteorGroupChildrenCount: 0,
     meteorGlbCacheStats: { loading: 0, ready: 0, failed: 0 },
@@ -961,7 +958,7 @@
     lightsGroup.add(ambientLight);
     lightsGroup.add(mainStageSpotTarget);
     lightsGroup.add(mainStageSpot);
-    Object.assign(threeState, { lightsGroup, ambientLight, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot, mainStageSpotTarget });
+    Object.assign(threeState, { lightsGroup, ambientLight, mainStageSpot, mainStageSpotTarget });
     return lightsGroup;
   }
 
@@ -1179,51 +1176,40 @@
     };
   }
 
-  function getAbsoluteBoundsStageLightBounds(renderSnapshot, sceneRect) {
-    const normalized = normalizeLightBounds(sceneRect || getAbsoluteBoundsSceneRect(renderSnapshot));
-    if (!normalized) return null;
-    const width = Math.max(1, normalized.right - normalized.left);
-    const height = Math.max(1, normalized.top - normalized.bottom);
-    const padding = Math.max(1, Math.max(width, height) * 0.04);
-    const padded = normalizeLightBounds({
-      left: normalized.left - padding,
-      right: normalized.right + padding,
-      bottom: normalized.bottom - padding,
-      top: normalized.top + padding,
-    });
-    return Object.assign(padded, { padding });
+  function getStageSpotSceneRect(renderSnapshot, sceneRect) {
+    return normalizeLightBounds(sceneRect || getAbsoluteBoundsSceneRect(renderSnapshot));
   }
 
-  function updateStageSpotForAbsoluteBounds(settings, sceneBounds) {
-    if (!threeState.mainStageSpot || !sceneBounds) return false;
-    const width = Math.max(1, Number(sceneBounds.width) || Math.abs(sceneBounds.right - sceneBounds.left) || 1);
-    const height = Math.max(1, Number(sceneBounds.height) || Math.abs(sceneBounds.top - sceneBounds.bottom) || 1);
-    const maxDim = Math.max(width, height);
-    const targetX = Number(sceneBounds.centerX ?? sceneBounds.cx);
-    const targetY = Number(sceneBounds.centerY ?? sceneBounds.cy);
+  function getScreenSpaceWorldAxes(sceneRect) {
+    const width = Math.abs(sceneRect.right - sceneRect.left);
+    const height = Math.abs(sceneRect.bottom - sceneRect.top);
+    const xRightSign = sceneRect.right >= sceneRect.left ? 1 : -1;
+    const yDownSign = sceneRect.bottom >= sceneRect.top ? 1 : -1;
+    return { width, height, xRightSign, yDownSign };
+  }
+
+  function updateStageSpotForAbsoluteBounds(settings, sceneRect) {
+    if (!threeState.mainStageSpot || !sceneRect) return false;
+    const axes = getScreenSpaceWorldAxes(sceneRect);
+    const centerX = Number(sceneRect.centerX ?? sceneRect.cx ?? ((sceneRect.left + sceneRect.right) * 0.5));
+    const centerY = Number(sceneRect.centerY ?? sceneRect.cy ?? ((sceneRect.top + sceneRect.bottom) * 0.5));
+    const lightX = centerX + axes.xRightSign * axes.width * settings.mainStageSpotXOffset;
+    const lightY = centerY + axes.yDownSign * axes.height * settings.mainStageSpotYOffset;
+    const lightZ = Math.max(32, axes.height * settings.mainStageSpotZHeight);
     if (threeState.mainStageSpotTarget) {
-      threeState.mainStageSpotTarget.position.set(targetX, targetY, 0);
-      threeState.mainStageSpotTarget.updateMatrixWorld?.();
+      threeState.mainStageSpotTarget.position.set(centerX, centerY, 0);
       threeState.mainStageSpot.target = threeState.mainStageSpotTarget;
     }
-    threeState.mainStageSpot.position.set(
-      targetX + width * settings.mainStageSpotXOffset,
-      targetY + height * settings.mainStageSpotYOffset,
-      Math.max(24, maxDim * settings.mainStageSpotZHeight)
-    );
-    threeState.mainStageSpot.intensity = settings.mainStageSpotEnabled ? settings.mainStageSpotIntensity : 0;
-    const dx = threeState.mainStageSpot.position.x - targetX;
-    const dy = threeState.mainStageSpot.position.y - targetY;
-    const dz = threeState.mainStageSpot.position.z;
-    const distanceToTarget = Math.max(1, Math.sqrt(dx * dx + dy * dy + dz * dz));
-    const halfDiagonal = Math.sqrt(width * width + height * height) * 0.5;
-    const coverAngle = Math.atan2(halfDiagonal, distanceToTarget) * 1.18;
-    threeState.mainStageSpot.angle = clampNumber(coverAngle, settings.mainStageSpotAngle, Math.PI / 5, Math.PI / 2);
+    threeState.mainStageSpot.position.set(lightX, lightY, lightZ);
+    threeState.mainStageSpot.intensity = settings.mainStageSpotIntensity;
+    threeState.mainStageSpot.angle = clampNumber(settings.mainStageSpotAngle, Math.PI / 2.8, Math.PI / 24, Math.PI / 2);
     threeState.mainStageSpot.penumbra = settings.mainStageSpotPenumbra;
     threeState.mainStageSpot.distance = 0;
     threeState.mainStageSpot.decay = 0;
     threeState.mainStageSpot.castShadow = false;
-    threeState.mainStageSpot.visible = settings.enabled && settings.mainStageSpotEnabled && settings.mainStageSpotIntensity > 0;
+    threeState.mainStageSpot.visible = settings.enabled !== false && settings.mainStageSpotEnabled !== false && settings.mainStageSpotIntensity > 0;
+    threeState.mainStageSpotTarget?.updateMatrixWorld?.();
+    threeState.mainStageSpot.updateMatrixWorld?.();
     return true;
   }
 
@@ -1234,7 +1220,7 @@
     const effectiveAmbient = settings.ambientIsolate ? 0 : settings.ambientIntensity;
     threeState.ambientLight.intensity = settings.enabled ? effectiveAmbient : 0;
     threeState.ambientLight.visible = settings.enabled && effectiveAmbient > 0;
-    updateStageSpotForAbsoluteBounds(settings, threeState.absoluteStageLightBounds || threeState.cameraBounds);
+    updateStageSpotForAbsoluteBounds(settings, threeState.stageSpotSceneRect || threeState.cameraBounds);
     syncLightHelpers();
     syncSceneFrameHelper();
   }
@@ -1344,7 +1330,7 @@
     threeState.stageModelEnabled = false;
     threeState.stageSettings = null;
     threeState.cameraBounds = worldBounds;
-    threeState.absoluteStageLightBounds = getAbsoluteBoundsStageLightBounds(renderSnapshot, sceneRect);
+    threeState.stageSpotSceneRect = getStageSpotSceneRect(renderSnapshot, sceneRect);
     syncDebugMarkerPosition();
     syncThreeLights();
     syncSceneFrameHelper();
@@ -5255,7 +5241,7 @@
     if (threeState.sceneFrame?.parent) threeState.sceneFrame.parent.remove(threeState.sceneFrame);
     threeState.sceneFrameGeometry?.dispose?.();
     threeState.sceneFrameMaterial?.dispose?.();
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, harmonicDustGroup: null, prgIndicatorGroup: null, prgIndicatorLine: null, prgIndicatorGeometry: null, prgIndicatorMaterial: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], sceneFrame: null, sceneFrameGeometry: null, sceneFrameMaterial: null, sceneRect: null, cameraClip: null, meteorGeometry: null, planetGeometry: null, harmonicDustGeometry: null, cosmicDustGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, rawSceneRect: null, fittedSceneRect: null, viewportAspect: null, environment: null, environmentCanvas: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, harmonicDustGroup: null, prgIndicatorGroup: null, prgIndicatorLine: null, prgIndicatorGeometry: null, prgIndicatorMaterial: null, lightsGroup: null, ambientLight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], sceneFrame: null, sceneFrameGeometry: null, sceneFrameMaterial: null, sceneRect: null, cameraClip: null, meteorGeometry: null, planetGeometry: null, harmonicDustGeometry: null, cosmicDustGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, rawSceneRect: null, fittedSceneRect: null, viewportAspect: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -5484,15 +5470,15 @@
     });
     const settings = threeState.lightsSettings || getThreeLightsSettings();
     return {
-      sampleObject: sample,
-      asteroidSampleObject: asteroidSample,
+      objectProbe: sample,
+      asteroidObjectProbe: asteroidSample,
       effectiveAmbientIntensity: settings.enabled && !settings.ambientIsolate ? roundDiagnosticNumber(settings.ambientIntensity) : 0,
       lights: lightEntries,
       mainStageSpot: lightEntries.find((entry) => entry.role === "main_stage_spot") || null,
       mainStageSpotHelperVisible: !!threeState.lightHelpers.find((entry) => entry.name === "mainStageSpot" && entry.mode === "spotLightHelper" && entry.helper?.visible),
       asteroidSampleObjectProjected: threeState.firstAsteroidScreenEstimate || null,
       asteroidSampleObjectFrustumVisible: threeState.firstAsteroidInCameraBounds == null ? null : !!threeState.firstAsteroidInCameraBounds,
-      sampleObjectFrustumVisible: threeState.firstMeteorInCameraBounds == null ? null : !!threeState.firstMeteorInCameraBounds,
+      objectProbeFrustumVisible: threeState.firstMeteorInCameraBounds == null ? null : !!threeState.firstMeteorInCameraBounds,
     };
   }
 
@@ -5525,8 +5511,9 @@
       decay: roundDiagnosticNumber(threeState.mainStageSpot?.decay),
       position: vectorToDiagnostic(threeState.mainStageSpot?.position),
       targetPosition: vectorToDiagnostic(threeState.mainStageSpotTarget?.position),
-      absoluteBoundsSceneBounds: Object.assign({}, threeState.absoluteStageLightBounds || {}),
-      targetMode: "absolute_bounds_center",
+      sceneBounds: Object.assign({}, threeState.stageSpotSceneRect || {}),
+      screenOffset: { x: lightSettings.mainStageSpotXOffset, y: lightSettings.mainStageSpotYOffset, zHeight: lightSettings.mainStageSpotZHeight },
+      computedFrom: "camera_sceneRect_screenSpace",
       helperVisible: !!threeState.lightHelpers.find((entry) => entry.name === "mainStageSpot" && entry.mode === "spotLightHelper" && entry.helper?.visible),
       targetInScene: !!threeState.mainStageSpotTarget?.parent,
       castShadow: !!threeState.mainStageSpot?.castShadow,
@@ -5724,16 +5711,16 @@
       totalLightObjects: stageLightCounts.totalLightObjects,
       threeLightCount: stageLightCounts.totalLightObjects,
       threeLightCountSemantics: "ambient_plus_mainStageSpot_only",
-      lightingModelVersion: "absolute_bounds_spot_v2",
-      removedLegacyCornerLights: true,
-      debugKeyRimHeadlightInactive: true,
+      lightingModelVersion: "stage_spot_v1_absolute",
       stageLighting: {
         enabled: stageLightingEnabled,
         stageLightingEnabled,
-        model: "absolute_bounds_spot",
-        lightingModelVersion: "absolute_bounds_spot_v2",
-        removedLegacyCornerLights: true,
-        debugKeyRimHeadlightInactive: true,
+        model: "stage_spot_v1_absolute",
+        lightingModelVersion: "stage_spot_v1_absolute",
+        screenSpaceOffsets: true,
+        yOffsetSemantic: "positive_is_screen_down",
+        autoAngle: false,
+        bodyBoundsUsedForLight: false,
         ambientEffectiveIntensity: lightDiagnostics.effectiveAmbientIntensity,
         mainStageSpot: mainStageSpotSnapshot,
       },
