@@ -12,24 +12,39 @@ vm.runInContext(fs.readFileSync(path.join(root, "hc.world_render_snapshot.js"), 
 vm.runInContext(fs.readFileSync(path.join(root, "hc.world_renderer.js"), "utf8"), context, { filename: "hc.world_renderer.js" });
 
 const assets = context.window.HC.WorldVisualAssets;
-assert.deepEqual(Array.from(assets.asteroidVariants), ["asteroid_01", "asteroid_02", "asteroid_03"]);
+assert.deepEqual(Array.from(assets.asteroidVariants), Array.from({ length: 10 }, (_, index) => `asteroid_${String(index + 1).padStart(2, "0")}`));
+assert.deepEqual(Array.from(assets.moonVariants), Array.from({ length: 6 }, (_, index) => `moon_${String(index + 1).padStart(2, "0")}`));
 
 const first = assets.assignAsteroidVisual({}, 0);
 const second = assets.assignAsteroidVisual({}, 0.34);
 const third = assets.assignAsteroidVisual({}, 0.99);
 assert.deepEqual(
   [first.visualVariant, second.visualVariant, third.visualVariant],
-  ["asteroid_01", "asteroid_02", "asteroid_03"]
+  ["asteroid_01", "asteroid_04", "asteroid_10"]
 );
 assert.deepEqual(
   [first.assetId, second.assetId, third.assetId],
-  ["asteroid_01.glb", "asteroid_02.glb", "asteroid_03.glb"]
+  ["asteroid_01.glb", "asteroid_04.glb", "asteroid_10.glb"]
 );
 
+assert.equal(second.modelId, "asteroid_04");
+assert.equal(second.glbId, "asteroid_04");
 const stableVariant = second.visualVariant;
 second.mass = 12;
 second.r = 42;
-assert.equal(second.visualVariant, stableVariant, "growth must not reroll the visual variant");
+assets.assignAsteroidVisual(second, 0.99);
+assert.equal(second.visualVariant, stableVariant, "growth/reassignment must not reroll the visual variant");
+assert.equal(second.modelId, stableVariant);
+assert.equal(second.glbId, stableVariant);
+
+const moon = assets.assignMoonVisual({}, 0.5);
+assert.equal(moon.visualKind, "moon");
+assert.equal(moon.visualVariant, "moon_04");
+assert.equal(moon.modelId, "moon_04");
+assert.equal(moon.glbId, "moon_04");
+assert.equal(moon.assetId, "moon_04.glb");
+assets.assignMoonVisual(moon, 0.99);
+assert.equal(moon.visualVariant, "moon_04", "moon reassignment must not reroll the visual variant");
 
 const rockyPlanet = assets.assignPlanetVisual({ type: "planet", planetKind: "rocky", isRocky: true, x: 10, y: 20, r: 30 }, 0.125);
 const gasPlanet = assets.assignPlanetVisual({ type: "planet", planetKind: "gas", isRocky: false, x: 40, y: 50, radius: 60 }, 0.875);
@@ -67,12 +82,25 @@ assert.deepEqual(
 );
 
 const snapshot = context.window.HC.WorldRenderSnapshot.build({
-  World: { meteors: [], comets: [], asteroids: [second], planets: [rockyPlanet, gasPlanet], stars: [] },
+  World: { meteors: [], comets: [], asteroids: [second], moons: [moon], planets: [rockyPlanet, gasPlanet], stars: [] },
   Camera: {},
   View: {},
 });
-assert.equal(snapshot.world.asteroids[0].visualVariant, "asteroid_02");
-assert.equal(snapshot.world.asteroids[0].assetId, "asteroid_02.glb");
+assert.equal(snapshot.world.asteroids[0].visualVariant, "asteroid_04");
+assert.equal(snapshot.world.asteroids[0].assetId, "asteroid_04.glb");
+assert.equal(snapshot.world.asteroids[0].modelId, "asteroid_04");
+assert.equal(snapshot.world.asteroids[0].glbId, "asteroid_04");
+assert.equal(snapshot.world.moons[0].visualVariant, "moon_04");
+assert.equal(snapshot.world.moons[0].assetId, "moon_04.glb");
+assert.equal(snapshot.world.moons[0].modelId, "moon_04");
+assert.equal(snapshot.world.moons[0].glbId, "moon_04");
+const snapshotAgain = context.window.HC.WorldRenderSnapshot.build({
+  World: { meteors: [], comets: [], asteroids: [second], moons: [moon], planets: [], stars: [] },
+  Camera: {},
+  View: {},
+});
+assert.equal(snapshotAgain.world.asteroids[0].glbId, snapshot.world.asteroids[0].glbId, "asteroid model remains stable between snapshots");
+assert.equal(snapshotAgain.world.moons[0].glbId, snapshot.world.moons[0].glbId, "moon model remains stable between snapshots");
 assert.equal(snapshot.world.planets.length, 2, "snapshot must retain rocky and gas planets");
 assert.deepEqual(Array.from(snapshot.world.planets, (planet) => planet.planetKind), ["rocky", "gas"]);
 assert.match(snapshot.world.planets[0].visualVariant, /^rocky_planet_0[1-4]$/);
@@ -103,7 +131,16 @@ assert.equal(context.window.HC.WorldRenderer.isPlanetVisualCandidate(legacyGasSn
 const asteroidSource = fs.readFileSync(path.join(root, "hc.asteroids.js"), "utf8");
 assert.match(asteroidSource, /const primary = massA >= massB \? a : b;/, "merge must retain the larger asteroid, or the first asteroid on equal mass");
 const rendererSource = fs.readFileSync(path.join(root, "hc.world_renderer.js"), "utf8");
-assert.doesNotMatch(rendererSource, /Math\.random\(\).*asteroid_0[123]/s, "renderer must not reroll asteroid assets");
+assert.doesNotMatch(rendererSource, /Math\.random\(\).*asteroid_0[1-9]/s, "renderer must not reroll asteroid assets");
+assert.match(rendererSource, /Array\.from\(\{ length: 10 \}[\s\S]*`glb\/\$\{variant\}\.glb`/, "asteroid GLB routing must generate asteroid_01..asteroid_10 public paths");
+assert.match(rendererSource, /Array\.from\(\{ length: 6 \}[\s\S]*`glb\/\$\{variant\}\.glb`/, "moon GLB routing must generate moon_01..moon_06 public paths");
+const assetLoaderSource = fs.readFileSync(path.join(root, "hc.asset_loader.js"), "utf8");
+for (const variant of [...assets.asteroidVariants, ...assets.moonVariants]) {
+  assert.match(assetLoaderSource, new RegExp(`logicalPath: "glb/${variant}\\.glb"`), `${variant} must be present in preload routing`);
+}
+for (const file of [...assets.asteroidVariants, ...assets.moonVariants].map((variant) => `${variant}.glb`)) {
+  assert.equal(fs.existsSync(path.join(root, "public", "glb", file)), true, `${file} must exist under public/glb to avoid 404`);
+}
 assert.match(rendererSource, /applyPlanetVisualRotation\(visual, planet, rotationNowMs\)/, "Three planet pass must animate snapshot rotation metadata");
 assert.doesNotMatch(rendererSource, /function applyPlanetVisualRotation[\s\S]*?Math\.random\(/, "planet renderer must not reroll rotation per frame");
 
@@ -113,6 +150,6 @@ assert.match(rendererSource, /debugMarkerReason/, 'debug marker diagnostics expo
 const bootSource = fs.readFileSync(path.join(root, 'game.boot.js'), 'utf8');
 const planetsSource = fs.readFileSync(path.join(root, 'hc.planets.js'), 'utf8');
 assert.match(bootSource, /planetToStarEnabled: false/, 'planet-to-star progression is disabled by default');
-assert.match(planetsSource, /planetToStarEnabled !== true/, 'planet-to-star update path is gated behind explicit flag');
+assert.match(planetsSource, /Legacy star\/gas\/capture system disabled/, 'planet-to-star update path remains legacy-disabled');
 
 console.log("world visual asset routing contract ok");

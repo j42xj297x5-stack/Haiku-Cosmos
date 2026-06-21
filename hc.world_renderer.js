@@ -8,11 +8,12 @@
   const THREE_METEOR_MIN_RADIUS = 2.4;
   const THREE_ASTEROID_MIN_RADIUS = 4.0;
   const THREE_ASTEROID_DEFAULT_SIDES = 7;
-  const ASTEROID_GLB_ASSETS = Object.freeze({
-    asteroid_01: "glb/asteroid_01.glb",
-    asteroid_02: "glb/asteroid_02.glb",
-    asteroid_03: "glb/asteroid_03.glb",
-  });
+  const ASTEROID_GLB_ASSETS = Object.freeze(Object.fromEntries(
+    Array.from({ length: 10 }, (_, index) => {
+      const variant = `asteroid_${String(index + 1).padStart(2, "0")}`;
+      return [variant, `glb/${variant}.glb`];
+    })
+  ));
   const ASTEROID_GLB_DEFAULT_VARIANT = "asteroid_01";
   const PLANET_GLB_ASSETS = Object.freeze({
     planet_01: "glb/planet_01.glb",
@@ -23,7 +24,12 @@
   });
   const PLANET_GLB_DEFAULT_VARIANT = "planet_01";
   const ROCKY_PLANET_GLB_DEFAULT_VARIANT = "rocky_planet_01";
-  const MOON_GLB_ASSETS = Object.freeze({ moon_01: "glb/moon_01.glb" });
+  const MOON_GLB_ASSETS = Object.freeze(Object.fromEntries(
+    Array.from({ length: 6 }, (_, index) => {
+      const variant = `moon_${String(index + 1).padStart(2, "0")}`;
+      return [variant, `glb/${variant}.glb`];
+    })
+  ));
   const MOON_GLB_DEFAULT_VARIANT = "moon_01";
   const ASTEROID_GLB_RADIUS_SCALE = 1.0; // visual-only GLB scale must match snapshot view radius by default
   const ASTEROID_GLB_DEPTH_SCALE = 1.0;
@@ -2299,7 +2305,7 @@
   }
 
   function normalizeAsteroidVisualVariant(asteroid) {
-    const requestedVariant = String(asteroid?.visualVariant || "").replace(/\.glb$/i, "");
+    const requestedVariant = String(asteroid?.glbId || asteroid?.modelId || asteroid?.visualVariant || "").replace(/\.glb$/i, "");
     if (ASTEROID_GLB_ASSETS[requestedVariant]) return requestedVariant;
     const assetId = String(asteroid?.assetId || "");
     const matchedVariant = Object.keys(ASTEROID_GLB_ASSETS).find((variant) => ASTEROID_GLB_ASSETS[variant].endsWith(`/${assetId}`));
@@ -2353,7 +2359,7 @@
   }
 
   function normalizeMoonVisualVariant(moon) {
-    const requested = String(moon?.visualVariant || moon?.assetId || moon?.asset || "").replace(/\.glb$/i, "");
+    const requested = String(moon?.glbId || moon?.modelId || moon?.visualVariant || moon?.assetId || moon?.asset || "").replace(/\.glb$/i, "");
     return MOON_GLB_ASSETS[requested] ? requested : MOON_GLB_DEFAULT_VARIANT;
   }
 

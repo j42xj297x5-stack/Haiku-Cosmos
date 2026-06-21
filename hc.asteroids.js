@@ -2,12 +2,21 @@
 (function () {
   window.HC = window.HC || {};
 
-  const ASTEROID_VISUAL_VARIANTS = Object.freeze(["asteroid_01", "asteroid_02", "asteroid_03"]);
-  const ASTEROID_ASSET_IDS = Object.freeze({
-    asteroid_01: "asteroid_01.glb",
-    asteroid_02: "asteroid_02.glb",
-    asteroid_03: "asteroid_03.glb",
-  });
+  const ASTEROID_VISUAL_VARIANTS = Object.freeze([
+    "asteroid_01",
+    "asteroid_02",
+    "asteroid_03",
+    "asteroid_04",
+    "asteroid_05",
+    "asteroid_06",
+    "asteroid_07",
+    "asteroid_08",
+    "asteroid_09",
+    "asteroid_10",
+  ]);
+  const ASTEROID_ASSET_IDS = Object.freeze(Object.fromEntries(
+    ASTEROID_VISUAL_VARIANTS.map((variant) => [variant, `${variant}.glb`])
+  ));
   const PLANET_BASE_VISUAL_VARIANT = "planet_01";
   const PLANET_BASE_ASSET_ID = "planet_01.glb";
   const ROCKY_PLANET_VISUAL_VARIANTS = Object.freeze([
@@ -23,7 +32,18 @@
     rocky_planet_04: "rocky_planet_04.glb",
   });
   const PLANET_VISUAL_ROTATION_TWO_PI = Math.PI * 2;
-  const MOON_ASSET_ID = "moon_01.glb";
+  const MOON_VISUAL_VARIANTS = Object.freeze([
+    "moon_01",
+    "moon_02",
+    "moon_03",
+    "moon_04",
+    "moon_05",
+    "moon_06",
+  ]);
+  const MOON_ASSET_IDS = Object.freeze(Object.fromEntries(
+    MOON_VISUAL_VARIANTS.map((variant) => [variant, `${variant}.glb`])
+  ));
+  const MOON_ASSET_ID = MOON_ASSET_IDS.moon_01;
 
   function planetRotationUnit(seed, offset) {
     const value = Math.sin((seed + offset) * 43758.5453123) * 143758.5453;
@@ -37,15 +57,34 @@
     return magnitude * direction;
   }
 
+  function pickVisualVariant(variants, assetIds, body, randomValue) {
+    const requested = String(body?.glbId || body?.modelId || body?.visualVariant || body?.assetId || body?.asset || "").replace(/\.glb$/i, "");
+    if (assetIds[requested]) return requested;
+    const roll = Number.isFinite(randomValue) ? randomValue : Math.random();
+    const index = Math.max(0, Math.min(variants.length - 1, Math.floor(roll * variants.length)));
+    return variants[index];
+  }
+
+  function applyRenderOnlyModelMetadata(body, visualKind, visualVariant, assetId) {
+    body.visualKind = visualKind;
+    body.visualVariant = visualVariant;
+    body.modelId = visualVariant;
+    body.glbId = visualVariant;
+    body.assetId = assetId;
+    body.asset = assetId;
+    return body;
+  }
+
   function assignAsteroidVisual(body, randomValue) {
     if (!body || typeof body !== "object") return body;
-    const roll = Number.isFinite(randomValue) ? randomValue : Math.random();
-    const index = Math.max(0, Math.min(ASTEROID_VISUAL_VARIANTS.length - 1, Math.floor(roll * ASTEROID_VISUAL_VARIANTS.length)));
-    const visualVariant = ASTEROID_VISUAL_VARIANTS[index];
-    body.visualKind = "asteroid";
-    body.visualVariant = visualVariant;
-    body.assetId = ASTEROID_ASSET_IDS[visualVariant];
-    return body;
+    const visualVariant = pickVisualVariant(ASTEROID_VISUAL_VARIANTS, ASTEROID_ASSET_IDS, body, randomValue);
+    return applyRenderOnlyModelMetadata(body, "asteroid", visualVariant, ASTEROID_ASSET_IDS[visualVariant]);
+  }
+
+  function assignMoonVisual(body, randomValue) {
+    if (!body || typeof body !== "object") return body;
+    const visualVariant = pickVisualVariant(MOON_VISUAL_VARIANTS, MOON_ASSET_IDS, body, randomValue);
+    return applyRenderOnlyModelMetadata(body, "moon", visualVariant, MOON_ASSET_IDS[visualVariant]);
   }
 
   function isRockyPlanet(body) {
@@ -101,8 +140,11 @@
     planetAssetId: PLANET_BASE_ASSET_ID,
     rockyPlanetVariants: ROCKY_PLANET_VISUAL_VARIANTS,
     rockyPlanetAssetIds: ROCKY_PLANET_ASSET_IDS,
+    moonVariants: MOON_VISUAL_VARIANTS,
+    moonAssetIds: MOON_ASSET_IDS,
     moonAssetId: MOON_ASSET_ID,
     assignAsteroidVisual,
+    assignMoonVisual,
     assignPlanetVisual,
   });
 
@@ -296,12 +338,10 @@
         parentPlanetId: null,
         orbitState: null,
         sourceAsteroidId: a._id || a.id || null,
-        asset: MOON_ASSET_ID,
-        assetId: MOON_ASSET_ID,
         visualKind: "moon",
-        visualVariant: "moon_01",
         sourceColors: Array.isArray(a.sourceColors) ? a.sourceColors.slice() : [],
       };
+      assignMoonVisual(moon);
       moon.baseR = moon.massOneRadius || moon.baseR || (Number(a.massOneRadius || a.baseR) || (moon.r / Math.sqrt(Math.max(1, mass))));
       moon.massOneRadius = moon.baseR;
       refreshRadius(moon, "moon", "Asteroids.createMoonFromAsteroid");
