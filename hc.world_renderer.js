@@ -95,6 +95,36 @@
       roughness: 0.78,
       metalness: 0.08,
     }),
+    blue: Object.freeze({
+      variants: Object.freeze([
+        Object.freeze({
+          map: Object.freeze(["textures/meteors/meteor_blue_01_texture_01.webp", "textures/meteors/meteor_blue_01_texture_02.webp"]),
+          emissiveMap: Object.freeze(["textures/meteors/meteor_blue_01_emission_01.webp", "textures/meteors/meteor_blue_01_emission_02.webp"]),
+        }),
+        Object.freeze({
+          map: Object.freeze(["textures/meteors/meteor_blue_02_texture_01.webp", "textures/meteors/meteor_blue_02_texture_02.webp"]),
+          emissiveMap: Object.freeze(["textures/meteors/meteor_blue_02_emission_01.webp", "textures/meteors/meteor_blue_02_emission_02.webp"]),
+        }),
+        Object.freeze({
+          map: Object.freeze(["textures/meteors/meteor_blue_03_texture_01.webp", "textures/meteors/meteor_blue_03_texture_02.webp"]),
+          emissiveMap: Object.freeze(["textures/meteors/meteor_blue_03_emission_01.webp", "textures/meteors/meteor_blue_03_emission_02.webp"]),
+        }),
+        Object.freeze({
+          map: Object.freeze(["textures/meteors/meteor_blue_04_texture_01.webp", "textures/meteors/meteor_blue_04_texture_02.webp"]),
+          emissiveMap: Object.freeze(["textures/meteors/meteor_blue_04_emission_01.webp", "textures/meteors/meteor_blue_04_emission_02.webp"]),
+        }),
+        Object.freeze({
+          map: Object.freeze(["textures/meteors/meteor_blue_05_texture_01.webp", "textures/meteors/meteor_blue_05_texture_02.webp"]),
+          emissiveMap: Object.freeze(["textures/meteors/meteor_blue_05_emission_01.webp", "textures/meteors/meteor_blue_05_emission_02.webp"]),
+        }),
+      ]),
+      baseColor: 0xffffff,
+      emissiveColor: 0x8fdcff,
+      emissiveIntensity: 1.2,
+      roughness: 0.82,
+      metalness: 0.04,
+      forceOverride: true,
+    }),
   });
   const THREE_LIGHTS_DEFAULTS = Object.freeze({
     enabled: true,
@@ -132,6 +162,7 @@
     meteorPngTexturesEnabled: true,
     redMeteorTexturesEnabled: true,
     yellowMeteorTexturesEnabled: true,
+    blueMeteorTexturesEnabled: true,
     meteorTextureEmissiveIntensity: 1.2,
   });
   const THREE_MATERIAL_DEBUG_LIMITS = Object.freeze({
@@ -1488,10 +1519,21 @@
     return METEOR_TEXTURE_PALETTES[normalizeMeteorColorKey(colorKey)] || null;
   }
 
-  function buildMeteorTexturePalette(colorKey, kind) {
+  function getMeteorTexturePaths(colorKey, kind, variantIndex = null) {
+    const config = getMeteorTextureConfig(colorKey);
     const normalizedColorKey = normalizeMeteorColorKey(colorKey);
-    const paths = getMeteorTextureConfig(normalizedColorKey)?.[kind] || [];
-    return paths.map((path) => ({ colorKey: normalizedColorKey, kind, path, url: resolvePublicAssetPath(path) }));
+    if (!config) return [];
+    if (normalizedColorKey === "blue" && Array.isArray(config.variants)) {
+      if (Number.isInteger(variantIndex) && config.variants[variantIndex]) return config.variants[variantIndex][kind] || [];
+      return config.variants.flatMap((variant) => variant?.[kind] || []);
+    }
+    return config[kind] || [];
+  }
+
+  function buildMeteorTexturePalette(colorKey, kind, variantIndex = null) {
+    const normalizedColorKey = normalizeMeteorColorKey(colorKey);
+    const paths = getMeteorTexturePaths(normalizedColorKey, kind, variantIndex);
+    return paths.map((path) => ({ colorKey: normalizedColorKey, kind, path, url: resolvePublicAssetPath(path), variantIndex }));
   }
 
   function isMeteorTextureColorEnabled(colorKey, settings = getThreeMaterialSettings()) {
@@ -1499,20 +1541,22 @@
     if (settings.meteorPngTexturesEnabled === false) return false;
     if (normalizedColorKey === "red") return settings.redMeteorTexturesEnabled !== false;
     if (normalizedColorKey === "yellow") return settings.yellowMeteorTexturesEnabled !== false;
+    if (normalizedColorKey === "blue") return settings.blueMeteorTexturesEnabled !== false;
     return false;
   }
 
-  function buildMeteorTextureAssignment(colorKey) {
+  function buildMeteorTextureAssignment(colorKey, variantIndex = null) {
     const normalizedColorKey = normalizeMeteorColorKey(colorKey);
     return {
       colorKey: normalizedColorKey,
-      map: chooseMeteorTexture(normalizedColorKey, "map"),
-      emissiveMap: chooseMeteorTexture(normalizedColorKey, "emissiveMap"),
+      variantIndex,
+      map: chooseMeteorTexture(normalizedColorKey, "map", variantIndex),
+      emissiveMap: chooseMeteorTexture(normalizedColorKey, "emissiveMap", variantIndex),
     };
   }
 
-  function chooseMeteorTexture(colorKey, kind) {
-    const palette = buildMeteorTexturePalette(colorKey, kind);
+  function chooseMeteorTexture(colorKey, kind, variantIndex = null) {
+    const palette = buildMeteorTexturePalette(colorKey, kind, variantIndex);
     if (!palette.length) return null;
     const index = Math.floor(Math.random() * palette.length) % palette.length;
     return Object.assign({ index }, palette[index]);
@@ -1840,9 +1884,10 @@
     const config = getMeteorTextureConfig(colorKey);
     if (!config) return { material, changed: false, hasMap: false, hasEmissiveMap: false, skippedImportedMap: false, skippedImportedEmissiveMap: false, appliedMap: false, appliedEmissiveMap: false };
     rememberOriginalMeteorMaterialState(material);
+    const forceOverride = config.forceOverride === true;
     const hasImportedMap = materialHasUsableTexture(material.map) && !material.userData?.hcMeteorTextureAppliedMapUrl;
     const hasImportedEmissiveMap = materialHasUsableTexture(material.emissiveMap) && !material.userData?.hcMeteorTextureAppliedEmissiveUrl;
-    const canConvert = !hasImportedMap && !hasImportedEmissiveMap;
+    const canConvert = forceOverride || (!hasImportedMap && !hasImportedEmissiveMap);
     const targetMaterial = (materialSupportsMeteorEmission(material) || !canConvert) ? material : (ensureMeteorTextureCompatibleMaterial(THREE, material, colorKey) || material);
     rememberOriginalMeteorMaterialState(targetMaterial);
     let changed = targetMaterial !== material;
@@ -1850,8 +1895,8 @@
     let appliedEmissiveMap = false;
     const mapTexture = mapTextureEntry?.status === "ready" && materialHasUsableTexture(mapTextureEntry?.texture) ? mapTextureEntry.texture : null;
     const emissiveTexture = emissiveTextureEntry?.status === "ready" && materialHasUsableTexture(emissiveTextureEntry?.texture) ? emissiveTextureEntry.texture : null;
-    const skipMap = materialHasUsableTexture(targetMaterial.map) && targetMaterial.userData?.hcMeteorTextureAppliedMapUrl !== mapTextureEntry?.url;
-    const skipEmissive = materialHasUsableTexture(targetMaterial.emissiveMap) && targetMaterial.userData?.hcMeteorTextureAppliedEmissiveUrl !== emissiveTextureEntry?.url;
+    const skipMap = !forceOverride && materialHasUsableTexture(targetMaterial.map) && targetMaterial.userData?.hcMeteorTextureAppliedMapUrl !== mapTextureEntry?.url;
+    const skipEmissive = !forceOverride && materialHasUsableTexture(targetMaterial.emissiveMap) && targetMaterial.userData?.hcMeteorTextureAppliedEmissiveUrl !== emissiveTextureEntry?.url;
     if (!skipMap && mapTexture && targetMaterial.map !== mapTexture) {
       targetMaterial.map = mapTexture;
       targetMaterial.userData.hcMeteorTextureAppliedMapUrl = mapTextureEntry.url;
@@ -2274,8 +2319,8 @@
       if (assignmentColorKey && assignmentColorKey !== colorKey && entry.meteorTextureRestorePending) restoreMeteorTextureStateForEntry(entry);
       if (assignmentColorKey !== colorKey) entry.meteorTextureAssignments = null;
       entry.meteorTextureAssignments = entry.meteorTextureAssignments || {};
-      if (!entry.meteorTextureAssignments.map) entry.meteorTextureAssignments.map = chooseMeteorTexture(colorKey, "map");
-      if (!entry.meteorTextureAssignments.emissiveMap) entry.meteorTextureAssignments.emissiveMap = chooseMeteorTexture(colorKey, "emissiveMap");
+      if (!entry.meteorTextureAssignments.map) entry.meteorTextureAssignments.map = chooseMeteorTexture(colorKey, "map", assignment?.variantIndex ?? null);
+      if (!entry.meteorTextureAssignments.emissiveMap) entry.meteorTextureAssignments.emissiveMap = chooseMeteorTexture(colorKey, "emissiveMap", assignment?.variantIndex ?? null);
       entry.textureAssignment = {
         colorKey,
         mapUrl: entry.meteorTextureAssignments.map?.url || null,
@@ -5563,6 +5608,7 @@
       meteorTexturePalettes: {
         red: { map: buildMeteorTexturePalette("red", "map"), emissiveMap: buildMeteorTexturePalette("red", "emissiveMap") },
         yellow: { map: buildMeteorTexturePalette("yellow", "map"), emissiveMap: buildMeteorTexturePalette("yellow", "emissiveMap") },
+        blue: { map: buildMeteorTexturePalette("blue", "map"), emissiveMap: buildMeteorTexturePalette("blue", "emissiveMap") },
       },
       meteorTexturePaletteEnabled: getMeteorTexturePassEnabled(getThreeMaterialSettings()),
       redMeteorTexturePaletteEnabled: isMeteorTextureColorEnabled("red", getThreeMaterialSettings()) && getMeteorTexturePassEnabled(getThreeMaterialSettings()),
@@ -5588,6 +5634,9 @@
       yellowMeteorTexturePalette: buildMeteorTexturePalette("yellow", "map"),
       yellowMeteorTextureCacheStats: getMeteorTextureCacheStats(),
       yellowMeteorTextureUsage: countMeteorTextureUsage()?.yellow?.map || {},
+      blueMeteorTexturePalette: buildMeteorTexturePalette("blue", "map"),
+      blueMeteorTexturePaletteEnabled: isMeteorTextureColorEnabled("blue", getThreeMaterialSettings()) && getMeteorTexturePassEnabled(getThreeMaterialSettings()),
+      blueMeteorTextureUsage: countMeteorTextureUsage()?.blue?.map || {},
       glbMaterialAudit: threeState.glbMaterialAudit.slice(-8),
       glbMaterialAuditStatus: getMaterialAuditOverlayStatus(),
       sceneEnvironmentEnabled: !!threeState.scene?.environment,
