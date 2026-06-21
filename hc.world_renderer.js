@@ -312,6 +312,7 @@
     cameraSnapshotCenter: null,
     cameraSnapshotZoom: null,
     cameraSnapshotWorldBounds: null,
+    absoluteStageLightBounds: null,
     worldBoundsSource: "unknown",
     meteorGroupChildrenCount: 0,
     meteorGlbCacheStats: { loading: 0, ready: 0, failed: 0 },
@@ -1081,6 +1082,71 @@
     return null;
   }
 
+  function expandAbsoluteLightBoundsWithBody(bounds, body) {
+    if (!body || typeof body !== "object") return bounds;
+    const x = Number(body.x);
+    const y = Number(body.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return bounds;
+    const radius = Math.max(0, Number(body.meshWorldRadius ?? body.renderBodyRadius ?? body.viewRadius ?? body.radius ?? body.r) || 0);
+    if (!bounds) return { left: x - radius, right: x + radius, top: y - radius, bottom: y + radius };
+    bounds.left = Math.min(bounds.left, x - radius);
+    bounds.right = Math.max(bounds.right, x + radius);
+    bounds.top = Math.min(bounds.top, y - radius);
+    bounds.bottom = Math.max(bounds.bottom, y + radius);
+    return bounds;
+  }
+
+  function normalizeLightBounds(bounds) {
+    if (!bounds) return null;
+    const left = Math.min(Number(bounds.left), Number(bounds.right));
+    const right = Math.max(Number(bounds.left), Number(bounds.right));
+    const top = Math.min(Number(bounds.top), Number(bounds.bottom));
+    const bottom = Math.max(Number(bounds.top), Number(bounds.bottom));
+    if (![left, right, top, bottom].every(Number.isFinite)) return null;
+    return { left, right, top, bottom, cx: (left + right) * 0.5, cy: (top + bottom) * 0.5 };
+  }
+
+  function getAbsoluteBoundsStageLightBounds(renderSnapshot, cameraBounds) {
+    let bounds = normalizeLightBounds(cameraBounds);
+    const world = renderSnapshot?.world || {};
+    ["meteors", "asteroids", "moons", "planets", "comets", "stars", "harmonicDust", "cosmicDust", "impactFragments"].forEach((key) => {
+      const items = Array.isArray(world[key]) ? world[key] : [];
+      items.forEach((body) => { bounds = expandAbsoluteLightBoundsWithBody(bounds, body); });
+    });
+    const normalized = normalizeLightBounds(bounds || cameraBounds);
+    if (!normalized) return null;
+    const width = Math.max(1, normalized.right - normalized.left);
+    const height = Math.max(1, normalized.bottom - normalized.top);
+    return Object.assign(normalized, { width, height, maxDim: Math.max(width, height) });
+  }
+
+  function updateStageSpotForAbsoluteBounds(settings, sceneBounds) {
+    if (!threeState.mainStageSpot || !sceneBounds) return false;
+    const width = Math.max(1, Number(sceneBounds.width) || Math.abs(sceneBounds.right - sceneBounds.left) || 1);
+    const height = Math.max(1, Number(sceneBounds.height) || Math.abs(sceneBounds.bottom - sceneBounds.top) || 1);
+    const maxDim = Math.max(width, height);
+    const targetX = Number(sceneBounds.cx);
+    const targetY = Number(sceneBounds.cy);
+    if (threeState.mainStageSpotTarget) {
+      threeState.mainStageSpotTarget.position.set(targetX, targetY, 0);
+      threeState.mainStageSpotTarget.updateMatrixWorld?.();
+      threeState.mainStageSpot.target = threeState.mainStageSpotTarget;
+    }
+    threeState.mainStageSpot.position.set(
+      targetX + width * settings.mainStageSpotXOffset,
+      targetY + height * settings.mainStageSpotYOffset,
+      Math.max(24, maxDim * Math.max(0.9, Number(settings.mainStageSpotZHeight) || 1.1))
+    );
+    threeState.mainStageSpot.intensity = settings.mainStageSpotEnabled ? settings.mainStageSpotIntensity : 0;
+    threeState.mainStageSpot.angle = Math.PI / 2;
+    threeState.mainStageSpot.penumbra = settings.mainStageSpotPenumbra;
+    threeState.mainStageSpot.distance = 0;
+    threeState.mainStageSpot.decay = 0;
+    threeState.mainStageSpot.castShadow = false;
+    threeState.mainStageSpot.visible = settings.mainStageSpotEnabled && settings.mainStageSpotIntensity > 0;
+    return true;
+  }
+
   function syncThreeLights() {
     if (!threeState.ambientLight) return;
     const settings = getThreeLightsSettings();
@@ -1114,15 +1180,16 @@
       threeState.forceHeadlight.decay = 0.85;
       threeState.forceHeadlight.visible = settings.forceHeadlightEnabled && settings.forceHeadlightIntensity > 0;
     }
-    const spotTargetObject = settings.mainStageSpotTargetMode === "sampleObject" ? getFirstActiveGlbLightTargetObject() : null;
+    const useAbsoluteStageSpot = threeState.threeCameraModel === "absolute_bounds" && updateStageSpotForAbsoluteBounds(settings, threeState.absoluteStageLightBounds);
+    const spotTargetObject = !useAbsoluteStageSpot && settings.mainStageSpotTargetMode === "sampleObject" ? getFirstActiveGlbLightTargetObject() : null;
     const spotTargetX = spotTargetObject?.position ? spotTargetObject.position.x : bounds.cx;
     const spotTargetY = spotTargetObject?.position ? spotTargetObject.position.y : bounds.cy;
     const spotTargetZ = spotTargetObject?.position ? spotTargetObject.position.z : 0;
-    if (threeState.mainStageSpotTarget) {
+    if (!useAbsoluteStageSpot && threeState.mainStageSpotTarget) {
       threeState.mainStageSpotTarget.position.set(spotTargetX, spotTargetY, spotTargetZ);
       threeState.mainStageSpotTarget.updateMatrixWorld?.();
     }
-    if (threeState.mainStageSpot) {
+    if (!useAbsoluteStageSpot && threeState.mainStageSpot) {
       threeState.mainStageSpot.position.set(
         bounds.cx + width * settings.mainStageSpotXOffset,
         bounds.cy + height * settings.mainStageSpotYOffset,
@@ -1219,6 +1286,7 @@
       threeState.stageModelEnabled = false;
       threeState.stageSettings = { size: THREE_STAGE_SIZE_DEFAULT, scale: 1, cameraDistance: null, renderBounds: null };
       threeState.cameraBounds = worldBounds;
+      threeState.absoluteStageLightBounds = getAbsoluteBoundsStageLightBounds(renderSnapshot, worldBounds);
     }
     syncDebugMarkerPosition();
     syncThreeLights();
@@ -5368,6 +5436,7 @@
       decay: roundDiagnosticNumber(threeState.mainStageSpot?.decay),
       position: vectorToDiagnostic(threeState.mainStageSpot?.position),
       targetPosition: vectorToDiagnostic(threeState.mainStageSpotTarget?.position),
+      absoluteBoundsSceneBounds: threeState.threeCameraModel === "absolute_bounds" ? Object.assign({}, threeState.absoluteStageLightBounds || {}) : null,
       targetMode: lightSettings.mainStageSpotTargetMode || "center",
       helperVisible: !!threeState.lightHelpers.find((entry) => entry.name === "mainStageSpot" && entry.mode === "spotLightHelper" && entry.helper?.visible),
       targetInScene: !!threeState.mainStageSpotTarget?.parent,
