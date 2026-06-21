@@ -33,6 +33,7 @@
       return (MassRadius?.radiusFromMass || SpaceBodies?.radiusFromMass)?.("meteor", mass, { baseRadius: radiusScale || meteorBaseRadius(), minRadius: 0.7 * meteorBaseRadius(), maxRadius: 1.35 * meteorBaseRadius() }) || Math.sqrt(Math.max(0.001, mass)) * (radiusScale || meteorBaseRadius());
     }
     const getWorldViewBounds = window.getWorldViewBounds;
+    const getWorldSpawnBounds = () => (window.HC?.getWorldSpawnBounds || window.getWorldSpawnBounds)?.() || null;
     const ctx = window.ctx;
 
     // ---------- Meteor palette ----------
@@ -47,13 +48,20 @@
       const mass = spawnMeteorMass(0.5, 1.0);
       const r = meteorRadiusFromMass(mass, Rm);
 
-      const b = getWorldViewBounds();
+      const visible = getWorldViewBounds();
+      const spawn = getWorldSpawnBounds() || {
+        l: visible.l - r * 2,
+        r: visible.r + r * 2,
+        t: visible.t - r * 2,
+        b: visible.b + r * 2,
+        visible,
+      };
       const side = (Math.random() * 4) | 0;
       let x = 0, y = 0;
-      if (side === 0) { x = rand(b.l, b.r); y = b.t - r * 2; }
-      if (side === 1) { x = b.r + r * 2; y = rand(b.t, b.b); }
-      if (side === 2) { x = rand(b.l, b.r); y = b.b + r * 2; }
-      if (side === 3) { x = b.l - r * 2; y = rand(b.t, b.b); }
+      if (side === 0) { x = rand(visible.l, visible.r); y = spawn.t; }
+      if (side === 1) { x = spawn.r; y = rand(visible.t, visible.b); }
+      if (side === 2) { x = rand(visible.l, visible.r); y = spawn.b; }
+      if (side === 3) { x = spawn.l; y = rand(visible.t, visible.b); }
 
       // random through-screen direction (not to center)
       let angle = 0;
@@ -97,11 +105,11 @@
       const mass = spawnMeteorMass(0.5, 1.0);
       const r = meteorRadiusFromMass(mass, Rm);
 
-      const cx = View.w / 2;
-      const cy = View.h / 2;
-      const s = Camera.scale || 1;
-      const worldHalfW = (View.w * 0.5) / s;
-      const worldHalfH = (View.h * 0.5) / s;
+      const b = getWorldViewBounds();
+      const cx = b.cx;
+      const cy = b.cy;
+      const worldHalfW = Math.max(1, (b.r - b.l) * 0.5);
+      const worldHalfH = Math.max(1, (b.b - b.t) * 0.5);
       const spawnR = Math.max(worldHalfW, worldHalfH) * 1.25;
 
       const sx = cx - Math.cos(angle) * spawnR;
@@ -267,11 +275,11 @@
         }
 
         if (World.epoch === "STAR" && m.isStream) {
-          const cx = View.w / 2;
-          const cy = View.h / 2;
-          const s = Camera.scale || 1;
-          const worldHalfW = (View.w * 0.5) / s;
-          const worldHalfH = (View.h * 0.5) / s;
+          const b = getWorldViewBounds();
+          const cx = b.cx;
+          const cy = b.cy;
+          const worldHalfW = Math.max(1, (b.r - b.l) * 0.5);
+          const worldHalfH = Math.max(1, (b.b - b.t) * 0.5);
           const spawnR = Math.max(worldHalfW, worldHalfH) * 1.6;
           if (Math.hypot(m.x - cx, m.y - cy) > spawnR) {
             window.HC?.logEvent?.("world", window.HC.DebugEventTypes.WORLD_OBJECT_DESPAWNED, {

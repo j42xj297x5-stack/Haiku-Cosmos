@@ -266,6 +266,8 @@ if (window?.HC_DEBUG_BOOT_LOGS === true) console.log("[HC] game.boot.js loaded")
     spawnTimer: 0,
     spawnInterval: 1.0,
     maxMeteors: 60,
+    // Runtime viewport contract: meteors spawn slightly outside the current visible world.
+    spawnOutsideMarginPct: 0.025,
 
   // Pointer tuning (base) — cards modify with multipliers:
 // engineStats.pointer_radius_mul / pointer_strength_mul
