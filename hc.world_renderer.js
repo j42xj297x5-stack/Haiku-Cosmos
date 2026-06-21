@@ -1040,24 +1040,51 @@
     const bottom = Number(rect.bottom);
     const top = Number(rect.top);
     if (![left, right, bottom, top].every(Number.isFinite)) return null;
-    const width = Math.max(1, right - left);
-    const height = Math.max(1, top - bottom);
-    return { left, right, bottom, top, width, height, centerX: left + width * 0.5, centerY: bottom + height * 0.5 };
+    const width = Math.max(1, Math.abs(right - left));
+    const height = Math.max(1, Math.abs(top - bottom));
+    const normalized = { left, right, bottom, top, width, height, centerX: (left + right) * 0.5, centerY: (bottom + top) * 0.5 };
+    if (rect.source) normalized.source = rect.source;
+    return normalized;
+  }
+
+  function normalizeSnapshotWorldBounds(bounds) {
+    if (!bounds || typeof bounds !== "object") return null;
+    const left = Number(bounds.l ?? bounds.left);
+    const right = Number(bounds.r ?? bounds.right);
+    const top = Number(bounds.t ?? bounds.top);
+    const bottom = Number(bounds.b ?? bounds.bottom);
+    if (![left, right, top, bottom].every(Number.isFinite)) return null;
+    return { l: left, r: right, t: top, b: bottom, left, right, top, bottom };
   }
 
   function getAbsoluteBoundsSceneRect(renderSnapshot) {
-    const viewport = renderSnapshot?.camera?.viewport || {};
+    const cam = renderSnapshot?.camera || {};
+    const snapshotWorldBounds = normalizeSnapshotWorldBounds(cam.worldBounds);
+    if (snapshotWorldBounds) {
+      return normalizeSceneRect({
+        left: snapshotWorldBounds.left,
+        right: snapshotWorldBounds.right,
+        top: snapshotWorldBounds.top,
+        bottom: snapshotWorldBounds.bottom,
+        source: "snapshot_worldBounds",
+      });
+    }
+
+    const viewport = cam.viewport || {};
     const view = (window.HC?.getView?.() || window.View || {});
-    const rawWidth = Number(viewport.width || view.w || view.width) || Number(view.w || view.width) || 1;
-    const rawHeight = Number(viewport.height || view.h || view.height) || Number(view.h || view.height) || 1;
-    const visibleHeight = Math.max(1, rawHeight);
-    const aspect = Math.max(1e-6, rawWidth / Math.max(1, rawHeight));
-    const visibleWidth = Math.max(1, visibleHeight * aspect);
+    const width = Math.max(1, Number(viewport.width || viewport.w || view.w || view.width) || 1);
+    const height = Math.max(1, Number(viewport.height || viewport.h || view.h || view.height) || 1);
+    const zoom = Math.max(0.001, Number(cam.zoom) || 1);
+    const cx = Number(cam.centerX ?? cam.x ?? width * 0.5);
+    const cy = Number(cam.centerY ?? cam.y ?? height * 0.5);
+    const halfW = width * 0.5 / zoom;
+    const halfH = height * 0.5 / zoom;
     return normalizeSceneRect({
-      left: 0,
-      right: visibleWidth,
-      bottom: 0,
-      top: visibleHeight,
+      left: cx - halfW,
+      right: cx + halfW,
+      top: cy - halfH,
+      bottom: cy + halfH,
+      source: "camera_center_zoom_fallback",
     });
   }
 
@@ -1205,8 +1232,8 @@
     threeState.sceneRect = sceneRect;
     threeState.cameraSnapshotCenter = { x: cx, y: cy };
     threeState.cameraSnapshotZoom = Math.max(0.001, Number(cam.zoom) || 1);
-    threeState.cameraSnapshotWorldBounds = cam.worldBounds && Number.isFinite(cam.worldBounds.l) ? { l: cam.worldBounds.l, r: cam.worldBounds.r, t: cam.worldBounds.t, b: cam.worldBounds.b } : null;
-    threeState.worldBoundsSource = "absolute_bounds_sceneRect";
+    threeState.cameraSnapshotWorldBounds = normalizeSnapshotWorldBounds(cam.worldBounds);
+    threeState.worldBoundsSource = sceneRect.source || "camera_center_zoom_fallback";
 
     getThreeCameraModel();
     useThreeCamera(threeState.orthographicCamera || threeState.camera);
@@ -1301,19 +1328,31 @@
 
   function resize(renderSnapshot) {
     if (!threeState.initialized || !threeState.renderer || !threeState.camera || !threeState.canvas) return;
-    const view = renderSnapshot?.camera?.viewport || (window.HC?.getView?.() || window.View);
-    if (!view || !view.width && !view.w) return;
-    const w = Number(view.width || view.w) || 1;
-    const h = Number(view.height || view.h) || 1;
-    const dpr = Math.max(1, Number((window.HC?.getView?.() || window.View || {}).dpr) || 1);
-    const cssW = Math.max(1, w / dpr);
-    const cssH = Math.max(1, h / dpr);
+    const viewport = renderSnapshot?.camera?.viewport || {};
+    const view = window.HC?.getView?.() || window.View || {};
+    const snapshotViewportWidth = Number(viewport.width || viewport.w) || null;
+    const snapshotViewportHeight = Number(viewport.height || viewport.h) || null;
+    const dpr = Math.max(1, Number(view.dpr || window.devicePixelRatio) || 1);
     threeState.resizeCalls += 1;
-    threeState.canvas.style.width = cssW + "px";
-    threeState.canvas.style.height = cssH + "px";
+    threeState.canvas.style.width = "100vw";
+    threeState.canvas.style.height = "100vh";
+    const cssW = Math.max(1, Number(threeState.canvas.clientWidth) || Number(window.innerWidth) || Number(view.w || view.width) || snapshotViewportWidth || 1);
+    const cssH = Math.max(1, Number(threeState.canvas.clientHeight) || Number(window.innerHeight) || Number(view.h || view.height) || snapshotViewportHeight || 1);
     threeState.renderer.setPixelRatio(dpr);
     threeState.renderer.setSize(cssW, cssH, false);
     applyThreeCameraSnapshot(renderSnapshot || {});
+    threeState.absoluteBoundsViewport = {
+      canvasClientWidth: Number(threeState.canvas.clientWidth) || cssW,
+      canvasClientHeight: Number(threeState.canvas.clientHeight) || cssH,
+      canvasBackingWidth: Number(threeState.renderer.domElement.width) || 0,
+      canvasBackingHeight: Number(threeState.renderer.domElement.height) || 0,
+      dpr,
+      snapshotViewportWidth,
+      snapshotViewportHeight,
+      usedSceneRectSource: threeState.worldBoundsSource,
+      sceneRect: threeState.sceneRect ? Object.assign({}, threeState.sceneRect) : null,
+      worldBoundsFromSnapshot: threeState.cameraSnapshotWorldBounds ? Object.assign({}, threeState.cameraSnapshotWorldBounds) : null,
+    };
   }
 
   function getMeteorMaterial(THREE, colorKey) {
@@ -5628,6 +5667,7 @@
       cameraSnapshotZoom: threeState.cameraSnapshotZoom,
       cameraSnapshotWorldBounds: threeState.cameraSnapshotWorldBounds,
       worldBoundsSource: threeState.worldBoundsSource,
+      absoluteBoundsViewport: threeState.absoluteBoundsViewport ? Object.assign({}, threeState.absoluteBoundsViewport) : null,
       threeCameraModel: threeState.threeCameraModel,
       cameraModel: threeState.threeCameraModel,
       stageModelEnabled: !!threeState.stageModelEnabled,
