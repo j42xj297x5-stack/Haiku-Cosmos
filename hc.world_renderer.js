@@ -5377,8 +5377,16 @@
     const stageLightCounts = getStageLightCounts();
     const gltfLoaderDiagnostics = syncGltfLoaderUrlDiagnostics();
     refreshGltfLoaderAvailabilityDiagnostics();
+    const rendererCanvas = threeState.renderer?.domElement || threeState.canvas || null;
+    const threeRendererWidth = rendererCanvas ? Number(rendererCanvas.width || 0) : 0;
+    const threeRendererHeight = rendererCanvas ? Number(rendererCanvas.height || 0) : 0;
+    const threeCameraAspect = threeState.camera?.isPerspectiveCamera
+      ? Number(threeState.camera.aspect || 0)
+      : (threeState.camera?.isOrthographicCamera ? Math.abs(Number(threeState.camera.right || 0) - Number(threeState.camera.left || 0)) / Math.max(1e-6, Math.abs(Number(threeState.camera.top || 0) - Number(threeState.camera.bottom || 0))) : null);
+    const threeCameraBounds = threeState.cameraBounds ? Object.assign({}, threeState.cameraBounds) : null;
     return {
       requestedMode, effectiveMode, mode: effectiveMode, fallbackUsed, fallbackReason, lastError, initialized, renderCalls, fallbackCalls, snapshotVersion: "1",
+      threeRendererWidth, threeRendererHeight, threeCameraAspect, threeCameraBounds,
       glbLoaderMode: "gltf_loader", glbLoaderPrimary: "GLTFLoader", glbLoaderFallbackUsed: !!threeState.glbLoaderFallbackUsed, glbLoaderFallbackReason: threeState.glbLoaderFallbackReason,
       gltfLoaderAvailable: gltfLoaderDiagnostics.gltfLoaderAvailable,
       gltfLoaderType: gltfLoaderDiagnostics.gltfLoaderType,
