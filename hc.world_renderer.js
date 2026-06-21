@@ -255,6 +255,9 @@
     sceneFrameGeometry: null,
     sceneFrameMaterial: null,
     sceneRect: null,
+    rawSceneRect: null,
+    fittedSceneRect: null,
+    viewportAspect: null,
     cameraClip: null,
     lightsSettings: Object.assign({}, THREE_LIGHTS_DEFAULTS),
     materialSettings: Object.assign({}, THREE_MATERIAL_DEBUG_DEFAULTS),
@@ -772,9 +775,10 @@
       canvas.id = "hc-three-world-canvas";
       canvas.setAttribute("aria-hidden", "true");
       canvas.style.position = "fixed";
-      canvas.style.inset = "0";
-      canvas.style.width = "100vw";
-      canvas.style.height = "100vh";
+      canvas.style.left = "0px";
+      canvas.style.top = "0px";
+      canvas.style.width = "0px";
+      canvas.style.height = "0px";
       canvas.style.pointerEvents = "none";
       canvas.style.zIndex = "0";
       canvas.style.display = "none";
@@ -1078,6 +1082,46 @@
     return normalized;
   }
 
+  function fitSceneRectToViewportAspect(sceneRect, viewportAspect) {
+    const normalized = normalizeSceneRect(sceneRect);
+    const aspect = Number(viewportAspect);
+    if (!normalized || !(aspect > 0) || !Number.isFinite(aspect)) return normalized;
+    const width = Math.max(1e-6, Math.abs(normalized.right - normalized.left));
+    const height = Math.max(1e-6, Math.abs(normalized.top - normalized.bottom));
+    const sceneAspect = width / height;
+    const aspectDelta = Math.abs(sceneAspect - aspect);
+    const relativeDelta = aspectDelta / Math.max(sceneAspect, aspect, 1e-6);
+    if (relativeDelta <= 0.001) {
+      return Object.assign({}, normalized, {
+        width,
+        height,
+        aspect: sceneAspect,
+        fitSource: normalized.source || null,
+        fitReason: "aspect_already_matching",
+      });
+    }
+    if (sceneAspect < aspect) {
+      const fittedWidth = height * aspect;
+      const halfW = fittedWidth * 0.5;
+      return normalizeSceneRect({
+        left: normalized.centerX - halfW,
+        right: normalized.centerX + halfW,
+        bottom: normalized.bottom,
+        top: normalized.top,
+        source: normalized.source || null,
+      });
+    }
+    const fittedHeight = width / aspect;
+    const halfH = fittedHeight * 0.5;
+    return normalizeSceneRect({
+      left: normalized.left,
+      right: normalized.right,
+      bottom: normalized.centerY - halfH,
+      top: normalized.centerY + halfH,
+      source: normalized.source || null,
+    });
+  }
+
   function normalizeSnapshotWorldBounds(bounds) {
     if (!bounds || typeof bounds !== "object") return null;
     const left = Number(bounds.l ?? bounds.left);
@@ -1249,7 +1293,11 @@
 
   function applyThreeCameraSnapshot(renderSnapshot) {
     const cam = renderSnapshot?.camera || {};
-    const sceneRect = getAbsoluteBoundsSceneRect(renderSnapshot);
+    const rawSceneRect = getAbsoluteBoundsSceneRect(renderSnapshot);
+    const viewportAspect = Number(threeState.viewportAspect) || (Number(threeState.canvas?.clientWidth) > 0 && Number(threeState.canvas?.clientHeight) > 0
+      ? Number(threeState.canvas.clientWidth) / Number(threeState.canvas.clientHeight)
+      : null);
+    const sceneRect = fitSceneRectToViewportAspect(rawSceneRect, viewportAspect) || rawSceneRect;
     const left = sceneRect.left;
     const right = sceneRect.right;
     const bottom = sceneRect.bottom;
@@ -1262,6 +1310,8 @@
     const far = Math.max(1000, cameraZ + maxDim * 2 + 500);
     const worldBounds = { left, right, bottom, top, cx, cy, centerX: cx, centerY: cy, width: sceneRect.width, height: sceneRect.height };
     threeState.worldCameraBounds = worldBounds;
+    threeState.rawSceneRect = rawSceneRect;
+    threeState.fittedSceneRect = sceneRect;
     threeState.sceneRect = sceneRect;
     threeState.cameraSnapshotCenter = { x: cx, y: cy };
     threeState.cameraSnapshotZoom = Math.max(0.001, Number(cam.zoom) || 1);
@@ -1366,20 +1416,39 @@
     const snapshotViewportWidth = Number(viewport.width || viewport.w) || null;
     const snapshotViewportHeight = Number(viewport.height || viewport.h) || null;
     const dpr = Math.max(1, Number(view.dpr || window.devicePixelRatio) || 1);
+    const gameCanvas = document.getElementById("gameCanvas");
+    const gameCanvasRect = gameCanvas?.getBoundingClientRect ? gameCanvas.getBoundingClientRect() : null;
+    const hasGameCanvasRect = !!gameCanvasRect && Number(gameCanvas.clientWidth) > 0 && Number(gameCanvas.clientHeight) > 0 && Number(gameCanvasRect.width) > 0 && Number(gameCanvasRect.height) > 0;
+    const cssW = Math.max(1, hasGameCanvasRect ? Number(gameCanvasRect.width) : (Number(window.innerWidth) || Number(view.w || view.width) || snapshotViewportWidth || 1));
+    const cssH = Math.max(1, hasGameCanvasRect ? Number(gameCanvasRect.height) : (Number(window.innerHeight) || Number(view.h || view.height) || snapshotViewportHeight || 1));
     threeState.resizeCalls += 1;
-    threeState.canvas.style.width = "100vw";
-    threeState.canvas.style.height = "100vh";
-    const cssW = Math.max(1, Number(threeState.canvas.clientWidth) || Number(window.innerWidth) || Number(view.w || view.width) || snapshotViewportWidth || 1);
-    const cssH = Math.max(1, Number(threeState.canvas.clientHeight) || Number(window.innerHeight) || Number(view.h || view.height) || snapshotViewportHeight || 1);
+    threeState.canvas.style.position = "fixed";
+    threeState.canvas.style.left = `${hasGameCanvasRect ? Number(gameCanvasRect.left) : 0}px`;
+    threeState.canvas.style.top = `${hasGameCanvasRect ? Number(gameCanvasRect.top) : 0}px`;
+    threeState.canvas.style.width = `${cssW}px`;
+    threeState.canvas.style.height = `${cssH}px`;
+    threeState.viewportAspect = cssW / cssH;
     threeState.renderer.setPixelRatio(dpr);
     threeState.renderer.setSize(cssW, cssH, false);
     applyThreeCameraSnapshot(renderSnapshot || {});
+    const threeCanvasRect = threeState.canvas.getBoundingClientRect ? threeState.canvas.getBoundingClientRect() : null;
+    const rawSceneAspect = threeState.rawSceneRect ? Math.abs(threeState.rawSceneRect.right - threeState.rawSceneRect.left) / Math.max(1e-6, Math.abs(threeState.rawSceneRect.top - threeState.rawSceneRect.bottom)) : null;
+    const fittedSceneAspect = threeState.fittedSceneRect ? Math.abs(threeState.fittedSceneRect.right - threeState.fittedSceneRect.left) / Math.max(1e-6, Math.abs(threeState.fittedSceneRect.top - threeState.fittedSceneRect.bottom)) : null;
     threeState.absoluteBoundsViewport = {
+      gameCanvasRect: gameCanvasRect ? { left: gameCanvasRect.left, top: gameCanvasRect.top, width: gameCanvasRect.width, height: gameCanvasRect.height, right: gameCanvasRect.right, bottom: gameCanvasRect.bottom } : null,
+      threeCanvasRect: threeCanvasRect ? { left: threeCanvasRect.left, top: threeCanvasRect.top, width: threeCanvasRect.width, height: threeCanvasRect.height, right: threeCanvasRect.right, bottom: threeCanvasRect.bottom } : null,
+      cssW,
+      cssH,
+      dpr,
+      viewportAspect: threeState.viewportAspect,
+      rawSceneRect: threeState.rawSceneRect ? Object.assign({}, threeState.rawSceneRect) : null,
+      fittedSceneRect: threeState.fittedSceneRect ? Object.assign({}, threeState.fittedSceneRect) : null,
+      sceneAspectBeforeFit: rawSceneAspect,
+      sceneAspectAfterFit: fittedSceneAspect,
       canvasClientWidth: Number(threeState.canvas.clientWidth) || cssW,
       canvasClientHeight: Number(threeState.canvas.clientHeight) || cssH,
       canvasBackingWidth: Number(threeState.renderer.domElement.width) || 0,
       canvasBackingHeight: Number(threeState.renderer.domElement.height) || 0,
-      dpr,
       snapshotViewportWidth,
       snapshotViewportHeight,
       usedSceneRectSource: threeState.worldBoundsSource,
@@ -5186,7 +5255,7 @@
     if (threeState.sceneFrame?.parent) threeState.sceneFrame.parent.remove(threeState.sceneFrame);
     threeState.sceneFrameGeometry?.dispose?.();
     threeState.sceneFrameMaterial?.dispose?.();
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, harmonicDustGroup: null, prgIndicatorGroup: null, prgIndicatorLine: null, prgIndicatorGeometry: null, prgIndicatorMaterial: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], sceneFrame: null, sceneFrameGeometry: null, sceneFrameMaterial: null, sceneRect: null, cameraClip: null, meteorGeometry: null, planetGeometry: null, harmonicDustGeometry: null, cosmicDustGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, harmonicDustGroup: null, prgIndicatorGroup: null, prgIndicatorLine: null, prgIndicatorGeometry: null, prgIndicatorMaterial: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], sceneFrame: null, sceneFrameGeometry: null, sceneFrameMaterial: null, sceneRect: null, cameraClip: null, meteorGeometry: null, planetGeometry: null, harmonicDustGeometry: null, cosmicDustGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, rawSceneRect: null, fittedSceneRect: null, viewportAspect: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
