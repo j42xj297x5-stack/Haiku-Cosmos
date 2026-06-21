@@ -136,11 +136,11 @@
     mainStageSpotPenumbra: 0.72,
     mainStageSpotDistance: 0,
     mainStageSpotDecay: 0,
-    mainStageSpotXOffset: -0.65,
-    mainStageSpotYOffset: 0.32,
-    mainStageSpotZHeight: 1.15,
+    mainStageSpotXOffset: -0.25,
+    mainStageSpotYOffset: 0.18,
+    mainStageSpotZHeight: 2.2,
     showLightHelpers: false,
-    showSceneFrame: true,
+    showSceneFrame: false,
   });
   const THREE_LIGHTS_LIMITS = Object.freeze({
     ambientIntensity: { min: 0, max: 0.75 },
@@ -151,7 +151,7 @@
     mainStageSpotDecay: { min: 0, max: 3 },
     mainStageSpotXOffset: { min: -2, max: 2 },
     mainStageSpotYOffset: { min: -2, max: 2 },
-    mainStageSpotZHeight: { min: 0.25, max: 4 },
+    mainStageSpotZHeight: { min: 0.25, max: 8 },
   });
   const THREE_MATERIAL_DEBUG_DEFAULTS = Object.freeze({
     enabled: false,
@@ -1199,7 +1199,9 @@
     const debugValue = window.HC?.WorldRendererDebug?.showSceneFrame;
     const sessionValue = window.HC?.Session?.debugConfig?.visual?.showSceneFrame;
     const lightsValue = (threeState.lightsSettings || getThreeLightsSettings()).showSceneFrame;
-    return debugValue === true || sessionValue === true || lightsValue === true;
+    if (typeof debugValue === "boolean") return debugValue;
+    if (typeof sessionValue === "boolean") return sessionValue;
+    return lightsValue === true;
   }
 
   function ensureSceneFrameHelper(THREE) {
