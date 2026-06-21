@@ -224,6 +224,7 @@
     sceneFrameGeometry: null,
     sceneFrameMaterial: null,
     sceneRect: null,
+    cameraClip: null,
     lightsSettings: Object.assign({}, THREE_LIGHTS_DEFAULTS),
     materialSettings: Object.assign({}, THREE_MATERIAL_DEBUG_DEFAULTS),
     materialOverrideStatus: { activeGlbObjects: 0, activeGlbMeshCount: 0, meshesUsingCurrentMaterialMode: 0, currentMaterialMode: "imported", lastAppliedFrame: null, lastAppliedAtMs: null, restoredImportedMaterials: 0 },
@@ -1195,7 +1196,10 @@
     const top = sceneRect.top;
     const cx = sceneRect.centerX;
     const cy = sceneRect.centerY;
-    const cameraZ = Math.max(10, Math.max(sceneRect.width, sceneRect.height));
+    const maxDim = Math.max(sceneRect.width, sceneRect.height);
+    const cameraZ = Math.max(100, maxDim);
+    const near = 0.1;
+    const far = Math.max(1000, cameraZ + maxDim * 2 + 500);
     const worldBounds = { left, right, bottom, top, cx, cy, centerX: cx, centerY: cy, width: sceneRect.width, height: sceneRect.height };
     threeState.worldCameraBounds = worldBounds;
     threeState.sceneRect = sceneRect;
@@ -1211,12 +1215,20 @@
       threeState.camera.right = right;
       threeState.camera.top = top;
       threeState.camera.bottom = bottom;
-      threeState.camera.near = 0.1;
-      threeState.camera.far = 1000;
+      threeState.camera.near = near;
+      threeState.camera.far = far;
       threeState.camera.position.set(cx, cy, cameraZ);
       threeState.camera.lookAt(cx, cy, 0);
       threeState.camera.updateProjectionMatrix();
       threeState.cameraPosition = { x: cx, y: cy, z: cameraZ };
+      threeState.cameraClip = {
+        near,
+        far,
+        cameraZ,
+        worldPlaneZ: 0,
+        worldPlaneDistanceFromCamera: cameraZ,
+        worldPlaneInsideFrustum: cameraZ >= near && cameraZ <= far,
+      };
     }
     threeState.threeCameraModel = "absolute_bounds";
     threeState.stageModelEnabled = false;
@@ -5088,7 +5100,7 @@
     if (threeState.sceneFrame?.parent) threeState.sceneFrame.parent.remove(threeState.sceneFrame);
     threeState.sceneFrameGeometry?.dispose?.();
     threeState.sceneFrameMaterial?.dispose?.();
-    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, harmonicDustGroup: null, prgIndicatorGroup: null, prgIndicatorLine: null, prgIndicatorGeometry: null, prgIndicatorMaterial: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], sceneFrame: null, sceneFrameGeometry: null, sceneFrameMaterial: null, sceneRect: null, meteorGeometry: null, planetGeometry: null, harmonicDustGeometry: null, cosmicDustGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
+    Object.assign(threeState, { renderer: null, scene: null, camera: null, orthographicCamera: null, perspectiveCamera: null, meteorGroup: null, asteroidGroup: null, planetGroup: null, moonGroup: null, harmonicDustGroup: null, prgIndicatorGroup: null, prgIndicatorLine: null, prgIndicatorGeometry: null, prgIndicatorMaterial: null, lightsGroup: null, ambientLight: null, debugKeyLight: null, debugRimLight: null, forceHeadlight: null, mainStageSpot: null, mainStageSpotTarget: null, lightHelpersGroup: null, lightHelpers: [], sceneFrame: null, sceneFrameGeometry: null, sceneFrameMaterial: null, sceneRect: null, cameraClip: null, meteorGeometry: null, planetGeometry: null, harmonicDustGeometry: null, cosmicDustGeometry: null, debugMarker: null, firstMeteorMarker: null, initialized: false, cameraBounds: null, rendererSize: null, environment: null, environmentCanvas: null });
   }
 
   function render(renderSnapshot, nowMs, dt) {
@@ -5593,6 +5605,7 @@
       worldCameraBounds: threeState.worldCameraBounds,
       sceneRect: threeState.sceneRect ? Object.assign({}, threeState.sceneRect) : null,
       cameraPosition: threeState.cameraPosition ? Object.assign({}, threeState.cameraPosition) : vectorToDiagnostic(threeState.camera?.position),
+      cameraClip: threeState.cameraClip ? Object.assign({}, threeState.cameraClip) : null,
       activeCameraModel: "absolute_bounds",
       showSceneFrame: getSceneFrameVisible(),
       sceneFrame: { visible: !!threeState.sceneFrame?.visible, helper: "red_dashed_world_space_rect" },
