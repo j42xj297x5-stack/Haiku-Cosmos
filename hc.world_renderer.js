@@ -95,6 +95,34 @@
   function pushUniqueLimited(list, value, limit = 20) { return getWorldRendererDiagnosticsApi().pushUniqueLimited(list, value, limit); }
   function removeFromList(list, value) { return getWorldRendererDiagnosticsApi().removeFromList(list, value); }
 
+  function getWorldRendererDiagnosticsSnapshotApi() {
+    const api = window.HC?.WorldRendererDiagnosticsSnapshot;
+    if (api && typeof api.buildGltfLoaderDiagnosticsSnapshot === "function") return api;
+    return {
+      buildGltfLoaderDiagnosticsSnapshot(diagnostics, debugEvents) {
+        const source = diagnostics || {};
+        const copyList = (value) => Array.isArray(value) ? value.slice() : [];
+        return {
+          gltfLoaderAvailable: !!source.gltfLoaderAvailable,
+          gltfLoaderType: source.gltfLoaderType || "undefined",
+          gltfLoaderImportUrl: source.gltfLoaderImportUrl || null,
+          gltfLoaderImportStatus: source.gltfLoaderImportStatus || "unknown",
+          gltfLoaderLastImportError: source.gltfLoaderLastImportError || null,
+          gltfLoaderRequestCount: source.gltfLoaderRequestCount || 0, gltfLoaderProgressCount: source.gltfLoaderProgressCount || 0, gltfLoaderSuccessCount: source.gltfLoaderSuccessCount || 0, gltfLoaderErrorCount: source.gltfLoaderErrorCount || 0, gltfLoaderTimeoutCount: source.gltfLoaderTimeoutCount || 0,
+          gltfLoaderLastRequestedUrl: source.gltfLoaderLastRequestedUrl || null, gltfLoaderLastRequestedUrlRaw: source.gltfLoaderLastRequestedUrlRaw || null, gltfLoaderLastRequestedUrlResolved: source.gltfLoaderLastRequestedUrlResolved || null, gltfLoaderLastRequestedBaseUrl: source.gltfLoaderLastRequestedBaseUrl || null, gltfLoaderUrlNormalizeError: source.gltfLoaderUrlNormalizeError || null,
+          gltfLoaderLastProgressUrl: source.gltfLoaderLastProgressUrl || null, gltfLoaderLastCompletedUrl: source.gltfLoaderLastCompletedUrl || null, gltfLoaderLastFailedUrl: source.gltfLoaderLastFailedUrl || null, gltfLoaderLastTimedOutUrl: source.gltfLoaderLastTimedOutUrl || null, gltfLoaderLastProgressLoaded: source.gltfLoaderLastProgressLoaded ?? null, gltfLoaderLastProgressTotal: source.gltfLoaderLastProgressTotal ?? null, gltfLoaderLastDurationMs: source.gltfLoaderLastDurationMs ?? null,
+          gltfLoaderLastErrorName: source.gltfLoaderLastErrorName || null, gltfLoaderLastErrorMessage: source.gltfLoaderLastErrorMessage || null, gltfLoaderLastErrorStack: source.gltfLoaderLastErrorStack || null, gltfLoaderPendingUrls: copyList(source.gltfLoaderPendingUrls), gltfLoaderFailedUrls: copyList(source.gltfLoaderFailedUrls), gltfLoaderTimedOutUrls: copyList(source.gltfLoaderTimedOutUrls),
+          gltfLoaderLastResourcePath: source.gltfLoaderLastResourcePath || null, gltfLoaderUrlModifierCount: source.gltfLoaderUrlModifierCount || 0, gltfManagerItemStartCount: source.gltfManagerItemStartCount || 0, gltfManagerItemEndCount: source.gltfManagerItemEndCount || 0, gltfManagerItemErrorCount: source.gltfManagerItemErrorCount || 0, gltfManagerLastStartedUrl: source.gltfManagerLastStartedUrl || null, gltfManagerLastCompletedUrl: source.gltfManagerLastCompletedUrl || null, gltfManagerLastFailedUrl: source.gltfManagerLastFailedUrl || null,
+          gltfDependencyRequestedUrls: copyList(source.gltfDependencyRequestedUrls), gltfDependencyCompletedUrls: copyList(source.gltfDependencyCompletedUrls), gltfFailedDependencyUrls: copyList(source.gltfFailedDependencyUrls), gltfLoaderDebugEvents: copyList(debugEvents).slice(-12),
+        };
+      },
+    };
+  }
+
+  function buildGltfLoaderDiagnosticsSnapshot(diagnostics, debugEvents) {
+    return getWorldRendererDiagnosticsSnapshotApi().buildGltfLoaderDiagnosticsSnapshot(diagnostics, debugEvents);
+  }
+
 
   function getGlbLoadTimeoutMs(assetKind) {
     if (assetKind === "meteor" || assetKind === "debug_probe") return METEOR_GLB_LOAD_TIMEOUT_MS;
@@ -5393,46 +5421,7 @@
       requestedMode, effectiveMode, mode: effectiveMode, fallbackUsed, fallbackReason, lastError, initialized, renderCalls, fallbackCalls, snapshotVersion: "1",
       threeRendererWidth, threeRendererHeight, threeCameraAspect, threeCameraBounds,
       glbLoaderMode: "gltf_loader", glbLoaderPrimary: "GLTFLoader", glbLoaderFallbackUsed: !!threeState.glbLoaderFallbackUsed, glbLoaderFallbackReason: threeState.glbLoaderFallbackReason,
-      gltfLoaderAvailable: gltfLoaderDiagnostics.gltfLoaderAvailable,
-      gltfLoaderType: gltfLoaderDiagnostics.gltfLoaderType,
-      gltfLoaderImportUrl: gltfLoaderDiagnostics.gltfLoaderImportUrl,
-      gltfLoaderImportStatus: gltfLoaderDiagnostics.gltfLoaderImportStatus,
-      gltfLoaderLastImportError: gltfLoaderDiagnostics.gltfLoaderLastImportError,
-      gltfLoaderRequestCount: gltfLoaderDiagnostics.gltfLoaderRequestCount,
-      gltfLoaderProgressCount: gltfLoaderDiagnostics.gltfLoaderProgressCount,
-      gltfLoaderSuccessCount: gltfLoaderDiagnostics.gltfLoaderSuccessCount,
-      gltfLoaderErrorCount: gltfLoaderDiagnostics.gltfLoaderErrorCount,
-      gltfLoaderTimeoutCount: gltfLoaderDiagnostics.gltfLoaderTimeoutCount,
-      gltfLoaderLastRequestedUrl: gltfLoaderDiagnostics.gltfLoaderLastRequestedUrl,
-      gltfLoaderLastRequestedUrlRaw: gltfLoaderDiagnostics.gltfLoaderLastRequestedUrlRaw,
-      gltfLoaderLastRequestedUrlResolved: gltfLoaderDiagnostics.gltfLoaderLastRequestedUrlResolved,
-      gltfLoaderLastRequestedBaseUrl: gltfLoaderDiagnostics.gltfLoaderLastRequestedBaseUrl,
-      gltfLoaderUrlNormalizeError: gltfLoaderDiagnostics.gltfLoaderUrlNormalizeError,
-      gltfLoaderLastProgressUrl: gltfLoaderDiagnostics.gltfLoaderLastProgressUrl,
-      gltfLoaderLastCompletedUrl: gltfLoaderDiagnostics.gltfLoaderLastCompletedUrl,
-      gltfLoaderLastFailedUrl: gltfLoaderDiagnostics.gltfLoaderLastFailedUrl,
-      gltfLoaderLastTimedOutUrl: gltfLoaderDiagnostics.gltfLoaderLastTimedOutUrl,
-      gltfLoaderLastProgressLoaded: gltfLoaderDiagnostics.gltfLoaderLastProgressLoaded,
-      gltfLoaderLastProgressTotal: gltfLoaderDiagnostics.gltfLoaderLastProgressTotal,
-      gltfLoaderLastDurationMs: gltfLoaderDiagnostics.gltfLoaderLastDurationMs,
-      gltfLoaderLastErrorName: gltfLoaderDiagnostics.gltfLoaderLastErrorName,
-      gltfLoaderLastErrorMessage: gltfLoaderDiagnostics.gltfLoaderLastErrorMessage,
-      gltfLoaderLastErrorStack: gltfLoaderDiagnostics.gltfLoaderLastErrorStack,
-      gltfLoaderPendingUrls: (gltfLoaderDiagnostics.gltfLoaderPendingUrls || []).slice(),
-      gltfLoaderFailedUrls: (gltfLoaderDiagnostics.gltfLoaderFailedUrls || []).slice(),
-      gltfLoaderTimedOutUrls: (gltfLoaderDiagnostics.gltfLoaderTimedOutUrls || []).slice(),
-      gltfLoaderLastResourcePath: gltfLoaderDiagnostics.gltfLoaderLastResourcePath,
-      gltfLoaderUrlModifierCount: gltfLoaderDiagnostics.gltfLoaderUrlModifierCount,
-      gltfManagerItemStartCount: gltfLoaderDiagnostics.gltfManagerItemStartCount,
-      gltfManagerItemEndCount: gltfLoaderDiagnostics.gltfManagerItemEndCount,
-      gltfManagerItemErrorCount: gltfLoaderDiagnostics.gltfManagerItemErrorCount,
-      gltfManagerLastStartedUrl: gltfLoaderDiagnostics.gltfManagerLastStartedUrl,
-      gltfManagerLastCompletedUrl: gltfLoaderDiagnostics.gltfManagerLastCompletedUrl,
-      gltfManagerLastFailedUrl: gltfLoaderDiagnostics.gltfManagerLastFailedUrl,
-      gltfDependencyRequestedUrls: (gltfLoaderDiagnostics.gltfDependencyRequestedUrls || []).slice(),
-      gltfDependencyCompletedUrls: (gltfLoaderDiagnostics.gltfDependencyCompletedUrls || []).slice(),
-      gltfFailedDependencyUrls: (gltfLoaderDiagnostics.gltfFailedDependencyUrls || []).slice(),
-      gltfLoaderDebugEvents: threeState.gltfLoaderDebugEvents.slice(-12),
+      ...buildGltfLoaderDiagnosticsSnapshot(gltfLoaderDiagnostics, threeState.gltfLoaderDebugEvents),
       glbVisualFallbackActiveCount: Array.from(threeState.meteorMeshes.values()).filter((entry) => !!entry.fallback?.visible).length + Array.from(threeState.asteroidMeshes.values()).filter((entry) => !!entry.fallback?.visible).length + Array.from(threeState.planetMeshes.values()).filter((entry) => !!entry.fallback?.visible).length,
       gltfProbeStarted: !!threeState.gltfDebugProbe?.startedAt,
       gltfProbeStatus: threeState.gltfDebugProbe?.status || "idle",

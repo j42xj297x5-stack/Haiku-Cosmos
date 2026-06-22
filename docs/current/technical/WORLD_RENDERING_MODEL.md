@@ -1095,3 +1095,7 @@ Texture pipeline evidence powinno obejmować co najmniej:
 `hc.world_renderer_diagnostics.js` jest opcjonalnym/debugowym modułem klasycznych helperów diagnostycznych. Tworzy namespace `window.HC.WorldRendererDiagnostics` i wystawia fabryki diagnostyk GLTF/tekstur oraz małe, czyste helpery formatowania błędów/list. Moduł może być doładowywany defensywnie przez debug overlay i nie jest wymagany do normalnego startu gry.
 
 Publiczne API `HC.WorldRenderer` pozostaje kompatybilne: `getDiagnostics()` i istniejące kontrolki debug nadal czytają dane przez renderer świata. Normalny runtime nie może mieć twardej zależności od `HC.WorldRendererDiagnostics`; `hc.world_renderer.js` musi używać bezpiecznego lokalnego adaptera/fallbacku, jeśli diagnostyczny plik nie został jeszcze załadowany.
+
+#### 2026-06-22 — World renderer diagnostics split pass 2
+
+`HC.WorldRenderer.getDiagnostics()` keeps the public renderer-owned API, but the GLTF loader subsection of the returned snapshot is now built through an optional `HC.WorldRendererDiagnosticsSnapshot` helper. `hc.world_renderer.js` keeps a local fallback adapter, so normal runtime and debug mode do not require the optional helper file to be loaded before the renderer starts. The debug overlay may load both optional diagnostics files defensively.
