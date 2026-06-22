@@ -50,26 +50,35 @@
 
   let worldRendererDiagnosticsLoadPromise = null;
 
-  function ensureWorldRendererDiagnosticsLoaded() {
-    if (window.HC?.WorldRendererDiagnostics) return Promise.resolve(window.HC.WorldRendererDiagnostics);
-    if (worldRendererDiagnosticsLoadPromise) return worldRendererDiagnosticsLoadPromise;
-    worldRendererDiagnosticsLoadPromise = new Promise((resolve) => {
-      if (typeof document === "undefined") return resolve(null);
-      const existing = document.querySelector('script[data-hc-world-renderer-diagnostics="true"]');
+  function loadOptionalRuntimeScript(datasetKey, datasetValue, runtimePath) {
+    return new Promise((resolve) => {
+      if (typeof document === "undefined") return resolve(false);
+      const selector = `script[data-${datasetKey}="${datasetValue}"]`;
+      const existing = document.querySelector(selector);
       if (existing) {
-        existing.addEventListener("load", () => resolve(window.HC?.WorldRendererDiagnostics || null), { once: true });
-        existing.addEventListener("error", () => resolve(null), { once: true });
+        if (existing.dataset.hcLoaded === "true") return resolve(true);
+        existing.addEventListener("load", () => resolve(true), { once: true });
+        existing.addEventListener("error", () => resolve(false), { once: true });
         return;
       }
       const script = document.createElement("script");
-      script.dataset.hcWorldRendererDiagnostics = "true";
+      script.setAttribute(`data-${datasetKey}`, datasetValue);
       script.async = true;
       const publicPath = window.HC?.publicPath || window.HC?.publicAssetPath;
-      script.src = typeof publicPath === "function" ? publicPath("runtime/hc.world_renderer_diagnostics.js") : "runtime/hc.world_renderer_diagnostics.js";
-      script.onload = () => resolve(window.HC?.WorldRendererDiagnostics || null);
-      script.onerror = () => resolve(null);
+      script.src = typeof publicPath === "function" ? publicPath(runtimePath) : runtimePath;
+      script.onload = () => { script.dataset.hcLoaded = "true"; resolve(true); };
+      script.onerror = () => resolve(false);
       (document.head || document.documentElement).appendChild(script);
     });
+  }
+
+  function ensureWorldRendererDiagnosticsLoaded() {
+    if (window.HC?.WorldRendererDiagnostics && window.HC?.WorldRendererDiagnosticsSnapshot) return Promise.resolve(window.HC.WorldRendererDiagnostics);
+    if (worldRendererDiagnosticsLoadPromise) return worldRendererDiagnosticsLoadPromise;
+    worldRendererDiagnosticsLoadPromise = Promise.all([
+      loadOptionalRuntimeScript("hc-world-renderer-diagnostics", "true", "runtime/hc.world_renderer_diagnostics.js"),
+      loadOptionalRuntimeScript("hc-world-renderer-diagnostics-snapshot", "true", "runtime/hc.world_renderer_diagnostics_snapshot.js"),
+    ]).then(() => window.HC?.WorldRendererDiagnostics || null);
     return worldRendererDiagnosticsLoadPromise;
   }
 
