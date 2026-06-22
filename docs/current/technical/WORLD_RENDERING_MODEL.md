@@ -1087,3 +1087,11 @@ Texture pipeline evidence powinno obejmować co najmniej:
 - Audyt binarnych metadanych aktualnych plików `public/glb/*.glb` wykazał brak zewnętrznych URI obrazów i buforów: obrazy obecne w części modeli są osadzone w GLB. Zewnętrzne palety PNG meteorów pozostają osobnym, base-safe przebiegiem `TextureLoader` i nie są zależnościami parsera GLB.
 - Bridge Three nie traktuje już wygenerowanego przez Vite wewnętrznego chunku `three.core` jako osobnego preflight hard-gate. Preflight obejmuje publiczne entry modules Three i GLTFLoadera, a właściwy import pozostaje autorytatywną kontrolą całego grafu modułów. Zapobiega to przełączeniu całego renderera na fallback z powodu redundantnego requestu diagnostycznego.
 - Brak manifestu FrameComposer/visual assets pozostaje niezależny od Three world renderer: loader manifestu zwraca kontrolowany `manifest_error` i visual fallback, bez rzucania wyjątku zatrzymującego pass GLB. Nazwa `/assets/__v01_manifest.json` nie występuje w aktywnym kodzie repozytorium i wskazuje na stary build/cache albo zewnętrzne źródło; aktywny domyślny manifest ma jawną nazwę `submeta_main_frame_v01_manifest.json`.
+
+## 19. Opcjonalny moduł diagnostyk renderera świata (2026-06-22)
+
+`hc.world_renderer.js` pozostaje właścicielem renderowania świata RUN: wybiera tryb renderera, utrzymuje publiczne API `HC.WorldRenderer`, zarządza integracją Three/Canvas2D oraz nie przekazuje odpowiedzialności za scenę, materiały, światła ani cache GLB do modułu diagnostycznego.
+
+`hc.world_renderer_diagnostics.js` jest opcjonalnym/debugowym modułem klasycznych helperów diagnostycznych. Tworzy namespace `window.HC.WorldRendererDiagnostics` i wystawia fabryki diagnostyk GLTF/tekstur oraz małe, czyste helpery formatowania błędów/list. Moduł może być doładowywany defensywnie przez debug overlay i nie jest wymagany do normalnego startu gry.
+
+Publiczne API `HC.WorldRenderer` pozostaje kompatybilne: `getDiagnostics()` i istniejące kontrolki debug nadal czytają dane przez renderer świata. Normalny runtime nie może mieć twardej zależności od `HC.WorldRendererDiagnostics`; `hc.world_renderer.js` musi używać bezpiecznego lokalnego adaptera/fallbacku, jeśli diagnostyczny plik nie został jeszcze załadowany.

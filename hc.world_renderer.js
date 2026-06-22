@@ -52,6 +52,141 @@
   const GLTF_LOADER_BROWSER_PROBE_ASSET = "glb/meteor_red_form_core_01.glb";
   const GLTF_DEBUG_EVENT_LOG_LIMIT = 40;
   const METEOR_GLB_VARIANTS_PER_COLOR = 5;
+
+
+  function getWorldRendererDiagnosticsApi() {
+    const api = window.HC?.WorldRendererDiagnostics;
+    if (api && typeof api.createGltfLoaderDiagnostics === "function") return api;
+    return {
+      createGltfLoaderDiagnostics() {
+        const loader = typeof window !== "undefined" ? (window.HC_GLTFLoader || window.GLTFLoader || null) : null;
+        return {
+          gltfLoaderAvailable: typeof loader === "function",
+          gltfLoaderType: loader ? typeof loader : "undefined",
+          gltfLoaderImportUrl: (typeof window !== "undefined" && window.HC_GLTF_LOADER_MODULE_URL) || null,
+          gltfLoaderImportStatus: (typeof window !== "undefined" && (window.HC_GLTF_LOADER_IMPORT_STATUS || window.HC_THREE_LOAD_STATUS)) || "unknown",
+          gltfLoaderLastImportError: (typeof window !== "undefined" && (window.HC_GLTF_LOADER_IMPORT_ERROR || window.HC_THREE_LOAD_ERROR)) || null,
+          gltfLoaderRequestCount: 0, gltfLoaderProgressCount: 0, gltfLoaderSuccessCount: 0, gltfLoaderErrorCount: 0, gltfLoaderTimeoutCount: 0,
+          gltfLoaderLastRequestedUrl: null, gltfLoaderLastRequestedUrlRaw: null, gltfLoaderLastRequestedUrlResolved: null, gltfLoaderLastRequestedBaseUrl: null, gltfLoaderUrlNormalizeError: null,
+          gltfLoaderLastProgressUrl: null, gltfLoaderLastCompletedUrl: null, gltfLoaderLastFailedUrl: null, gltfLoaderLastTimedOutUrl: null, gltfLoaderLastProgressLoaded: null, gltfLoaderLastProgressTotal: null, gltfLoaderLastDurationMs: null, gltfLoaderLastErrorName: null, gltfLoaderLastErrorMessage: null, gltfLoaderLastErrorStack: null,
+          gltfLoaderPendingUrls: [], gltfLoaderFailedUrls: [], gltfLoaderTimedOutUrls: [],
+          gltfLoaderLastResourcePath: null, gltfLoaderUrlModifierCount: 0, gltfManagerItemStartCount: 0, gltfManagerItemEndCount: 0, gltfManagerItemErrorCount: 0, gltfManagerLastStartedUrl: null, gltfManagerLastCompletedUrl: null, gltfManagerLastFailedUrl: null,
+          gltfDependencyRequestedUrls: [], gltfDependencyCompletedUrls: [], gltfFailedDependencyUrls: [],
+        };
+      },
+      createGltfDebugProbeDiagnostics(asset = GLTF_LOADER_BROWSER_PROBE_ASSET) { return { enabled: true, asset, url: null, status: "idle", startedAt: null, durationMs: null, meshCount: 0, materialCount: 0, textureCount: 0, errorMessage: null }; },
+      createAsteroidGlbTextureDiagnostics() { return { asteroidGlbEmbeddedTextureCount: 0, asteroidGlbTextureReadyCount: 0, asteroidGlbTextureMissingImageCount: 0, asteroidGlbTextureFallbackMaterialCount: 0, asteroidGlbLoaderMode: "gltf_loader", imageBufferViewCount: 0, imageUriCount: 0, imageDataUriCount: 0, imagePngCount: 0, imageJpegCount: 0, imageUnsupportedMimeCount: 0, lastAssetUrl: null, lastError: null }; },
+      createMeteorTextureDiagnostics() { return { enabled: true, materialMode: "imported", eligibleInstances: 0, applyAttempts: 0, applySkippedAlreadyCurrent: 0, reapplyDueToMissingMap: 0, reapplyDueToMaterialModeChange: 0, reapplyDueToToggleChange: 0, reapplyDueToNewEntry: 0, textureLoadRequests: 0, cacheLoading: 0, cacheReady: 0, cacheFailed: 0, sceneMeshesVisited: 0, redYellowSceneMeshesVisited: 0, materialSlotsVisited: 0, materialSlotsWithMap: 0, materialSlotsWithEmissiveMap: 0, materialSlotsWithMapImage: 0, materialSlotsWithEmissiveImage: 0, materialsVisited: 0, materialsConvertedToStandard: 0, materialConversions: 0, appliedThisFrame: 0, mapApplied: 0, emissiveMapApplied: 0, activeGlbEntries: 0, activeGlbEntriesWithSceneObject: 0, activeGlbEntriesWithColor: 0, activeGlbEntriesMissingColor: 0, activeGlbEntriesUnsupportedColor: 0, activeGlbEntriesEligibleRedYellow: 0, sourceMeteorColorSamples: [], entryColorFieldSamples: [], skippedMissingColor: 0, skippedUnsupportedColor: 0, syncActiveEntriesCalls: 0, mapLostAfterApply: 0, emissiveMapLostAfterApply: 0, strippedAfterApply: 0, lastAppliedColor: null, lastAppliedMapUrl: null, lastAppliedEmissiveMapUrl: null, lastFallbackReason: null, meteorTextureAssignmentsByColor: {}, meteorTextureMapReadyByColor: {}, meteorTextureEmissiveReadyByColor: {}, meteorTextureLastError: null, meteorTexturePendingApplyCount: 0, meteorTextureInstancesWithExternalMap: 0, meteorTextureInstancesWithExternalEmissiveMap: 0, meteorTextureInstancesSkippedBecauseGlbHadMap: 0, meteorTextureInstancesSkippedBecauseGlbHadEmissiveMap: 0 }; },
+      formatGlbError(error) { if (!error) return "Unknown GLTFLoader error"; if (typeof error === "string") return error; return error.message || error.statusText || error.type || String(error); },
+      safeGlbErrorStack(error) { const stack = typeof error?.stack === "string" ? error.stack : null; return stack ? stack.slice(0, 4000) : null; },
+      safeGlbErrorName(error) { return error?.name || error?.type || (error ? typeof error : null); },
+      pushUniqueLimited(list, value, limit = 20) { if (!value || !Array.isArray(list)) return list; const existingIndex = list.indexOf(value); if (existingIndex >= 0) list.splice(existingIndex, 1); list.push(value); while (list.length > limit) list.shift(); return list; },
+      removeFromList(list, value) { if (!value || !Array.isArray(list)) return list; const index = list.indexOf(value); if (index >= 0) list.splice(index, 1); return list; },
+    };
+  }
+
+  function createGltfLoaderDiagnostics() { return getWorldRendererDiagnosticsApi().createGltfLoaderDiagnostics(); }
+  function createGltfDebugProbeDiagnostics() { return getWorldRendererDiagnosticsApi().createGltfDebugProbeDiagnostics(GLTF_LOADER_BROWSER_PROBE_ASSET); }
+  function createAsteroidGlbTextureDiagnostics() { return getWorldRendererDiagnosticsApi().createAsteroidGlbTextureDiagnostics(); }
+  function createMeteorTextureDiagnostics() { return getWorldRendererDiagnosticsApi().createMeteorTextureDiagnostics(); }
+  function formatGlbError(error) { return getWorldRendererDiagnosticsApi().formatGlbError(error); }
+  function safeGlbErrorStack(error) { return getWorldRendererDiagnosticsApi().safeGlbErrorStack(error); }
+  function safeGlbErrorName(error) { return getWorldRendererDiagnosticsApi().safeGlbErrorName(error); }
+  function pushUniqueLimited(list, value, limit = 20) { return getWorldRendererDiagnosticsApi().pushUniqueLimited(list, value, limit); }
+  function removeFromList(list, value) { return getWorldRendererDiagnosticsApi().removeFromList(list, value); }
+
+
+  function getGlbLoadTimeoutMs(assetKind) {
+    if (assetKind === "meteor" || assetKind === "debug_probe") return METEOR_GLB_LOAD_TIMEOUT_MS;
+    if (assetKind === "asteroid") return ASTEROID_GLB_LOAD_TIMEOUT_MS;
+    return GLTF_LOAD_TIMEOUT_MS;
+  }
+
+  function isWorldRendererDebugMode() {
+    return window.HC?.Session?.mode === "debug" || window.HC?.Session?.debugConfig?.mode === "debug" || window.HC?.WorldRendererDebug?.gltfDebugProbeEnabled === true;
+  }
+
+  function refreshGltfLoaderAvailabilityDiagnostics() {
+    const diagnostics = threeState.gltfLoaderDiagnostics || createGltfLoaderDiagnostics();
+    const loader = getGltfLoaderClass();
+    diagnostics.gltfLoaderAvailable = typeof loader === "function";
+    diagnostics.gltfLoaderType = loader ? typeof loader : "undefined";
+    diagnostics.gltfLoaderImportUrl = window.HC_GLTF_LOADER_MODULE_URL || diagnostics.gltfLoaderImportUrl || null;
+    diagnostics.gltfLoaderImportStatus = window.HC_GLTF_LOADER_IMPORT_STATUS || window.HC_THREE_LOAD_STATUS || diagnostics.gltfLoaderImportStatus || "unknown";
+    diagnostics.gltfLoaderLastImportError = window.HC_GLTF_LOADER_IMPORT_ERROR || window.HC_THREE_LOAD_ERROR || null;
+    threeState.gltfLoaderDiagnostics = diagnostics;
+    return diagnostics;
+  }
+
+  function syncGltfLoaderUrlDiagnostics() {
+    const diagnostics = threeState.gltfLoaderDiagnostics || createGltfLoaderDiagnostics();
+    diagnostics.gltfLoaderPendingUrls = Array.from(threeState.glbTemplateCache.values()).filter((entry) => entry?.status === "loading").map((entry) => entry.resolvedUrl || entry.url);
+    diagnostics.gltfLoaderFailedUrls = Array.from(threeState.glbTemplateCache.values()).filter((entry) => entry?.status === "failed").map((entry) => entry.resolvedUrl || entry.url);
+    diagnostics.gltfLoaderTimedOutUrls = Array.from(new Set((diagnostics.gltfLoaderTimedOutUrls || []).filter(Boolean)));
+    threeState.gltfLoaderDiagnostics = diagnostics;
+    return diagnostics;
+  }
+
+  function getPublicBasePathname() {
+    try {
+      const publicRoot = resolvePublicAssetPath("");
+      return new URL(publicRoot || "./", getBrowserAssetBaseUrl() || window.location.href).pathname.replace(/\/+$/, "/");
+    } catch (_) {
+      return "/";
+    }
+  }
+
+  function normalizeGltfDependencyUrl(url, modelUrl) {
+    const rawUrl = String(url || "");
+    if (!rawUrl || /^(?:blob:|data:)/i.test(rawUrl)) return rawUrl;
+    const modelDirectory = new URL("./", modelUrl).href;
+    const resolved = new URL(rawUrl, modelDirectory);
+    const currentOrigin = window.location?.origin || resolved.origin;
+    if (resolved.origin !== currentOrigin) return resolved.href;
+
+    const publicBasePathname = getPublicBasePathname();
+    let pathname = resolved.pathname.replace(/^\/public\//, "/");
+    const alreadyBaseSafe = publicBasePathname === "/" || pathname === publicBasePathname.slice(0, -1) || pathname.startsWith(publicBasePathname);
+    const publicAssetRoot = /^\/(?:assets|glb|models|png|svg|textures)(?:\/|$)/i.test(pathname);
+    if (!alreadyBaseSafe && publicAssetRoot) {
+      return normalizeBrowserAssetUrl(resolvePublicAssetPath(pathname.replace(/^\/+/, "")));
+    }
+    if (pathname !== resolved.pathname) {
+      return normalizeBrowserAssetUrl(resolvePublicAssetPath(pathname.replace(/^\/+/, "")));
+    }
+    return resolved.href;
+  }
+
+  function isGltfPrimaryAssetUrl(url, modelUrl) {
+    try { return new URL(url, modelUrl).href === new URL(modelUrl, window.location.href).href; }
+    catch (_) { return String(url || "") === String(modelUrl || ""); }
+  }
+
+  function makeGlbEventPayload(type, { assetKind, logicalPath = null, url, baseUrl = null, cacheKey, startedAt, durationMs = null, loaded = null, total = null, error = null, status = null, readyState = null, meshCount = null, materialCount = null, textureCount = null, fallbackUsed = false } = {}) {
+    const elapsedMs = Number.isFinite(durationMs) ? durationMs : (Number.isFinite(startedAt) ? performance.now() - startedAt : null);
+    const errorMessage = error ? formatGlbError(error) : null;
+    return {
+      assetKind, logicalPath, url, resolvedUrl: url, baseUrl, loaderMode: "gltf_loader", cacheKey: cacheKey || url || null,
+      durationMs: Number.isFinite(elapsedMs) ? elapsedMs : null, loaded, total,
+      errorName: error ? safeGlbErrorName(error) : null, errorMessage, errorStack: error ? safeGlbErrorStack(error) : null,
+      readyState, status, meshCount, materialCount, textureCount, fallbackUsed: !!fallbackUsed, eventKind: type,
+    };
+  }
+
+  function emitGlbDebugEvent(type, payload = {}) {
+    const eventPayload = Object.assign({ type, atMs: Date.now() }, payload);
+    threeState.gltfLoaderDebugEvents.push(eventPayload);
+    if (threeState.gltfLoaderDebugEvents.length > GLTF_DEBUG_EVENT_LOG_LIMIT) threeState.gltfLoaderDebugEvents.shift();
+    try { window.dispatchEvent?.(new CustomEvent(type, { detail: eventPayload })); } catch (_) {}
+    return eventPayload;
+  }
+
+  function warnGlbLoadFailureOnce(url, message, payload = {}) {
+    const key = `${url}::${message}`;
+    if (threeState.gltfLoaderWarnedFailures.has(key)) return;
+    threeState.gltfLoaderWarnedFailures.add(key);
+    if (window.console?.warn) window.console.warn(`[HC.WorldRenderer] GLTFLoader failed for ${url}: ${message}`, payload);
+  }
   const METEOR_TEXTURE_PALETTES = Object.freeze({
     red: Object.freeze({
       map: Object.freeze([
@@ -372,281 +507,6 @@
   };
 
 
-
-  function createGltfLoaderDiagnostics() {
-    const loader = typeof window !== "undefined" ? (window.HC_GLTFLoader || window.GLTFLoader || null) : null;
-    return {
-      gltfLoaderAvailable: typeof loader === "function",
-      gltfLoaderType: loader ? typeof loader : "undefined",
-      gltfLoaderImportUrl: (typeof window !== "undefined" && window.HC_GLTF_LOADER_MODULE_URL) || null,
-      gltfLoaderImportStatus: (typeof window !== "undefined" && (window.HC_GLTF_LOADER_IMPORT_STATUS || window.HC_THREE_LOAD_STATUS)) || "unknown",
-      gltfLoaderLastImportError: (typeof window !== "undefined" && (window.HC_GLTF_LOADER_IMPORT_ERROR || window.HC_THREE_LOAD_ERROR)) || null,
-      gltfLoaderRequestCount: 0,
-      gltfLoaderProgressCount: 0,
-      gltfLoaderSuccessCount: 0,
-      gltfLoaderErrorCount: 0,
-      gltfLoaderTimeoutCount: 0,
-      gltfLoaderLastRequestedUrl: null,
-      gltfLoaderLastRequestedUrlRaw: null,
-      gltfLoaderLastRequestedUrlResolved: null,
-      gltfLoaderLastRequestedBaseUrl: null,
-      gltfLoaderUrlNormalizeError: null,
-      gltfLoaderLastProgressUrl: null,
-      gltfLoaderLastCompletedUrl: null,
-      gltfLoaderLastFailedUrl: null,
-      gltfLoaderLastTimedOutUrl: null,
-      gltfLoaderLastProgressLoaded: null,
-      gltfLoaderLastProgressTotal: null,
-      gltfLoaderLastDurationMs: null,
-      gltfLoaderLastErrorName: null,
-      gltfLoaderLastErrorMessage: null,
-      gltfLoaderLastErrorStack: null,
-      gltfLoaderPendingUrls: [],
-      gltfLoaderFailedUrls: [],
-      gltfLoaderTimedOutUrls: [],
-      gltfLoaderLastResourcePath: null,
-      gltfLoaderUrlModifierCount: 0,
-      gltfManagerItemStartCount: 0,
-      gltfManagerItemEndCount: 0,
-      gltfManagerItemErrorCount: 0,
-      gltfManagerLastStartedUrl: null,
-      gltfManagerLastCompletedUrl: null,
-      gltfManagerLastFailedUrl: null,
-      gltfDependencyRequestedUrls: [],
-      gltfDependencyCompletedUrls: [],
-      gltfFailedDependencyUrls: [],
-    };
-  }
-
-  function createGltfDebugProbeDiagnostics() {
-    return {
-      enabled: true,
-      asset: GLTF_LOADER_BROWSER_PROBE_ASSET,
-      url: null,
-      status: "idle",
-      startedAt: null,
-      durationMs: null,
-      meshCount: 0,
-      materialCount: 0,
-      textureCount: 0,
-      errorMessage: null,
-    };
-  }
-
-  function getGlbLoadTimeoutMs(assetKind) {
-    if (assetKind === "meteor" || assetKind === "debug_probe") return METEOR_GLB_LOAD_TIMEOUT_MS;
-    if (assetKind === "asteroid") return ASTEROID_GLB_LOAD_TIMEOUT_MS;
-    return GLTF_LOAD_TIMEOUT_MS;
-  }
-
-  function isWorldRendererDebugMode() {
-    return window.HC?.Session?.mode === "debug" || window.HC?.Session?.debugConfig?.mode === "debug" || window.HC?.WorldRendererDebug?.gltfDebugProbeEnabled === true;
-  }
-
-  function refreshGltfLoaderAvailabilityDiagnostics() {
-    const diagnostics = threeState.gltfLoaderDiagnostics || createGltfLoaderDiagnostics();
-    const loader = getGltfLoaderClass();
-    diagnostics.gltfLoaderAvailable = typeof loader === "function";
-    diagnostics.gltfLoaderType = loader ? typeof loader : "undefined";
-    diagnostics.gltfLoaderImportUrl = window.HC_GLTF_LOADER_MODULE_URL || diagnostics.gltfLoaderImportUrl || null;
-    diagnostics.gltfLoaderImportStatus = window.HC_GLTF_LOADER_IMPORT_STATUS || window.HC_THREE_LOAD_STATUS || diagnostics.gltfLoaderImportStatus || "unknown";
-    diagnostics.gltfLoaderLastImportError = window.HC_GLTF_LOADER_IMPORT_ERROR || window.HC_THREE_LOAD_ERROR || null;
-    threeState.gltfLoaderDiagnostics = diagnostics;
-    return diagnostics;
-  }
-
-  function formatGlbError(error) {
-    if (!error) return "Unknown GLTFLoader error";
-    if (typeof error === "string") return error;
-    return error.message || error.statusText || error.type || String(error);
-  }
-
-  function safeGlbErrorStack(error) {
-    const stack = typeof error?.stack === "string" ? error.stack : null;
-    return stack ? stack.slice(0, 4000) : null;
-  }
-
-  function safeGlbErrorName(error) {
-    return error?.name || error?.type || (error ? typeof error : null);
-  }
-
-  function pushUniqueLimited(list, value, limit = 20) {
-    if (!value || !Array.isArray(list)) return list;
-    const existingIndex = list.indexOf(value);
-    if (existingIndex >= 0) list.splice(existingIndex, 1);
-    list.push(value);
-    while (list.length > limit) list.shift();
-    return list;
-  }
-
-  function removeFromList(list, value) {
-    if (!value || !Array.isArray(list)) return list;
-    const index = list.indexOf(value);
-    if (index >= 0) list.splice(index, 1);
-    return list;
-  }
-
-  function syncGltfLoaderUrlDiagnostics() {
-    const diagnostics = threeState.gltfLoaderDiagnostics || createGltfLoaderDiagnostics();
-    diagnostics.gltfLoaderPendingUrls = Array.from(threeState.glbTemplateCache.values()).filter((entry) => entry?.status === "loading").map((entry) => entry.resolvedUrl || entry.url);
-    diagnostics.gltfLoaderFailedUrls = Array.from(threeState.glbTemplateCache.values()).filter((entry) => entry?.status === "failed").map((entry) => entry.resolvedUrl || entry.url);
-    diagnostics.gltfLoaderTimedOutUrls = Array.from(new Set((diagnostics.gltfLoaderTimedOutUrls || []).filter(Boolean)));
-    threeState.gltfLoaderDiagnostics = diagnostics;
-    return diagnostics;
-  }
-
-  function getPublicBasePathname() {
-    try {
-      const publicRoot = resolvePublicAssetPath("");
-      return new URL(publicRoot || "./", getBrowserAssetBaseUrl() || window.location.href).pathname.replace(/\/+$/, "/");
-    } catch (_) {
-      return "/";
-    }
-  }
-
-  function normalizeGltfDependencyUrl(url, modelUrl) {
-    const rawUrl = String(url || "");
-    if (!rawUrl || /^(?:blob:|data:)/i.test(rawUrl)) return rawUrl;
-    const modelDirectory = new URL("./", modelUrl).href;
-    const resolved = new URL(rawUrl, modelDirectory);
-    const currentOrigin = window.location?.origin || resolved.origin;
-    if (resolved.origin !== currentOrigin) return resolved.href;
-
-    const publicBasePathname = getPublicBasePathname();
-    let pathname = resolved.pathname.replace(/^\/public\//, "/");
-    const alreadyBaseSafe = publicBasePathname === "/" || pathname === publicBasePathname.slice(0, -1) || pathname.startsWith(publicBasePathname);
-    const publicAssetRoot = /^\/(?:assets|glb|models|png|svg|textures)(?:\/|$)/i.test(pathname);
-    if (!alreadyBaseSafe && publicAssetRoot) {
-      return normalizeBrowserAssetUrl(resolvePublicAssetPath(pathname.replace(/^\/+/, "")));
-    }
-    if (pathname !== resolved.pathname) {
-      return normalizeBrowserAssetUrl(resolvePublicAssetPath(pathname.replace(/^\/+/, "")));
-    }
-    return resolved.href;
-  }
-
-  function isGltfPrimaryAssetUrl(url, modelUrl) {
-    try { return new URL(url, modelUrl).href === new URL(modelUrl, window.location.href).href; }
-    catch (_) { return String(url || "") === String(modelUrl || ""); }
-  }
-
-  function makeGlbEventPayload(type, { assetKind, logicalPath = null, url, baseUrl = null, cacheKey, startedAt, durationMs = null, loaded = null, total = null, error = null, status = null, readyState = null, meshCount = null, materialCount = null, textureCount = null, fallbackUsed = false } = {}) {
-    const elapsedMs = Number.isFinite(durationMs) ? durationMs : (Number.isFinite(startedAt) ? performance.now() - startedAt : null);
-    const errorMessage = error ? formatGlbError(error) : null;
-    return {
-      assetKind,
-      logicalPath,
-      url,
-      resolvedUrl: url,
-      baseUrl,
-      loaderMode: "gltf_loader",
-      cacheKey: cacheKey || url || null,
-      durationMs: Number.isFinite(elapsedMs) ? elapsedMs : null,
-      loaded,
-      total,
-      errorName: error ? safeGlbErrorName(error) : null,
-      errorMessage,
-      errorStack: error ? safeGlbErrorStack(error) : null,
-      readyState,
-      status,
-      meshCount,
-      materialCount,
-      textureCount,
-      fallbackUsed: !!fallbackUsed,
-      eventKind: type,
-    };
-  }
-
-  function emitGlbDebugEvent(type, payload = {}) {
-    const eventPayload = Object.assign({ type, atMs: Date.now() }, payload);
-    threeState.gltfLoaderDebugEvents.push(eventPayload);
-    if (threeState.gltfLoaderDebugEvents.length > GLTF_DEBUG_EVENT_LOG_LIMIT) threeState.gltfLoaderDebugEvents.shift();
-    try { window.dispatchEvent?.(new CustomEvent(type, { detail: eventPayload })); } catch (_) {}
-    return eventPayload;
-  }
-
-  function warnGlbLoadFailureOnce(url, message, payload = {}) {
-    const key = `${url}::${message}`;
-    if (threeState.gltfLoaderWarnedFailures.has(key)) return;
-    threeState.gltfLoaderWarnedFailures.add(key);
-    if (window.console?.warn) window.console.warn(`[HC.WorldRenderer] GLTFLoader failed for ${url}: ${message}`, payload);
-  }
-
-  function createAsteroidGlbTextureDiagnostics() {
-    return {
-      asteroidGlbEmbeddedTextureCount: 0,
-      asteroidGlbTextureReadyCount: 0,
-      asteroidGlbTextureMissingImageCount: 0,
-      asteroidGlbTextureFallbackMaterialCount: 0,
-      asteroidGlbLoaderMode: "gltf_loader",
-      imageBufferViewCount: 0,
-      imageUriCount: 0,
-      imageDataUriCount: 0,
-      imagePngCount: 0,
-      imageJpegCount: 0,
-      imageUnsupportedMimeCount: 0,
-      lastAssetUrl: null,
-      lastError: null,
-    };
-  }
-
-  function createMeteorTextureDiagnostics() {
-    return {
-      enabled: true,
-      materialMode: "imported",
-      eligibleInstances: 0,
-      applyAttempts: 0,
-      applySkippedAlreadyCurrent: 0,
-      reapplyDueToMissingMap: 0,
-      reapplyDueToMaterialModeChange: 0,
-      reapplyDueToToggleChange: 0,
-      reapplyDueToNewEntry: 0,
-      textureLoadRequests: 0,
-      cacheLoading: 0,
-      cacheReady: 0,
-      cacheFailed: 0,
-      sceneMeshesVisited: 0,
-      redYellowSceneMeshesVisited: 0,
-      materialSlotsVisited: 0,
-      materialSlotsWithMap: 0,
-      materialSlotsWithEmissiveMap: 0,
-      materialSlotsWithMapImage: 0,
-      materialSlotsWithEmissiveImage: 0,
-      materialsVisited: 0,
-      materialsConvertedToStandard: 0,
-      materialConversions: 0,
-      appliedThisFrame: 0,
-      mapApplied: 0,
-      emissiveMapApplied: 0,
-      activeGlbEntries: 0,
-      activeGlbEntriesWithSceneObject: 0,
-      activeGlbEntriesWithColor: 0,
-      activeGlbEntriesMissingColor: 0,
-      activeGlbEntriesUnsupportedColor: 0,
-      activeGlbEntriesEligibleRedYellow: 0,
-      sourceMeteorColorSamples: [],
-      entryColorFieldSamples: [],
-      skippedMissingColor: 0,
-      skippedUnsupportedColor: 0,
-      syncActiveEntriesCalls: 0,
-      mapLostAfterApply: 0,
-      emissiveMapLostAfterApply: 0,
-      strippedAfterApply: 0,
-      lastAppliedColor: null,
-      lastAppliedMapUrl: null,
-      lastAppliedEmissiveMapUrl: null,
-      lastFallbackReason: null,
-      meteorTextureAssignmentsByColor: {},
-      meteorTextureMapReadyByColor: {},
-      meteorTextureEmissiveReadyByColor: {},
-      meteorTextureLastError: null,
-      meteorTexturePendingApplyCount: 0,
-      meteorTextureInstancesWithExternalMap: 0,
-      meteorTextureInstancesWithExternalEmissiveMap: 0,
-      meteorTextureInstancesSkippedBecauseGlbHadMap: 0,
-      meteorTextureInstancesSkippedBecauseGlbHadEmissiveMap: 0,
-    };
-  }
 
   function resetMeteorTextureFrameDiagnostics() {
     const diagnostics = threeState.meteorTextureDiagnostics || createMeteorTextureDiagnostics();

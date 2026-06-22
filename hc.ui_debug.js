@@ -48,6 +48,31 @@
   let warnedMissingHudTopLayout = false;
   let runtimeDebugSectionState = {};
 
+  let worldRendererDiagnosticsLoadPromise = null;
+
+  function ensureWorldRendererDiagnosticsLoaded() {
+    if (window.HC?.WorldRendererDiagnostics) return Promise.resolve(window.HC.WorldRendererDiagnostics);
+    if (worldRendererDiagnosticsLoadPromise) return worldRendererDiagnosticsLoadPromise;
+    worldRendererDiagnosticsLoadPromise = new Promise((resolve) => {
+      if (typeof document === "undefined") return resolve(null);
+      const existing = document.querySelector('script[data-hc-world-renderer-diagnostics="true"]');
+      if (existing) {
+        existing.addEventListener("load", () => resolve(window.HC?.WorldRendererDiagnostics || null), { once: true });
+        existing.addEventListener("error", () => resolve(null), { once: true });
+        return;
+      }
+      const script = document.createElement("script");
+      script.dataset.hcWorldRendererDiagnostics = "true";
+      script.async = true;
+      const publicPath = window.HC?.publicPath || window.HC?.publicAssetPath;
+      script.src = typeof publicPath === "function" ? publicPath("runtime/hc.world_renderer_diagnostics.js") : "runtime/hc.world_renderer_diagnostics.js";
+      script.onload = () => resolve(window.HC?.WorldRendererDiagnostics || null);
+      script.onerror = () => resolve(null);
+      (document.head || document.documentElement).appendChild(script);
+    });
+    return worldRendererDiagnosticsLoadPromise;
+  }
+
   const DEBUG_UI_TEXT = Object.freeze({
     "common.back": "Back",
     "common.resetDefaults": "Reset to defaults",
@@ -1146,6 +1171,7 @@
       }
       if (btnStartDebug) {
         btnStartDebug.addEventListener("click", () => {
+          ensureWorldRendererDiagnosticsLoaded();
           if (debugConfigPanel) debugConfigPanel.hidden = false;
         });
       }
@@ -1159,6 +1185,7 @@
       }
       if (btnStartDebugSession) {
         btnStartDebugSession.addEventListener("click", () => {
+          ensureWorldRendererDiagnosticsLoaded();
           if (!isPhase1Ready()) return setStartError("Loader Phase 1 jeszcze trwa.");
           const config = buildDebugConfigFromUi();
           config.visual = Object.assign({}, config.visual, { rendererMode: "three" });
@@ -1172,6 +1199,7 @@
       updateScoreLabel(World, true);
     },
     applySessionMode(mode) {
+      if (mode === "debug") ensureWorldRendererDiagnosticsLoaded();
       if (mode !== "debug") window.HC?.SubMetaPngLayout?.setPreviewEnabled?.(false);
       if (debugBadge) debugBadge.hidden = mode !== "debug";
       if (runtimeDebugOverlay) {
