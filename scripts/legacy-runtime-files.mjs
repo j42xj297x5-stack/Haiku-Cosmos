@@ -32,6 +32,7 @@ export const legacyRuntimeFiles = [
   "hc.asteroids.js",
   "hc.planets.js",
   "hc.world_render_snapshot.js",
+  "hc.world_renderer_diagnostics.js",
   "hc.world_renderer.js",
   "hc.ui_debug.js",
   "game.boot.js"
