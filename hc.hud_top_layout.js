@@ -126,23 +126,21 @@
     if (!byId.has("hud_top_active_hud_icon_background") && byId.has("hud_top_dust_reservoir")) byId.set("hud_top_active_hud_icon_background", byId.get("hud_top_dust_reservoir"));
     return byId;
   }
-  function sanitizeLayout(candidate) {
+  function sanitizeLayout(candidate, baseLayout = DEFAULT_LAYOUT) {
     const stageSize = getStage(candidate);
     const byId = buildIncomingMap(candidate);
+    const baseById = new Map((baseLayout?.elements || []).map((item) => [item.id, item]));
     const next = {
       version: LAYOUT_VERSION,
       coordinateSystem: COORDINATE_SYSTEM,
       stage: stageSize,
-      elements: DEFAULT_LAYOUT.elements.map((fallback) => normalizeElement(byId.get(fallback.id), fallback, stageSize))
+      elements: DEFAULT_LAYOUT.elements.map((fallback) => {
+        const base = baseById.get(fallback.id);
+        const effectiveFallback = base ? { ...fallback, ...base, id: fallback.id, asset: base.asset ?? fallback.asset } : fallback;
+        return normalizeElement(byId.get(fallback.id), effectiveFallback, stageSize);
+      })
     };
-    for (const item of next.elements) {
-      if (item.visualFor) {
-        const visual = next.elements.find((candidateElement) => candidateElement.id === item.visualFor);
-        if (visual && !byId.has(item.id)) {
-          item.x = visual.x; item.y = visual.y; item.width = visual.width; item.height = visual.height; item.scale = visual.scale;
-        }
-      }
-    }
+    syncLinkedHitboxes(next);
     return next;
   }
   function validateLayoutPayload(candidate) {
@@ -165,7 +163,22 @@
     return true;
   }
   function getElement(id) { return layout.elements.find((e) => e.id === id) || null; }
-  function stageRect(el) { const scale = getStageScale(); const itemScale = clampNumber(el.scale, 0.05, 5, 1); return { x: el.x * scale, y: el.y * scale, width: el.width * itemScale * scale, height: el.height * itemScale * scale }; }
+  function getVisualSource(el, sourceLayout = layout) {
+    if (!el?.visualFor) return el;
+    return sourceLayout.elements.find((item) => item.id === el.visualFor) || el;
+  }
+  function copyVisualRect(target, visual) {
+    for (const field of ["x", "y", "width", "height", "scale"]) target[field] = visual[field];
+  }
+  function syncLinkedHitboxes(sourceLayout = layout) {
+    for (const item of sourceLayout.elements || []) {
+      if (!item.visualFor) continue;
+      const visual = sourceLayout.elements.find((candidate) => candidate.id === item.visualFor);
+      if (visual) copyVisualRect(item, visual);
+    }
+    return sourceLayout;
+  }
+  function stageRect(el) { const source = getVisualSource(el); const scale = getStageScale(); const itemScale = clampNumber(source.scale, 0.05, 5, 1); return { x: source.x * scale, y: source.y * scale, width: source.width * itemScale * scale, height: source.height * itemScale * scale }; }
   function mountFor(role) { const el = layout.elements.find((item) => item.mountRole === role) || null; return el ? stageRect(el) : null; }
   function shouldShowDebugPreview() { return root.HC?.Session?.mode === "debug" || root.HC?.Session?.debugConfig?.mode === "debug" || document.getElementById("debugBadge")?.hidden === false; }
   function ensureNode(el) {
@@ -248,14 +261,14 @@
     }
     applyLayout();
   }
-  function setLayout(next) { layout = sanitizeLayout(next); if (!layout.elements.some((item) => item.id === selectedHudTopElement)) selectedHudTopElement = layout.elements[0]?.id || ""; lastError = ""; applyLayout(); return getLayout(); }
-  function getLayout() { const out = cloneLayout(layout); out.stageScale = getStageScale(); out.rpMountRect = mountFor("rpText"); out.rpBackgroundMountRect = mountFor("rpBackground"); out.dustPileMountRect = mountFor("dustPile"); out.activeHudIconMountRect = mountFor("activeHudIconBackground"); return out; }
+  function setLayout(next, options = {}) { layout = sanitizeLayout(next, options.baseLayout || layout); if (!layout.elements.some((item) => item.id === selectedHudTopElement)) selectedHudTopElement = layout.elements[0]?.id || ""; lastError = ""; applyLayout(); return getLayout(); }
+  function getLayout() { syncLinkedHitboxes(); const out = cloneLayout(layout); out.stageScale = getStageScale(); out.rpMountRect = mountFor("rpText"); out.rpBackgroundMountRect = mountFor("rpBackground"); out.dustPileMountRect = mountFor("dustPile"); out.activeHudIconMountRect = mountFor("activeHudIconBackground"); return out; }
   function resetLayout() { lastAction = "reset settings defaults"; void loadRuntimeLayout(); return getLayout(); }
   function importLayout(raw) {
     try {
       const payload = typeof raw === "string" ? JSON.parse(raw || "{}") : raw;
       validateLayoutPayload(payload);
-      setLayout(payload);
+      setLayout(payload, { baseLayout: layout });
       lastAction = "imported JSON runtime override";
       lastError = "";
       return true;
@@ -266,10 +279,25 @@
       return false;
     }
   }
-  function getExportJson() { return `${JSON.stringify({ version: layout.version, coordinateSystem: layout.coordinateSystem, stage: layout.stage, elements: layout.elements }, null, 2)}\n`; }
+  function getExportJson() { syncLinkedHitboxes(); return `${JSON.stringify({ version: layout.version, coordinateSystem: layout.coordinateSystem, stage: layout.stage, elements: layout.elements }, null, 2)}\n`; }
   function setRpValue(value) { if (rpText) rpText.textContent = String(Math.max(0, Math.min(9999, Math.floor(Number(value) || 0)))); }
   function init() { if (initialized) return; stage = document.getElementById("hudTopStage"); layer = document.getElementById("hudTopLayer"); rpText = document.getElementById("scoreLabel"); settingsPopup = document.getElementById("hudTopSettingsPopup"); if (!stage || !layer || !rpText) return; initialized = true; root.addEventListener("resize", applyLayout); document.getElementById("hudTopSettingsClose")?.addEventListener("click", () => { settingsPopup.hidden = true; }); document.getElementById("hudSaveGame")?.addEventListener("click", exportSaveFromHud); document.getElementById("hudLoadGame")?.addEventListener("click", () => document.getElementById("hudSaveFileInput")?.click()); document.getElementById("hudSaveFileInput")?.addEventListener("change", (e) => { const file = e.target.files?.[0]; if (file) void importSaveFromHud(file); e.target.value = ""; }); document.getElementById("hudRendererMode")?.addEventListener("change", (e) => { const mode = e.target.value === "canvas2d" ? "canvas2d" : "three"; root.HC.RENDER_MODE = mode; root.HC.WorldRenderer?.setMode?.(mode); updateSettingsPanel(); }); void loadRuntimeLayout(); }
-  function updateField(field, raw) { const el = getElement(selectedHudTopElement); if (!el) return false; if (field === "visible" || field === "preserveAspect" || field === "interactive" || field === "debugPreview") el[field] = !!raw; else if (field === "zIndex") el[field] = Math.round(Number(raw)); else el[field] = Number(raw); setLayout(layout); lastAction = `edited ${selectedHudTopElement}.${field}`; return true; }
+  function updateField(field, raw) {
+    const el = getElement(selectedHudTopElement);
+    if (!el) return false;
+    const previous = el[field];
+    if (field === "visible" || field === "preserveAspect" || field === "interactive" || field === "debugPreview") el[field] = !!raw;
+    else if (field === "zIndex") el[field] = Math.round(clampNumber(raw, -1000, 10000, previous ?? 0));
+    else {
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed)) return false;
+      el[field] = parsed;
+    }
+    syncLinkedHitboxes();
+    applyLayout();
+    lastAction = `edited ${selectedHudTopElement}.${field}`;
+    return true;
+  }
   function escapeHtml(value) { return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"); }
   function renderDebugHtml(options = {}) {
     const selected = getElement(selectedHudTopElement) || layout.elements[0];

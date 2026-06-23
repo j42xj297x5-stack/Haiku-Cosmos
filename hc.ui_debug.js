@@ -814,7 +814,17 @@
         const handleRuntimeDebugControl = (event) => {
           const target = event.target;
           if (!target) return;
-          if (window.HC?.HudTopLayout?.handleDebugControl?.(target)) return;
+          if (window.HC?.HudTopLayout?.handleDebugControl?.(target)) {
+            const hudTopAction = target.dataset?.hudTopAction;
+            if (["select", "import", "reset"].includes(hudTopAction)) {
+              const json = document.querySelector("[data-hud-top-json]")?.value || "";
+              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+              const textarea = document.querySelector("[data-hud-top-json]");
+              if (textarea && hudTopAction === "import") textarea.value = json;
+            }
+            return;
+          }
           if (window.HC?.SubMetaPanels?.handleDebugControl?.(target)) {
             if (target.id === "dbgSubMetaPanelId") {
               const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
