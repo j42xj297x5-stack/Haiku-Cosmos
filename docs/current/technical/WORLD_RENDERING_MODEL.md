@@ -1099,3 +1099,11 @@ Publiczne API `HC.WorldRenderer` pozostaje kompatybilne: `getDiagnostics()` i is
 #### 2026-06-22 — World renderer diagnostics split pass 2
 
 `HC.WorldRenderer.getDiagnostics()` keeps the public renderer-owned API, but the GLTF loader subsection of the returned snapshot is now built through an optional `HC.WorldRendererDiagnosticsSnapshot` helper. `hc.world_renderer.js` keeps a local fallback adapter, so normal runtime and debug mode do not require the optional helper file to be loaded before the renderer starts. The debug overlay may load both optional diagnostics files defensively.
+
+#### 2026-06-22 — World renderer diagnostics split pass 3
+
+Pass 3 przenosi pełne budowanie snapshotu `HC.WorldRenderer.getDiagnostics()` do `hc.world_renderer_diagnostics_snapshot.js`. Renderer świata pozostaje właścicielem renderowania, stanu `threeState` i publicznego API `HC.WorldRenderer`, ale normalna ścieżka `getDiagnostics()` deleguje składanie pełnego obiektu do `HC.WorldRendererDiagnosticsSnapshot.buildWorldRendererDiagnosticsSnapshot(context)`.
+
+`hc.world_renderer.js` trzyma tylko minimalny awaryjny fallback diagnostyczny na wypadek braku helpera snapshotu: podstawowy tryb renderera, stan inicjalizacji, licznik render/fallback, źródło zależności Three oraz najważniejsze pola `threeState`. Fallback nie powiela sekcji GLTF, materiałów, tekstur, świateł, kamer, cache ani world bounds.
+
+`hc.world_renderer_diagnostics_snapshot.js` może być ładowany zawsze przed rendererem, aby główny plik renderera był realnie mniejszy. Publiczne API `HC.WorldRenderer.getDiagnostics()` pozostaje kompatybilne: z helperem zwraca pełny snapshot, bez helpera nie rzuca błędu i zwraca minimalny snapshot z `diagnosticsSnapshotFallbackUsed: true`.
