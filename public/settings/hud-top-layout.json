@@ -14,12 +14,13 @@
       "x": 0,
       "y": 0,
       "width": 250,
-      "height": 77,
+      "height": 109,
       "scale": 1,
       "opacity": 1,
       "zIndex": 42,
       "interactive": false,
-      "preserveAspect": true
+      "preserveAspect": true,
+      "debugPreview": false
     },
     {
       "id": "hud_top_haiku_cosmos_settings",
@@ -28,13 +29,14 @@
       "visible": true,
       "x": 238,
       "y": 8,
-      "width": 130,
-      "height": 63,
+      "width": 100,
+      "height": 89,
       "scale": 1,
       "opacity": 1,
       "zIndex": 45,
       "interactive": false,
-      "preserveAspect": true
+      "preserveAspect": true,
+      "debugPreview": false
     },
     {
       "id": "hud_top_button_settings",
@@ -43,8 +45,8 @@
       "visible": true,
       "x": 238,
       "y": 8,
-      "width": 130,
-      "height": 63,
+      "width": 100,
+      "height": 89,
       "scale": 1,
       "opacity": 1,
       "zIndex": 145,
@@ -64,39 +66,41 @@
       "visible": true,
       "x": 436,
       "y": 4,
-      "width": 320,
-      "height": 70,
+      "width": 360,
+      "height": 93,
       "scale": 1,
       "opacity": 1,
       "zIndex": 25,
       "interactive": false,
       "preserveAspect": true,
-      "mountRole": "info"
+      "mountRole": "info",
+      "debugPreview": false
     },
     {
       "id": "hud_top_submeta",
       "asset": "png/hud/hud_top_submeta.png",
       "kind": "image",
       "visible": true,
-      "x": 795,
+      "x": 813,
       "y": 0,
-      "width": 330,
-      "height": 63,
+      "width": 201,
+      "height": 210,
       "scale": 1,
       "opacity": 1,
       "zIndex": 40,
       "interactive": false,
-      "preserveAspect": true
+      "preserveAspect": true,
+      "debugPreview": false
     },
     {
       "id": "hud_top_button_submeta",
       "asset": null,
       "kind": "hitbox",
       "visible": true,
-      "x": 795,
+      "x": 813,
       "y": 0,
-      "width": 330,
-      "height": 63,
+      "width": 201,
+      "height": 210,
       "scale": 1,
       "opacity": 1,
       "zIndex": 140,
@@ -126,7 +130,8 @@
       "mountRole": "activeHudIconBackground",
       "legacyIds": [
         "hud_top_dust_reservoir"
-      ]
+      ],
+      "debugPreview": false
     },
     {
       "id": "hud_top_active_hud_icon_button",
@@ -154,25 +159,26 @@
       "asset": "png/hud/hud_top_dust_rp_background.png",
       "kind": "image",
       "visible": false,
-      "x": 1230,
-      "y": 1,
-      "width": 550,
-      "height": 70,
+      "x": 1222,
+      "y": -9,
+      "width": 556,
+      "height": 83,
       "scale": 1,
       "opacity": 1,
       "zIndex": 20,
       "interactive": false,
-      "preserveAspect": false
+      "preserveAspect": false,
+      "debugPreview": false
     },
     {
       "id": "hud_top_dust_pile",
       "asset": null,
       "kind": "hitbox",
       "visible": true,
-      "x": 1469,
-      "y": 1,
-      "width": 77,
-      "height": 39,
+      "x": 1461,
+      "y": 7,
+      "width": 68,
+      "height": 101,
       "scale": 1,
       "opacity": 1,
       "zIndex": 32,
@@ -190,10 +196,10 @@
       "asset": null,
       "kind": "hitbox",
       "visible": false,
-      "x": 1469,
-      "y": 1,
-      "width": 77,
-      "height": 39,
+      "x": 1461,
+      "y": 7,
+      "width": 68,
+      "height": 101,
       "scale": 1,
       "opacity": 1,
       "zIndex": 141,
@@ -220,15 +226,16 @@
       "zIndex": 35,
       "interactive": false,
       "preserveAspect": true,
-      "mountRole": "rpBackground"
+      "mountRole": "rpBackground",
+      "debugPreview": false
     },
     {
       "id": "hud_top_rp_value",
       "asset": null,
       "kind": "text",
       "visible": true,
-      "x": 1732,
-      "y": 13,
+      "x": 1688,
+      "y": 51,
       "width": 68,
       "height": 23,
       "scale": 1,
@@ -236,7 +243,8 @@
       "zIndex": 80,
       "interactive": false,
       "preserveAspect": true,
-      "mountRole": "rpText"
+      "mountRole": "rpText",
+      "debugPreview": false
     },
     {
       "id": "hud_top_right",
@@ -251,7 +259,8 @@
       "opacity": 1,
       "zIndex": 10,
       "interactive": false,
-      "preserveAspect": false
+      "preserveAspect": false,
+      "debugPreview": false
     }
   ]
 }
