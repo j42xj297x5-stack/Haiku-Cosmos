@@ -6,7 +6,8 @@
   const SETTINGS_PATHS = Object.freeze({
     placeholders: "settings/submeta-placeholders.json",
     panels: "settings/submeta-placeholders-panels.json",
-    pngLayout: "settings/submeta-png-layout.json"
+    pngLayout: "settings/submeta-png-layout.json",
+    uiTypography: "settings/ui-typography.json"
   });
 
   function getLogicalPath(settingKey) {

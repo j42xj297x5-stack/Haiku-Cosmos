@@ -237,7 +237,7 @@
       "h": 0.267,
       "zIndex": 212,
       "visibleInDebug": true,
-      "visibleInGame": false
+      "visibleInGame": true
     }
   ]
 }

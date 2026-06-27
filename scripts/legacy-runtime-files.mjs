@@ -4,6 +4,7 @@ export const legacyRuntimeFiles = [
   "hc.asset_loader.js",
   "hc.save_system.js",
   "hc.submeta_settings.js",
+  "hc.ui_typography.js",
   "hc.debug.js",
   "hc.visual_assets.js",
   "hc.frame_composer.js",
