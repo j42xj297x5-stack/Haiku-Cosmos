@@ -1,0 +1,15 @@
+{
+  "version": "submeta-ui-typography-v0.1",
+  "globalScale": 1,
+  "roles": {
+    "submeta_h1": { "fontFamily": "Marcellus", "baseSize": 22, "minSize": 16, "maxSize": 34, "lineHeight": 1.18, "letterSpacing": 0.035, "color": "#f4dfad", "shadow": "0 1px 4px rgba(0,0,0,.55)", "weight": 400 },
+    "submeta_h2": { "fontFamily": "Marcellus", "baseSize": 17, "minSize": 13, "maxSize": 27, "lineHeight": 1.22, "letterSpacing": 0.03, "color": "#ead59f", "shadow": "0 1px 3px rgba(0,0,0,.50)", "weight": 400 },
+    "submeta_body": { "fontFamily": "Questrial", "baseSize": 14, "minSize": 11, "maxSize": 21, "lineHeight": 1.42, "letterSpacing": 0.01, "color": "#e6f0f2", "shadow": "0 1px 3px rgba(0,0,0,.42)", "weight": 400 },
+    "submeta_small": { "fontFamily": "Questrial", "baseSize": 11, "minSize": 9, "maxSize": 16, "lineHeight": 1.32, "letterSpacing": 0.025, "color": "#bfd3d8", "shadow": "0 1px 2px rgba(0,0,0,.38)", "weight": 400 },
+    "submeta_card_title": { "fontFamily": "Marcellus", "baseSize": 15, "minSize": 12, "maxSize": 24, "lineHeight": 1.18, "letterSpacing": 0.026, "color": "#ffe6a6", "shadow": "0 1px 4px rgba(0,0,0,.52)", "weight": 400 },
+    "submeta_card_meta": { "fontFamily": "Questrial", "baseSize": 11, "minSize": 9, "maxSize": 16, "lineHeight": 1.26, "letterSpacing": 0.035, "color": "#bad4dc", "shadow": "0 1px 2px rgba(0,0,0,.38)", "weight": 400 },
+    "submeta_card_body": { "fontFamily": "Questrial", "baseSize": 13.5, "minSize": 11, "maxSize": 20, "lineHeight": 1.44, "letterSpacing": 0.012, "color": "#eaf3f4", "shadow": "0 1px 3px rgba(0,0,0,.42)", "weight": 400 },
+    "submeta_haiku_title": { "fontFamily": "Marcellus", "baseSize": 16, "minSize": 12, "maxSize": 25, "lineHeight": 1.2, "letterSpacing": 0.035, "color": "#f6dfaa", "shadow": "0 1px 4px rgba(0,0,0,.48)", "weight": 400 },
+    "submeta_haiku_body": { "fontFamily": "Questrial", "baseSize": 14.5, "minSize": 11.5, "maxSize": 22, "lineHeight": 1.55, "letterSpacing": 0.018, "color": "#edf6f6", "shadow": "0 1px 3px rgba(0,0,0,.42)", "weight": 400 }
+  }
+}

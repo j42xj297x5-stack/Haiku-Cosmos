@@ -196,10 +196,13 @@
       .submeta-card-view.is-selected { border-color:#ffdc72; box-shadow:0 0 0 1px rgba(255,220,114,.38),0 0 9px rgba(255,195,57,.58); }
       .submeta-panel-detail-rect[data-submeta-panel-id="detail.preview_card"] { display:grid; place-items:center; }
       .submeta-card-view.is-preview { position:relative; left:auto!important; top:auto!important; width:auto!important; height:100%!important; max-width:100%; max-height:100%; aspect-ratio:${SUBMETA_CARD_GEOMETRY.ratioW}/${SUBMETA_CARD_GEOMETRY.ratioH}; transform:none; cursor:default; pointer-events:none; }
-      .submeta-panel-empty { position:absolute; inset:4px; display:grid; place-items:center; padding:5px; color:rgba(210,225,230,.72); font:clamp(7px,.6vw,11px)/1.25 system-ui,sans-serif; text-align:center; pointer-events:none; }
-      .submeta-detail-content { position:absolute; inset:3px; overflow:hidden; color:#e7f0f3; font:clamp(6px,.52vw,10px)/1.25 system-ui,sans-serif; pointer-events:none; }
-      .submeta-detail-content strong { display:block; margin-bottom:2px; color:#ffe39a; font-size:1.08em; }
+      .submeta-panel-empty { position:absolute; inset:4px; display:grid; place-items:center; padding:5px; color:var(--hc-submeta-small-color,rgba(210,225,230,.72)); font-family:var(--hc-submeta-small-font-family,system-ui,sans-serif); font-size:var(--hc-submeta-small-font-size,11px); font-weight:var(--hc-submeta-small-weight,400); line-height:var(--hc-submeta-small-line-height,1.25); letter-spacing:var(--hc-submeta-small-letter-spacing,0); text-shadow:var(--hc-submeta-small-shadow,none); text-align:center; overflow-wrap:anywhere; pointer-events:none; }
+      .submeta-detail-content { position:absolute; inset:3px; overflow:hidden; color:var(--hc-submeta-card-body-color,#e7f0f3); font-family:var(--hc-submeta-card-body-font-family,system-ui,sans-serif); font-size:var(--hc-submeta-card-body-font-size,13px); font-weight:var(--hc-submeta-card-body-weight,400); line-height:var(--hc-submeta-card-body-line-height,1.35); letter-spacing:var(--hc-submeta-card-body-letter-spacing,0); text-shadow:var(--hc-submeta-card-body-shadow,none); overflow-wrap:anywhere; pointer-events:none; }
+      .submeta-detail-content strong { display:block; margin-bottom:2px; color:var(--hc-submeta-card-title-color,#ffe39a); font-family:var(--hc-submeta-card-title-font-family,Georgia,serif); font-size:var(--hc-submeta-card-title-font-size,15px); font-weight:var(--hc-submeta-card-title-weight,400); line-height:var(--hc-submeta-card-title-line-height,1.18); letter-spacing:var(--hc-submeta-card-title-letter-spacing,.02em); text-shadow:var(--hc-submeta-card-title-shadow,none); }
       .submeta-detail-content p { margin:2px 0; }
+      .submeta-detail-content .submeta-card-meta { color:var(--hc-submeta-card-meta-color,#bad4dc); font-family:var(--hc-submeta-card-meta-font-family,system-ui,sans-serif); font-size:var(--hc-submeta-card-meta-font-size,11px); font-weight:var(--hc-submeta-card-meta-weight,400); line-height:var(--hc-submeta-card-meta-line-height,1.25); letter-spacing:var(--hc-submeta-card-meta-letter-spacing,.02em); text-shadow:var(--hc-submeta-card-meta-shadow,none); }
+      .submeta-detail-content.is-haiku { color:var(--hc-submeta-haiku-body-color,#edf6f6); font-family:var(--hc-submeta-haiku-body-font-family,system-ui,sans-serif); font-size:var(--hc-submeta-haiku-body-font-size,14px); font-weight:var(--hc-submeta-haiku-body-weight,400); line-height:var(--hc-submeta-haiku-body-line-height,1.5); letter-spacing:var(--hc-submeta-haiku-body-letter-spacing,.01em); text-shadow:var(--hc-submeta-haiku-body-shadow,none); }
+      .submeta-detail-content.is-haiku strong { color:var(--hc-submeta-haiku-title-color,#f6dfaa); font-family:var(--hc-submeta-haiku-title-font-family,Georgia,serif); font-size:var(--hc-submeta-haiku-title-font-size,16px); font-weight:var(--hc-submeta-haiku-title-weight,400); line-height:var(--hc-submeta-haiku-title-line-height,1.2); letter-spacing:var(--hc-submeta-haiku-title-letter-spacing,.03em); text-shadow:var(--hc-submeta-haiku-title-shadow,none); }
       .submeta-detail-content code { color:#b8dbe7; font:inherit; overflow-wrap:anywhere; }
       .submeta-panels-json { min-height:92px; width:100%; box-sizing:border-box; }
       #${FLOATING_EDITOR_ID} {
@@ -661,13 +664,13 @@
       const desc = document.createElement("div");
       desc.className = "submeta-detail-content";
       appendText(desc, "strong", model.title);
-      appendText(desc, "p", model.meta);
+      appendText(desc, "p", model.meta, "submeta-card-meta");
       for (const line of model.effectLines) appendText(desc, "p", line);
       if (!model.effectLines.length) appendText(desc, "p", "Brak roboczego opisu efektu dla tego kontekstu.");
       if (cardSelection.assignmentMessage) appendText(desc, "p", cardSelection.assignmentMessage);
       description.appendChild(desc);
       const poem = document.createElement("div");
-      poem.className = "submeta-detail-content";
+      poem.className = "submeta-detail-content is-haiku";
       appendText(poem, "strong", "Haiku");
       for (const line of model.haikuLines) appendText(poem, "p", line);
       if (!model.haikuLines.length) appendText(poem, "p", "Brak danych haiku.");
@@ -806,6 +809,7 @@
 
   function syncDom() {
     if (!createLayer()) return false;
+    root.HC?.UITypography?.applyCssVars?.();
     syncAutomaticControls();
     layer.replaceChildren();
     const slotRectsByPanelId = new Map(

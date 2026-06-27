@@ -45,6 +45,7 @@
   let warnedMissingSubMetaPngLayout = false;
   let warnedMissingSubMetaPlaceholders = false;
   let warnedMissingSubMetaPanels = false;
+  let warnedMissingSubMetaTypography = false;
   let warnedMissingHudTopLayout = false;
   let runtimeDebugSectionState = {};
 
@@ -732,6 +733,18 @@
               return;
             }
           }
+          const typographyControl = event.target && event.target.closest ? event.target.closest("[data-submeta-typography-action]") : null;
+          if (typographyControl) {
+            const action = typographyControl.dataset.submetaTypographyAction;
+            const json = document.getElementById("dbgSubMetaTypographyJson")?.value || "";
+            if (window.HC?.UITypography?.handleDebugControl?.(typographyControl)) {
+              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+              const textarea = document.getElementById("dbgSubMetaTypographyJson");
+              if (textarea && action === "import") textarea.value = json;
+              return;
+            }
+          }
           const subMetaControl = event.target && event.target.closest ? event.target.closest("[data-submeta-png-action]") : null;
           if (subMetaControl) {
             const handled = await window.HC?.SubMetaPngLayout?.handleDebugControl?.(subMetaControl);
@@ -834,6 +847,13 @@
           }
           if (window.HC?.SubMetaPlaceholders?.handleDebugControl?.(target)) {
             if (target.id === "dbgSubMetaPlaceholderId" || target.dataset?.submetaPlaceholderField === "state") {
+              const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
+              runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
+            }
+            return;
+          }
+          if (window.HC?.UITypography?.handleDebugControl?.(target)) {
+            if (target.id === "dbgSubMetaTypographyRole") {
               const snap = window.HC?.Session?.getRuntimeSnapshot ? window.HC.Session.getRuntimeSnapshot() : null;
               runtimeDebugOverlayBody.innerHTML = renderRuntimeOverlayHtml(snap, runtimeOverlayCompact);
             }
@@ -1592,6 +1612,18 @@
       console.warn("[HC Runtime Debug] hc.submeta_placeholders.js is unavailable; window.HC.SubMetaPlaceholders was not found.");
     }
 
+    const subMetaTypography = window.HC?.UITypography;
+    let subMetaTypographyDebugHtml = "";
+    if (subMetaTypography?.renderDebugHtml) {
+      subMetaTypographyDebugHtml = subMetaTypography.renderDebugHtml({
+        open: isRuntimeDebugSectionOpen("submeta-typography", true),
+        selectedRole: document.getElementById("dbgSubMetaTypographyRole")?.value
+      });
+    } else if (!warnedMissingSubMetaTypography) {
+      warnedMissingSubMetaTypography = true;
+      console.warn("[HC Runtime Debug] hc.ui_typography.js is unavailable; window.HC.UITypography was not found.");
+    }
+
     const subMetaPanels = window.HC?.SubMetaPanels;
     let subMetaPanelsDebugHtml = "";
     if (subMetaPanels?.renderDebugHtml) {
@@ -1607,7 +1639,7 @@
       ["status", "PNG overlay + gameplay placeholders + working panel layout"],
       ["SUB-META events", "opened, closed, slot_*, card_*, inventory_changed, prg_binding_changed, purchase, error"],
       ["snapshot policy", "full snapshot on open/close/finalize/force evidence only"],
-    ], "", { open: true, extra: subMetaPngDebugHtml + subMetaPlaceholderDebugHtml + subMetaPanelsDebugHtml }));
+    ], "", { open: true, extra: subMetaPngDebugHtml + subMetaTypographyDebugHtml + subMetaPlaceholderDebugHtml + subMetaPanelsDebugHtml }));
 
     sections.push(renderSection("logging-evidence", "Logging / Evidence", [
       ["Evidence export mode", snap.exportProfile || window.HC?.Session?.getEvidenceExportProfile?.() || "gameplay"],

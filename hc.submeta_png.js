@@ -320,6 +320,16 @@
     update();
   }
 
+
+  function getRootScale() {
+    const rect = stage?.getBoundingClientRect?.();
+    if (!rect || !rect.width || !rect.height) return 1;
+    const scaleX = rect.width / DESIGN_SIZE.width;
+    const scaleY = rect.height / DESIGN_SIZE.height;
+    const scale = Math.min(scaleX, scaleY);
+    return Number.isFinite(scale) && scale > 0 ? scale : 1;
+  }
+
   function getSelected() {
     return elements.find((item) => item.id === selectedId) || elements[0];
   }
@@ -627,6 +637,7 @@
     closeSubMeta,
     hidePreview,
     refreshConfirmButton,
+    getRootScale,
     getDiagnostics,
     getElements: () => elements.map(cloneElement),
     getExportPayload,
