@@ -9,7 +9,8 @@
     "prebuild": "node scripts/sync-legacy-runtime.mjs && node scripts/sync-public-vendor.mjs",
     "build": "vite build",
     "postbuild": "node scripts/verify-legacy-runtime-dist.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "validate:content": "node tools/content/validate_content.mjs"
   },
   "devDependencies": {
     "vite": "^7.2.6"

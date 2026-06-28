@@ -8,6 +8,7 @@
   const warned = new Set();
   const state = {
     loaded: false,
+    readyVersion: 0,
     loading: null,
     elementsById: new Map(),
     haikuById: new Map(),
@@ -91,6 +92,7 @@
     if (state.loading && options.force !== true) return state.loading;
     if (state.loaded && options.force !== true) return Promise.resolve(api);
     state.loading = (async () => {
+      state.loaded = false;
       state.elementsById.clear();
       state.haikuById.clear();
       state.haikuByEntityId.clear();
@@ -105,9 +107,27 @@
       await loadRegistry("elements", "elements.registry.json", state.elementsById);
       await loadRegistry("mechanics", "effects.registry.json", state.effectsById);
       state.loaded = true;
+      state.readyVersion += 1;
+      root.dispatchEvent?.(new CustomEvent("hc:content-ready", {
+        detail: {
+          version: VERSION,
+          readyVersion: state.readyVersion,
+          elements: state.elementsById.size,
+          haiku: state.haikuById.size,
+          effects: state.effectsById.size
+        }
+      }));
       return api;
     })();
     return state.loading;
+  }
+
+  function isReady() {
+    return state.loaded === true;
+  }
+
+  function whenReady() {
+    return state.loaded ? Promise.resolve(api) : load();
   }
 
   function getElement(id) {
@@ -138,11 +158,14 @@
   const api = {
     VERSION,
     load,
+    isReady,
+    whenReady,
     getElement,
     getHaiku,
     getHaikuForElement,
     getEffectsForElement,
     get loaded() { return state.loaded; },
+    get readyVersion() { return state.readyVersion; },
     get promise() { return state.loading; },
     _state: state
   };

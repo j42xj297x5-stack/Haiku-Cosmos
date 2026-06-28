@@ -7,7 +7,19 @@
       "handler": "world.formModifier",
       "status": "draft",
       "label": "World form modifier",
-      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON."
+      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON.",
+      "category": "WORLD",
+      "axis": "FORM",
+      "runtimeHandler": "world.formModifier",
+      "params": {
+        "formBias": "growth",
+        "durationSeconds": 30
+      },
+      "editor": {
+        "group": "mechanics/world",
+        "label": "World form modifier",
+        "visible": true
+      }
     },
     {
       "id": "EFFECT_WORLD_INTENTION_MODIFIER",
@@ -15,6 +27,37 @@
       "handler": "world.intentionModifier",
       "status": "draft",
       "label": "World intention modifier",
+      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON.",
+      "category": "WORLD",
+      "axis": "INTENTION",
+      "runtimeHandler": "world.intentionModifier",
+      "params": {
+        "intentionBias": "guided",
+        "durationSeconds": 30
+      },
+      "editor": {
+        "group": "mechanics/world",
+        "label": "World intention modifier",
+        "visible": true
+      }
+    },
+    {
+      "id": "EFFECT_WORLD_TIME_MODIFIER",
+      "domain": "WORLD",
+      "status": "draft",
+      "label": "Czas ŚWIATA",
+      "category": "WORLD",
+      "axis": "TIME",
+      "runtimeHandler": "world.timeModifier",
+      "params": {
+        "timeScale": 1,
+        "durationSeconds": 30
+      },
+      "editor": {
+        "group": "mechanics/world",
+        "label": "Czas ŚWIATA",
+        "visible": true
+      },
       "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON."
     }
   ]

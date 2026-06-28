@@ -315,6 +315,12 @@
     return root.HC.Content.getHaikuForElement(elementId);
   }
 
+  function handleContentReady() {
+    if (!initialized) return;
+    if (!cardSelection.selectedCardRef) return;
+    syncDom();
+  }
+
   function normalizeEntry(entry) {
     if (!entry) return null;
     const colors = getEntryColors(entry);
@@ -1457,4 +1463,6 @@
     showSubMetaPanelsDebug: { configurable: true, enumerable: true, get: () => enabled, set: setVisible },
     showPanelLabels: { configurable: true, enumerable: true, get: () => showLabels, set: setShowLabels }
   });
+
+  root.addEventListener?.("hc:content-ready", handleContentReady);
 })(window);
