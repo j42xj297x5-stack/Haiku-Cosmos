@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "locale": "pl",
+  "items": [
+    {
+      "id": "HAIKU_CARD_R1_RED",
+      "entityId": "CARD_R1_RED",
+      "locale": "pl",
+      "status": "draft",
+      "type": "card",
+      "rank": "R1",
+      "colors": ["RED"],
+      "tone": "pierwotny",
+      "threads": ["forma", "żar", "wejście", "wielkość"],
+      "mechanicHints": ["activation", "shape", "prg_size"],
+      "title": "Ślad Żaru",
+      "lines": [
+        "Żar śpi pod kamieniem",
+        "w pierwszej rysie",
+        "krąg zaczyna rosnąć"
+      ],
+      "notes": "Robocze haiku R1 RED. Sugeruje aktywację, formę i powiększenie wpływu bez opisu statystyk."
+    },
+    {
+      "id": "HAIKU_CARD_R1_BLUE",
+      "entityId": "CARD_R1_BLUE",
+      "locale": "pl",
+      "status": "draft",
+      "type": "card",
+      "rank": "R1",
+      "colors": ["BLUE"],
+      "tone": "chłodny",
+      "threads": ["cisza", "kryształ", "obiekty", "zatrzymanie"],
+      "mechanicHints": ["activation", "silence", "object_scope"],
+      "title": "Ślad Ciszy",
+      "lines": [
+        "Tafla nie zna gwiazd",
+        "pod chłodnym znakiem",
+        "ruch opada w kryształ"
+      ],
+      "notes": "Robocze haiku R1 BLUE. Sugeruje ciszę, selekcję obiektów i zatrzymanie."
+    },
+    {
+      "id": "HAIKU_CARD_R2_RED_YELLOW",
+      "entityId": "CARD_R2_RED_YELLOW",
+      "locale": "pl",
+      "status": "draft",
+      "type": "card",
+      "rank": "R2",
+      "colors": ["RED", "YELLOW"],
+      "tone": "relacyjny",
+      "threads": ["forma", "intencja", "żar", "nić", "wiązanie"],
+      "mechanicHints": ["binding", "shape", "intention"],
+      "title": "Pieczęć Żaru",
+      "lines": [
+        "Złota nić w żarze",
+        "na progu znaku",
+        "forma wybiera kierunek"
+      ],
+      "notes": "Robocze haiku R2 RED_YELLOW. Opisuje relację Formy i Intencji, nie sumę dwóch kolorów."
+    }
+  ]
+}

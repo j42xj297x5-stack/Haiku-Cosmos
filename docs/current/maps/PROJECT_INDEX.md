@@ -89,6 +89,7 @@ Kanon jest mapowany warstwowo przez:
 ## Techniczne
 
 - `docs/current/technical/README.md` (ROBOCZY)
+- `docs/current/technical/CONTENT_DATA_SYSTEM.md` (ROBOCZY / KONTRAKT TECHNICZNO-DANYCH) - fundament danych treści: haiku, opisy, elementy, efekty mechaniczne, balans i przyszły lokalny edytor JSON; zależy od CARDS/SUB-META/PRG/UI.
 - `docs/current/technical/DEBUG_SETTINGS_STANDARD.md` (ROBOCZY / STANDARD TECHNICZNY DEBUG SETTINGS) - definiuje standard ładowania, importu i exportu ustawień debug/layout przez `public/settings/*.json` i mini panele debug.
 - `docs/current/technical/WORLD_FUNCTION_MAP.md` (ROBOCZY)
 - `docs/current/technical/SPACE_MECHANICS_CONTRACT.md` (ROBOCZY / KONTRAKT TECHNICZNY) - kontrakt techniczny przyszłej implementacji `cosmic dust` oraz mechaniki ciał kosmicznych dla Canvas2D/Three.js: trzy poziomy pyłu, planowane pola/parametry `cosmic dust`, direct impact i zakaz legacy planet capture.

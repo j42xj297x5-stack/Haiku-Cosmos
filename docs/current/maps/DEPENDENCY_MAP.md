@@ -68,8 +68,9 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 ### D) Zadania technical / runtime / evidence
 1. Warstwa map jak wyżej
 2. `docs/current/technical/README.md`
-3. `WORLD_FUNCTION_MAP.md`, `SPACE_MECHANICS_CONTRACT.md`, `FRAME_COMPOSER_SPEC.md`, `SEQUENCE_STATE_CONTRACT.md`, `IMPLEMENTATION_TRACKER.md`, `LIVE_VALIDATION_PACK.md`
-4. audyty i handoff traktuj pomocniczo: `docs/audits/`, `docs/handoff/`
+3. Dla danych treści/haiku/opisów/balansu: `docs/current/technical/CONTENT_DATA_SYSTEM.md`
+4. `WORLD_FUNCTION_MAP.md`, `SPACE_MECHANICS_CONTRACT.md`, `FRAME_COMPOSER_SPEC.md`, `SEQUENCE_STATE_CONTRACT.md`, `IMPLEMENTATION_TRACKER.md`, `LIVE_VALIDATION_PACK.md`
+5. audyty i handoff traktuj pomocniczo: `docs/audits/`, `docs/handoff/`
 
 ## 3. KANON
 
@@ -88,6 +89,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 
 ## 3A. Zależności aktywnego runtime SUB-META
 
+- Dane treści kart/haiku: `docs/current/technical/CONTENT_DATA_SYSTEM.md` -> `public/data/` -> `HC.Content`; opis karty w SUB-META może czytać haiku po stabilnym ID karty, bez zmiany mechaniki kart.
 - Runtime: `hc.submeta_png.js` -> `hc.submeta_placeholders.js` + `hc.submeta_panels.js`; wszystkie trzy korzystają z `hc.submeta_settings.js`, a kontrolki debug integruje `hc.ui_debug.js`.
 - Domena kart/state bridge: `cards.js` (`CardEngine.subMetaView`); bez szerokiego refaktoru w ramach prac layoutowych.
 - Settings source-of-truth: `public/settings/submeta-png-layout.json`, `public/settings/submeta-placeholders.json`, `public/settings/submeta-placeholders-panels.json`; ogólny standard opisuje `docs/current/technical/DEBUG_SETTINGS_STANDARD.md`.
@@ -126,6 +128,7 @@ Przy recut/cutting ramek maski i crop sa tylko do review/fittingu, a finalne SVG
 - `docs/current/ui/CARD_DURABILITY_WIREFRAME_PASS.md` (ROBOCZY / WIREFRAME UI / WARIANT C / PRZED LAYOUT TOKENS / PRZED RUNTIME) - rozwija `CARD_DURABILITY_VISUAL_DECISION.md` w minimalny wireframe wariantu C i zawiera zatwierdzone roboczo decyzje przed layout-token pass dla visual trwałości karty R; nie jest layout tokenem, mechaniką ani runtime.
 - `docs/current/ui/CARD_DURABILITY_LAYOUT_TOKEN_READINESS.md` (ROBOCZY / CHECKLISTA GOTOWOŚCI / PRZED LAYOUT TOKENS / PRZED RUNTIME) - przygotowuje przyszły layout-token pass dla `CARD_DURABILITY_WIREFRAME_PASS.md`, zawiera zatwierdzone roboczo decyzje readiness przed layout-token pass; nadal nie jest layout tokenem, runtime ani mechaniką.
 - `docs/current/technical/README.md`
+- `docs/current/technical/CONTENT_DATA_SYSTEM.md` (ROBOCZY / KONTRAKT TECHNICZNO-DANYCH) - dane treści, haiku, opisy, elementy, efekty mechaniczne, balans i przyszły edytor JSON; powiązany z `CARDS_SYSTEM.md`, `SUB_META_SYSTEM.md`, `PRG_SYSTEM.md`, `UI_WORLD.md` i runtime `public/data/`.
 - `docs/current/technical/DEBUG_SETTINGS_STANDARD.md`
 - `docs/current/technical/WORLD_FUNCTION_MAP.md`
 - `docs/current/technical/SPACE_MECHANICS_CONTRACT.md` (roboczy kontrakt runtime ciał kosmicznych; wspólny snapshot/view-model Canvas2D/Three.js; zakaz legacy planet capture)

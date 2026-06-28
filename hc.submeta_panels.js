@@ -300,6 +300,21 @@
     return entry?.key || `${String(entry?.kind || "card").toUpperCase()}:${entry?.tier || "DR"}:${colors.join("-")}`;
   }
 
+
+  function getContentElementIdForCard(card) {
+    if (!card) return null;
+    const kind = String(card.kind || "").toUpperCase();
+    const colors = getEntryColors(card).map((color) => String(color || "").toUpperCase());
+    if (!["R1", "R2", "R3", "R4"].includes(kind) || colors.length < Number(kind.slice(1))) return null;
+    return `CARD_${kind}_${colors.slice(0, Number(kind.slice(1))).join("_")}`;
+  }
+
+  function getContentHaikuForCard(card) {
+    const elementId = getContentElementIdForCard(card);
+    if (!elementId || !root.HC?.Content?.getHaikuForElement) return null;
+    return root.HC.Content.getHaikuForElement(elementId);
+  }
+
   function normalizeEntry(entry) {
     if (!entry) return null;
     const colors = getEntryColors(entry);
@@ -634,6 +649,7 @@
         type: "card", card, title,
         meta: `${card.kind} · ${card.tier} · ${card.colors.join(" + ") || "brak koloru"}${card.count > 1 ? ` · ×${card.count}` : ""}`,
         effectLines: effectSlot ? (api?.getEffectLines?.(effectSlot, card.tier) || []) : [],
+        haiku: getContentHaikuForCard(card),
         haikuLines: api?.getHaikuLines?.(card) || []
       };
     }
@@ -671,9 +687,10 @@
       description.appendChild(desc);
       const poem = document.createElement("div");
       poem.className = "submeta-detail-content is-haiku";
-      appendText(poem, "strong", "Haiku");
-      for (const line of model.haikuLines) appendText(poem, "p", line);
-      if (!model.haikuLines.length) appendText(poem, "p", "Brak danych haiku.");
+      appendText(poem, "strong", model.haiku?.title || "Haiku");
+      const haikuLines = Array.isArray(model.haiku?.lines) ? model.haiku.lines : model.haikuLines;
+      for (const line of haikuLines.slice(0, 3)) appendText(poem, "p", line);
+      if (!haikuLines.length) appendText(poem, "p", "[brak haiku]");
       haiku.appendChild(poem);
       return;
     }

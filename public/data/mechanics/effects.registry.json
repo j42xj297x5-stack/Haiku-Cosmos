@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    "effects.prg.json",
+    "effects.world.json"
+  ],
+  "runtimeHandlers": [
+    "prg.sizeModifier",
+    "prg.objectScope",
+    "world.formModifier",
+    "world.intentionModifier"
+  ]
+}

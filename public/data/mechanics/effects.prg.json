@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "EFFECT_PRG_SIZE_MODIFIER",
+      "domain": "PRG",
+      "handler": "prg.sizeModifier",
+      "status": "draft",
+      "label": "PRG size modifier",
+      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON."
+    },
+    {
+      "id": "EFFECT_PRG_OBJECT_SCOPE",
+      "domain": "PRG",
+      "handler": "prg.objectScope",
+      "status": "draft",
+      "label": "PRG object scope",
+      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON."
+    }
+  ]
+}

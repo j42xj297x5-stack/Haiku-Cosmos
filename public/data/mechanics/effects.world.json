@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "EFFECT_WORLD_FORM_MODIFIER",
+      "domain": "WORLD",
+      "handler": "world.formModifier",
+      "status": "draft",
+      "label": "World form modifier",
+      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON."
+    },
+    {
+      "id": "EFFECT_WORLD_INTENTION_MODIFIER",
+      "domain": "WORLD",
+      "handler": "world.intentionModifier",
+      "status": "draft",
+      "label": "World intention modifier",
+      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON."
+    }
+  ]
+}
