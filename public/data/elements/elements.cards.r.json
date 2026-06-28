@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "CARD_R1_RED",
+      "type": "card",
+      "rank": "R1",
+      "tierMode": "DR_SDR_PDR",
+      "colors": ["RED"],
+      "branchCompatibility": ["PRG", "WORLD"],
+      "haikuId": "HAIKU_CARD_R1_RED",
+      "descriptionId": null,
+      "visualId": null,
+      "mechanics": {
+        "effectIds": ["EFFECT_PRG_SIZE_MODIFIER", "EFFECT_WORLD_FORM_MODIFIER"],
+        "defaultProfileId": "PROFILE_CARD_R1_RED_DEFAULT"
+      },
+      "editor": { "group": "cards/r", "label": "R1 RED", "visible": true }
+    },
+    {
+      "id": "CARD_R1_BLUE",
+      "type": "card",
+      "rank": "R1",
+      "tierMode": "DR_SDR_PDR",
+      "colors": ["BLUE"],
+      "branchCompatibility": ["PRG", "WORLD"],
+      "haikuId": "HAIKU_CARD_R1_BLUE",
+      "descriptionId": null,
+      "visualId": null,
+      "mechanics": {
+        "effectIds": ["EFFECT_PRG_OBJECT_SCOPE"],
+        "defaultProfileId": "PROFILE_CARD_R1_BLUE_DEFAULT"
+      },
+      "editor": { "group": "cards/r", "label": "R1 BLUE", "visible": true }
+    },
+    {
+      "id": "CARD_R2_RED_YELLOW",
+      "type": "card",
+      "rank": "R2",
+      "tierMode": "DR_SDR_PDR",
+      "colors": ["RED", "YELLOW"],
+      "branchCompatibility": ["PRG", "WORLD"],
+      "haikuId": "HAIKU_CARD_R2_RED_YELLOW",
+      "descriptionId": null,
+      "visualId": null,
+      "mechanics": {
+        "effectIds": ["EFFECT_WORLD_FORM_MODIFIER", "EFFECT_WORLD_INTENTION_MODIFIER"],
+        "defaultProfileId": "PROFILE_CARD_R2_RED_YELLOW_DEFAULT"
+      },
+      "editor": { "group": "cards/r", "label": "R2 RED/YELLOW", "visible": true }
+    }
+  ]
+}
