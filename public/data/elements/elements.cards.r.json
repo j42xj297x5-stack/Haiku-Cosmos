@@ -6,48 +6,140 @@
       "type": "card",
       "rank": "R1",
       "tierMode": "DR_SDR_PDR",
-      "colors": ["RED"],
-      "branchCompatibility": ["PRG", "WORLD"],
+      "colors": [
+        "RED"
+      ],
+      "branchCompatibility": [
+        "PRG",
+        "WORLD"
+      ],
       "haikuId": "HAIKU_CARD_R1_RED",
       "descriptionId": null,
       "visualId": null,
       "mechanics": {
-        "effectIds": ["EFFECT_PRG_SIZE_MODIFIER", "EFFECT_WORLD_FORM_MODIFIER"],
+        "effectIds": [
+          "EFFECT_PRG_SIZE_MODIFIER",
+          "EFFECT_WORLD_FORM_MODIFIER"
+        ],
         "defaultProfileId": "PROFILE_CARD_R1_RED_DEFAULT"
       },
-      "editor": { "group": "cards/r", "label": "R1 RED", "visible": true }
+      "editor": {
+        "group": "cards/r",
+        "label": "R1 RED",
+        "visible": true
+      }
+    },
+    {
+      "id": "CARD_R1_YELLOW",
+      "type": "card",
+      "rank": "R1",
+      "tierMode": "DR_SDR_PDR",
+      "colors": [
+        "YELLOW"
+      ],
+      "branchCompatibility": [
+        "PRG",
+        "WORLD"
+      ],
+      "haikuId": "HAIKU_CARD_R1_YELLOW",
+      "descriptionId": null,
+      "visualId": null,
+      "mechanics": {
+        "effectIds": [
+          "EFFECT_PRG_ATTRACTION_REPULSION",
+          "EFFECT_WORLD_INTENTION_MODIFIER"
+        ],
+        "defaultProfileId": "PROFILE_CARD_R1_YELLOW_DEFAULT"
+      },
+      "editor": {
+        "group": "cards/r",
+        "label": "R1 YELLOW",
+        "visible": true
+      }
+    },
+    {
+      "id": "CARD_R1_GREEN",
+      "type": "card",
+      "rank": "R1",
+      "tierMode": "DR_SDR_PDR",
+      "colors": [
+        "GREEN"
+      ],
+      "branchCompatibility": [
+        "PRG",
+        "WORLD"
+      ],
+      "haikuId": "HAIKU_CARD_R1_GREEN",
+      "descriptionId": null,
+      "visualId": null,
+      "mechanics": {
+        "effectIds": [
+          "EFFECT_PRG_SPEED_MODIFIER",
+          "EFFECT_WORLD_TIME_MODIFIER"
+        ],
+        "defaultProfileId": "PROFILE_CARD_R1_GREEN_DEFAULT"
+      },
+      "editor": {
+        "group": "cards/r",
+        "label": "R1 GREEN",
+        "visible": true
+      }
     },
     {
       "id": "CARD_R1_BLUE",
       "type": "card",
       "rank": "R1",
       "tierMode": "DR_SDR_PDR",
-      "colors": ["BLUE"],
-      "branchCompatibility": ["PRG", "WORLD"],
+      "colors": [
+        "BLUE"
+      ],
+      "branchCompatibility": [
+        "PRG",
+        "WORLD"
+      ],
       "haikuId": "HAIKU_CARD_R1_BLUE",
       "descriptionId": null,
       "visualId": null,
       "mechanics": {
-        "effectIds": ["EFFECT_PRG_OBJECT_SCOPE"],
+        "effectIds": [
+          "EFFECT_PRG_OBJECT_SCOPE"
+        ],
         "defaultProfileId": "PROFILE_CARD_R1_BLUE_DEFAULT"
       },
-      "editor": { "group": "cards/r", "label": "R1 BLUE", "visible": true }
+      "editor": {
+        "group": "cards/r",
+        "label": "R1 BLUE",
+        "visible": true
+      }
     },
     {
       "id": "CARD_R2_RED_YELLOW",
       "type": "card",
       "rank": "R2",
       "tierMode": "DR_SDR_PDR",
-      "colors": ["RED", "YELLOW"],
-      "branchCompatibility": ["PRG", "WORLD"],
+      "colors": [
+        "RED",
+        "YELLOW"
+      ],
+      "branchCompatibility": [
+        "PRG",
+        "WORLD"
+      ],
       "haikuId": "HAIKU_CARD_R2_RED_YELLOW",
       "descriptionId": null,
       "visualId": null,
       "mechanics": {
-        "effectIds": ["EFFECT_WORLD_FORM_MODIFIER", "EFFECT_WORLD_INTENTION_MODIFIER"],
+        "effectIds": [
+          "EFFECT_WORLD_FORM_MODIFIER",
+          "EFFECT_WORLD_INTENTION_MODIFIER"
+        ],
         "defaultProfileId": "PROFILE_CARD_R2_RED_YELLOW_DEFAULT"
       },
-      "editor": { "group": "cards/r", "label": "R2 RED/YELLOW", "visible": true }
+      "editor": {
+        "group": "cards/r",
+        "label": "R2 RED/YELLOW",
+        "visible": true
+      }
     }
   ]
 }

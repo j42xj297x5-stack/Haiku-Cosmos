@@ -8,6 +8,9 @@
     "prg.sizeModifier",
     "prg.objectScope",
     "world.formModifier",
-    "world.intentionModifier"
+    "world.intentionModifier",
+    "prg.attractionRepulsion",
+    "prg.speedModifier",
+    "world.timeModifier"
   ]
 }

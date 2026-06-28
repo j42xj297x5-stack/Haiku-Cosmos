@@ -9,10 +9,21 @@
       "status": "draft",
       "type": "card",
       "rank": "R1",
-      "colors": ["RED"],
+      "colors": [
+        "RED"
+      ],
       "tone": "pierwotny",
-      "threads": ["forma", "żar", "wejście", "wielkość"],
-      "mechanicHints": ["activation", "shape", "prg_size"],
+      "threads": [
+        "forma",
+        "żar",
+        "wejście",
+        "wielkość"
+      ],
+      "mechanicHints": [
+        "activation",
+        "shape",
+        "prg_size"
+      ],
       "title": "Ślad Żaru",
       "lines": [
         "Żar śpi pod kamieniem",
@@ -22,16 +33,89 @@
       "notes": "Robocze haiku R1 RED. Sugeruje aktywację, formę i powiększenie wpływu bez opisu statystyk."
     },
     {
+      "id": "HAIKU_CARD_R1_YELLOW",
+      "entityId": "CARD_R1_YELLOW",
+      "locale": "pl",
+      "status": "draft",
+      "type": "card",
+      "rank": "R1",
+      "colors": [
+        "YELLOW"
+      ],
+      "tone": "intencyjny",
+      "threads": [
+        "intencja",
+        "nić",
+        "znak",
+        "klej",
+        "wybór"
+      ],
+      "mechanicHints": [
+        "activation",
+        "intention",
+        "prg_glue"
+      ],
+      "title": "Ślad Intencji",
+      "lines": [
+        "Złota nić milczy",
+        "między dwoma pyłami",
+        "znak wybiera drogę"
+      ],
+      "notes": "Robocze haiku R1 YELLOW. Sugeruje intencję, relację i wybór kierunku bez opisu statystyk."
+    },
+    {
+      "id": "HAIKU_CARD_R1_GREEN",
+      "entityId": "CARD_R1_GREEN",
+      "locale": "pl",
+      "status": "draft",
+      "type": "card",
+      "rank": "R1",
+      "colors": [
+        "GREEN"
+      ],
+      "tone": "płynny",
+      "threads": [
+        "czas",
+        "oddech",
+        "puls",
+        "prędkość",
+        "wzrost"
+      ],
+      "mechanicHints": [
+        "activation",
+        "time",
+        "prg_speed"
+      ],
+      "title": "Ślad Oddechu",
+      "lines": [
+        "Zielona żyła śpi",
+        "pod skorupą czasu",
+        "ruch wraca falą"
+      ],
+      "notes": "Robocze haiku R1 GREEN. Sugeruje czas, puls i zmianę tempa bez opisu statystyk."
+    },
+    {
       "id": "HAIKU_CARD_R1_BLUE",
       "entityId": "CARD_R1_BLUE",
       "locale": "pl",
       "status": "draft",
       "type": "card",
       "rank": "R1",
-      "colors": ["BLUE"],
+      "colors": [
+        "BLUE"
+      ],
       "tone": "chłodny",
-      "threads": ["cisza", "kryształ", "obiekty", "zatrzymanie"],
-      "mechanicHints": ["activation", "silence", "object_scope"],
+      "threads": [
+        "cisza",
+        "kryształ",
+        "obiekty",
+        "zatrzymanie"
+      ],
+      "mechanicHints": [
+        "activation",
+        "silence",
+        "object_scope"
+      ],
       "title": "Ślad Ciszy",
       "lines": [
         "Tafla nie zna gwiazd",
@@ -47,10 +131,23 @@
       "status": "draft",
       "type": "card",
       "rank": "R2",
-      "colors": ["RED", "YELLOW"],
+      "colors": [
+        "RED",
+        "YELLOW"
+      ],
       "tone": "relacyjny",
-      "threads": ["forma", "intencja", "żar", "nić", "wiązanie"],
-      "mechanicHints": ["binding", "shape", "intention"],
+      "threads": [
+        "forma",
+        "intencja",
+        "żar",
+        "nić",
+        "wiązanie"
+      ],
+      "mechanicHints": [
+        "binding",
+        "shape",
+        "intention"
+      ],
       "title": "Pieczęć Żaru",
       "lines": [
         "Złota nić w żarze",

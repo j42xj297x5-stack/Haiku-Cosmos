@@ -7,7 +7,20 @@
       "handler": "prg.sizeModifier",
       "status": "draft",
       "label": "PRG size modifier",
-      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON."
+      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON.",
+      "category": "PRG",
+      "axis": "SIZE",
+      "runtimeHandler": "prg.sizeModifier",
+      "params": {
+        "radiusMultiplier": 1.25,
+        "durationSeconds": 30,
+        "smoothing": 0.4
+      },
+      "editor": {
+        "group": "mechanics/prg",
+        "label": "PRG size modifier",
+        "visible": true
+      }
     },
     {
       "id": "EFFECT_PRG_OBJECT_SCOPE",
@@ -15,6 +28,68 @@
       "handler": "prg.objectScope",
       "status": "draft",
       "label": "PRG object scope",
+      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON.",
+      "category": "PRG",
+      "axis": "OBJECT_SCOPE",
+      "runtimeHandler": "prg.objectScope",
+      "params": {
+        "scope": "small_bodies",
+        "durationSeconds": 30
+      },
+      "editor": {
+        "group": "mechanics/prg",
+        "label": "PRG object scope",
+        "visible": true
+      }
+    },
+    {
+      "id": "EFFECT_PRG_ATTRACTION_REPULSION",
+      "domain": "PRG",
+      "status": "draft",
+      "label": "Klej / Odpychanie PRG",
+      "category": "PRG",
+      "axis": "ATTRACTION_REPULSION",
+      "runtimeHandler": "prg.attractionRepulsion",
+      "allowedModes": [
+        "attract",
+        "repel"
+      ],
+      "params": {
+        "mode": "attract",
+        "force": 0.8,
+        "radius": 220,
+        "smoothing": 0.4
+      },
+      "editor": {
+        "group": "mechanics/prg",
+        "label": "Klej / Odpychanie PRG",
+        "visible": true
+      },
+      "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON."
+    },
+    {
+      "id": "EFFECT_PRG_SPEED_MODIFIER",
+      "domain": "PRG",
+      "status": "draft",
+      "label": "Prędkość PRG",
+      "category": "PRG",
+      "axis": "SPEED",
+      "runtimeHandler": "prg.speedModifier",
+      "allowedModes": [
+        "slow",
+        "fast"
+      ],
+      "params": {
+        "mode": "slow",
+        "speedMultiplier": 0.75,
+        "durationSeconds": 30,
+        "smoothing": 0.4
+      },
+      "editor": {
+        "group": "mechanics/prg",
+        "label": "Prędkość PRG",
+        "visible": true
+      },
       "notes": "Dane opisowe pod przyszły edytor; runtime mechaniki nie czyta jeszcze parametrów z JSON."
     }
   ]
