@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "locale": "pl",
+  "items": [
+    {
+      "id": "DESC_CARD_R1_RED",
+      "entityId": "CARD_R1_RED",
+      "locale": "pl",
+      "status": "draft",
+      "type": "card",
+      "rank": "R1",
+      "colors": [
+        "RED"
+      ],
+      "shortDescription": "Forma rozszerza pierwszy gest świata.",
+      "longDescription": "Czerwona karta R1 opisuje wejście przez żar, kształt i wzrost. To roboczy opis treściowy dla podstawowej karty Formy, oddzielony od zasad mechaniki.",
+      "mechanicDescription": "W SUB-META sygnalizuje kartę R1 koloru RED powiązaną z kierunkiem Formy oraz roboczym efektem rozmiaru PRG.",
+      "debugDescription": "DESC draft dla CARD_R1_RED; nie steruje runtime ani balansem.",
+      "loreNote": "Pierwsza rysa kamienia pamięta ciepło, zanim stanie się kształtem."
+    },
+    {
+      "id": "DESC_CARD_R1_YELLOW",
+      "entityId": "CARD_R1_YELLOW",
+      "locale": "pl",
+      "status": "draft",
+      "type": "card",
+      "rank": "R1",
+      "colors": [
+        "YELLOW"
+      ],
+      "shortDescription": "Intencja wiąże pył z kierunkiem.",
+      "longDescription": "Żółta karta R1 opisuje wybór, znak i złotą nić relacji. To roboczy opis treściowy dla podstawowej karty Intencji, bez przenoszenia reguł do JSON.",
+      "mechanicDescription": "W SUB-META sygnalizuje kartę R1 koloru YELLOW powiązaną z kierunkiem Intencji oraz roboczym wpływem na przyciąganie i odpychanie PRG.",
+      "debugDescription": "DESC draft dla CARD_R1_YELLOW; nie steruje runtime ani balansem.",
+      "loreNote": "Znak nie mówi głośno; tylko odchyla drogę ku wybranemu pyłowi."
+    },
+    {
+      "id": "DESC_CARD_R1_GREEN",
+      "entityId": "CARD_R1_GREEN",
+      "locale": "pl",
+      "status": "draft",
+      "type": "card",
+      "rank": "R1",
+      "colors": [
+        "GREEN"
+      ],
+      "shortDescription": "Czas oddycha ruchem i pulsem.",
+      "longDescription": "Zielona karta R1 opisuje oddech, wzrost i falowanie tempa. To roboczy opis treściowy dla podstawowej karty Czasu, pozostający poza logiką mechaniki.",
+      "mechanicDescription": "W SUB-META sygnalizuje kartę R1 koloru GREEN powiązaną z kierunkiem Czasu oraz roboczą zmianą prędkości PRG.",
+      "debugDescription": "DESC draft dla CARD_R1_GREEN; nie steruje runtime ani balansem.",
+      "loreNote": "Pod skorupą ciszy puls wraca jak fala, która uczy świat trwania."
+    },
+    {
+      "id": "DESC_CARD_R1_BLUE",
+      "entityId": "CARD_R1_BLUE",
+      "locale": "pl",
+      "status": "draft",
+      "type": "card",
+      "rank": "R1",
+      "colors": [
+        "BLUE"
+      ],
+      "shortDescription": "Cisza wybiera, co może zostać dotknięte.",
+      "longDescription": "Niebieska karta R1 opisuje chłód, kryształ i ograniczenie ruchu. To roboczy opis treściowy dla podstawowej karty Ciszy, niebędący definicją mechaniki.",
+      "mechanicDescription": "W SUB-META sygnalizuje kartę R1 koloru BLUE powiązaną z kierunkiem Ciszy oraz roboczym zakresem obiektów PRG.",
+      "debugDescription": "DESC draft dla CARD_R1_BLUE; nie steruje runtime ani balansem.",
+      "loreNote": "Tafla milczy, ale w jej chłodzie widać, które ciała mogą odpowiedzieć."
+    }
+  ]
+}

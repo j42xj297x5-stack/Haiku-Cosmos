@@ -13,6 +13,8 @@
     elementsById: new Map(),
     haikuById: new Map(),
     haikuByEntityId: new Map(),
+    descriptionsById: new Map(),
+    descriptionsByEntityId: new Map(),
     effectsById: new Map()
   };
 
@@ -96,6 +98,8 @@
       state.elementsById.clear();
       state.haikuById.clear();
       state.haikuByEntityId.clear();
+      state.descriptionsById.clear();
+      state.descriptionsByEntityId.clear();
       state.effectsById.clear();
       await loadRegistry("haiku", "haiku.registry.json", state.haikuById, (item) => {
         if (item.entityId) {
@@ -105,6 +109,13 @@
         }
       });
       await loadRegistry("elements", "elements.registry.json", state.elementsById);
+      await loadRegistry("descriptions", "descriptions.registry.json", state.descriptionsById, (item) => {
+        if (item.entityId) {
+          const entityId = String(item.entityId);
+          if (state.descriptionsByEntityId.has(entityId)) warnOnce(`duplicate:description-entity:${entityId}`, `Duplicate description entityId: ${entityId}`);
+          state.descriptionsByEntityId.set(entityId, item);
+        }
+      });
       await loadRegistry("mechanics", "effects.registry.json", state.effectsById);
       state.loaded = true;
       state.readyVersion += 1;
@@ -114,6 +125,7 @@
           readyVersion: state.readyVersion,
           elements: state.elementsById.size,
           haiku: state.haikuById.size,
+          descriptions: state.descriptionsById.size,
           effects: state.effectsById.size
         }
       }));
@@ -140,6 +152,11 @@
     return state.haikuById.get(String(id)) || null;
   }
 
+  function getDescription(id) {
+    if (!id) return null;
+    return state.descriptionsById.get(String(id)) || null;
+  }
+
   function getHaikuForElement(elementId) {
     if (!elementId) return null;
     const id = String(elementId);
@@ -147,6 +164,13 @@
     const haiku = (element?.haikuId ? getHaiku(element.haikuId) : null) || state.haikuByEntityId.get(id) || null;
     if (!haiku) warnOnce(`missing-haiku:${id}`, `Missing haiku for element: ${id}`);
     return haiku;
+  }
+
+  function getDescriptionForElement(elementId) {
+    if (!elementId) return null;
+    const id = String(elementId);
+    const element = getElement(id);
+    return (element?.descriptionId ? getDescription(element.descriptionId) : null) || state.descriptionsByEntityId.get(id) || null;
   }
 
   function getEffectsForElement(elementId) {
@@ -163,6 +187,8 @@
     getElement,
     getHaiku,
     getHaikuForElement,
+    getDescription,
+    getDescriptionForElement,
     getEffectsForElement,
     get loaded() { return state.loaded; },
     get readyVersion() { return state.readyVersion; },

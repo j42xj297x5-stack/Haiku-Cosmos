@@ -74,6 +74,12 @@ async function readRegistry(folder, registryName) {
   return { registryPath, registry, files };
 }
 
+async function readOptionalRegistry(folder, registryName) {
+  const registryPath = path.join(dataRoot, folder, registryName);
+  if (!existsSync(registryPath)) return { registryPath, registry: null, files: [], missing: true };
+  return { ...(await readRegistry(folder, registryName)), missing: false };
+}
+
 function requireFields(filePath, item, fields, namespace) {
   for (const field of fields) {
     const value = field.split(".").reduce((acc, key) => acc?.[key], item);
@@ -120,6 +126,7 @@ function validateCardColors(filePath, item) {
 async function main() {
   const haikuIndex = new Map();
   const elementIndex = new Map();
+  const descriptionIndex = new Map();
   const effectIndex = new Map();
 
   const effects = await readRegistry("mechanics", "effects.registry.json");
@@ -153,6 +160,7 @@ async function main() {
   }
 
   const elements = await readRegistry("elements", "elements.registry.json");
+  const elementItems = [];
   for (const { filePath, payload } of elements.files) {
     for (const item of validateItemsPayload(filePath, payload, ["items"])) {
       requireFields(filePath, item, ["id", "type", "rank", "colors", "haikuId", "mechanics.effectIds"], "element");
@@ -162,11 +170,52 @@ async function main() {
       if (!Array.isArray(effectIds)) addError(filePath, "mechanics.effectIds must be an array", item.id);
       else for (const effectId of effectIds) if (!effectIndex.has(effectId)) addError(filePath, `effectId does not exist: ${effectId}`, item.id);
       indexUnique(elementIndex, filePath, item, "element");
+      elementItems.push({ item, filePath });
+    }
+  }
+
+  const descriptions = await readOptionalRegistry("descriptions", "descriptions.registry.json");
+  for (const { filePath, payload } of descriptions.files) {
+    for (const item of validateItemsPayload(filePath, payload, ["locale", "items"])) {
+      requireFields(filePath, item, [
+        "id",
+        "entityId",
+        "locale",
+        "status",
+        "type",
+        "rank",
+        "colors",
+        "shortDescription",
+        "longDescription",
+        "mechanicDescription",
+        "debugDescription",
+        "loreNote"
+      ], "description");
+      if (item.status && !VALID_STATUSES.has(item.status)) addError(filePath, `invalid status: ${item.status}`, item.id);
+      if (item.entityId && !elementIndex.has(item.entityId)) addError(filePath, `entityId does not exist in elements: ${item.entityId}`, item.id);
+      if (item.colors != null && !Array.isArray(item.colors)) addError(filePath, "description colors must be an array", item.id);
+      const element = item.entityId ? elementIndex.get(item.entityId)?.item : null;
+      if (item.type === "card") {
+        validateCardColors(filePath, item);
+        if (element?.type === "card") {
+          if (item.rank !== element.rank) addError(filePath, `description rank does not match element rank: ${item.rank} !== ${element.rank}`, item.id);
+          if (Array.isArray(item.colors) && Array.isArray(element.colors) && item.colors.join("|") !== element.colors.join("|")) {
+            addError(filePath, `description colors do not match element colors: ${item.colors.join(",")} !== ${element.colors.join(",")}`, item.id);
+          }
+        }
+      }
+      indexUnique(descriptionIndex, filePath, item, "description");
+    }
+  }
+
+  for (const { item, filePath } of elementItems) {
+    if (item.descriptionId && !descriptionIndex.has(item.descriptionId)) {
+      addError(filePath, `descriptionId does not exist: ${item.descriptionId}`, item.id);
     }
   }
 
   console.log("CONTENT VALIDATION OK");
-  console.log(`Checked: ${haikuIndex.size} haiku, ${elementIndex.size} elements, ${effectIndex.size} effects.`);
+  console.log(`Checked: ${haikuIndex.size} haiku, ${descriptionIndex.size} descriptions, ${elementIndex.size} elements, ${effectIndex.size} effects.`);
   console.log("WARNINGS");
   if (warnings.length) warnings.slice(0, 50).forEach((warning) => console.log(`- ${warning}`));
   else console.log("- none");

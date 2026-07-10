@@ -315,6 +315,12 @@
     return root.HC.Content.getHaikuForElement(elementId);
   }
 
+  function getContentDescriptionForCard(card) {
+    const elementId = getContentElementIdForCard(card);
+    if (!elementId || !root.HC?.Content?.getDescriptionForElement) return null;
+    return root.HC.Content.getDescriptionForElement(elementId);
+  }
+
   function handleContentReady() {
     if (!initialized) return;
     if (!cardSelection.selectedCardRef) return;
@@ -655,6 +661,7 @@
         type: "card", card, title,
         meta: `${card.kind} · ${card.tier} · ${card.colors.join(" + ") || "brak koloru"}${card.count > 1 ? ` · ×${card.count}` : ""}`,
         effectLines: effectSlot ? (api?.getEffectLines?.(effectSlot, card.tier) || []) : [],
+        description: getContentDescriptionForCard(card),
         haiku: getContentHaikuForCard(card),
         haikuLines: api?.getHaikuLines?.(card) || []
       };
@@ -687,8 +694,12 @@
       desc.className = "submeta-detail-content";
       appendText(desc, "strong", model.title);
       appendText(desc, "p", model.meta, "submeta-card-meta");
-      for (const line of model.effectLines) appendText(desc, "p", line);
-      if (!model.effectLines.length) appendText(desc, "p", "Brak roboczego opisu efektu dla tego kontekstu.");
+      if (model.description?.shortDescription) appendText(desc, "p", model.description.shortDescription);
+      if (model.description?.mechanicDescription) appendText(desc, "p", model.description.mechanicDescription);
+      if (!model.description?.shortDescription && !model.description?.mechanicDescription) {
+        for (const line of model.effectLines) appendText(desc, "p", line);
+        if (!model.effectLines.length) appendText(desc, "p", "Brak roboczego opisu efektu dla tego kontekstu.");
+      }
       if (cardSelection.assignmentMessage) appendText(desc, "p", cardSelection.assignmentMessage);
       description.appendChild(desc);
       const poem = document.createElement("div");
