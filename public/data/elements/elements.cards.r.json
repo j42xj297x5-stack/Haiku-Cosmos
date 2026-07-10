@@ -14,7 +14,7 @@
         "WORLD"
       ],
       "haikuId": "HAIKU_CARD_R1_RED",
-      "descriptionId": null,
+      "descriptionId": "DESC_CARD_R1_RED",
       "visualId": null,
       "mechanics": {
         "effectIds": [
@@ -42,7 +42,7 @@
         "WORLD"
       ],
       "haikuId": "HAIKU_CARD_R1_YELLOW",
-      "descriptionId": null,
+      "descriptionId": "DESC_CARD_R1_YELLOW",
       "visualId": null,
       "mechanics": {
         "effectIds": [
@@ -70,7 +70,7 @@
         "WORLD"
       ],
       "haikuId": "HAIKU_CARD_R1_GREEN",
-      "descriptionId": null,
+      "descriptionId": "DESC_CARD_R1_GREEN",
       "visualId": null,
       "mechanics": {
         "effectIds": [
@@ -98,7 +98,7 @@
         "WORLD"
       ],
       "haikuId": "HAIKU_CARD_R1_BLUE",
-      "descriptionId": null,
+      "descriptionId": "DESC_CARD_R1_BLUE",
       "visualId": null,
       "mechanics": {
         "effectIds": [
