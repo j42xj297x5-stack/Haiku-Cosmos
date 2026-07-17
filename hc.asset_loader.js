@@ -262,7 +262,13 @@
     { id: "planets.planet-016", logicalPath: "glb/planet_016.glb", url: "glb/planet_016.glb", phase: "background", type: "glb", category: "planets" }
   ].map((asset) => Object.freeze(asset)));
   function publicAssetPath(path) { const h = root.HC && (root.HC.publicAssetPath || root.HC.publicPath); return typeof h === "function" ? h(path) : path; }
-  function withResolved(asset) { return Object.assign({}, asset, { resolvedUrl: publicAssetPath(asset.url || asset.logicalPath) }); }
+  function withResolved(asset) {
+    const resolvedUrl = publicAssetPath(asset.url || asset.logicalPath);
+    const networkUrl = asset.type === "json" && typeof root.HC?.withBuildVersion === "function"
+      ? root.HC.withBuildVersion(resolvedUrl)
+      : resolvedUrl;
+    return Object.assign({}, asset, { resolvedUrl: networkUrl });
+  }
   function getManifest() { return manifest.map(withResolved); }
   function emit(progress) { const p = Object.assign({}, progress); root.HC.AssetLoader.lastProgress = p; listeners.forEach((fn) => { try { fn(p); } catch (e) { console.warn("[HC.AssetLoader] progress listener failed", e); } }); }
   function onProgress(fn) { if (typeof fn === "function") listeners.add(fn); return () => listeners.delete(fn); }

@@ -26,7 +26,26 @@
     return `${publicBaseUrl}${cleanPath}`;
   }
 
+  function withBuildVersion(url) {
+    const value = String(url || "");
+    if (!value || /^(?:data:|blob:|https?:|\/\/)/i.test(value)) return value;
+    const buildId = root.HC_BUILD_INFO?.id;
+    if (!buildId) return value;
+    try {
+      const baseHref = root.document?.baseURI || root.location?.href || "http://localhost/";
+      const parsed = new URL(value, baseHref);
+      const baseOrigin = new URL(baseHref).origin;
+      if (parsed.origin !== baseOrigin || parsed.searchParams.has("v")) return value;
+      parsed.searchParams.set("v", buildId);
+      if (/^[./]/.test(value)) return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      return `${parsed.pathname.replace(publicBaseUrl, "")}${parsed.search}${parsed.hash}`;
+    } catch (_error) {
+      return value;
+    }
+  }
+
   root.HC.publicPath = publicPath;
   root.HC.publicAssetPath = publicPath;
   root.HC.publicBaseUrl = publicBaseUrl;
+  root.HC.withBuildVersion = withBuildVersion;
 })(window);

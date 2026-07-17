@@ -19,7 +19,8 @@
     if (typeof resolvePublicPath !== "function") {
       throw new Error("HC.publicPath is unavailable");
     }
-    return resolvePublicPath(logicalPath);
+    const resolved = resolvePublicPath(logicalPath);
+    return typeof root.HC?.withBuildVersion === "function" ? root.HC.withBuildVersion(resolved) : resolved;
   }
 
   function failureResult(failureKind, error, context) {
