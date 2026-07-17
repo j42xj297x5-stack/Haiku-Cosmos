@@ -33,7 +33,8 @@
   }
 
   async function fetchJson(logicalPath) {
-    const url = publicPath(logicalPath);
+    const resolved = publicPath(logicalPath);
+    const url = typeof root.HC?.withBuildVersion === "function" ? root.HC.withBuildVersion(resolved) : resolved;
     try {
       const response = await fetch(url, { cache: "no-cache" });
       if (!response.ok) {

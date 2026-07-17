@@ -153,6 +153,12 @@ Powód tego rozdziału: przy klasycznych scriptach wariant `%BASE_URL%runtime/..
 
 Po buildzie `postbuild` uruchamia `scripts/verify-legacy-runtime-dist.mjs`, który przerywa build, jeśli brakuje wymaganego legacy scriptu w `dist/runtime/` albo publicznych entry modules `dist/vendor/three/three.module.min.js` i `dist/vendor/loaders/GLTFLoader.js`.
 
+## Wersjonowanie deploymentu
+
+Workflow przekazuje `github.sha` jako `VITE_BUILD_SHA`. Plugin `transformIndexHtml` dopisuje ten sam parametr `?v=<build-id>` do wszystkich klasycznych skryptów `runtime/` oraz osadza diagnostyczne `window.HC_BUILD_INFO`. Lokalny dev/build tworzy jeden identyfikator `dev-<timestamp>` albo `local-<timestamp>` na start procesu Vite. Moduł `hc.three_module_bridge.js` pozostaje przetwarzany i hashowany przez Vite w `dist/assets/`.
+
+`HC.withBuildVersion(url)` dodaje ten sam identyfikator do lokalnych żądań JSON settings/data bez zmiany ścieżek logicznych. Weryfikator postbuild kontroluje wspólny Build ID, kolejność i kompletność runtime, BuildInfo, fizyczne pliki oraz hashowany bridge ESM.
+
 ## Dependency hygiene
 
 - `node_modules` nie może być śledzone przez git.

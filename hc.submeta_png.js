@@ -53,7 +53,7 @@
 
   const defaultsById = new Map(DEFAULT_ELEMENTS.map((item) => [item.id, item]));
   let elements = cloneDefaults();
-  let enabled = readStoredEnabled();
+  let debugEnabled = readStoredEnabled();
   let selectedId = DEFAULT_ELEMENTS[0].id;
   let overlay = null;
   let stage = null;
@@ -89,9 +89,9 @@
 
   function readStoredEnabled() {
     try {
-      return root.localStorage.getItem(ENABLED_STORAGE_KEY) === "true";
+      return root.localStorage.getItem(ENABLED_STORAGE_KEY) !== "false";
     } catch (_error) {
-      return false;
+      return true;
     }
   }
 
@@ -119,7 +119,7 @@
   }
 
   function isActive() {
-    return enabled === true;
+    return !isDebugMode() || debugEnabled === true;
   }
 
   function isDebugMode() {
@@ -311,13 +311,15 @@
   }
 
   function setEnabled(nextEnabled) {
-    enabled = nextEnabled === true;
+    if (!isDebugMode()) return isActive();
+    debugEnabled = nextEnabled === true;
     try {
-      root.localStorage.setItem(ENABLED_STORAGE_KEY, String(enabled));
+      root.localStorage.setItem(ENABLED_STORAGE_KEY, String(debugEnabled));
     } catch (_error) {
       // localStorage can be unavailable in privacy modes; runtime state still works.
     }
     update();
+    return isActive();
   }
 
 
@@ -585,7 +587,7 @@
       <details class="submeta-png-debug overlay-collapsible" data-runtime-debug-section="submeta-png-layout"${options.open === true ? " open" : ""}>
         <summary>SUB-META PNG Layout</summary>
         <div class="overlay-grid">
-          <label class="overlay-select-row" for="dbgSubMetaPngEnabled">Use new PNG SUB-META <input id="dbgSubMetaPngEnabled" type="checkbox"${enabled ? " checked" : ""}></label>
+          <label class="overlay-select-row" for="dbgSubMetaPngEnabled">Use new PNG SUB-META <input id="dbgSubMetaPngEnabled" type="checkbox"${isActive() ? " checked" : ""}></label>
           <label class="submeta-png-debug-row" for="dbgSubMetaPngElement"><span>Element</span><select id="dbgSubMetaPngElement">${elementOptions}</select></label>
           ${renderNumberControl("x", "x", selected.x, 0, 1, 0.001)}
           ${renderNumberControl("y", "y", selected.y, 0, 1, 0.001)}
