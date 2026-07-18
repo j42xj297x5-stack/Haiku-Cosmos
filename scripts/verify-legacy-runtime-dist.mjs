@@ -1,124 +1,22 @@
 import { readFile, readdir, stat } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { legacyRuntimeFiles } from "./legacy-runtime-files.mjs";
-
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const distRoot = path.join(repoRoot, "dist");
-const sourceHtml = await readFile(path.join(repoRoot, "index.html"), "utf8");
-const rootHtml = await readFile(path.join(distRoot, "index.html"), "utf8");
-const meta = JSON.parse(await readFile(path.join(distRoot, "build-meta.json"), "utf8"));
-const latestHtml = await readFile(path.join(distRoot, "latest", "index.html"), "utf8");
-const buildRoot = path.join(distRoot, "builds", meta.id);
-let pendingChecks = [];
-const scriptPattern = /<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
-const runtimeEntries = (html) => Array.from(html.matchAll(scriptPattern), (match) => match[1]).filter((src) => /(?:^|\/)runtime\/[^/]+\.js(?:[?#]|$)/i.test(src));
-const runtimeFile = (src) => decodeURIComponent(src.split(/[?#]/, 1)[0]).split("/").at(-1);
-
-const settingsFiles = ["settings/ui-typography.json", "settings/hud-top-layout.json", "settings/submeta-png-layout.json", "settings/submeta-placeholders.json", "settings/submeta-placeholders-panels.json"];
-const visualManifestPath = "assets/visual/submeta/submeta_main_frame_v01_manifest.json";
-const assetExt = /\.(?:png|svg|webp|jpe?g|json|glb|gltf|bin|ttf|woff2?)(?:[?#].*)?$/i;
-function isExternal(value) { return /^(?:https?:|data:|blob:|\/\/|#)/i.test(String(value || "")); }
-function cleanLocal(value) { return String(value || "").split(/[?#]/, 1)[0].replace(/^\.\//, "").replace(/^\/+/, "").replace(/^Haiku-Cosmos\//, ""); }
-async function isFile(relativePath) { try { return (await stat(path.join(buildRoot, relativePath))).isFile(); } catch { return false; } }
-function resolveBuildAssetPath(value, document) {
-  const clean = cleanLocal(value);
-  if (document.endsWith("submeta-png-layout.json") && !clean.includes("/")) return `png/submeta/${clean}`;
-  return clean;
-}
-function walkActive(value, visit, pointer = "$", active = true) {
-  if (!active) return;
-  if (Array.isArray(value)) value.forEach((item, index) => walkActive(item, visit, `${pointer}[${index}]`, active));
-  else if (value && typeof value === "object") {
-    const nextActive = value.visible !== false;
-    for (const [key, child] of Object.entries(value)) walkActive(child, visit, `${pointer}.${key}`, nextActive);
-  } else if (typeof value === "string") visit(value, pointer);
-}
-async function readBuildJson(relativePath) { return JSON.parse(await readFile(path.join(buildRoot, relativePath), "utf8")); }
-const requiredMeta = ["id", "sha", "shortSha", "builtAt", "mode", "latestPath", "assetBase"];
-
-for (const field of requiredMeta) if (!meta[field]) throw new Error(`build-meta.json missing ${field}`);
-if (meta.assetBase !== `/Haiku-Cosmos/builds/${meta.id}/`) throw new Error("assetBase must point at immutable build directory");
-if (meta.latestPath !== "/Haiku-Cosmos/latest/") throw new Error("latestPath must be /Haiku-Cosmos/latest/");
-if (Number.isNaN(Date.parse(meta.builtAt))) throw new Error("builtAt must be ISO date");
-if (runtimeEntries(rootHtml).length || /<script\b[^>]*type=["']module["'][^>]*src=/i.test(rootHtml)) throw new Error("dist/index.html must not load game runtime");
-if (!rootHtml.includes("build-meta.json?t=") || !rootHtml.includes("Date.now()") || !rootHtml.includes('cache: "no-store"') || !rootHtml.includes('credentials: "same-origin"') || !rootHtml.includes(`location.replace(base + "latest/?v="`)) throw new Error("dist/index.html must no-store fetch build-meta.json?t=Date.now and location.replace to latest ?v");
-if (!(await stat(buildRoot)).isDirectory()) throw new Error(`Missing dist/builds/${meta.id}/`);
-const sourceFiles = runtimeEntries(sourceHtml).map(runtimeFile);
-if (JSON.stringify(sourceFiles) !== JSON.stringify(legacyRuntimeFiles)) throw new Error("index.html runtime scripts differ from legacy-runtime-files.mjs or order changed");
-if (runtimeEntries(latestHtml).length || /<script\b[^>]*type=["']module["'][^>]*src=/i.test(latestHtml)) throw new Error("latest/index.html must not contain static runtime/module src");
-if (/<link\b[^>]*rel=["']stylesheet["'][^>]*href=/i.test(latestHtml)) throw new Error("latest/index.html must not contain static app stylesheet href");
-const embedded = JSON.parse(latestHtml.match(/window\.HC_BUILD_INFO\s*=\s*Object\.freeze\((\{[\s\S]*?\})\);/)?.[1] || "null");
-if (JSON.stringify(embedded) !== JSON.stringify(meta)) throw new Error("HC_BUILD_INFO in latest/index.html does not match build-meta.json");
-const manifest = JSON.parse(latestHtml.match(/<script data-hc-release-manifest type="application\/json">([\s\S]*?)<\/script>/)?.[1] || "null");
-const manifestScripts = manifest.filter((entry) => entry.kind === "script").map((entry) => runtimeFile(entry.src)).filter(Boolean);
-if (JSON.stringify(manifestScripts.filter((file) => sourceFiles.includes(file))) !== JSON.stringify(sourceFiles)) throw new Error("release manifest must preserve source runtime script order");
-for (const entry of manifest) if ((entry.src || entry.href || "").startsWith("/Haiku-Cosmos/") || /\/builds\//.test(entry.src || entry.href || "")) throw new Error("manifest must store source-relative paths only; bootstrap applies assetBase");
-const boot = latestHtml.match(/<script data-hc-release-bootstrap>([\s\S]*?)<\/script>/)?.[1] || "";
-for (const needle of ["build-meta.json?t=", 'cache: "no-store"', 'credentials: "same-origin"', "new URLSearchParams(location.search).get(\"v\")", "location.replace(meta.latestPath + \"?v=\"", "hc:release-redirect-count", "HC_RELEASE_BOOTSTRAP", "preflightComplete: true", "hc:release-build-id", "await resetStorage", "await loadTag", "document.createElement(\"script\")", "el.async = false", "window.HC_BUILD_INFO.assetBase", "navigator.serviceWorker.getRegistrations", "r.unregister()", "buildVersionLabel"])
-  if (!boot.includes(needle)) throw new Error(`latest bootstrap missing ${needle}`);
-if (/history\.replaceState/.test(rootHtml + latestHtml)) throw new Error("production bootstrap must not remove ?v with history.replaceState");
-if (/localStorage\.clear\s*\(|sessionStorage\.clear\s*\(/.test(latestHtml)) throw new Error("release storage reset must not clear entire origin storage");
-if (!/k\.indexOf\("hc:"\).*k\.indexOf\("hc\."\).*k\.indexOf\("haiku-cosmos"\)/s.test(boot)) throw new Error("storage reset must be limited to Haiku Cosmos keys");
-if (!/setStatus\("Sprawdzanie wersji…"\)/.test(boot) || !/Czyszczenie danych poprzedniej wersji…/.test(boot) || !/Ładowanie aktualnej wersji…/.test(boot) || !/Błąd aktualizacji — gra nie została uruchomiona\./.test(boot)) throw new Error("latest bootstrap missing required overlay states");
-if (boot.indexOf("window.HC_RELEASE_BOOTSTRAP") > boot.indexOf("await loadTag")) throw new Error("runtime can start before preflight marker");
-const forbiddenBare = /(?:src|href)=["'](?:\/Haiku-Cosmos\/)?(?:runtime|png|textures|glb|settings|fonts|svg|vendor)\//i;
-if (forbiddenBare.test(latestHtml)) throw new Error("latest contains static local runtime/asset URL outside build assetBase");
-for (const relativeFile of [...sourceFiles.map((file) => path.join("runtime", file)), path.join("vendor", "three", "three.module.min.js"), path.join("vendor", "loaders", "GLTFLoader.js")]) {
-  try { if (!(await stat(path.join(buildRoot, relativeFile))).isFile()) throw new Error(); }
-  catch { throw new Error(`Missing required build file: ${relativeFile}`); }
-}
-const debugRuntime = await readFile(path.join(buildRoot, "runtime", "hc.debug.js"), "utf8");
-for (const needle of ["isDebugModeActive", "hasActiveDebugSession", "isManualExportInProgress", "cleanupLegacyDebugStorageForNormalMode", "hc:debug-normal-cleanup-v1"]) {
-  if (!debugRuntime.includes(needle)) throw new Error(`debug runtime missing normal/debug separation guard: ${needle}`);
-}
-if (/addEventListener\(["'](?:beforeunload|pagehide|visibilitychange)["']/.test(debugRuntime)) throw new Error("debug runtime must not register unload/visibility finalization listeners");
-if (/localStorage\.clear\s*\(|sessionStorage\.clear\s*\(/.test(debugRuntime)) throw new Error("debug runtime must not clear entire origin storage");
-const bridgeEntry = manifest.find((entry) => entry.type === "module" && /^assets\//.test(entry.src));
-if (!bridgeEntry) throw new Error("Three bridge module missing from dynamic manifest");
-if (!(await readFile(path.join(buildRoot, bridgeEntry.src), "utf8")).includes("HC_THREE_BRIDGE_VERSION")) throw new Error("Three bridge module content missing");
-
-let checkedSettings = 0;
-let checkedManifests = 0;
-let checkedAssets = 0;
-const missingAssets = [];
-function recordMissing(logical, document, missing) { missingAssets.push({ logical, document, missing }); }
-if (!(await isFile(visualManifestPath))) recordMissing(visualManifestPath, "dist build", visualManifestPath);
-else {
-  checkedManifests++;
-  const visualManifest = await readBuildJson(visualManifestPath);
-  if (!visualManifest || !Array.isArray(visualManifest.assets)) throw new Error(`${visualManifestPath} must contain assets[]`);
-  for (const asset of visualManifest.assets) {
-    const logical = cleanLocal(asset?.path);
-    if (!logical || isExternal(logical)) continue;
-    checkedAssets++;
-    if (!(await isFile(logical))) recordMissing(logical, visualManifestPath, logical);
-  }
-}
-const submetaLayout = await readBuildJson("settings/submeta-png-layout.json");
-for (const element of submetaLayout.elements || []) {
-  if (element?.visible === false || !element?.src) continue;
-  const logical = `png/submeta/${cleanLocal(element.src)}`;
-  checkedAssets++;
-  if (!(await isFile(logical))) recordMissing(logical, "settings/submeta-png-layout.json", logical);
-}
-for (const setting of settingsFiles) {
-  checkedSettings++;
-  const json = await readBuildJson(setting);
-  walkActive(json, (value, pointer) => {
-    if (!assetExt.test(value) || isExternal(value)) return;
-    checkedAssets++;
-    const logical = resolveBuildAssetPath(value, setting);
-    // checked asynchronously after collection is avoided by sync stat through fs promises in a queue below
-    if (!pendingChecks) pendingChecks = [];
-    pendingChecks.push({ logical, document: `${setting}${pointer}` });
-  });
-}
-for (const check of pendingChecks || []) if (!(await isFile(check.logical))) recordMissing(check.logical, check.document, check.logical);
-if (missingAssets.length) {
-  const details = missingAssets.map((item) => `logical: ${item.logical}\ndocument: ${item.document}\nmissing: ${item.missing}`).join("\n---\n");
-  throw new Error(`Missing runtime assets in immutable build (${missingAssets.length}):\n${details}`);
-}
-const latestEntries = await readdir(path.join(distRoot, "latest"));
-if (latestEntries.some((entry) => entry !== "index.html")) throw new Error("dist/latest must contain only bootstrap entry document");
-console.log(`Verified release layout for Build ID ${meta.id}: runtime JS ${sourceFiles.length}, settings ${checkedSettings}, manifests ${checkedManifests}, assets ${checkedAssets}, zero missing files.`);
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),".."), dist=path.join(root,"dist"), base="/Haiku-Cosmos/";
+const fail=(m)=>{throw Error(m)}; const file=async p=>{try{return(await stat(p)).isFile()}catch{return false}};
+const meta=JSON.parse(await readFile(path.join(dist,"build-meta.json"),"utf8"));
+for(const k of ["id","sha","shortSha","builtAt","mode","appPath","assetBase","integrityPath"])if(!meta[k])fail(`build-meta missing ${k}`);
+if(!/^[A-Za-z0-9._~-]+$/.test(meta.id))fail("unsafe build id");
+const expected={appPath:`${base}builds/${meta.id}/index.html`,assetBase:`${base}builds/${meta.id}/`,integrityPath:`${base}builds/${meta.id}/build-integrity.json`};for(const[k,v]of Object.entries(expected))if(meta[k]!==v)fail(`${k} is not immutable build path`);
+const appDir=path.join(dist,"builds",meta.id), app=await readFile(path.join(appDir,"index.html"),"utf8"), rootHtml=await readFile(path.join(dist,"index.html"),"utf8"), latest=await readFile(path.join(dist,"latest","index.html"),"utf8");
+if(!rootHtml.includes('cache:"no-store"')||!rootHtml.includes("Date.now()")||!rootHtml.includes('credentials:"same-origin"')||!rootHtml.includes("location.replace(m.appPath)"))fail("root bootstrap must no-store redirect to meta.appPath");
+if(/runtime\/|data-hc-release-manifest|HC_BUILD_INFO/.test(latest))fail("latest must be compatibility redirect only");
+if(app.includes("/latest/"))fail("immutable app depends on latest");
+const embedded=JSON.parse(app.match(/window\.HC_BUILD_INFO\s*=\s*Object\.freeze\((\{[\s\S]*?\})\);/)?.[1]||"null");if(JSON.stringify(embedded)!==JSON.stringify(meta))fail("embedded build metadata differs");
+const manifest=JSON.parse(app.match(/data-hc-release-manifest[^>]*>([\s\S]*?)<\/script>/)?.[1]||"null");if(!Array.isArray(manifest)||!manifest.length)fail("missing release manifest");
+for(const e of manifest){const rel=e.src||e.href;if(!rel||rel.startsWith("/")||rel.includes("..")||rel.includes("/latest/")||!(await file(path.join(appDir,rel))))fail(`invalid manifest entry ${rel}`)}
+const integrity=JSON.parse(await readFile(path.join(appDir,"build-integrity.json"),"utf8"));if(integrity.buildId!==meta.id||integrity.sha!==meta.sha||!integrity.files)fail("invalid integrity manifest");
+for(const [rel,entry] of Object.entries(integrity.files)){const body=await readFile(path.join(appDir,rel));if(body.length!==entry.size||createHash("sha256").update(body).digest("hex")!==entry.sha256)fail(`integrity mismatch ${rel}`)}
+for(const d of ["runtime","assets","settings","data","png","svg","textures","glb","fonts","vendor","models"])try{if(!(await stat(path.join(appDir,d))).isDirectory())fail(`missing required build directory ${d}`)}catch{fail(`missing required build directory ${d}`)}
+const latestEntries=await readdir(path.join(dist,"latest"));if(latestEntries.length!==1||latestEntries[0]!=="index.html")fail("latest must only contain redirect shell");
+console.log(`Verified immutable release ${meta.id}: ${Object.keys(integrity.files).length} files with valid SHA-256.`);
