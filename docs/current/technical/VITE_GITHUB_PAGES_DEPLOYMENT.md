@@ -13,16 +13,16 @@
 Publiczny adres aktualnej gry jest stały:
 
 ```text
-/Haiku-Cosmos/latest/
+/Haiku-Cosmos/latest/?v=<BUILD_ID>
 ```
 
-Root projektu nie uruchamia runtime gry. `dist/index.html` jest minimalnym bootstrapem, który pobiera `/Haiku-Cosmos/build-meta.json` z `cache: "no-store"` i parametrem opartym o `Date.now()`, a następnie wykonuje `location.replace` do:
+Root projektu nie uruchamia runtime gry. `dist/index.html` jest minimalnym bootstrapem, który pobiera `/Haiku-Cosmos/build-meta.json?t=<Date.now()>` z `cache: "no-store"` i `credentials: "same-origin"`, a następnie wykonuje `location.replace` do:
 
 ```text
 /Haiku-Cosmos/latest/?v=<BUILD_ID>
 ```
 
-`latest/index.html` przed uruchomieniem runtime pobiera aktualne metadane, porównuje je z osadzonym `window.HC_BUILD_INFO`, przekierowuje przez `location.replace` przy różnicy oraz usuwa query string przez `history.replaceState` po zgodnym starcie.
+`latest/index.html` jest inline bootstrapem release: nie ma statycznych skryptów runtime ani statycznych stylesheetów aplikacji. Zawiera markup strony, `startOverlay`, minimalny styl loadera/błędu, osadzone `window.HC_BUILD_INFO`, manifest uporządkowanych plików runtime/modułów/stylów oraz inline preflight. Parametr `?v=<BUILD_ID>` pozostaje w pasku adresu przez cały czas działania gry; produkcyjny bootstrap nie usuwa go przez `history.replaceState`.
 
 ## Układ `dist/`
 
@@ -50,7 +50,7 @@ Wszystkie runtime JS, moduły Vite, vendor, CSS, fonty, PNG/SVG/WEBP/JPG, GLB/GL
 /Haiku-Cosmos/builds/<BUILD_ID>/
 ```
 
-`latest/index.html` wskazuje lokalne `src`/`href` właśnie do tego immutable katalogu. `dist/latest/` nie zawiera aktywnych assetów aplikacji poza dokumentem wejściowym.
+`latest/index.html` nie wskazuje statycznych `src`/`href` runtime. Po preflighcie ładuje style, klasyczne skrypty i moduły dynamicznie z `window.HC_BUILD_INFO.assetBase`; klasyczne skrypty są dodawane sekwencyjnie z `async = false`, a moduły również blokują dalszą kolejność do zdarzenia `load`. `dist/latest/` nie zawiera aktywnych assetów aplikacji poza dokumentem wejściowym.
 
 ## `build-meta.json`
 
@@ -70,6 +70,20 @@ Wszystkie runtime JS, moduły Vite, vendor, CSS, fonty, PNG/SVG/WEBP/JPG, GLB/GL
 
 W GitHub Actions `BUILD_ID` pochodzi z `VITE_BUILD_SHA`. Lokalnie Vite tworzy jeden identyfikator `dev-*` albo `local-*` na start procesu, a nie przy każdym żądaniu.
 
+
+## Preflight release i czyszczenie storage
+
+Przed załadowaniem jakiegokolwiek runtime `latest/index.html`:
+
+1. odczytuje parametr `v` z `location.search`,
+2. pobiera `/Haiku-Cosmos/build-meta.json?t=<Date.now()>` przez `cache: "no-store"` i `credentials: "same-origin"`,
+3. sprawdza kompletność `id`, `sha`, `shortSha`, `builtAt`, `assetBase`, `latestPath`,
+4. porównuje `v`, pobrane `meta.id` i osadzony `window.HC_BUILD_INFO.id`,
+5. przy różnicy wykonuje `location.replace(meta.latestPath + "?v=" + encodeURIComponent(meta.id))`, z ochroną przed pętlą,
+6. dopiero po zgodności ustawia `window.HC_RELEASE_BOOTSTRAP = { buildId, storageResetPerformed, preflightComplete: true }` i ładuje manifest runtime.
+
+Trwały marker aktualnego stanu przeglądarki to `hc:release-build-id`. Jeżeli marker nie istnieje albo różni się od `window.HC_BUILD_INFO.id`, bootstrap jednorazowo czyści dane Haiku Cosmos przed runtime: klucze `localStorage`/`sessionStorage` o prefiksach `hc:`, `hc.`, `haiku-cosmos`, cache projektu i wpisy cache z URL zawierającym `/Haiku-Cosmos/`, IndexedDB projektu oraz Service Workery o scope obejmującym `/Haiku-Cosmos/`. Nie wolno używać `localStorage.clear()` ani `sessionStorage.clear()`, bo origin GitHub Pages może przechowywać dane innych projektów. Ręcznie pobrane pliki save na dysku użytkownika nie są usuwane; nadal działają ścieżki import/export pliku save.
+
 ## Publiczne assety i `HC.publicPath`
 
 Publiczne URL-e do assetów należy budować przez `HC.publicPath` / `HC.publicAssetPath`; `HC.withBuildVersion` pozostaje publicznym API. W produkcji bazą helperów jest `window.HC_BUILD_INFO.assetBase`, a w lokalnym dev zachowane są ścieżki Vite pod `/Haiku-Cosmos/`.
@@ -87,7 +101,7 @@ npm run build
 npm run preview
 ```
 
-`postbuild` uruchamia przygotowanie układu release i weryfikator `scripts/verify-legacy-runtime-dist.mjs`, który sprawdza bootstrap root, kompletność metadanych, `latest/index.html`, zgodność `HC_BUILD_INFO`, preflight aktualizacji, immutable katalog buildu, kolejność klasycznych skryptów, Three bridge, brak nierozwiązanych tokenów i brak aktywnej rejestracji Service Workera.
+`postbuild` uruchamia przygotowanie układu release i weryfikator `scripts/verify-legacy-runtime-dist.mjs`, który sprawdza bootstrap root, kompletność metadanych, dynamiczny `latest/index.html` bez statycznego runtime, zgodność `HC_BUILD_INFO`, preflight aktualizacji, trwały parametr `?v`, marker `hc:release-build-id`, scoped storage reset bez czyszczenia całego originu, immutable katalog buildu, kolejność manifestu runtime, Three bridge, brak nierozwiązanych tokenów i brak aktywnej rejestracji Service Workera.
 
 ## GitHub Pages deployment
 
