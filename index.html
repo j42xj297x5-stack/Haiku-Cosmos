@@ -269,6 +269,14 @@
       gap: 8px;
     }
     .debug-badge { opacity: 0.7; }
+    #buildVersionLabel {
+      margin-top: 3px;
+      color: rgba(255,255,255,0.38);
+      font-size: 11px;
+      line-height: 1.2;
+      letter-spacing: 0.03em;
+      text-align: center;
+    }
 
     #runtimeDebugOverlay {
       position: fixed;
@@ -658,10 +666,30 @@
         </div>
         <button id="btnStartDebugSession" type="button" data-debug-i18n="start.startDebugSession">Start Debug Session</button>
       </div>
+      <div id="buildVersionLabel" aria-label="Build version"></div>
     </div>
   </div>
 
   <!-- Source of truth documentation is in docs/current/ (see docs/current/README.md). -->
+  <script>
+    (function () {
+      function formatBuildVersionLabel(info) {
+        if (!info || !info.shortSha || !info.builtAt) return "";
+        var date = new Date(info.builtAt);
+        if (Number.isNaN(date.getTime())) return "";
+        var formattedDate = new Intl.DateTimeFormat("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" }).format(date);
+        return "Build " + info.shortSha + " • " + formattedDate;
+      }
+      window.HC = window.HC || {};
+      window.HC.formatBuildVersionLabel = formatBuildVersionLabel;
+      function renderBuildVersionLabel() {
+        var label = document.getElementById("buildVersionLabel");
+        if (label) label.textContent = formatBuildVersionLabel(window.HC_BUILD_INFO);
+      }
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", renderBuildVersionLabel, { once: true });
+      else renderBuildVersionLabel();
+    })();
+  </script>
 
   <script src="runtime/hc.public_path.js"></script>
   <script src="runtime/hc.card_assets.js"></script>
