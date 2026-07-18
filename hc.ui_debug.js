@@ -1157,9 +1157,10 @@
 
       if (btnRestart && window.resetWorld) {
         btnRestart.addEventListener("click", () => {
-          if (window.HC?.Session?.restart) {
+          if (window.HC?.Debug?.isActive?.() && window.HC?.Session?.restart) {
             window.HC.Session.restart();
           } else {
+            window.HC?.cleanupLegacyDebugStorageForNormalMode?.();
             window.resetWorld();
           }
           const refreshedWorld = (window.HC.getWorld && window.HC.getWorld()) || window.World;
@@ -1173,7 +1174,16 @@
         window.HC.SubMetaMode = "png-v2";
         if (window.HC?.SubMetaPngLayout?.setMode) window.HC.SubMetaPngLayout.setMode("png-v2");
         window.HC.RENDER_MODE = config?.visual?.rendererMode === "canvas2d" ? "canvas2d" : "three";
-        if (window.HC?.Session?.start) window.HC.Session.start(mode, config || null);
+        if (mode === "debug") {
+          window.HC?.Debug?.activate?.();
+          window.HC?.Debug?.configure?.(config || null);
+          window.HC?.Debug?.startSession?.(config || null);
+        } else {
+          window.HC?.cleanupLegacyDebugStorageForNormalMode?.();
+          if (window.HC?.WorldRenderer?.setMode) window.HC.WorldRenderer.setMode(window.HC.RENDER_MODE);
+          if (window.HC?.resetWorld) window.HC.resetWorld(); else if (window.resetWorld) window.resetWorld();
+          window.HC?.UI?.applySessionMode?.("normal");
+        }
         window.HC?.AssetLoader?.loadBackground?.().then((p) => console.info("[HC.AssetLoader] background phase complete", p));
       }
       if (btnStartNormal) {
@@ -1238,11 +1248,12 @@
       updateScoreLabel(World, true);
     },
     applySessionMode(mode) {
-      if (mode === "debug") ensureWorldRendererDiagnosticsLoaded();
-      if (mode !== "debug") window.HC?.SubMetaPngLayout?.setPreviewEnabled?.(false);
-      if (debugBadge) debugBadge.hidden = mode !== "debug";
+      const debugActive = mode === "debug" && window.HC?.Debug?.isActive?.() === true;
+      if (debugActive) ensureWorldRendererDiagnosticsLoaded();
+      if (!debugActive) window.HC?.SubMetaPngLayout?.setPreviewEnabled?.(false);
+      if (debugBadge) debugBadge.hidden = !debugActive;
       if (runtimeDebugOverlay) {
-        runtimeDebugOverlay.hidden = mode !== "debug";
+        runtimeDebugOverlay.hidden = !debugActive;
       }
     },
     update(dt, nowMs) {
@@ -1257,8 +1268,10 @@
       const World = (window.HC.getWorld && window.HC.getWorld()) || window.World;
       updateScoreLabel(World, false);
       window.HC?.SubMetaPngLayout?.update?.();
-      window.HC?.SubMetaPlaceholders?.update?.();
-      window.HC?.SubMetaPanels?.update?.();
+      if (window.HC?.Debug?.isActive?.() === true) {
+        window.HC?.SubMetaPlaceholders?.update?.();
+        window.HC?.SubMetaPanels?.update?.();
+      }
       const CE = window.CardEngine;
       const view = window.HC.getView && window.HC.getView();
       if (CE && typeof CE.render === "function" && view && window.ctx) {
