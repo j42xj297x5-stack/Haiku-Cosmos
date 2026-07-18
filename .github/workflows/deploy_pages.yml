@@ -35,12 +35,25 @@ jobs:
           node-version: "24"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
+      - name: Validate and test
+        run: |
+          npm run validate:content
+          npm run test
       - name: Build Vite project
         run: npm run build
         env:
           VITE_BUILD_SHA: ${{ github.sha }}
+          VITE_BUILD_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+      - name: Report immutable artifact
+        run: |
+          node -e "const m=require('./dist/build-meta.json'); console.log({sha:m.sha,buildId:m.id,appPath:m.appPath,assetBase:m.assetBase})"
+          echo "artifact files: $(find dist -type f | wc -l)"
+          node scripts/verify-runtime-assets.mjs
+          node scripts/verify-legacy-runtime-dist.mjs
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
