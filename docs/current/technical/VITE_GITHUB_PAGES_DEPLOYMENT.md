@@ -1,114 +1,47 @@
 # Vite + GitHub Pages deployment
 
-> Status: CURRENT
-> Obszar: techniczny deployment runtime Haiku Cosmos
-> Repozytorium: `j42xj297x5-stack/Haiku-Cosmos`
-> Branch roboczy: `CODEX-STARTING-POINT`
-> Branch deploymentowy: `HAIKU-COSMOS-DEPLOY-CLEAN`
-> Workflow: `.github/workflows/deploy_pages.yml`
-> Snapshot: produkcyjny model publikacji z immutable buildami
+> Status: CURRENT — immutable deployment model
 
-## Publiczny model URL
+## ONE DEPLOYMENT RUN = ONE IMMUTABLE BUILD ID
 
-Publiczny adres aktualnej gry jest stały:
+GitHub Actions provides separate source and execution identifiers:
 
 ```text
-/Haiku-Cosmos/latest/?v=<BUILD_ID>
+VITE_BUILD_SHA=${{ github.sha }}
+VITE_BUILD_ID=${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
 ```
 
-Root projektu nie uruchamia runtime gry. `dist/index.html` jest minimalnym bootstrapem, który pobiera `/Haiku-Cosmos/build-meta.json?t=<Date.now()>` z `cache: "no-store"` i `credentials: "same-origin"`, a następnie wykonuje `location.replace` do:
+A rerun of the same commit therefore has a different immutable URL. `npm ci` is required in CI.
+
+## Canonical URLs
+
+Only the root and metadata are stable:
 
 ```text
-/Haiku-Cosmos/latest/?v=<BUILD_ID>
+/Haiku-Cosmos/
+/Haiku-Cosmos/build-meta.json
 ```
 
-`latest/index.html` jest inline bootstrapem release: nie ma statycznych skryptów runtime ani statycznych stylesheetów aplikacji. Zawiera markup strony, `startOverlay`, minimalny styl loadera/błędu, osadzone `window.HC_BUILD_INFO`, manifest uporządkowanych plików runtime/modułów/stylów oraz inline preflight. Parametr `?v=<BUILD_ID>` pozostaje w pasku adresu przez cały czas działania gry; produkcyjny bootstrap nie usuwa go przez `history.replaceState`.
-
-## Układ `dist/`
-
-Build produkcyjny ma układ:
+The root fetches metadata with timestamp, `cache: "no-store"`, and same-origin credentials, then performs `location.replace(meta.appPath)`. The canonical application document is:
 
 ```text
-dist/
-  index.html              # bootstrap root, bez runtime gry
-  build-meta.json         # źródło aktualnego buildu
-  latest/
-    index.html            # dokument wejściowy aktualnej gry
-  builds/
-    <BUILD_ID>/           # niezmienne drzewo plików aplikacji i assetów
+/Haiku-Cosmos/builds/<BUILD_ID>/index.html
 ```
 
-Wszystkie runtime JS, moduły Vite, vendor, CSS, fonty, PNG/SVG/WEBP/JPG, GLB/GLTF/BIN, tekstury, mapy emisji, JSON settings/content i manifesty są publikowane pod:
+`assetBase` is `/Haiku-Cosmos/builds/<BUILD_ID>/`; `integrityPath` is its `build-integrity.json`. `/latest/index.html` is only a compatibility redirect shell and never loads the game.
 
-```text
-/Haiku-Cosmos/builds/<BUILD_ID>/
-```
+## Layout and integrity
 
-`assetBase` w metadanych ma wartość:
+Every local runtime, Vite asset, settings/data JSON, PNG/SVG, textures, GLB, font, vendor, and model is inside `builds/<BUILD_ID>/`. The app embeds its own `HC_BUILD_INFO` and ordered relative release manifest. `build-integrity.json` contains SHA-256 and size for every build file except itself; `verify-legacy-runtime-dist.mjs` recalculates all hashes.
 
-```text
-/Haiku-Cosmos/builds/<BUILD_ID>/
-```
-
-`latest/index.html` nie wskazuje statycznych `src`/`href` runtime. Po preflighcie ładuje style, klasyczne skrypty i moduły dynamicznie z `window.HC_BUILD_INFO.assetBase`; klasyczne skrypty są dodawane sekwencyjnie z `async = false`, a moduły również blokują dalszą kolejność do zdarzenia `load`. `dist/latest/` nie zawiera aktywnych assetów aplikacji poza dokumentem wejściowym.
-
-## `build-meta.json`
-
-`build-meta.json` jest źródłem aktualnego buildu dla root bootstrapu i preflightu `latest`. Zawiera co najmniej:
-
-```json
-{
-  "id": "<BUILD_ID>",
-  "sha": "<SHA lub lokalny identyfikator>",
-  "shortSha": "<krótki identyfikator>",
-  "builtAt": "<ISO UTC>",
-  "mode": "production",
-  "latestPath": "/Haiku-Cosmos/latest/",
-  "assetBase": "/Haiku-Cosmos/builds/<BUILD_ID>/"
-}
-```
-
-W GitHub Actions `BUILD_ID` pochodzi z `VITE_BUILD_SHA`. Lokalnie Vite tworzy jeden identyfikator `dev-*` albo `local-*` na start procesu, a nie przy każdym żądaniu.
-
-
-## Preflight release i czyszczenie storage
-
-Przed załadowaniem jakiegokolwiek runtime `latest/index.html`:
-
-1. odczytuje parametr `v` z `location.search`,
-2. pobiera `/Haiku-Cosmos/build-meta.json?t=<Date.now()>` przez `cache: "no-store"` i `credentials: "same-origin"`,
-3. sprawdza kompletność `id`, `sha`, `shortSha`, `builtAt`, `assetBase`, `latestPath`,
-4. porównuje `v`, pobrane `meta.id` i osadzony `window.HC_BUILD_INFO.id`,
-5. przy różnicy wykonuje `location.replace(meta.latestPath + "?v=" + encodeURIComponent(meta.id))`, z ochroną przed pętlą,
-6. dopiero po zgodności ustawia `window.HC_RELEASE_BOOTSTRAP = { buildId, storageResetPerformed, preflightComplete: true }` i ładuje manifest runtime.
-
-Trwały marker aktualnego stanu przeglądarki to `hc:release-build-id`. Jeżeli marker nie istnieje albo różni się od `window.HC_BUILD_INFO.id`, bootstrap jednorazowo czyści dane Haiku Cosmos przed runtime: klucze `localStorage`/`sessionStorage` o prefiksach `hc:`, `hc.`, `haiku-cosmos`, cache projektu i wpisy cache z URL zawierającym `/Haiku-Cosmos/`, IndexedDB projektu oraz Service Workery o scope obejmującym `/Haiku-Cosmos/`. Nie wolno używać `localStorage.clear()` ani `sessionStorage.clear()`, bo origin GitHub Pages może przechowywać dane innych projektów. Ręcznie pobrane pliki save na dysku użytkownika nie są usuwane; nadal działają ścieżki import/export pliku save.
-
-## Publiczne assety i `HC.publicPath`
-
-Publiczne URL-e do assetów należy budować przez `HC.publicPath` / `HC.publicAssetPath`; `HC.withBuildVersion` pozostaje publicznym API. W produkcji bazą helperów jest `window.HC_BUILD_INFO.assetBase`, a w lokalnym dev zachowane są ścieżki Vite pod `/Haiku-Cosmos/`.
-
-JSON nadal przechowuje ścieżki logiczne, np. `png/foo.png`, `settings/foo.json`, `glb/foo.glb`. Nie zapisujemy w JSON pełnych browser URL-i. Zewnętrzne `http/https`, inne originy oraz `data:` i `blob:` nie są przepisywane.
-
-Relatywne zależności GLTF/GLB, takie jak BIN i tekstury, muszą znajdować się w tym samym immutable drzewie buildu, aby otrzymywały URL z tym samym `BUILD_ID` w ścieżce.
-
-## Build i preview
+## Build, test, preview
 
 ```bash
-npm install
+npm ci
 npm run validate:content
+npm run test
 npm run build
 npm run preview
 ```
 
-`postbuild` uruchamia przygotowanie układu release i weryfikator `scripts/verify-legacy-runtime-dist.mjs`, który sprawdza bootstrap root, kompletność metadanych, dynamiczny `latest/index.html` bez statycznego runtime, zgodność `HC_BUILD_INFO`, preflight aktualizacji, trwały parametr `?v`, marker `hc:release-build-id`, scoped storage reset bez czyszczenia całego originu, immutable katalog buildu, kolejność manifestu runtime, Three bridge, brak nierozwiązanych tokenów i brak aktywnej rejestracji Service Workera.
-
-## GitHub Pages deployment
-
-Workflow `.github/workflows/deploy_pages.yml` buduje projekt przez `npm run build` z `VITE_BUILD_SHA=${{ github.sha }}` i publikuje `dist/` przez GitHub Pages. Nie należy modyfikować branchy deploymentowych w lokalnym zadaniu ani wykonywać pushu bez osobnego polecenia.
-
-## Runtime asset graph verification
-
-The production build now treats runtime assets as part of the release contract. Before `vite build`, `prebuild` runs `sync-legacy-runtime`, `sync-public-vendor`, `sync-public-visual-assets`, and `verify-runtime-assets` in sequence. The visual sync copies the active SUB-META main-frame manifest and each local `assets[].path` dependency from `assets/visual/` into `public/assets/visual/` without bulk-copying legacy or preview trees.
-
-`postbuild` still prepares the immutable layout, then `verify-legacy-runtime-dist` checks `dist/build-meta.json`, resolves `dist/builds/<BUILD_ID>/`, and verifies runtime JS, active settings JSON, the SUB-META visual manifest, and all active local asset references inside the immutable build. Any missing active asset fails the build.
+Use `tools/deployment/browser-cache-probe.js` by pasting it into Chrome DevTools while the immutable app document is open. It makes default, reload, and no-store requests, compares SHA-256 hashes to each other and to the integrity manifest, displays `console.table`, and does not mutate storage or reload.
