@@ -8,9 +8,10 @@
     "dev": "vite --host 0.0.0.0",
     "prebuild": "node scripts/sync-legacy-runtime.mjs && node scripts/sync-public-vendor.mjs",
     "build": "vite build",
-    "postbuild": "node scripts/verify-legacy-runtime-dist.mjs",
+    "postbuild": "node scripts/prepare-release-layout.mjs && node scripts/verify-legacy-runtime-dist.mjs",
     "preview": "vite preview",
-    "validate:content": "node tools/content/validate_content.mjs"
+    "validate:content": "node tools/content/validate_content.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "devDependencies": {
     "vite": "^7.2.6"
