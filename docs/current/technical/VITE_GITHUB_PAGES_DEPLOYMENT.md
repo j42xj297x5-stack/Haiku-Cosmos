@@ -3,7 +3,7 @@
 > Status: CURRENT
 > Obszar: techniczny deployment runtime Haiku Cosmos
 > Repozytorium: `j42xj297x5-stack/Haiku-Cosmos`
-> Branch publikujący: `Haiku-Cosmos`
+> Branch publikujący: `HAIKU-COSMOS-DEPLOY-CLEAN` (tymczasowy clean deployment branch oparty na `CODEX-STARTING_POINT`)
 > Snapshot: 2026-06-04 po naprawie lokalnego i publicznego uruchamiania przez Vite + GitHub Pages
 
 ## Snapshot statusu 2026-06-04
@@ -58,16 +58,16 @@ Preview służy do lokalnego sprawdzenia zawartości `dist/` z tym samym base pa
 
 ## GitHub Pages deployment
 
-Deployment jest skonfigurowany w `.github/workflows/deploy-pages.yml`.
+Deployment jest skonfigurowany w `.github/workflows/deploy_pages.yml`.
 
-Po każdym pushu na branch `Haiku-Cosmos` GitHub Actions:
+Po każdym pushu na branch `HAIKU-COSMOS-DEPLOY-CLEAN` GitHub Actions:
 
 1. pobiera repozytorium,
 2. instaluje zależności przez `npm ci`,
 3. buduje projekt przez `npm run build`,
 4. publikuje katalog `dist/` na GitHub Pages.
 
-Workflow ma także `workflow_dispatch`, więc deployment można uruchomić ręcznie. Workflow nie publikuje z `pull_request`. Po merge/pushu do brancha `Haiku-Cosmos` nie trzeba uruchamiać deploya ręcznie, jeżeli push/merge uruchomił workflow; GitHub Pages odświeża się po poprawnym buildzie i deployu.
+Workflow ma także `workflow_dispatch`, więc deployment można uruchomić ręcznie. Workflow nie publikuje z `pull_request`. Po merge/pushu do brancha `HAIKU-COSMOS-DEPLOY-CLEAN` nie trzeba uruchamiać deploya ręcznie, jeżeli push/merge uruchomił workflow; GitHub Pages odświeża się po poprawnym buildzie i deployu.
 
 Docelowy URL GitHub Pages:
 
