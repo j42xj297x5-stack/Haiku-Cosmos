@@ -1,6 +1,6 @@
 const publicPath = window.HC?.publicPath;
 if (typeof publicPath !== "function") {
-  throw new Error("HC.publicPath must be loaded before hc.three_module_bridge.js");
+  throw new Error(`HC_BOOT_PUBLIC_PATH_ORDER: hc.publicPath missing (build=${window.HC_BUILD_INFO?.id || "unknown"}, appPath=${window.HC_BUILD_INFO?.appPath || "unknown"}, assetBase=${window.HC_BUILD_INFO?.assetBase || "unknown"}, manifestBridgeIndex=${window.HC_RELEASE_BOOTSTRAP?.manifestBridgeIndex ?? "unknown"}, HC=${Boolean(window.HC)}, publicPath=${typeof window.HC?.publicPath})`);
 }
 
 const THREE_MODULE_PUBLIC_PATH = "vendor/three/three.module.min.js";
@@ -31,7 +31,7 @@ const GLTF_LOADER_PUBLIC_PATH = "vendor/loaders/GLTFLoader.js";
     return;
   }
 
-  (async function loadThreeModule() {
+  window.HC_THREE_BRIDGE_READY = (async function loadThreeModule() {
     try {
       for (const url of window.HC_THREE_VENDOR_URLS) {
         const response = await fetch(url, { method: "GET", cache: "no-store" });
