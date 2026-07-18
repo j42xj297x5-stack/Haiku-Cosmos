@@ -30,8 +30,6 @@
     element("prg-czas-logo", "submeta_prg-czas-logo.png", 0.12, 0.311, 1.3, 1.3, 25),
     element("prg-cisza-label", "submeta_prg-cisza.png", 0.2, 0.386, 1.2, 1.2, 25),
     element("prg-cisza-logo", "submeta_prg-cisza-logo.png", 0.12, 0.386, 1.3, 1.3, 25),
-    element("prg-card-1", "submeta_prg-karta_1.png", 0.276, 0.16, 1, 1, 24),
-    element("prg-card-2", "submeta_prg-karta_2.png", 0.35, 0.16, 1, 1, 24),
     element("r2", "submeta_r2.png", 0.34, 0.27, 0.8, 0.8, 25),
     element("r4", "submeta_R4.png", 0.5, 0.5, 0.7, 0.7, 22),
     element("r3", "submeta_r3.png", 0.5, 0.25, 1, 1, 14),

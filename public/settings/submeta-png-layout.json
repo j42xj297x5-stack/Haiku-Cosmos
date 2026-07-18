@@ -162,30 +162,6 @@
       "mode": "image"
     },
     {
-      "id": "prg-card-1",
-      "src": "submeta_prg-karta_1.png",
-      "x": 0.276,
-      "y": 0.16,
-      "scaleX": 1,
-      "scaleY": 1,
-      "opacity": 1,
-      "zIndex": 24,
-      "visible": true,
-      "mode": "image"
-    },
-    {
-      "id": "prg-card-2",
-      "src": "submeta_prg-karta_2.png",
-      "x": 0.35,
-      "y": 0.16,
-      "scaleX": 1,
-      "scaleY": 1,
-      "opacity": 1,
-      "zIndex": 24,
-      "visible": true,
-      "mode": "image"
-    },
-    {
       "id": "r2",
       "src": "submeta_r2.png",
       "x": 0.351,
