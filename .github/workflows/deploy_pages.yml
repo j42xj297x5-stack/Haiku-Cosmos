@@ -2,7 +2,7 @@ name: Deploy Haiku Cosmos to GitHub Pages
 
 on:
   push:
-    branches: ["Haiku-Cosmos"]
+    branches: ["HAIKU-COSMOS-DEPLOY-CLEAN"]
   workflow_dispatch:
 
 permissions:
