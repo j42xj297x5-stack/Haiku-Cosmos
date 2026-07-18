@@ -106,3 +106,9 @@ npm run preview
 ## GitHub Pages deployment
 
 Workflow `.github/workflows/deploy_pages.yml` buduje projekt przez `npm run build` z `VITE_BUILD_SHA=${{ github.sha }}` i publikuje `dist/` przez GitHub Pages. Nie należy modyfikować branchy deploymentowych w lokalnym zadaniu ani wykonywać pushu bez osobnego polecenia.
+
+## Runtime asset graph verification
+
+The production build now treats runtime assets as part of the release contract. Before `vite build`, `prebuild` runs `sync-legacy-runtime`, `sync-public-vendor`, `sync-public-visual-assets`, and `verify-runtime-assets` in sequence. The visual sync copies the active SUB-META main-frame manifest and each local `assets[].path` dependency from `assets/visual/` into `public/assets/visual/` without bulk-copying legacy or preview trees.
+
+`postbuild` still prepares the immutable layout, then `verify-legacy-runtime-dist` checks `dist/build-meta.json`, resolves `dist/builds/<BUILD_ID>/`, and verifies runtime JS, active settings JSON, the SUB-META visual manifest, and all active local asset references inside the immutable build. Any missing active asset fails the build.

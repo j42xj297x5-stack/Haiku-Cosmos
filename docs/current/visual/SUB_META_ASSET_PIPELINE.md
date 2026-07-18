@@ -123,3 +123,9 @@ Pipeline CURRENT nie wymusza Figma-first. Dopuszczona i wspierana jest sciezka:
 9. future runtime/FrameComposer integration pass jako osobny etap.
 
 FrameComposer modularization moze byc domknieta pozniej, gdy design sie ustabilizuje. Ta sciezka nie zmienia mechaniki i nie uruchamia runtime integration w tym samym kroku dokumentacyjnym.
+
+## Runtime candidate publication guard
+
+Active runtime-candidate visual assets must be synchronized by `scripts/sync-public-visual-assets.mjs` before dev or build. The script reads `assets/visual/submeta/submeta_main_frame_v01_manifest.json`, validates `assets[]`, copies the manifest to `public/assets/visual/submeta/`, and copies every local `assets[].path` dependency while preserving logical paths used by `HC.publicPath` / assetBase.
+
+Legacy and preview visual trees are not bulk-published. Files from those trees may enter `public/` only when an active manifest explicitly references the exact file. `scripts/verify-runtime-assets.mjs` and `scripts/verify-legacy-runtime-dist.mjs` must fail when any active manifest or settings reference would 404 in source, public, or the immutable build.

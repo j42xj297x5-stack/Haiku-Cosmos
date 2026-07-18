@@ -10,10 +10,33 @@ const rootHtml = await readFile(path.join(distRoot, "index.html"), "utf8");
 const meta = JSON.parse(await readFile(path.join(distRoot, "build-meta.json"), "utf8"));
 const latestHtml = await readFile(path.join(distRoot, "latest", "index.html"), "utf8");
 const buildRoot = path.join(distRoot, "builds", meta.id);
+let pendingChecks = [];
 const scriptPattern = /<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
 const runtimeEntries = (html) => Array.from(html.matchAll(scriptPattern), (match) => match[1]).filter((src) => /(?:^|\/)runtime\/[^/]+\.js(?:[?#]|$)/i.test(src));
 const runtimeFile = (src) => decodeURIComponent(src.split(/[?#]/, 1)[0]).split("/").at(-1);
+
+const settingsFiles = ["settings/ui-typography.json", "settings/hud-top-layout.json", "settings/submeta-png-layout.json", "settings/submeta-placeholders.json", "settings/submeta-placeholders-panels.json"];
+const visualManifestPath = "assets/visual/submeta/submeta_main_frame_v01_manifest.json";
+const assetExt = /\.(?:png|svg|webp|jpe?g|json|glb|gltf|bin|ttf|woff2?)(?:[?#].*)?$/i;
+function isExternal(value) { return /^(?:https?:|data:|blob:|\/\/|#)/i.test(String(value || "")); }
+function cleanLocal(value) { return String(value || "").split(/[?#]/, 1)[0].replace(/^\.\//, "").replace(/^\/+/, "").replace(/^Haiku-Cosmos\//, ""); }
+async function isFile(relativePath) { try { return (await stat(path.join(buildRoot, relativePath))).isFile(); } catch { return false; } }
+function resolveBuildAssetPath(value, document) {
+  const clean = cleanLocal(value);
+  if (document.endsWith("submeta-png-layout.json") && !clean.includes("/")) return `png/submeta/${clean}`;
+  return clean;
+}
+function walkActive(value, visit, pointer = "$", active = true) {
+  if (!active) return;
+  if (Array.isArray(value)) value.forEach((item, index) => walkActive(item, visit, `${pointer}[${index}]`, active));
+  else if (value && typeof value === "object") {
+    const nextActive = value.visible !== false;
+    for (const [key, child] of Object.entries(value)) walkActive(child, visit, `${pointer}.${key}`, nextActive);
+  } else if (typeof value === "string") visit(value, pointer);
+}
+async function readBuildJson(relativePath) { return JSON.parse(await readFile(path.join(buildRoot, relativePath), "utf8")); }
 const requiredMeta = ["id", "sha", "shortSha", "builtAt", "mode", "latestPath", "assetBase"];
+
 for (const field of requiredMeta) if (!meta[field]) throw new Error(`build-meta.json missing ${field}`);
 if (meta.assetBase !== `/Haiku-Cosmos/builds/${meta.id}/`) throw new Error("assetBase must point at immutable build directory");
 if (meta.latestPath !== "/Haiku-Cosmos/latest/") throw new Error("latestPath must be /Haiku-Cosmos/latest/");
@@ -54,6 +77,48 @@ if (/localStorage\.clear\s*\(|sessionStorage\.clear\s*\(/.test(debugRuntime)) th
 const bridgeEntry = manifest.find((entry) => entry.type === "module" && /^assets\//.test(entry.src));
 if (!bridgeEntry) throw new Error("Three bridge module missing from dynamic manifest");
 if (!(await readFile(path.join(buildRoot, bridgeEntry.src), "utf8")).includes("HC_THREE_BRIDGE_VERSION")) throw new Error("Three bridge module content missing");
+
+let checkedSettings = 0;
+let checkedManifests = 0;
+let checkedAssets = 0;
+const missingAssets = [];
+function recordMissing(logical, document, missing) { missingAssets.push({ logical, document, missing }); }
+if (!(await isFile(visualManifestPath))) recordMissing(visualManifestPath, "dist build", visualManifestPath);
+else {
+  checkedManifests++;
+  const visualManifest = await readBuildJson(visualManifestPath);
+  if (!visualManifest || !Array.isArray(visualManifest.assets)) throw new Error(`${visualManifestPath} must contain assets[]`);
+  for (const asset of visualManifest.assets) {
+    const logical = cleanLocal(asset?.path);
+    if (!logical || isExternal(logical)) continue;
+    checkedAssets++;
+    if (!(await isFile(logical))) recordMissing(logical, visualManifestPath, logical);
+  }
+}
+const submetaLayout = await readBuildJson("settings/submeta-png-layout.json");
+for (const element of submetaLayout.elements || []) {
+  if (element?.visible === false || !element?.src) continue;
+  const logical = `png/submeta/${cleanLocal(element.src)}`;
+  checkedAssets++;
+  if (!(await isFile(logical))) recordMissing(logical, "settings/submeta-png-layout.json", logical);
+}
+for (const setting of settingsFiles) {
+  checkedSettings++;
+  const json = await readBuildJson(setting);
+  walkActive(json, (value, pointer) => {
+    if (!assetExt.test(value) || isExternal(value)) return;
+    checkedAssets++;
+    const logical = resolveBuildAssetPath(value, setting);
+    // checked asynchronously after collection is avoided by sync stat through fs promises in a queue below
+    if (!pendingChecks) pendingChecks = [];
+    pendingChecks.push({ logical, document: `${setting}${pointer}` });
+  });
+}
+for (const check of pendingChecks || []) if (!(await isFile(check.logical))) recordMissing(check.logical, check.document, check.logical);
+if (missingAssets.length) {
+  const details = missingAssets.map((item) => `logical: ${item.logical}\ndocument: ${item.document}\nmissing: ${item.missing}`).join("\n---\n");
+  throw new Error(`Missing runtime assets in immutable build (${missingAssets.length}):\n${details}`);
+}
 const latestEntries = await readdir(path.join(distRoot, "latest"));
 if (latestEntries.some((entry) => entry !== "index.html")) throw new Error("dist/latest must contain only bootstrap entry document");
-console.log(`Verified release layout for Build ID ${meta.id}: root redirect, inline latest preflight, scoped storage reset, dynamic ordered runtime from assetBase, no static runtime.`);
+console.log(`Verified release layout for Build ID ${meta.id}: runtime JS ${sourceFiles.length}, settings ${checkedSettings}, manifests ${checkedManifests}, assets ${checkedAssets}, zero missing files.`);

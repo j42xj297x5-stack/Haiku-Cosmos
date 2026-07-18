@@ -4,9 +4,9 @@
   "private": true,
   "description": "Haiku Cosmos vanilla JS runtime built with Vite for GitHub Pages.",
   "scripts": {
-    "predev": "node scripts/sync-legacy-runtime.mjs && node scripts/sync-public-vendor.mjs",
+    "predev": "node scripts/sync-legacy-runtime.mjs && node scripts/sync-public-vendor.mjs && node scripts/sync-public-visual-assets.mjs",
     "dev": "vite --host 0.0.0.0",
-    "prebuild": "node scripts/sync-legacy-runtime.mjs && node scripts/sync-public-vendor.mjs",
+    "prebuild": "node scripts/sync-legacy-runtime.mjs && node scripts/sync-public-vendor.mjs && node scripts/sync-public-visual-assets.mjs && node scripts/verify-runtime-assets.mjs",
     "build": "vite build",
     "postbuild": "node scripts/prepare-release-layout.mjs && node scripts/verify-legacy-runtime-dist.mjs",
     "preview": "vite preview",
