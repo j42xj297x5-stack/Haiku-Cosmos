@@ -45,6 +45,12 @@ for (const relativeFile of [...sourceFiles.map((file) => path.join("runtime", fi
   try { if (!(await stat(path.join(buildRoot, relativeFile))).isFile()) throw new Error(); }
   catch { throw new Error(`Missing required build file: ${relativeFile}`); }
 }
+const debugRuntime = await readFile(path.join(buildRoot, "runtime", "hc.debug.js"), "utf8");
+for (const needle of ["isDebugModeActive", "hasActiveDebugSession", "isManualExportInProgress", "cleanupLegacyDebugStorageForNormalMode", "hc:debug-normal-cleanup-v1"]) {
+  if (!debugRuntime.includes(needle)) throw new Error(`debug runtime missing normal/debug separation guard: ${needle}`);
+}
+if (/addEventListener\(["'](?:beforeunload|pagehide|visibilitychange)["']/.test(debugRuntime)) throw new Error("debug runtime must not register unload/visibility finalization listeners");
+if (/localStorage\.clear\s*\(|sessionStorage\.clear\s*\(/.test(debugRuntime)) throw new Error("debug runtime must not clear entire origin storage");
 const bridgeEntry = manifest.find((entry) => entry.type === "module" && /^assets\//.test(entry.src));
 if (!bridgeEntry) throw new Error("Three bridge module missing from dynamic manifest");
 if (!(await readFile(path.join(buildRoot, bridgeEntry.src), "utf8")).includes("HC_THREE_BRIDGE_VERSION")) throw new Error("Three bridge module content missing");

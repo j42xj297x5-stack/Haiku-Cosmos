@@ -219,6 +219,31 @@
   }
 
 
+
+  const DEBUG_NORMAL_CLEANUP_MARKER = "hc:debug-normal-cleanup-v1";
+  let debugModeActive = false;
+  let manualExportInProgress = false;
+
+  function isDebugModeActive() { return debugModeActive === true; }
+  function hasActiveDebugSession() { return isDebugModeActive() && Session.started === true && !!Session.sessionId; }
+  function isManualExportInProgress() { return manualExportInProgress === true; }
+
+  function cleanupLegacyDebugStorageForNormalMode() {
+    try {
+      if (!window.localStorage || window.localStorage.getItem(DEBUG_NORMAL_CLEANUP_MARKER)) return { ran: false, removed: 0 };
+      const keys = [];
+      for (let i = 0; i < window.localStorage.length; i += 1) {
+        const key = window.localStorage.key(i);
+        if (typeof key === "string" && key.startsWith("hc_debug_")) keys.push(key);
+      }
+      for (const key of keys) window.localStorage.removeItem(key);
+      window.localStorage.setItem(DEBUG_NORMAL_CLEANUP_MARKER, new Date().toISOString());
+      return { ran: true, removed: keys.length };
+    } catch (_e) {
+      return { ran: false, removed: 0, error: true };
+    }
+  }
+
   const EVIDENCE_EXPORT_PROFILES = Object.freeze(["minimal", "gameplay", "collisions", "renderer", "full"]);
   const EVIDENCE_EVENT_FILTERS = Object.freeze({
     minimal: ["debug.issue*", "error.*"],
@@ -797,9 +822,6 @@
       this.queue = Promise.resolve();
       this.wrotePhysicalData = false;
       this.artifactPaths = {};
-      try {
-        localStorage.setItem(this.metaKey, this.key);
-      } catch (_e) {}
       this.readyPromise = this.init();
     }
 
@@ -809,7 +831,7 @@
         mode: this.mode,
         message: this.message,
         sessionFolder: this.artifactPaths.sessionFolder || null,
-        filesSavedTo: this.artifactPaths.sessionFolder || (this.mode === "fallback" ? "browser localStorage/download" : null),
+        filesSavedTo: this.artifactPaths.sessionFolder || null,
         mainLog,
         summary: this.artifactPaths.summary || null,
       };
@@ -869,12 +891,7 @@
           await writable.close();
           this.wrotePhysicalData = true;
         } else {
-          try {
-            const prev = localStorage.getItem(this.key) || "";
-            localStorage.setItem(this.key, prev + chunk);
-          } catch (_e) {
-            this.inMemoryFallback += chunk;
-          }
+          this.inMemoryFallback += chunk;
         }
       });
     }
@@ -889,10 +906,7 @@
         this.artifactPaths[name.replace(/\.json$/,'')] = `${this.artifactPaths.sessionFolder}/${name}`;
         return;
       }
-      const key = `hc_debug_${this.sessionInfo.sessionId}_${name}`;
-      try {
-        localStorage.setItem(key, JSON.stringify(payload));
-      } catch (_e) {}
+      this.inMemoryFallback += `${JSON.stringify({ name, payload })}\n`;
     }
 
     async finalize(artifacts) {
@@ -1732,15 +1746,8 @@
     },
 
     getSessionEvents() {
-      const key = this.getSessionLogKey();
-      if (!key) return [];
-      let raw = "";
-      try {
-        raw = localStorage.getItem(key) || "";
-      } catch (_e) {}
-      if (!raw && this.logger?.backend) {
-        raw = this.logger.backend.eventsBuffer || this.logger.backend.inMemoryFallback || "";
-      }
+      if (!hasActiveDebugSession() && !this.sessionId) return [];
+      const raw = this.logger?.backend ? (this.logger.backend.eventsBuffer || this.logger.backend.inMemoryFallback || "") : "";
       return safeParseJsonl(raw).filter((entry) => entry && entry.type !== EVENT_TYPES.DEBUG_FLUSH);
     },
 
@@ -1890,16 +1897,17 @@
     },
 
     exportEvidence(note = "", profile = null) {
-      if (!this.sessionId) return null;
-      const pack = this.buildEvidencePack(note, profile);
-      if (this.debugConfig) this.debugConfig.exportProfile = pack.exportProfile;
-      const safeId = String(this.sessionId).replace(/[^a-zA-Z0-9._-]+/g, "_");
-      this.downloadTextFile(`hc_evidence_${safeId}.json`, JSON.stringify(pack, null, 2));
-      if (pack.exportProfile === "full" || pack.events_jsonl) this.downloadTextFile(`hc_evidence_${safeId}.events.jsonl`, pack.events_jsonl || "", "text/plain");
+      if (!hasActiveDebugSession()) return null;
+      manualExportInProgress = true;
       try {
-        localStorage.setItem(`hc_evidence_pack_${this.sessionId}`, JSON.stringify(pack));
-      } catch (_e) {}
-      return pack;
+        const pack = this.buildEvidencePack(note, profile);
+        if (this.debugConfig) this.debugConfig.exportProfile = pack.exportProfile;
+        const safeId = String(this.sessionId).replace(/[^a-zA-Z0-9._-]+/g, "_");
+        this.downloadTextFile(`hc_evidence_${safeId}.json`, JSON.stringify(pack, null, 2));
+        return pack;
+      } finally {
+        manualExportInProgress = false;
+      }
     },
 
     markIssue(partial = {}) {
@@ -1929,8 +1937,42 @@
       return issue;
     },
 
+    configure(uiConfig = {}) {
+      if (!isDebugModeActive()) return null;
+      this.sessionInputConfig = uiConfig && typeof uiConfig === "object" ? uiConfig : {};
+      return this.sessionInputConfig;
+    },
+
+    activate() {
+      debugModeActive = true;
+      return true;
+    },
+
+    startSession(uiConfig = null) {
+      if (!isDebugModeActive()) return null;
+      return this.start("debug", uiConfig);
+    },
+
     start(mode, uiConfig = null) {
       this.mode = mode === "debug" ? "debug" : "normal";
+      if (this.mode !== "debug") {
+        debugModeActive = false;
+        cleanupLegacyDebugStorageForNormalMode();
+        this.started = false;
+        this.sessionId = null;
+        this.logger = null;
+        this.debugConfig = createDebugConfig("normal");
+        window.HC = window.HC || {};
+        window.HC.RENDER_MODE = uiConfig?.visual?.rendererMode === "canvas2d" ? "canvas2d" : "three";
+        if (window.HC.WorldRenderer?.setMode) window.HC.WorldRenderer.setMode(window.HC.RENDER_MODE);
+        if (window.HC.resetWorld) window.HC.resetWorld(); else if (window.resetWorld) window.resetWorld();
+        const World = window.HC.getWorld ? window.HC.getWorld() : window.World;
+        this.restoreSessionThresholdDefaults(World);
+        if (World) World.paused = false;
+        window.HC.UI?.applySessionMode?.("normal");
+        return null;
+      }
+      if (!isDebugModeActive()) return null;
       const rawInput = uiConfig && typeof uiConfig === "object" ? uiConfig : {};
       const scenarioLabelRaw = String(rawInput.scenarioLabel || "").trim();
       this.scenarioLabel = scenarioLabelRaw || (this.mode === "debug" ? "debug_custom" : "normal_regression");
@@ -2010,47 +2052,14 @@
 
     async finalize(reason = "ended", aborted = false) {
       if (!this.started) return this.finalizeState;
-      this.finalizeState.status = "flushing";
-      this.finalizeState.message = "Flushing and finalizing session files...";
+      this.finalizeState.status = "ended";
+      this.finalizeState.message = "Session ended in memory; evidence export is manual only.";
       this.endedAtIso = new Date().toISOString();
       const endingType = aborted ? EVENT_TYPES.SESSION_ABORTED : EVENT_TYPES.SESSION_ENDED;
-      this.emit("session", endingType, { reason }, { source: "Session", snapshot: true, fullSnapshot: true, severity: aborted ? "warn" : "info" });
-      const finalSnapshot = this.getRuntimeSnapshot();
-      const exportPack = this.buildEvidencePack(this.evidenceNote || "", this.debugConfig?.exportProfile);
-      const summary = {
-        exportProfile: exportPack.exportProfile,
-        timelineStatus: exportPack.summary?.timelineStatus || "empty_no_events",
-        loggingEnabled: this.debugConfig?.loggingEnabled !== false,
-        loggingStatus: finalSnapshot?.loggingStatus || null,
-        loggingCounters: finalSnapshot?.loggingCounters || null,
-        sessionId: this.sessionId,
-        mode: this.mode,
-        endedAt: this.endedAtIso,
-        reason,
-        mainLogFile: "events.jsonl",
-        scenarioLabel: this.scenarioLabel || "manual_session",
-        counts: {
-          recentEventsTracked: Array.isArray(this.logger?.recentEvents) ? this.logger.recentEvents.length : 0,
-          pendingBuffer: this.logger?.buffer?.length || 0,
-          issues: this.issueLedger.length,
-        },
-      };
-      const status = await this.logger?.shutdown(reason, {
-        config: this.debugConfig,
-        finalSnapshot,
-        exportProfile: exportPack.exportProfile,
-        exportPack,
-        summary: Object.assign({}, summary, exportPack.summary || {}),
-        issues: this.issueLedger.slice(),
-      });
+      this.emit("session", endingType, { reason }, { source: "Session", snapshot: false, fullSnapshot: false, severity: aborted ? "warn" : "info" });
+      this.logger?.shutdown(reason);
       this.started = false;
-      this.finalizeState = {
-        status: "finalized",
-        message: "Session saved",
-        filesSavedTo: status?.filesSavedTo || null,
-        mainLog: status?.mainLog || "events.jsonl",
-        summary: status?.summary || "summary.json",
-      };
+      this.finalizeState = { status: "ended", message: "Session ended in memory; evidence export is manual only.", filesSavedTo: null, mainLog: null, summary: null };
       return this.finalizeState;
     },
 
@@ -2228,12 +2237,22 @@
   window.HC.createDebugConfig = createDebugConfig;
   window.HC.DebugFileBridge = DebugFileBridge;
   window.HC.Session = Session;
+  window.HC.Debug = {
+    isActive: isDebugModeActive,
+    hasActiveSession: hasActiveDebugSession,
+    isManualExportInProgress,
+    cleanupLegacyDebugStorageForNormalMode,
+    configure: (config) => Session.configure(config),
+    activate: () => Session.activate(),
+    startSession: (config) => Session.startSession(config),
+    endSession: (reason) => Session.finalize(reason || "user_end", false),
+    exportEvidence: (note, profile) => Session.exportEvidence(note, profile),
+    logEvent: (category, type, payload, opts) => Session.emit(category, type, payload, opts),
+  };
   window.HC.logEvent = (category, type, payload, opts) => Session.emit(category, type, payload, opts);
   window.HC.reportDebugIssue = (issuePayload) => Session.reportIssue(issuePayload);
   window.HC.selectDebugLogFolder = async () => DebugFileBridge.pickRootDirectory();
   window.HC.finalizeDebugSession = async () => Session.finalize("user_finalize", false);
   window.HC.forceFullDiagnostics = (reason) => Session.forceFullDiagnostics(reason || "manual");
-
-  window.addEventListener("beforeunload", () => Session.abort("beforeunload"));
-  window.addEventListener("pagehide", () => Session.flush("pagehide"));
+  window.HC.cleanupLegacyDebugStorageForNormalMode = cleanupLegacyDebugStorageForNormalMode;
 })();
