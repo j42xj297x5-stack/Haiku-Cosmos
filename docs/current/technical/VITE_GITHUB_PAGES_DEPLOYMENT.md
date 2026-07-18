@@ -3,165 +3,92 @@
 > Status: CURRENT
 > Obszar: techniczny deployment runtime Haiku Cosmos
 > Repozytorium: `j42xj297x5-stack/Haiku-Cosmos`
-> Branch publikujący: `Haiku-Cosmos`
-> Snapshot: 2026-06-04 po naprawie lokalnego i publicznego uruchamiania przez Vite + GitHub Pages
+> Branch roboczy: `CODEX-STARTING-POINT`
+> Branch deploymentowy: `HAIKU-COSMOS-DEPLOY-CLEAN`
+> Workflow: `.github/workflows/deploy_pages.yml`
+> Snapshot: produkcyjny model publikacji z immutable buildami
 
-## Snapshot statusu 2026-06-04
+## Publiczny model URL
 
-Potwierdzony baseline po naprawie uruchamiania:
+Publiczny adres aktualnej gry jest stały:
 
-- lokalny runtime przez Vite działa;
-- publiczny runtime na GitHub Pages działa;
-- runtime JS ładują się poprawnie;
-- runtime JS nie ładują się już z błędnego, podwójnego pathu `/Haiku-Cosmos/Haiku-Cosmos/runtime/...`;
-- obowiązujący publiczny model URL dla runtime to `/Haiku-Cosmos/runtime/nazwa_pliku.js`;
-- automatyczny deploy po merge/push do brancha `Haiku-Cosmos` działa przez GitHub Actions;
-- wcześniejszy błąd GitHub Actions `sh: 1: vite: Permission denied` został przypisany do śledzonego `node_modules` / błędnych uprawnień zależności w środowisku Linux i rozwiązany przez usunięcie zależności z repo oraz poprawne ignorowanie dependency artifacts.
+```text
+/Haiku-Cosmos/latest/
+```
 
-## Aktualny model uruchamiania
+Root projektu nie uruchamia runtime gry. `dist/index.html` jest minimalnym bootstrapem, który pobiera `/Haiku-Cosmos/build-meta.json` z `cache: "no-store"` i parametrem opartym o `Date.now()`, a następnie wykonuje `location.replace` do:
 
-- Vite jest lokalną warstwą dev/build dla vanilla JS runtime.
-- GitHub Pages jest publicznym deploymentem projektu.
-- Base path projektu pozostaje `/Haiku-Cosmos/`.
-- `dist/` jest artefaktem build/deploy, nie źródłem runtime do edycji.
+```text
+/Haiku-Cosmos/latest/?v=<BUILD_ID>
+```
 
-## Lokalny start
+`latest/index.html` przed uruchomieniem runtime pobiera aktualne metadane, porównuje je z osadzonym `window.HC_BUILD_INFO`, przekierowuje przez `location.replace` przy różnicy oraz usuwa query string przez `history.replaceState` po zgodnym starcie.
+
+## Układ `dist/`
+
+Build produkcyjny ma układ:
+
+```text
+dist/
+  index.html              # bootstrap root, bez runtime gry
+  build-meta.json         # źródło aktualnego buildu
+  latest/
+    index.html            # dokument wejściowy aktualnej gry
+  builds/
+    <BUILD_ID>/           # niezmienne drzewo plików aplikacji i assetów
+```
+
+Wszystkie runtime JS, moduły Vite, vendor, CSS, fonty, PNG/SVG/WEBP/JPG, GLB/GLTF/BIN, tekstury, mapy emisji, JSON settings/content i manifesty są publikowane pod:
+
+```text
+/Haiku-Cosmos/builds/<BUILD_ID>/
+```
+
+`assetBase` w metadanych ma wartość:
+
+```text
+/Haiku-Cosmos/builds/<BUILD_ID>/
+```
+
+`latest/index.html` wskazuje lokalne `src`/`href` właśnie do tego immutable katalogu. `dist/latest/` nie zawiera aktywnych assetów aplikacji poza dokumentem wejściowym.
+
+## `build-meta.json`
+
+`build-meta.json` jest źródłem aktualnego buildu dla root bootstrapu i preflightu `latest`. Zawiera co najmniej:
+
+```json
+{
+  "id": "<BUILD_ID>",
+  "sha": "<SHA lub lokalny identyfikator>",
+  "shortSha": "<krótki identyfikator>",
+  "builtAt": "<ISO UTC>",
+  "mode": "production",
+  "latestPath": "/Haiku-Cosmos/latest/",
+  "assetBase": "/Haiku-Cosmos/builds/<BUILD_ID>/"
+}
+```
+
+W GitHub Actions `BUILD_ID` pochodzi z `VITE_BUILD_SHA`. Lokalnie Vite tworzy jeden identyfikator `dev-*` albo `local-*` na start procesu, a nie przy każdym żądaniu.
+
+## Publiczne assety i `HC.publicPath`
+
+Publiczne URL-e do assetów należy budować przez `HC.publicPath` / `HC.publicAssetPath`; `HC.withBuildVersion` pozostaje publicznym API. W produkcji bazą helperów jest `window.HC_BUILD_INFO.assetBase`, a w lokalnym dev zachowane są ścieżki Vite pod `/Haiku-Cosmos/`.
+
+JSON nadal przechowuje ścieżki logiczne, np. `png/foo.png`, `settings/foo.json`, `glb/foo.glb`. Nie zapisujemy w JSON pełnych browser URL-i. Zewnętrzne `http/https`, inne originy oraz `data:` i `blob:` nie są przepisywane.
+
+Relatywne zależności GLTF/GLB, takie jak BIN i tekstury, muszą znajdować się w tym samym immutable drzewie buildu, aby otrzymywały URL z tym samym `BUILD_ID` w ścieżce.
+
+## Build i preview
 
 ```bash
 npm install
-npm run dev
-```
-
-Dev server Vite zwykle jest dostępny pod adresem:
-
-```text
-http://localhost:5173/Haiku-Cosmos/
-```
-
-Jeżeli Vite wypisze inny host albo port, należy użyć adresu z konsoli.
-
-## Build produkcyjny
-
-```bash
+npm run validate:content
 npm run build
-```
-
-Build produkcyjny powstaje w katalogu `dist/`.
-
-## Preview produkcyjnego buildu
-
-```bash
 npm run preview
 ```
 
-Preview służy do lokalnego sprawdzenia zawartości `dist/` z tym samym base path, którego używa GitHub Pages.
+`postbuild` uruchamia przygotowanie układu release i weryfikator `scripts/verify-legacy-runtime-dist.mjs`, który sprawdza bootstrap root, kompletność metadanych, `latest/index.html`, zgodność `HC_BUILD_INFO`, preflight aktualizacji, immutable katalog buildu, kolejność klasycznych skryptów, Three bridge, brak nierozwiązanych tokenów i brak aktywnej rejestracji Service Workera.
 
 ## GitHub Pages deployment
 
-Deployment jest skonfigurowany w `.github/workflows/deploy-pages.yml`.
-
-Po każdym pushu na branch `Haiku-Cosmos` GitHub Actions:
-
-1. pobiera repozytorium,
-2. instaluje zależności przez `npm ci`,
-3. buduje projekt przez `npm run build`,
-4. publikuje katalog `dist/` na GitHub Pages.
-
-Workflow ma także `workflow_dispatch`, więc deployment można uruchomić ręcznie. Workflow nie publikuje z `pull_request`. Po merge/pushu do brancha `Haiku-Cosmos` nie trzeba uruchamiać deploya ręcznie, jeżeli push/merge uruchomił workflow; GitHub Pages odświeża się po poprawnym buildzie i deployu.
-
-Docelowy URL GitHub Pages:
-
-```text
-https://j42xj297x5-stack.github.io/Haiku-Cosmos/
-```
-
-## Vite base
-
-Wartość `base` w `vite.config.js` musi wynosić:
-
-```text
-/Haiku-Cosmos/
-```
-
-To jest project site GitHub Pages dla repozytorium `Haiku-Cosmos`, a nie user site i nie konfiguracja portfolio.
-
-## Publiczne assety
-
-Publiczne URL-e do assetów należy budować przez globalny helper `HC.publicPath` / `HC.publicAssetPath` z `hc.public_path.js`. Helper jest klasycznym skryptem legacy i wyznacza base path z własnego URL `runtime/hc.public_path.js`, dzięki czemu jest dostępny synchronicznie przed pozostałym runtime zarówno lokalnie, jak i na GitHub Pages.
-
-Przykłady logicznych ścieżek, bez tworzenia tych plików w repo:
-
-```js
-publicPath("models/world/nazwa_modelu.glb")
-publicPath("/models/world/nazwa_modelu.glb")
-publicPath("png/nazwa_pliku.png")
-publicPath("svg/nazwa_pliku.svg")
-publicPath("textures/nazwa_tekstury.webp")
-publicPath("vendor/loaders/GLTFLoader.js")
-```
-
-Na GitHub Pages wynik zaczyna się od:
-
-```text
-/Haiku-Cosmos/
-```
-
-Fizyczny prefiks `public/` nie należy do browser-visible URL. Helper usuwa go defensywnie, ale kanoniczne metadane przechowują logical paths bez `public/`. Nie należy hardkodować nazwy repozytorium, absolutnych URL-i do raw GitHub ani ścieżek zależnych od lokalnego dysku.
-
-## Katalogi przyszłych assetów publicznych
-
-Struktura przygotowana wyłącznie pod przyszłe ręczne wgranie assetów przez projektanta:
-
-```text
-public/
-  models/
-    world/
-  png/
-  svg/
-  textures/
-```
-
-Puste katalogi są utrzymywane przez `.gitkeep`. W tym pass nie dodaje się żadnych placeholderów binarnych ani przykładowych assetów: GLB, GLTF, BIN, FBX, OBJ, BLEND, PNG, JPG, JPEG, WEBP ani SVG.
-
-Three.js i `GLTFLoader` pozostają lokalnie vendored w root `vendor/`. Przed dev/build `scripts/sync-public-vendor.mjs` tworzy generowaną kopię `public/vendor/`, dzięki czemu Vite serwuje ten sam kontrakt jako `BASE_URL + vendor/...` lokalnie i kopiuje go do `dist/vendor/`. `hc.three_module_bridge.js` rozwiązuje oba dynamiczne importy wyłącznie przez `publicPath()`; zależność `../three/three.module.min.js` wewnątrz vendored `GLTFLoader.js` pozostaje dostępna w tym samym drzewie.
-
-## Legacy runtime JS w buildzie Vite
-
-Runtime gry nadal używa klasycznych globalnych skryptów JS (`hc.*.js`, `cards.js`, `game.boot.js`) ładowanych przez `<script src="...">`. Nie są one w tym pass przerabiane na moduły ES.
-
-Źródła tych plików pozostają w root repozytorium, a lista plików do publikacji jest jawnie utrzymywana w `scripts/legacy-runtime-files.mjs`. Przed `npm run dev` i `npm run build` skrypt `scripts/sync-legacy-runtime.mjs` kopiuje je do `public/runtime/`. Podczas buildu Vite kopiuje zawartość `public/` do `dist/`, więc finalnie skrypty są dostępne jako:
-
-```text
-dist/runtime/hc.core.js
-dist/runtime/cards.js
-dist/runtime/game.boot.js
-```
-
-oraz pozostałe pliki z listy runtime.
-
-HTML ładuje klasyczne runtime skrypty przez ścieżki względne względem dokumentu, np.:
-
-```html
-<script src="./runtime/hc.core.js"></script>
-<script src="./runtime/cards.js"></script>
-<script src="./runtime/game.boot.js"></script>
-```
-
-W aktualnym `index.html` zapis może być znormalizowany przez przeglądarkę/narzędzia jako `runtime/nazwa_pliku.js`; istotny jest model względny, bez prefiksowania klasycznych globalnych skryptów przez `%BASE_URL%`. Dla GitHub Pages daje to poprawny URL pod `/Haiku-Cosmos/runtime/...`. Zachowuj kolejność `<script>` z `index.html`: `cards.js` musi pozostać przed modułami, które korzystają z kart, a `game.boot.js` po modułach świata.
-
-Powód tego rozdziału: przy klasycznych scriptach wariant `%BASE_URL%runtime/...` powodował w dev/build błędny, podwójny path `/Haiku-Cosmos/Haiku-Cosmos/runtime/...`. `hc.public_path.js` oraz `hc.submeta_settings.js` są klasycznymi skryptami w `runtime/` i muszą wykonać się przed konsumentami legacy. `hc.three_module_bridge.js` pozostaje modułem, ale korzysta z wcześniej zarejestrowanego globalnego `HC.publicPath`.
-
-Po buildzie `postbuild` uruchamia `scripts/verify-legacy-runtime-dist.mjs`, który przerywa build, jeśli brakuje wymaganego legacy scriptu w `dist/runtime/` albo publicznych entry modules `dist/vendor/three/three.module.min.js` i `dist/vendor/loaders/GLTFLoader.js`.
-
-## Wersjonowanie deploymentu
-
-Workflow przekazuje `github.sha` jako `VITE_BUILD_SHA`. Plugin `transformIndexHtml` dopisuje ten sam parametr `?v=<build-id>` do wszystkich klasycznych skryptów `runtime/` oraz osadza diagnostyczne `window.HC_BUILD_INFO`. Lokalny dev/build tworzy jeden identyfikator `dev-<timestamp>` albo `local-<timestamp>` na start procesu Vite. Moduł `hc.three_module_bridge.js` pozostaje przetwarzany i hashowany przez Vite w `dist/assets/`.
-
-`HC.withBuildVersion(url)` dodaje ten sam identyfikator do lokalnych żądań JSON settings/data bez zmiany ścieżek logicznych. Weryfikator postbuild kontroluje wspólny Build ID, kolejność i kompletność runtime, BuildInfo, fizyczne pliki oraz hashowany bridge ESM.
-
-## Dependency hygiene
-
-- `node_modules` nie może być śledzone przez git.
-- `node_modules/` jest ignorowane w `.gitignore`.
-- `dist/` pozostaje artefaktem build/deploy, nie źródłem runtime.
-- Wcześniejszy błąd GitHub Actions `sh: 1: vite: Permission denied` wynikał ze śledzonego `node_modules` / błędnych uprawnień zależności w środowisku Linux.
+Workflow `.github/workflows/deploy_pages.yml` buduje projekt przez `npm run build` z `VITE_BUILD_SHA=${{ github.sha }}` i publikuje `dist/` przez GitHub Pages. Nie należy modyfikować branchy deploymentowych w lokalnym zadaniu ani wykonywać pushu bez osobnego polecenia.
